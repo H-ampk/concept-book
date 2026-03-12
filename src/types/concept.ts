@@ -18,7 +18,8 @@ export type Concept = {
   title: string;
   definition: string;
   myInterpretation: string;
-  tags: string[];
+  domainTags: string[];
+  researchTags: string[];
   relatedIds: string[];
   source: ConceptSource;
   notes: string;
@@ -34,7 +35,8 @@ export const createEmptyConceptInput = (): ConceptInput => ({
   title: "",
   definition: "",
   myInterpretation: "",
-  tags: [],
+  domainTags: [],
+  researchTags: [],
   relatedIds: [],
   source: {
     book: "",

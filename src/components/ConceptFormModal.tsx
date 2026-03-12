@@ -19,7 +19,8 @@ const splitCsv = (value: string): string[] =>
 
 export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose, onSubmit }: Props) => {
   const [form, setForm] = useState<ConceptInput>(createEmptyConceptInput());
-  const [tagInput, setTagInput] = useState("");
+  const [domainTagInput, setDomainTagInput] = useState("");
+  const [researchTagInput, setResearchTagInput] = useState("");
   const [relatedInput, setRelatedInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,19 +34,22 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
         title: baseConcept.title,
         definition: baseConcept.definition,
         myInterpretation: baseConcept.myInterpretation,
-        tags: baseConcept.tags,
+        domainTags: baseConcept.domainTags,
+        researchTags: baseConcept.researchTags,
         relatedIds: baseConcept.relatedIds,
         source: baseConcept.source,
         notes: baseConcept.notes,
         status: baseConcept.status,
         favorite: baseConcept.favorite
       });
-      setTagInput(joinCsv(baseConcept.tags));
+      setDomainTagInput(joinCsv(baseConcept.domainTags));
+      setResearchTagInput(joinCsv(baseConcept.researchTags));
       setRelatedInput(joinCsv(baseConcept.relatedIds));
     } else {
       const empty = createEmptyConceptInput();
       setForm(empty);
-      setTagInput("");
+      setDomainTagInput("");
+      setResearchTagInput("");
       setRelatedInput("");
     }
     setError(null);
@@ -69,7 +73,8 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
     const payload: ConceptInput = {
       ...form,
       title: form.title.trim(),
-      tags: splitCsv(tagInput),
+      domainTags: splitCsv(domainTagInput),
+      researchTags: splitCsv(researchTagInput),
       relatedIds: splitCsv(relatedInput),
       source: {
         book: form.source.book.trim(),
@@ -131,11 +136,20 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-slate-700">タグ（カンマ区切り）</span>
+            <span className="mb-1 block text-sm text-slate-700">分野タグ（カンマ区切り）</span>
             <input
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
+              value={domainTagInput}
+              onChange={(e) => setDomainTagInput(e.target.value)}
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-sm text-slate-700">研究テーマタグ（カンマ区切り）</span>
+            <input
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              value={researchTagInput}
+              onChange={(e) => setResearchTagInput(e.target.value)}
             />
           </label>
 

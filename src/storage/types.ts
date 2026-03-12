@@ -6,7 +6,11 @@ export type ConceptStorage = {
   createConcept: (input: ConceptInput) => Promise<Concept>;
   updateConcept: (
     id: string,
-    updates: Partial<ConceptInput> & { relatedIds?: string[]; tags?: string[] }
+    updates: Partial<ConceptInput> & {
+      relatedIds?: string[];
+      domainTags?: string[];
+      researchTags?: string[];
+    }
   ) => Promise<Concept | undefined>;
   deleteConcept: (id: string) => Promise<void>;
   exportConcepts: () => Promise<Concept[]>;

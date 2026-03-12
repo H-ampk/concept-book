@@ -13,12 +13,15 @@ export const App = () => {
   const {
     concepts,
     visibleConcepts,
-    allTags,
+    allDomainTags,
+    allResearchTags,
     loading,
     query,
     setQuery,
-    selectedTags,
-    setSelectedTags,
+    selectedDomainTags,
+    setSelectedDomainTags,
+    selectedResearchTags,
+    setSelectedResearchTags,
     onlyFavorite,
     setOnlyFavorite,
     create,
@@ -109,7 +112,7 @@ export const App = () => {
               <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  placeholder="タイトル・定義・解釈・タグ・メモを検索"
+                  placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -128,30 +131,64 @@ export const App = () => {
                   概念を追加
                 </button>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {allTags.length === 0 ? (
-                  <span className="text-xs text-slate-500">タグ未登録</span>
-                ) : (
-                  allTags.map((tag) => {
-                    const active = selectedTags.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() =>
-                          setSelectedTags((prev) =>
-                            prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
-                          )
-                        }
-                        className={`rounded-full px-2.5 py-1 text-xs ${
-                          active ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-700"
-                        }`}
-                      >
-                        #{tag}
-                      </button>
-                    );
-                  })
-                )}
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-slate-600">分野タグ:</span>
+                  {allDomainTags.length === 0 ? (
+                    <span className="text-xs text-slate-500">未登録</span>
+                  ) : (
+                    allDomainTags.map((tag) => {
+                      const active = selectedDomainTags.includes(tag);
+                      return (
+                        <button
+                          key={`domain-${tag}`}
+                          type="button"
+                          onClick={() =>
+                            setSelectedDomainTags((prev) =>
+                              prev.includes(tag)
+                                ? prev.filter((item) => item !== tag)
+                                : [...prev, tag]
+                            )
+                          }
+                          className={`rounded-full px-2.5 py-1 text-xs ${
+                            active ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-slate-600">研究テーマタグ:</span>
+                  {allResearchTags.length === 0 ? (
+                    <span className="text-xs text-slate-500">未登録</span>
+                  ) : (
+                    allResearchTags.map((tag) => {
+                      const active = selectedResearchTags.includes(tag);
+                      return (
+                        <button
+                          key={`research-${tag}`}
+                          type="button"
+                          onClick={() =>
+                            setSelectedResearchTags((prev) =>
+                              prev.includes(tag)
+                                ? prev.filter((item) => item !== tag)
+                                : [...prev, tag]
+                            )
+                          }
+                          className={`rounded-full px-2.5 py-1 text-xs ${
+                            active ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-700"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </section>
 

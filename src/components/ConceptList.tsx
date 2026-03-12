@@ -42,12 +42,20 @@ export const ConceptList = ({
             </div>
             <p className="line-clamp-2 text-sm text-slate-600">{concept.definition || "定義未入力"}</p>
             <div className="mt-2 flex flex-wrap gap-1">
-              {concept.tags.slice(0, 4).map((tag) => (
+              {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
-                  key={`${concept.id}-${tag}`}
+                  key={`${concept.id}-domain-${tag}`}
                   className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
                 >
-                  #{tag}
+                  D:{tag}
+                </span>
+              ))}
+              {concept.researchTags.slice(0, 2).map((tag) => (
+                <span
+                  key={`${concept.id}-research-${tag}`}
+                  className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700"
+                >
+                  R:{tag}
                 </span>
               ))}
             </div>

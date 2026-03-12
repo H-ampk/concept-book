@@ -45,13 +45,33 @@ export const ConceptDetail = ({ concept, conceptMap, onSelectRelated }: Props) =
       </article>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">タグ</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">分野タグ</h3>
         <div className="flex flex-wrap gap-1">
-          {concept.tags.length === 0 ? (
+          {concept.domainTags.length === 0 ? (
             <span className="text-sm text-slate-500">なし</span>
           ) : (
-            concept.tags.map((tag) => (
+            concept.domainTags.map((tag) => (
               <span key={tag} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                #{tag}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          研究テーマタグ
+        </h3>
+        <div className="flex flex-wrap gap-1">
+          {concept.researchTags.length === 0 ? (
+            <span className="text-sm text-slate-500">なし</span>
+          ) : (
+            concept.researchTags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700"
+              >
                 #{tag}
               </span>
             ))
