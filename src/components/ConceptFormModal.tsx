@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { conceptStatusList, createEmptyConceptInput, type Concept, type ConceptInput } from "../types/concept";
+import { RelatedConceptPicker } from "./RelatedConceptPicker";
 
 type Props = {
   open: boolean;
@@ -21,7 +22,6 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
   const [form, setForm] = useState<ConceptInput>(createEmptyConceptInput());
   const [domainTagInput, setDomainTagInput] = useState("");
   const [researchTagInput, setResearchTagInput] = useState("");
-  const [relatedInput, setRelatedInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,21 +44,14 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
       });
       setDomainTagInput(joinCsv(baseConcept.domainTags));
       setResearchTagInput(joinCsv(baseConcept.researchTags));
-      setRelatedInput(joinCsv(baseConcept.relatedIds));
     } else {
       const empty = createEmptyConceptInput();
       setForm(empty);
       setDomainTagInput("");
       setResearchTagInput("");
-      setRelatedInput("");
     }
     setError(null);
   }, [open, mode, baseConcept]);
-
-  const relatedCandidates = useMemo(
-    () => allConcepts.filter((concept) => concept.id !== baseConcept?.id),
-    [allConcepts, baseConcept?.id]
-  );
 
   if (!open) {
     return null;
@@ -75,7 +68,6 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
       title: form.title.trim(),
       domainTags: splitCsv(domainTagInput),
       researchTags: splitCsv(researchTagInput),
-      relatedIds: splitCsv(relatedInput),
       source: {
         book: form.source.book.trim(),
         page: form.source.page.trim(),
@@ -168,18 +160,12 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
             </select>
           </label>
 
-          <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-slate-700">関連概念ID（カンマ区切り）</span>
-            <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              value={relatedInput}
-              onChange={(e) => setRelatedInput(e.target.value)}
-              placeholder="concept_xxx, concept_yyy"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              候補: {relatedCandidates.slice(0, 8).map((c) => c.id).join(", ") || "なし"}
-            </p>
-          </label>
+          <RelatedConceptPicker
+            allConcepts={allConcepts}
+            selectedIds={form.relatedIds}
+            currentConceptId={baseConcept?.id}
+            onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
+          />
 
           <label className="md:col-span-2">
             <span className="mb-1 block text-sm text-slate-700">メモ</span>

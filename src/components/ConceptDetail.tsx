@@ -1,14 +1,25 @@
 import type { Concept } from "../types/concept";
 import { shortDateTime } from "../utils/date";
+import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 import { StatusBadge } from "./StatusBadge";
 
 type Props = {
   concept?: Concept;
   conceptMap: Map<string, Concept>;
+  domainColorMap: Record<string, string>;
   onSelectRelated: (id: string) => void;
+  onRequestDelete: (concept: Concept) => void;
+  deleting: boolean;
 };
 
-export const ConceptDetail = ({ concept, conceptMap, onSelectRelated }: Props) => {
+export const ConceptDetail = ({
+  concept,
+  conceptMap,
+  domainColorMap,
+  onSelectRelated,
+  onRequestDelete,
+  deleting
+}: Props) => {
   if (!concept) {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-quiet">
@@ -28,6 +39,17 @@ export const ConceptDetail = ({ concept, conceptMap, onSelectRelated }: Props) =
         )}
         <StatusBadge status={concept.status} />
       </header>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => onRequestDelete(concept)}
+          disabled={deleting}
+          className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {deleting ? "削除中..." : "削除"}
+        </button>
+      </div>
 
       <article className="space-y-3 text-sm text-slate-700">
         <div>
@@ -51,7 +73,11 @@ export const ConceptDetail = ({ concept, conceptMap, onSelectRelated }: Props) =
             <span className="text-sm text-slate-500">なし</span>
           ) : (
             concept.domainTags.map((tag) => (
-              <span key={tag} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+              <span
+                key={tag}
+                className="rounded-md border px-2 py-0.5 text-xs"
+                style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
+              >
                 #{tag}
               </span>
             ))

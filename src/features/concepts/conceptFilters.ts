@@ -1,4 +1,4 @@
-import type { Concept } from "../../types/concept";
+import { conceptStatusList, type Concept, type ConceptStatus } from "../../types/concept";
 import { includesNormalized } from "../../utils/search";
 
 const fullText = (concept: Concept): string =>
@@ -16,6 +16,7 @@ export const filterConcepts = (
   query: string,
   selectedDomainTags: string[],
   selectedResearchTags: string[],
+  selectedStatuses: ConceptStatus[],
   onlyFavorite: boolean
 ): Concept[] =>
   concepts.filter((concept) => {
@@ -26,8 +27,10 @@ export const filterConcepts = (
     const byResearchTags =
       selectedResearchTags.length === 0 ||
       selectedResearchTags.every((tag) => concept.researchTags.includes(tag));
+    const byStatus =
+      selectedStatuses.length === 0 || selectedStatuses.includes(concept.status);
     const byFavorite = !onlyFavorite || concept.favorite;
-    return byQuery && byDomainTags && byResearchTags && byFavorite;
+    return byQuery && byDomainTags && byResearchTags && byStatus && byFavorite;
   });
 
 export const collectTagGroups = (
@@ -44,3 +47,5 @@ export const collectTagGroups = (
     researchTags: [...researchSet].sort((a, b) => a.localeCompare(b, "ja"))
   };
 };
+
+export const allStatuses: ConceptStatus[] = [...conceptStatusList];

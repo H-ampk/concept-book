@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStorage } from "../../storage";
-import type { Concept, ConceptInput } from "../../types/concept";
+import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
 import { collectTagGroups, filterConcepts } from "./conceptFilters";
 
 const storage = getStorage();
@@ -11,6 +11,7 @@ export const useConcepts = () => {
   const [query, setQuery] = useState("");
   const [selectedDomainTags, setSelectedDomainTags] = useState<string[]>([]);
   const [selectedResearchTags, setSelectedResearchTags] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<ConceptStatus[]>([]);
   const [onlyFavorite, setOnlyFavorite] = useState(false);
 
   const reload = useCallback(async () => {
@@ -63,9 +64,17 @@ export const useConcepts = () => {
         query,
         selectedDomainTags,
         selectedResearchTags,
+        selectedStatuses,
         onlyFavorite
       ),
-    [concepts, onlyFavorite, query, selectedDomainTags, selectedResearchTags]
+    [
+      concepts,
+      onlyFavorite,
+      query,
+      selectedDomainTags,
+      selectedResearchTags,
+      selectedStatuses
+    ]
   );
 
   const tagGroups = useMemo(() => collectTagGroups(concepts), [concepts]);
@@ -82,6 +91,8 @@ export const useConcepts = () => {
     setSelectedDomainTags,
     selectedResearchTags,
     setSelectedResearchTags,
+    selectedStatuses,
+    setSelectedStatuses,
     onlyFavorite,
     setOnlyFavorite,
     create,

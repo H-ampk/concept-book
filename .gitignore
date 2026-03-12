@@ -6,3 +6,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Local backups / private research notes
+concept-backup-*.json
+*.backup.json
+backups/
+private-data/
+private/

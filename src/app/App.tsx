@@ -1,13 +1,64 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
-import { ConceptList } from "../components/ConceptList";
+import { ConceptGraphView } from "../components/ConceptGraphView";
+import {
+  ConceptGroupSections,
+  type ConceptGroupSection,
+  type ListViewMode
+} from "../components/ConceptGroupSections";
 import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
-import type { Concept } from "../types/concept";
-import type { ConceptInput } from "../types/concept";
+import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
+import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 
 type Screen = "concepts" | "settings";
+type ConceptMainTab = "list" | "graph";
+
+const statusLabelMap: Record<ConceptStatus, string> = {
+  active: "稼働中",
+  researching: "調査中",
+  unclear: "未整理",
+  archived: "保管"
+};
+
+const buildTagSections = (
+  concepts: Concept[],
+  type: "domain" | "research"
+): ConceptGroupSection[] => {
+  const bucket = new Map<string, Concept[]>();
+  let unclassified: Concept[] = [];
+
+  concepts.forEach((concept) => {
+    const tags = type === "domain" ? concept.domainTags : concept.researchTags;
+    if (tags.length === 0) {
+      unclassified = [...unclassified, concept];
+      return;
+    }
+    tags.forEach((tag) => {
+      const current = bucket.get(tag) ?? [];
+      bucket.set(tag, [...current, concept]);
+    });
+  });
+
+  const sections: ConceptGroupSection[] = [...bucket.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, "ja"))
+    .map(([tag, groupedConcepts]) => ({
+      key: `${type}-${tag}`,
+      label: tag,
+      concepts: groupedConcepts
+    }));
+
+  if (unclassified.length > 0) {
+    sections.push({
+      key: "unclassified",
+      label: "未分類",
+      concepts: unclassified
+    });
+  }
+
+  return sections;
+};
 
 export const App = () => {
   const {
@@ -22,6 +73,8 @@ export const App = () => {
     setSelectedDomainTags,
     selectedResearchTags,
     setSelectedResearchTags,
+    selectedStatuses,
+    setSelectedStatuses,
     onlyFavorite,
     setOnlyFavorite,
     create,
@@ -36,9 +89,28 @@ export const App = () => {
   const [mobileDetail, setMobileDetail] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingConcept, setEditingConcept] = useState<Concept | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<Concept | undefined>(undefined);
+  const [deleting, setDeleting] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [conceptMainTab, setConceptMainTab] = useState<ConceptMainTab>("list");
+  const [listViewMode, setListViewMode] = useState<ListViewMode>("all");
+  const [domainColorMap, setDomainColorMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setDomainColorMap(loadDomainColorMap());
+  }, []);
 
   const conceptMap = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
   const selectedConcept = selectedId ? conceptMap.get(selectedId) : undefined;
+  const groupedSections = useMemo(() => {
+    if (listViewMode === "all") {
+      return [{ key: "all", label: "全体", concepts: visibleConcepts }];
+    }
+    if (listViewMode === "domain") {
+      return buildTagSections(visibleConcepts, "domain");
+    }
+    return buildTagSections(visibleConcepts, "research");
+  }, [listViewMode, visibleConcepts]);
 
   const openCreate = () => {
     setEditingConcept(undefined);
@@ -63,17 +135,40 @@ export const App = () => {
     setSelectedId(id);
     setMobileDetail(true);
   };
+  const handleGraphSelect = (id: string) => {
+    setSelectedId(id);
+  };
 
-  const handleDelete = async (id: string) => {
-    const ok = window.confirm("この概念を削除しますか？");
-    if (!ok) {
+  const handleRequestDelete = (concept: Concept) => {
+    setDeleteTarget(concept);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || deleting) {
       return;
     }
-    await remove(id);
-    if (selectedId === id) {
-      setSelectedId(undefined);
-      setMobileDetail(false);
+    setDeleting(true);
+    try {
+      await remove(deleteTarget.id);
+      if (selectedId === deleteTarget.id) {
+        setSelectedId(undefined);
+        setMobileDetail(false);
+      }
+      setDeleteTarget(undefined);
+      setFeedback("概念を削除しました。");
+    } catch {
+      setFeedback("削除に失敗しました。時間をおいて再試行してください。");
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleChangeDomainColor = (tag: string, color: string) => {
+    setDomainColorMap((prev) => {
+      const next = { ...prev, [tag]: color };
+      saveDomainColorMap(next);
+      return next;
+    });
   };
 
   return (
@@ -105,7 +200,12 @@ export const App = () => {
 
       <main className="mx-auto max-w-7xl px-4 py-4">
         {screen === "settings" ? (
-          <SettingsPage onImported={reload} />
+          <SettingsPage
+            onImported={reload}
+            domainTags={allDomainTags}
+            domainColorMap={domainColorMap}
+            onChangeDomainColor={handleChangeDomainColor}
+          />
         ) : (
           <div className="space-y-4">
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-quiet">
@@ -131,6 +231,54 @@ export const App = () => {
                   概念を追加
                 </button>
               </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-600">表示:</span>
+                <button
+                  type="button"
+                  onClick={() => setConceptMainTab("list")}
+                  className={`rounded-md px-2.5 py-1 text-xs ${
+                    conceptMainTab === "list"
+                      ? "bg-slate-800 text-white"
+                      : "border border-slate-300 bg-white text-slate-700"
+                  }`}
+                >
+                  一覧表示
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConceptMainTab("graph")}
+                  className={`rounded-md px-2.5 py-1 text-xs ${
+                    conceptMainTab === "graph"
+                      ? "bg-slate-800 text-white"
+                      : "border border-slate-300 bg-white text-slate-700"
+                  }`}
+                >
+                  グラフ表示
+                </button>
+              </div>
+              {conceptMainTab === "list" && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-slate-600">表示モード:</span>
+                  {([
+                    ["all", "全体"],
+                    ["domain", "分野別"],
+                    ["research", "研究テーマ別"]
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setListViewMode(mode)}
+                      className={`rounded-md px-2.5 py-1 text-xs ${
+                        listViewMode === mode
+                          ? "bg-slate-800 text-white"
+                          : "border border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-medium text-slate-600">分野タグ:</span>
@@ -189,20 +337,69 @@ export const App = () => {
                     })
                   )}
                 </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-slate-600">状態:</span>
+                  {conceptStatusList.map((status) => {
+                    const active = selectedStatuses.includes(status);
+                    return (
+                      <button
+                        key={`status-${status}`}
+                        type="button"
+                        onClick={() =>
+                          setSelectedStatuses((prev) =>
+                            prev.includes(status)
+                              ? prev.filter((item) => item !== status)
+                              : [...prev, status]
+                          )
+                        }
+                        className={`rounded-full px-2.5 py-1 text-xs ${
+                          active ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        {statusLabelMap[status]}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 
             {loading ? (
               <p className="text-sm text-slate-500">読み込み中...</p>
+            ) : conceptMainTab === "graph" ? (
+              <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
+                <div>
+                  <ConceptGraphView
+                    concepts={visibleConcepts}
+                    domainColorMap={domainColorMap}
+                    selectedId={selectedId}
+                    onSelectConcept={handleGraphSelect}
+                  />
+                </div>
+                <div>
+                  <ConceptDetail
+                    concept={selectedConcept}
+                    conceptMap={conceptMap}
+                    domainColorMap={domainColorMap}
+                    onRequestDelete={handleRequestDelete}
+                    deleting={deleting}
+                    onSelectRelated={(id) => {
+                      setSelectedId(id);
+                    }}
+                  />
+                </div>
+              </section>
             ) : (
               <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
                 <div className={`${mobileDetail ? "hidden" : "block"} lg:block`}>
-                  <ConceptList
-                    concepts={visibleConcepts}
+                  <ConceptGroupSections
+                    mode={listViewMode}
+                    sections={groupedSections}
                     selectedId={selectedId}
+                    domainColorMap={domainColorMap}
                     onSelect={handleSelect}
                     onEdit={openEdit}
-                    onDelete={(id) => void handleDelete(id)}
                     onToggleFavorite={(concept) => void toggleFavorite(concept)}
                   />
                 </div>
@@ -220,6 +417,9 @@ export const App = () => {
                   <ConceptDetail
                     concept={selectedConcept}
                     conceptMap={conceptMap}
+                    domainColorMap={domainColorMap}
+                    onRequestDelete={handleRequestDelete}
+                    deleting={deleting}
                     onSelectRelated={(id) => {
                       setSelectedId(id);
                       setMobileDetail(true);
@@ -240,6 +440,55 @@ export const App = () => {
         onClose={() => setModalOpen(false)}
         onSubmit={handleSubmit}
       />
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-slate-900">この概念を削除しますか？</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              この操作は元に戻せません。
+              <br />
+              必要なら先に JSON エクスポートでバックアップしてください。
+            </p>
+            <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              対象: {deleteTarget.title}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
+                onClick={() => setDeleteTarget(undefined)}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 disabled:opacity-60"
+                onClick={() => void handleConfirmDelete()}
+              >
+                {deleting ? "削除中..." : "削除"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {feedback && (
+        <div className="fixed bottom-4 right-4 z-40 rounded-md bg-slate-800 px-3 py-2 text-sm text-slate-100 shadow-lg">
+          <div className="flex items-center gap-2">
+            <span>{feedback}</span>
+            <button
+              type="button"
+              className="rounded px-1 py-0.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white"
+              onClick={() => setFeedback(null)}
+            >
+              閉じる
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

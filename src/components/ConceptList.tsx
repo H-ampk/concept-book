@@ -1,21 +1,22 @@
 import { StatusBadge } from "./StatusBadge";
 import type { Concept } from "../types/concept";
+import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 
 type Props = {
   concepts: Concept[];
   selectedId?: string;
+  domainColorMap: Record<string, string>;
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
-  onDelete: (id: string) => void;
   onToggleFavorite: (concept: Concept) => void;
 };
 
 export const ConceptList = ({
   concepts,
   selectedId,
+  domainColorMap,
   onSelect,
   onEdit,
-  onDelete,
   onToggleFavorite
 }: Props) => {
   if (concepts.length === 0) {
@@ -45,7 +46,8 @@ export const ConceptList = ({
               {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-domain-${tag}`}
-                  className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                  className="rounded-md border px-2 py-0.5 text-xs"
+                  style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
                 >
                   D:{tag}
                 </span>
@@ -75,13 +77,6 @@ export const ConceptList = ({
               type="button"
             >
               {concept.favorite ? "お気に入り解除" : "お気に入り"}
-            </button>
-            <button
-              className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50"
-              onClick={() => onDelete(concept.id)}
-              type="button"
-            >
-              削除
             </button>
           </div>
         </li>

@@ -1,5 +1,10 @@
 import type { Concept, ConceptInput } from "../types/concept";
 
+// Security note for future sync backends:
+// - Keep this interface storage-agnostic so UI never talks directly to remote APIs.
+// - When adding cloud sync, enforce auth + transport encryption (HTTPS/TLS) at implementation level.
+// - Validate imported payload shape/version and avoid trusting remote data blindly.
+// - Consider per-record encryption and audit logging if sensitive notes are synced.
 export type ConceptStorage = {
   getAllConcepts: () => Promise<Concept[]>;
   getConceptById: (id: string) => Promise<Concept | undefined>;
