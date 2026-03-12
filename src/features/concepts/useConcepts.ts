@@ -1,0 +1,82 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getStorage } from "../../storage";
+import type { Concept, ConceptInput } from "../../types/concept";
+import { collectTags, filterConcepts } from "./conceptFilters";
+
+const storage = getStorage();
+
+export const useConcepts = () => {
+  const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [onlyFavorite, setOnlyFavorite] = useState(false);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const all = await storage.getAllConcepts();
+      setConcepts(all);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const create = useCallback(async (input: ConceptInput) => {
+    await storage.createConcept(input);
+    await reload();
+  }, [reload]);
+
+  const update = useCallback(
+    async (id: string, updates: Partial<ConceptInput>) => {
+      await storage.updateConcept(id, updates);
+      await reload();
+    },
+    [reload]
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      await storage.deleteConcept(id);
+      await reload();
+    },
+    [reload]
+  );
+
+  const toggleFavorite = useCallback(
+    async (concept: Concept) => {
+      await storage.updateConcept(concept.id, { favorite: !concept.favorite });
+      await reload();
+    },
+    [reload]
+  );
+
+  const visibleConcepts = useMemo(
+    () => filterConcepts(concepts, query, selectedTags, onlyFavorite),
+    [concepts, onlyFavorite, query, selectedTags]
+  );
+
+  const allTags = useMemo(() => collectTags(concepts), [concepts]);
+
+  return {
+    concepts,
+    visibleConcepts,
+    allTags,
+    loading,
+    query,
+    setQuery,
+    selectedTags,
+    setSelectedTags,
+    onlyFavorite,
+    setOnlyFavorite,
+    create,
+    update,
+    remove,
+    reload,
+    toggleFavorite
+  };
+};
