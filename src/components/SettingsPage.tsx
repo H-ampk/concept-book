@@ -124,6 +124,9 @@ export const SettingsPage = ({
         <h3 className="mb-2 text-sm font-semibold text-slate-800">保存とPWA</h3>
         <ul className="space-y-1 text-sm text-slate-700">
           <li>・概念データはこのブラウザの IndexedDB に保存されます（同一オリジン内のローカル保存）</li>
+          <li>・GitHub Pages 公開版でも端末/ブラウザごとに別保存です（自動クラウド同期なし）</li>
+          <li>・別端末へ移す場合は JSON エクスポート/インポートを利用してください</li>
+          <li>・ブラウザデータ削除や PWA 削除でローカルデータが消える場合があります</li>
           <li>・インストール可能（manifest設定済み）</li>
           <li>・Service Worker導入済み</li>
           <li>・オフラインでも保存済みデータを閲覧・編集可能</li>

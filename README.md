@@ -9,11 +9,36 @@ npm install
 npm run dev
 ```
 
+## GitHub Pages 公開
+
+このリポジトリ（`concept-book`）は GitHub Pages で公開できます。
+
+- 公開URL形式: `https://<username>.github.io/concept-book/`
+- デプロイは `.github/workflows/deploy.yml` で `main` ブランチ push をトリガーに自動実行されます
+
+### 公開手順
+
+1. GitHub の `Settings > Pages` で **Source = GitHub Actions** を選択
+2. `main` ブランチへ push
+3. GitHub の `Actions` タブで `Deploy to GitHub Pages` が成功したことを確認
+4. 上記 URL を開いてアプリ表示を確認
+
+### ローカルビルド確認
+
+```bash
+npm run build
+```
+
+`dist/` が Pages 公開対象になります。
+
 ## データ保存仕様
 
 - 概念データはブラウザの `IndexedDB` に保存されます（同一オリジン内ローカル保存）。
-- 既定では外部サーバーへ自動送信しません。
+- GitHub Pages 公開版でも、データは端末/ブラウザごとに分離されます。
+- 既定では外部サーバーへ自動送信せず、自動クラウド同期もしません。
 - JSONエクスポートはローカルファイルとして保存されます。
+- 端末間で移行したい場合のみ JSON export / import を使用してください。
+- ブラウザデータ削除や PWA 削除でローカルデータが失われる場合があります。
 
 ## セキュリティ注意（個人利用向け）
 
