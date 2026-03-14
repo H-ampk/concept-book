@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { conceptStatusList, createEmptyConceptInput, type Concept, type ConceptInput } from "../types/concept";
 import { RelatedConceptPicker } from "./RelatedConceptPicker";
 
@@ -24,6 +24,10 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
   const [researchTagInput, setResearchTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tagsState = useMemo(
+    () => [...splitCsv(domainTagInput), ...splitCsv(researchTagInput)],
+    [domainTagInput, researchTagInput]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -52,6 +56,15 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
     }
     setError(null);
   }, [open, mode, baseConcept]);
+
+  useEffect(() => {
+    if (!open || !import.meta.env.DEV) {
+      return;
+    }
+    const titleState = form.title;
+    const conceptState = form.definition;
+    console.log("form state", { titleState, conceptState, tagsState });
+  }, [form.definition, form.title, open, tagsState]);
 
   if (!open) {
     return null;
@@ -164,6 +177,9 @@ export const ConceptFormModal = ({ open, mode, baseConcept, allConcepts, onClose
             allConcepts={allConcepts}
             selectedIds={form.relatedIds}
             currentConceptId={baseConcept?.id}
+            inputTitle={form.title}
+            inputDefinition={form.definition}
+            inputTags={tagsState}
             onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
           />
 
