@@ -29,14 +29,16 @@ export const useConcepts = () => {
   }, [reload]);
 
   const create = useCallback(async (input: ConceptInput) => {
-    await storage.createConcept(input);
+    const created = await storage.createConcept(input);
     await reload();
+    return created;
   }, [reload]);
 
   const update = useCallback(
     async (id: string, updates: Partial<ConceptInput>) => {
-      await storage.updateConcept(id, updates);
+      const updated = await storage.updateConcept(id, updates);
       await reload();
+      return updated;
     },
     [reload]
   );

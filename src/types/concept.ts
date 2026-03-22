@@ -1,3 +1,5 @@
+import type { ConceptMediaRef } from "./media";
+
 export const conceptStatusList = [
   "active",
   "researching",
@@ -21,6 +23,8 @@ export type Concept = {
   domainTags: string[];
   researchTags: string[];
   relatedIds: string[];
+  /** メディア本体は IndexedDB の media ストア。ここは参照メタのみ */
+  media?: ConceptMediaRef[];
   source: ConceptSource;
   notes: string;
   status: ConceptStatus;
@@ -38,6 +42,7 @@ export const createEmptyConceptInput = (): ConceptInput => ({
   domainTags: [],
   researchTags: [],
   relatedIds: [],
+  media: [],
   source: {
     book: "",
     page: "",

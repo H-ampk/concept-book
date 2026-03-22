@@ -124,11 +124,11 @@ export const App = () => {
 
   const handleSubmit = async (payload: ConceptInput) => {
     if (editingConcept) {
-      await update(editingConcept.id, payload);
+      const updated = await update(editingConcept.id, payload);
       setSelectedId(editingConcept.id);
-      return;
+      return updated ?? undefined;
     }
-    await create(payload);
+    return await create(payload);
   };
 
   const handleSelect = (id: string) => {
@@ -439,6 +439,7 @@ export const App = () => {
         allConcepts={concepts}
         onClose={() => setModalOpen(false)}
         onSubmit={handleSubmit}
+        reloadConcepts={reload}
       />
 
       {deleteTarget && (

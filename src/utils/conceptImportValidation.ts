@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { conceptStatusList, type Concept } from "../types/concept";
+import type { ConceptMediaRef } from "../types/media";
 import { nowIso } from "./date";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
@@ -10,6 +11,22 @@ const conceptSourceSchema = z.object({
   author: z.string().nullable()
 });
 
+export const conceptMediaRefSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["image", "video"]),
+  fileName: z.string(),
+  caption: z.string().optional(),
+  sortOrder: z.number().int()
+});
+
+export const normalizeMediaRefs = (input: unknown): ConceptMediaRef[] => {
+  const parsed = z.array(conceptMediaRefSchema).safeParse(Array.isArray(input) ? input : []);
+  if (!parsed.success) {
+    return [];
+  }
+  return [...parsed.data].sort((a, b) => a.sortOrder - b.sortOrder);
+};
+
 const conceptSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -18,6 +35,7 @@ const conceptSchema = z.object({
   domainTags: z.array(z.string()),
   researchTags: z.array(z.string()),
   relatedIds: z.array(z.string()),
+  media: z.array(conceptMediaRefSchema).optional(),
   source: conceptSourceSchema,
   notes: z.string(),
   status: conceptStatusSchema,
@@ -38,6 +56,7 @@ const rawConceptSchema = z
     researchTags: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
     relatedIds: z.array(z.string()).optional(),
+    media: z.array(z.unknown()).optional(),
     source: conceptSourceSchema.partial().optional(),
     notes: z.string().optional(),
     status: conceptStatusSchema.optional(),
@@ -54,6 +73,7 @@ const formatIssue = (issue: z.ZodIssue): string => {
 
 const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => {
   const normalizedDomainTags = raw.domainTags ?? raw.tags ?? [];
+  const media = normalizeMediaRefs(raw.media);
   return {
     id: raw.id,
     title: raw.title,
@@ -62,6 +82,7 @@ const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => 
     domainTags: normalizedDomainTags,
     researchTags: raw.researchTags ?? [],
     relatedIds: raw.relatedIds ?? [],
+    media: media.length > 0 ? media : undefined,
     source: {
       book: raw.source?.book ?? "",
       page: raw.source?.page ?? "",

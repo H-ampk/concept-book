@@ -1,13 +1,22 @@
-import type { Concept, ConceptInput } from "../types/concept";
+import { buildConceptBookZip, parseConceptBookZip } from "../utils/conceptBookZip";
+import { normalizeMediaRefs, validateConceptImportPayload } from "../utils/conceptImportValidation";
 import { nowIso } from "../utils/date";
+import { guessMimeFromFileName } from "../utils/mediaConstraints";
+import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaConstraints";
+import type { Concept, ConceptInput } from "../types/concept";
+import type { ConceptMediaRef, MediaRecord } from "../types/media";
 import type { ConceptStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 1;
-const STORE_NAME = "concepts";
+const DB_VERSION = 2;
+const STORE_CONCEPTS = "concepts";
+const STORE_MEDIA = "media";
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const createMediaId = (): string =>
+  `media_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 const toArray = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
 
@@ -26,6 +35,7 @@ const sanitizeConcept = (
   const domainTags = toArray(concept.domainTags).filter(Boolean);
   const researchTags = toArray(concept.researchTags).filter(Boolean);
   const normalizedDomainTags = domainTags.length > 0 ? domainTags : legacyTags;
+  const mediaNorm = normalizeMediaRefs(concept.media ?? []);
 
   const normalized: Concept = {
     id: concept.id ?? createConceptId(),
@@ -35,6 +45,7 @@ const sanitizeConcept = (
     domainTags: normalizedDomainTags,
     researchTags,
     relatedIds: toArray(concept.relatedIds).filter(Boolean),
+    media: mediaNorm.length > 0 ? mediaNorm : undefined,
     source: {
       book: concept.source?.book ?? "",
       page: concept.source?.page ?? "",
@@ -59,12 +70,19 @@ const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      const oldVersion = event.oldVersion;
+
+      if (!db.objectStoreNames.contains(STORE_CONCEPTS)) {
+        const store = db.createObjectStore(STORE_CONCEPTS, { keyPath: "id" });
         store.createIndex("title", "title", { unique: false });
         store.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+
+      if (oldVersion < 2 && !db.objectStoreNames.contains(STORE_MEDIA)) {
+        const mediaStore = db.createObjectStore(STORE_MEDIA, { keyPath: "id" });
+        mediaStore.createIndex("conceptId", "conceptId", { unique: false });
       }
     };
 
@@ -72,22 +90,26 @@ const openDb = (): Promise<IDBDatabase> =>
     request.onerror = () => reject(request.error);
   });
 
-const withStore = async <T>(
+const withTransaction = async <T>(
+  storeNames: string[],
   mode: IDBTransactionMode,
-  executor: (store: IDBObjectStore) => Promise<T>
+  run: (getStore: (name: string) => IDBObjectStore) => Promise<T>
 ): Promise<T> => {
   const db = await openDb();
   try {
-    const tx = db.transaction(STORE_NAME, mode);
-    const store = tx.objectStore(STORE_NAME);
-    const result = await executor(store);
-
+    const tx = db.transaction(storeNames, mode);
+    const getStore = (name: string) => {
+      if (!storeNames.includes(name)) {
+        throw new Error(`Store ${name} is not in this transaction`);
+      }
+      return tx.objectStore(name);
+    };
+    const result = await run(getStore);
     await new Promise<void>((resolve, reject) => {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error ?? new Error("Transaction aborted"));
     });
-
     return result;
   } finally {
     db.close();
@@ -102,7 +124,8 @@ const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> =>
 
 export class IndexedDBStorage implements ConceptStorage {
   async getAllConcepts(): Promise<Concept[]> {
-    return withStore("readwrite", async (store) => {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPTS);
       const data = (await requestToPromise(store.getAll())) as StoredConcept[];
       const normalized = await Promise.all(
         data.map(async (raw) => {
@@ -118,7 +141,8 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   async getConceptById(id: string): Promise<Concept | undefined> {
-    return withStore("readwrite", async (store) => {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPTS);
       const result = (await requestToPromise(store.get(id))) as StoredConcept | undefined;
       if (!result) {
         return undefined;
@@ -132,8 +156,10 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   async createConcept(input: ConceptInput): Promise<Concept> {
-    return withStore("readwrite", async (store) => {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPTS);
       const now = nowIso();
+      const mediaNorm = normalizeMediaRefs(input.media ?? []);
       const concept: Concept = {
         ...input,
         id: createConceptId(),
@@ -143,7 +169,8 @@ export class IndexedDBStorage implements ConceptStorage {
         researchTags: toArray(input.researchTags)
           .map((tag) => tag.trim())
           .filter(Boolean),
-        relatedIds: toArray(input.relatedIds).map((id) => id.trim()).filter(Boolean),
+        relatedIds: toArray(input.relatedIds).map((rid) => rid.trim()).filter(Boolean),
+        media: mediaNorm.length > 0 ? mediaNorm : undefined,
         createdAt: now,
         updatedAt: now
       };
@@ -158,14 +185,24 @@ export class IndexedDBStorage implements ConceptStorage {
       relatedIds?: string[];
       domainTags?: string[];
       researchTags?: string[];
+      media?: ConceptMediaRef[];
     }
   ): Promise<Concept | undefined> {
-    return withStore("readwrite", async (store) => {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPTS);
       const existingRaw = (await requestToPromise(store.get(id))) as StoredConcept | undefined;
       const existing = existingRaw ? sanitizeConcept(existingRaw).concept : undefined;
       if (!existing) {
         return undefined;
       }
+      const nextMedia =
+        updates.media !== undefined
+          ? (() => {
+              const n = normalizeMediaRefs(updates.media);
+              return n.length > 0 ? n : undefined;
+            })()
+          : existing.media;
+
       const updated: Concept = {
         ...existing,
         ...updates,
@@ -181,6 +218,7 @@ export class IndexedDBStorage implements ConceptStorage {
           updates.relatedIds !== undefined
             ? updates.relatedIds.map((relatedId) => relatedId.trim()).filter(Boolean)
             : existing.relatedIds,
+        media: nextMedia,
         source: {
           book: updates.source?.book ?? existing.source.book,
           page: updates.source?.page ?? existing.source.page,
@@ -193,8 +231,19 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  private async deleteMediaForConceptId(conceptId: string): Promise<void> {
+    await withTransaction([STORE_MEDIA], "readwrite", async (getStore) => {
+      const mediaStore = getStore(STORE_MEDIA);
+      const index = mediaStore.index("conceptId");
+      const records = (await requestToPromise(index.getAll(conceptId))) as MediaRecord[];
+      await Promise.all(records.map((r) => requestToPromise(mediaStore.delete(r.id))));
+    });
+  }
+
   async deleteConcept(id: string): Promise<void> {
-    await withStore("readwrite", async (store) => {
+    await this.deleteMediaForConceptId(id);
+    await withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPTS);
       await requestToPromise(store.delete(id));
 
       const all = (await requestToPromise(store.getAll())) as StoredConcept[];
@@ -222,7 +271,8 @@ export class IndexedDBStorage implements ConceptStorage {
     concepts: Concept[],
     mode: "replace" | "merge"
   ): Promise<{ imported: number; skipped: number }> {
-    return withStore("readwrite", async (store) => {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPTS);
       let imported = 0;
       let skipped = 0;
       if (mode === "replace") {
@@ -250,5 +300,251 @@ export class IndexedDBStorage implements ConceptStorage {
       }
       return { imported, skipped };
     });
+  }
+
+  async addMedia(input: {
+    conceptId: string;
+    file: File;
+    caption?: string;
+  }): Promise<ConceptMediaRef> {
+    const validated = validateMediaFile(input.file);
+    if (!validated.ok) {
+      throw new Error(validated.message);
+    }
+
+    return withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+      const conceptStore = getStore(STORE_CONCEPTS);
+      const mediaStore = getStore(STORE_MEDIA);
+
+      const existingRaw = (await requestToPromise(conceptStore.get(input.conceptId))) as
+        | StoredConcept
+        | undefined;
+      if (!existingRaw) {
+        throw new Error("概念が見つかりません。");
+      }
+      const { concept } = sanitizeConcept(existingRaw);
+      const refs = concept.media ?? [];
+      if (refs.length >= MAX_MEDIA_FILES_PER_CONCEPT) {
+        throw new Error(`1概念あたり最大 ${MAX_MEDIA_FILES_PER_CONCEPT} 件までです。`);
+      }
+
+      const id = createMediaId();
+      const now = nowIso();
+      const record: MediaRecord = {
+        id,
+        conceptId: input.conceptId,
+        kind: validated.kind,
+        blob: input.file,
+        mimeType: validated.mimeType,
+        fileName: input.file.name,
+        fileSize: input.file.size,
+        caption: input.caption,
+        createdAt: now,
+        updatedAt: now
+      };
+      await requestToPromise(mediaStore.add(record));
+
+      const sortOrder = refs.length === 0 ? 0 : Math.max(...refs.map((r) => r.sortOrder), 0) + 1;
+      const ref: ConceptMediaRef = {
+        id,
+        kind: validated.kind,
+        fileName: input.file.name,
+        caption: input.caption,
+        sortOrder
+      };
+      const nextConcept: Concept = {
+        ...concept,
+        media: [...refs, ref],
+        updatedAt: nowIso()
+      };
+      await requestToPromise(conceptStore.put(nextConcept));
+      return ref;
+    });
+  }
+
+  async deleteMedia(mediaId: string): Promise<void> {
+    await withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+      const conceptStore = getStore(STORE_CONCEPTS);
+      const mediaStore = getStore(STORE_MEDIA);
+      const record = (await requestToPromise(mediaStore.get(mediaId))) as MediaRecord | undefined;
+      if (!record) {
+        return;
+      }
+      await requestToPromise(mediaStore.delete(mediaId));
+      const existingRaw = (await requestToPromise(conceptStore.get(record.conceptId))) as
+        | StoredConcept
+        | undefined;
+      if (!existingRaw) {
+        return;
+      }
+      const { concept } = sanitizeConcept(existingRaw);
+      const nextMedia = (concept.media ?? []).filter((m) => m.id !== mediaId);
+      const nextConcept: Concept = {
+        ...concept,
+        media: nextMedia.length > 0 ? nextMedia : undefined,
+        updatedAt: nowIso()
+      };
+      await requestToPromise(conceptStore.put(nextConcept));
+    });
+  }
+
+  async updateMediaCaption(mediaId: string, caption: string | undefined): Promise<void> {
+    await withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+      const conceptStore = getStore(STORE_CONCEPTS);
+      const mediaStore = getStore(STORE_MEDIA);
+      const record = (await requestToPromise(mediaStore.get(mediaId))) as MediaRecord | undefined;
+      if (!record) {
+        return;
+      }
+      const now = nowIso();
+      const nextRecord: MediaRecord = { ...record, caption, updatedAt: now };
+      await requestToPromise(mediaStore.put(nextRecord));
+
+      const existingRaw = (await requestToPromise(conceptStore.get(record.conceptId))) as
+        | StoredConcept
+        | undefined;
+      if (!existingRaw) {
+        return;
+      }
+      const { concept } = sanitizeConcept(existingRaw);
+      const nextMedia = (concept.media ?? []).map((m) =>
+        m.id === mediaId ? { ...m, caption } : m
+      );
+      await requestToPromise(
+        conceptStore.put({
+          ...concept,
+          media: nextMedia.length > 0 ? nextMedia : undefined,
+          updatedAt: now
+        })
+      );
+    });
+  }
+
+  async getMediaBlob(mediaId: string): Promise<Blob | undefined> {
+    return withTransaction([STORE_MEDIA], "readonly", async (getStore) => {
+      const record = (await requestToPromise(getStore(STORE_MEDIA).get(mediaId))) as
+        | MediaRecord
+        | undefined;
+      return record?.blob;
+    });
+  }
+
+  async exportConceptBookPackage(): Promise<Blob> {
+    const concepts = await this.getAllConcepts();
+    const mediaFiles: { id: string; data: Uint8Array }[] = [];
+    const seen = new Set<string>();
+
+    await withTransaction([STORE_MEDIA], "readonly", async (getStore) => {
+      const mediaStore = getStore(STORE_MEDIA);
+      for (const c of concepts) {
+        for (const ref of c.media ?? []) {
+          if (seen.has(ref.id)) {
+            continue;
+          }
+          seen.add(ref.id);
+          const rec = (await requestToPromise(mediaStore.get(ref.id))) as MediaRecord | undefined;
+          if (!rec) {
+            continue;
+          }
+          const buf = await rec.blob.arrayBuffer();
+          mediaFiles.push({ id: ref.id, data: new Uint8Array(buf) });
+        }
+      }
+    });
+
+    const json = JSON.stringify(concepts, null, 2);
+    const zipped = buildConceptBookZip(json, mediaFiles);
+    return new Blob([new Uint8Array(zipped)], { type: "application/zip" });
+  }
+
+  async importConceptBookPackage(
+    file: File,
+    mode: "replace" | "merge"
+  ): Promise<{
+    importedConcepts: number;
+    skippedConcepts: number;
+    importedMedia: number;
+    missingMedia: number;
+  }> {
+    const buffer = await file.arrayBuffer();
+    const { conceptsText, mediaEntries } = parseConceptBookZip(buffer);
+    const parsed: unknown = JSON.parse(conceptsText);
+    const validation = validateConceptImportPayload(parsed);
+    if (!validation.success) {
+      throw new Error(validation.errorMessage);
+    }
+    const concepts = validation.concepts;
+
+    if (mode === "replace") {
+      await withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+        await requestToPromise(getStore(STORE_MEDIA).clear());
+        await requestToPromise(getStore(STORE_CONCEPTS).clear());
+      });
+    }
+
+    const { imported, skipped } = await this.importConcepts(concepts, mode);
+
+    let importedMedia = 0;
+    let missingMedia = 0;
+
+    await withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+      const conceptStore = getStore(STORE_CONCEPTS);
+      const mediaStore = getStore(STORE_MEDIA);
+
+      const reconcileInTx = async (conceptId: string, nextRefs: ConceptMediaRef[]): Promise<void> => {
+        const index = mediaStore.index("conceptId");
+        const existing = (await requestToPromise(index.getAll(conceptId))) as MediaRecord[];
+        const keep = new Set(nextRefs.map((r) => r.id));
+        await Promise.all(
+          existing
+            .filter((r) => !keep.has(r.id))
+            .map((r) => requestToPromise(mediaStore.delete(r.id)))
+        );
+      };
+
+      for (const c of concepts) {
+        const row = (await requestToPromise(conceptStore.get(c.id))) as StoredConcept | undefined;
+        if (!row) {
+          continue;
+        }
+        const { concept: finalConcept } = sanitizeConcept(row);
+
+        if (mode === "merge") {
+          await reconcileInTx(finalConcept.id, finalConcept.media ?? []);
+        }
+
+        for (const ref of finalConcept.media ?? []) {
+          const bytes = mediaEntries.get(ref.id);
+          if (!bytes) {
+            missingMedia += 1;
+            continue;
+          }
+          const mime = guessMimeFromFileName(ref.fileName, ref.kind);
+          const blob = new Blob([new Uint8Array(bytes)], { type: mime });
+          const now = nowIso();
+          const record: MediaRecord = {
+            id: ref.id,
+            conceptId: finalConcept.id,
+            kind: ref.kind,
+            blob,
+            mimeType: mime,
+            fileName: ref.fileName,
+            fileSize: blob.size,
+            caption: ref.caption,
+            createdAt: now,
+            updatedAt: now
+          };
+          await requestToPromise(mediaStore.put(record));
+          importedMedia += 1;
+        }
+      }
+    });
+
+    return {
+      importedConcepts: imported,
+      skippedConcepts: skipped,
+      importedMedia,
+      missingMedia
+    };
   }
 }

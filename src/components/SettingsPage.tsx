@@ -22,6 +22,15 @@ const downloadJson = (filename: string, payload: unknown): void => {
   URL.revokeObjectURL(url);
 };
 
+const downloadBlob = (filename: string, blob: Blob): void => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+};
+
 export const SettingsPage = ({
   onImported,
   domainTags,
@@ -31,6 +40,7 @@ export const SettingsPage = ({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>("JSONバックアップを作成できます。");
   const [mode, setMode] = useState<"replace" | "merge">("merge");
+  const [packageMode, setPackageMode] = useState<"replace" | "merge">("merge");
 
   const handleExport = async () => {
     setBusy(true);
@@ -40,6 +50,39 @@ export const SettingsPage = ({
       setMessage(`${concepts.length} 件の概念をエクスポートしました。`);
     } catch {
       setMessage("エクスポートに失敗しました。");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePackageExport = async () => {
+    setBusy(true);
+    try {
+      const blob = await storage.exportConceptBookPackage();
+      downloadBlob(`concept-book-export-${new Date().toISOString().slice(0, 10)}.zip`, blob);
+      setMessage("概念ブック（ZIP・メディア含む）をエクスポートしました。");
+    } catch {
+      setMessage("ZIPエクスポートに失敗しました。");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePackageImport = async (file?: File) => {
+    if (!file) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await storage.importConceptBookPackage(file, packageMode);
+      await onImported();
+      setMessage(
+        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
+      );
+    } catch (e) {
+      setMessage(
+        `ZIPインポートに失敗しました。${e instanceof Error ? e.message : "形式を確認してください。"}`
+      );
     } finally {
       setBusy(false);
     }
@@ -79,10 +122,48 @@ export const SettingsPage = ({
         <p className="text-sm text-slate-600">バックアップ、復元、PWA運用状態を管理します。</p>
       </header>
 
+      <div className="rounded-lg border-2 border-indigo-200 bg-indigo-50/60 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-slate-800">パッケージ（ZIP）— 推奨・メディア付き</h3>
+        <p className="mb-2 text-xs text-slate-600">
+          <code className="rounded bg-white px-1">concepts.json</code> と{" "}
+          <code className="rounded bg-white px-1">media/</code>{" "}
+          以下のファイルをまとめたZIPです。別PCの同アプリでインポートすると画像・動画も再現されます。
+        </p>
+        <div className="mb-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-md bg-indigo-700 px-3 py-2 text-sm text-white disabled:opacity-60"
+            onClick={() => void handlePackageExport()}
+          >
+            ZIPを保存
+          </button>
+        </div>
+        <label className="mb-2 block text-sm text-slate-700">
+          取り込みモード（ZIP）
+          <select
+            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            value={packageMode}
+            onChange={(e) => setPackageMode(e.target.value as "replace" | "merge")}
+          >
+            <option value="merge">merge（既存と統合）</option>
+            <option value="replace">replace（全置換）</option>
+          </select>
+        </label>
+        <input
+          type="file"
+          accept=".zip,application/zip"
+          disabled={busy}
+          onChange={(e) => void handlePackageImport(e.target.files?.[0])}
+          className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-1.5"
+        />
+      </div>
+
       <div className="rounded-lg bg-slate-50 p-4">
         <h3 className="mb-2 text-sm font-semibold text-slate-800">JSONエクスポート</h3>
         <p className="mb-2 text-xs text-slate-600">
           エクスポートされる JSON には、定義・メモ・出典などの平文データがそのまま含まれます。
+          画像・動画のバイナリは含まれません（メディア付き移行はZIPを利用してください）。
           共有クラウドや公開リポジトリに置かないでください。
         </p>
         <button
@@ -125,7 +206,7 @@ export const SettingsPage = ({
         <ul className="space-y-1 text-sm text-slate-700">
           <li>・概念データはこのブラウザの IndexedDB に保存されます（同一オリジン内のローカル保存）</li>
           <li>・GitHub Pages 公開版でも端末/ブラウザごとに別保存です（自動クラウド同期なし）</li>
-          <li>・別端末へ移す場合は JSON エクスポート/インポートを利用してください</li>
+          <li>・別端末へ移す場合は「パッケージ（ZIP）」を推奨（メディア込み）。JSONのみでは添付ファイルは移りません</li>
           <li>・ブラウザデータ削除や PWA 削除でローカルデータが消える場合があります</li>
           <li>・インストール可能（manifest設定済み）</li>
           <li>・Service Worker導入済み</li>

@@ -1,7 +1,11 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Concept } from "../types/concept";
+import { getStorage } from "../storage";
 import { shortDateTime } from "../utils/date";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 import { StatusBadge } from "./StatusBadge";
+
+const storage = getStorage();
 
 type Props = {
   concept?: Concept;
@@ -10,6 +14,73 @@ type Props = {
   onSelectRelated: (id: string) => void;
   onRequestDelete: (concept: Concept) => void;
   deleting: boolean;
+};
+
+const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const revokeRef = useRef<string[]>([]);
+  const idKey = useMemo(
+    () =>
+      [...(concept.media ?? [])]
+        .map((m) => m.id)
+        .sort()
+        .join(","),
+    [concept.media]
+  );
+
+  useEffect(() => {
+    revokeRef.current.forEach((u) => URL.revokeObjectURL(u));
+    revokeRef.current = [];
+    let cancelled = false;
+    const load = async () => {
+      const next: Record<string, string> = {};
+      const sorted = [...(concept.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+      for (const ref of sorted) {
+        const blob = await storage.getMediaBlob(ref.id);
+        if (cancelled || !blob) {
+          continue;
+        }
+        const u = URL.createObjectURL(blob);
+        revokeRef.current.push(u);
+        next[ref.id] = u;
+      }
+      if (!cancelled) {
+        setUrls(next);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+      revokeRef.current.forEach((u) => URL.revokeObjectURL(u));
+      revokeRef.current = [];
+    };
+  }, [concept.id, idKey]);
+
+  const sorted = [...(concept.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  if (sorted.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">添付メディア</h3>
+      <ul className="space-y-3">
+        {sorted.map((ref) => (
+          <li key={ref.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+            {ref.caption && <p className="mb-1 text-xs text-slate-600">{ref.caption}</p>}
+            <p className="mb-1 text-xs text-slate-500">{ref.fileName}</p>
+            {ref.kind === "image" && urls[ref.id] ? (
+              <img src={urls[ref.id]} alt={ref.caption ?? ref.fileName} className="max-h-64 w-full rounded object-contain" />
+            ) : ref.kind === "video" && urls[ref.id] ? (
+              <video src={urls[ref.id]} controls className="max-h-72 w-full rounded bg-black" playsInline />
+            ) : (
+              <p className="text-xs text-slate-500">読み込み中…</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 };
 
 export const ConceptDetail = ({
@@ -50,6 +121,8 @@ export const ConceptDetail = ({
           {deleting ? "削除中..." : "削除"}
         </button>
       </div>
+
+      <ConceptMediaGallery concept={concept} />
 
       <article className="space-y-3 text-sm text-slate-700">
         <div>
