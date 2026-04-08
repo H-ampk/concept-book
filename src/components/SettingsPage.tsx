@@ -61,7 +61,8 @@ export const SettingsPage = ({
       const blob = await storage.exportConceptBookPackage();
       downloadBlob(`concept-book-export-${new Date().toISOString().slice(0, 10)}.zip`, blob);
       setMessage("概念ブック（ZIP・メディア含む）をエクスポートしました。");
-    } catch {
+    } catch (err) {
+      console.error("ZIP export failed:", err);
       setMessage("ZIPエクスポートに失敗しました。");
     } finally {
       setBusy(false);

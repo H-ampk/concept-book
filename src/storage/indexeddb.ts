@@ -431,9 +431,11 @@ export class IndexedDBStorage implements ConceptStorage {
 
   async exportConceptBookPackage(): Promise<Blob> {
     const concepts = await this.getAllConcepts();
+    const mediaRecords: MediaRecord[] = [];
     const mediaFiles: { id: string; data: Uint8Array }[] = [];
     const seen = new Set<string>();
 
+    // Transaction 内では IndexedDB アクセスのみ実行する。
     await withTransaction([STORE_MEDIA], "readonly", async (getStore) => {
       const mediaStore = getStore(STORE_MEDIA);
       for (const c of concepts) {
@@ -446,11 +448,16 @@ export class IndexedDBStorage implements ConceptStorage {
           if (!rec) {
             continue;
           }
-          const buf = await rec.blob.arrayBuffer();
-          mediaFiles.push({ id: ref.id, data: new Uint8Array(buf) });
+          mediaRecords.push(rec);
         }
       }
     });
+
+    // IDB transaction の外で Blob -> Uint8Array に変換する。
+    for (const rec of mediaRecords) {
+      const buf = await rec.blob.arrayBuffer();
+      mediaFiles.push({ id: rec.id, data: new Uint8Array(buf) });
+    }
 
     const json = JSON.stringify(concepts, null, 2);
     const zipped = buildConceptBookZip(json, mediaFiles);
