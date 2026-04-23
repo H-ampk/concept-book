@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
 
@@ -112,6 +112,43 @@ const normalizeLabelLines = (title: string): string[] => {
   return [first, second];
 };
 
+// ナビゲーションデータ
+type NavigationData = {
+  rootId: string;
+  parentById: Map<string, string>;
+  childrenById: Map<string, string[]>;
+  depthById: Map<string, number>;
+  nodesByDepth: Map<number, string[]>;
+};
+
+const buildNavigationData = (tree: Map<string, string[]>, rootId: string): NavigationData => {
+  const parentById = new Map<string, string>();
+  const childrenById = new Map<string, string[]>();
+  const depthById = new Map<string, number>();
+  const nodesByDepth = new Map<number, string[]>();
+
+  const queue: { node: string; depth: number }[] = [{ node: rootId, depth: 0 }];
+  depthById.set(rootId, 0);
+  nodesByDepth.set(0, [rootId]);
+  childrenById.set(rootId, tree.get(rootId) ?? []);
+
+  while (queue.length > 0) {
+    const { node, depth } = queue.shift()!;
+    const children = tree.get(node) ?? [];
+    childrenById.set(node, children);
+    children.forEach((child) => {
+      if (depthById.has(child)) return;
+      depthById.set(child, depth + 1);
+      parentById.set(child, node);
+      const current = nodesByDepth.get(depth + 1) ?? [];
+      nodesByDepth.set(depth + 1, [...current, child]);
+      queue.push({ node: child, depth: depth + 1 });
+    });
+  }
+
+  return { rootId, parentById, childrenById, depthById, nodesByDepth };
+};
+
 // 補助関数: ツリーレイアウト計算
 const computeTreeLayout = (
   tree: Map<string, string[]>,
@@ -175,6 +212,7 @@ const computeTreeLayout = (
 };
 
 export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const layoutData = useMemo<LayoutData>(() => {
     if (concepts.length === 0) return { nodes: [], mainEdges: [], extraEdges: [], rootId: "" };
 
@@ -187,11 +225,106 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     return { ...data, mainEdges, extraEdges };
   }, [concepts]);
 
+  const navigationData = useMemo(() => {
+    if (layoutData.rootId === "") {
+      return {
+        rootId: "",
+        parentById: new Map<string, string>(),
+        childrenById: new Map<string, string[]>(),
+        depthById: new Map<string, number>(),
+        nodesByDepth: new Map<number, string[]>(),
+      };
+    }
+    const graph = buildGraph(concepts);
+    const root = layoutData.rootId;
+    const { tree } = buildBFSTree(graph, root);
+    return buildNavigationData(tree, root);
+  }, [concepts, layoutData.rootId]);
+
   const handleNodeClick = (id: string) => {
     onSelectConcept(id);
   };
 
   const nodeById = new Map(layoutData.nodes.map((node) => [node.id, node]));
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const currentId = selectedId ?? navigationData.rootId;
+    if (!currentId) return;
+
+    let nextId: string | undefined;
+    const currentDepth = navigationData.depthById.get(currentId);
+
+    switch (event.key) {
+      case "ArrowRight": {
+        const children = navigationData.childrenById.get(currentId) ?? [];
+        nextId = children[0];
+        break;
+      }
+      case "ArrowLeft":
+        nextId = navigationData.parentById.get(currentId);
+        break;
+      case "ArrowUp":
+        if (currentDepth !== undefined) {
+          const siblings = navigationData.nodesByDepth.get(currentDepth) ?? [];
+          const index = siblings.indexOf(currentId);
+          if (index > 0) nextId = siblings[index - 1];
+        }
+        break;
+      case "ArrowDown":
+        if (currentDepth !== undefined) {
+          const siblings = navigationData.nodesByDepth.get(currentDepth) ?? [];
+          const index = siblings.indexOf(currentId);
+          if (index >= 0 && index < siblings.length - 1) nextId = siblings[index + 1];
+        }
+        break;
+    }
+
+    if (!selectedId && event.key.startsWith("Arrow") && navigationData.rootId) {
+      event.preventDefault();
+      onSelectConcept(navigationData.rootId);
+      return;
+    }
+
+    if (nextId && nextId !== currentId) {
+      event.preventDefault();
+      onSelectConcept(nextId);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedId || !containerRef.current) return;
+    const node = nodeById.get(selectedId);
+    if (!node) return;
+
+    const container = containerRef.current;
+    const padding = 24;
+    const targetLeft = Math.max(0, node.x - node.width / 2 - padding);
+    const targetTop = Math.max(0, node.y - node.height / 2 - padding);
+    const targetRight = node.x + node.width / 2 + padding;
+    const targetBottom = node.y + node.height / 2 + padding;
+
+    const visibleLeft = container.scrollLeft;
+    const visibleTop = container.scrollTop;
+    const visibleRight = visibleLeft + container.clientWidth;
+    const visibleBottom = visibleTop + container.clientHeight;
+
+    const scrollLeft =
+      targetLeft < visibleLeft
+        ? targetLeft
+        : targetRight > visibleRight
+        ? Math.min(targetLeft, container.scrollWidth - container.clientWidth)
+        : visibleLeft;
+    const scrollTop =
+      targetTop < visibleTop
+        ? targetTop
+        : targetBottom > visibleBottom
+        ? Math.min(targetTop, container.scrollHeight - container.clientHeight)
+        : visibleTop;
+
+    if (scrollLeft !== visibleLeft || scrollTop !== visibleTop) {
+      container.scrollTo({ left: scrollLeft, top: scrollTop, behavior: "smooth" });
+    }
+  }, [selectedId, nodeById]);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-quiet">
@@ -202,7 +335,12 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         </p>
       </header>
 
-      <div className="w-full overflow-auto rounded-lg border border-slate-100 bg-slate-50">
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        className="w-full overflow-auto rounded-lg border border-slate-100 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400/60"
+      >
         <svg width="900" height="640" viewBox="0 0 900 640">
           {layoutData.mainEdges.map(([source, target], index) => {
             const sourceNode = nodeById.get(source);
@@ -253,8 +391,8 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
           {layoutData.nodes.map((node) => {
             const color = getDomainTagColor(node.domainTag, domainColorMap);
             const isSelected = selectedId === node.id;
-            const cardFill = node.isRoot ? "#eff6ff" : "#ffffff";
-            const borderColor = node.isRoot ? "#2563eb" : isSelected ? "#1d4ed8" : "#cbd5e1";
+            const cardFill = node.isRoot ? "#eff6ff" : isSelected ? "#f8fafc" : "#ffffff";
+            const borderColor = node.isRoot ? "#2563eb" : isSelected ? "#0f172a" : "#cbd5e1";
             const textColor = "#0f172a";
             const labelLines = normalizeLabelLines(node.title);
             const x = node.x - node.width / 2;
