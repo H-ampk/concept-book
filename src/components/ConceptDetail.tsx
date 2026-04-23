@@ -124,18 +124,18 @@ export const ConceptDetail = ({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="space-y-3 text-sm text-slate-700">
+      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-slate-700">
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">定義</h3>
-          <p className="whitespace-pre-wrap break-words">{concept.definition || "未入力"}</p>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">定義</h3>
+          <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">自分の解釈</h3>
-          <p className="whitespace-pre-wrap break-words">{concept.myInterpretation || "未入力"}</p>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">自分の解釈</h3>
+          <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">メモ</h3>
-          <p className="whitespace-pre-wrap break-words">{concept.notes || "未入力"}</p>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">メモ</h3>
+          <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>
         </div>
       </article>
 
