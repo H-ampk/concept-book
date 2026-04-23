@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
 
@@ -241,11 +241,42 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     return buildNavigationData(tree, root);
   }, [concepts, layoutData.rootId]);
 
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panOrigin, setPanOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [pointerStart, setPointerStart] = useState<{ x: number; y: number } | null>(null);
+
   const handleNodeClick = (id: string) => {
     onSelectConcept(id);
   };
 
   const nodeById = new Map(layoutData.nodes.map((node) => [node.id, node]));
+
+  const handleBackgroundPointerDown = (event: React.PointerEvent<SVGRectElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    setIsPanning(true);
+    setPointerStart({ x: event.clientX, y: event.clientY });
+    setPanOrigin(offset);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<any>) => {
+    if (!isPanning || !pointerStart || !panOrigin) return;
+    const dx = event.clientX - pointerStart.x;
+    const dy = event.clientY - pointerStart.y;
+    setOffset({ x: panOrigin.x + dx, y: panOrigin.y + dy });
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<any>) => {
+    if (!isPanning) return;
+    setIsPanning(false);
+    setPointerStart(null);
+    setPanOrigin(null);
+    if (event.currentTarget.releasePointerCapture) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentId = selectedId ?? navigationData.rootId;
@@ -339,17 +370,28 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         ref={containerRef}
         tabIndex={0}
         onKeyDown={handleKeyDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         className="w-full overflow-auto rounded-lg border border-slate-100 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400/60"
+        style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
-        <svg width="900" height="640" viewBox="0 0 900 640">
+        <svg width="900" height="640" viewBox="0 0 900 640" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+          <rect
+            x="0"
+            y="0"
+            width="900"
+            height="640"
+            fill="transparent"
+            onPointerDown={handleBackgroundPointerDown}
+          />
           {layoutData.mainEdges.map(([source, target], index) => {
             const sourceNode = nodeById.get(source);
             const targetNode = nodeById.get(target);
             if (!sourceNode || !targetNode) return null;
-            const x1 = sourceNode.x + sourceNode.width / 2;
-            const y1 = sourceNode.y;
-            const x2 = targetNode.x - targetNode.width / 2;
-            const y2 = targetNode.y;
+            const x1 = sourceNode.x + sourceNode.width / 2 + offset.x;
+            const y1 = sourceNode.y + offset.y;
+            const x2 = targetNode.x - targetNode.width / 2 + offset.x;
+            const y2 = targetNode.y + offset.y;
             return (
               <line
                 key={`main-${index}`}
@@ -369,10 +411,10 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
             const targetNode = nodeById.get(target);
             if (!sourceNode || !targetNode) return null;
             const isSelectedRelated = selectedId === source || selectedId === target;
-            const x1 = sourceNode.x + sourceNode.width / 2;
-            const y1 = sourceNode.y;
-            const x2 = targetNode.x - targetNode.width / 2;
-            const y2 = targetNode.y;
+            const x1 = sourceNode.x + sourceNode.width / 2 + offset.x;
+            const y1 = sourceNode.y + offset.y;
+            const x2 = targetNode.x - targetNode.width / 2 + offset.x;
+            const y2 = targetNode.y + offset.y;
             return (
               <line
                 key={`extra-${index}`}
@@ -395,8 +437,8 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
             const borderColor = node.isRoot ? "#2563eb" : isSelected ? "#0f172a" : "#cbd5e1";
             const textColor = "#0f172a";
             const labelLines = normalizeLabelLines(node.title);
-            const x = node.x - node.width / 2;
-            const y = node.y - node.height / 2;
+            const x = node.x + offset.x - node.width / 2;
+            const y = node.y + offset.y - node.height / 2;
             return (
               <g
                 key={node.id}
@@ -426,7 +468,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                 {labelLines.map((line, index) => (
                   <text
                     key={index}
-                    x={node.x}
+                    x={node.x + offset.x}
                     y={y + 22 + index * 14}
                     textAnchor="middle"
                     fontSize="12"
