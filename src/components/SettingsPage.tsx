@@ -117,7 +117,7 @@ export const SettingsPage = ({
   };
 
   return (
-    <section className="space-y-5 rounded-2xl border border-nordic-border bg-nordic-surface p-5 shadow-quiet">
+    <section className="space-y-5 rounded-2xl border border-nordic-border bg-nordic-section p-5 shadow-quiet">
       <header>
         <h2 className="text-lg font-semibold text-slate-900">設定</h2>
         <p className="text-sm text-slate-600">バックアップ、復元、PWA運用状態を管理します。</p>

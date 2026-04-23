@@ -8,16 +8,17 @@ module.exports = {
         paper: "#f8fafc",
         accent: "#334155",
         nordic: {
-          bg: '#EEF3F1',
-          surface: '#FCFDFB',
-          border: '#D7E0DC',
-          textPrimary: '#23313B',
-          textSecondary: '#5F6E78',
-          sage: '#7FA08D',
-          blue: '#6E8FA8',
-          navy: '#304554',
-          statusGreenBg: '#DDF1E4',
-          statusGreenText: '#386A4F'
+          bg: '#E8F1EE',
+          section: '#DCE8E3',
+          surface: '#F7FAF9',
+          border: '#C9D8D2',
+          textPrimary: '#24343C',
+          textSecondary: '#5A6F6A',
+          sage: '#6FA87D',
+          blue: '#4A7C92',
+          navy: '#2C4F5C',
+          statusGreenBg: '#D4E8DC',
+          statusGreenText: '#2D5F42'
         }
       },
       boxShadow: {

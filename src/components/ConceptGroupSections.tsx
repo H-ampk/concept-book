@@ -79,7 +79,7 @@ export const ConceptGroupSections = ({
       {sections.map((section) => {
         const open = openMap[section.key] ?? true;
         return (
-          <section key={section.key} className="rounded-xl border border-nordic-border bg-nordic-surface shadow-quiet">
+          <section key={section.key} className="rounded-xl border border-nordic-border bg-nordic-section shadow-quiet">
             <button
               type="button"
               className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-nordic-bg"

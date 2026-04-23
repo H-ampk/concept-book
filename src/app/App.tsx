@@ -209,7 +209,7 @@ export const App = () => {
           />
         ) : (
           <div className="space-y-4">
-            <section className="rounded-2xl border border-nordic-border bg-nordic-surface p-4 shadow-quiet">
+            <section className="rounded-2xl border border-nordic-border bg-nordic-section p-4 shadow-quiet">
               <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-md border border-nordic-border px-3 py-2 text-sm"

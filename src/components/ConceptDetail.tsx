@@ -100,7 +100,7 @@ export const ConceptDetail = ({
   }
 
   return (
-    <section className="mx-auto max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border bg-nordic-surface p-6 shadow-quiet">
+    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border bg-nordic-surface p-6 shadow-quiet">
       <header className="flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
         {concept.favorite && (
