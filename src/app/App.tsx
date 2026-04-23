@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 import { ConceptGraphView } from "../components/ConceptGraphView";
+import { SkillTreeView } from "../components/SkillTreeView";
 import {
   ConceptGroupSections,
   type ConceptGroupSection,
@@ -13,7 +14,7 @@ import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus 
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 
 type Screen = "concepts" | "settings";
-type ConceptMainTab = "list" | "graph";
+type ConceptMainTab = "list" | "graph" | "tree";
 
 const statusLabelMap: Record<ConceptStatus, string> = {
   active: "稼働中",
@@ -255,6 +256,17 @@ export const App = () => {
                 >
                   グラフ表示
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setConceptMainTab("tree")}
+                  className={`rounded-md px-2.5 py-1 text-xs ${
+                    conceptMainTab === "tree"
+                      ? "bg-slate-800 text-white"
+                      : "border border-slate-300 bg-white text-slate-700"
+                  }`}
+                >
+                  ツリー表示
+                </button>
               </div>
               {conceptMainTab === "list" && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -371,6 +383,29 @@ export const App = () => {
               <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
                 <div>
                   <ConceptGraphView
+                    concepts={visibleConcepts}
+                    domainColorMap={domainColorMap}
+                    selectedId={selectedId}
+                    onSelectConcept={handleGraphSelect}
+                  />
+                </div>
+                <div>
+                  <ConceptDetail
+                    concept={selectedConcept}
+                    conceptMap={conceptMap}
+                    domainColorMap={domainColorMap}
+                    onRequestDelete={handleRequestDelete}
+                    deleting={deleting}
+                    onSelectRelated={(id) => {
+                      setSelectedId(id);
+                    }}
+                  />
+                </div>
+              </section>
+            ) : conceptMainTab === "tree" ? (
+              <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
+                <div>
+                  <SkillTreeView
                     concepts={visibleConcepts}
                     domainColorMap={domainColorMap}
                     selectedId={selectedId}
