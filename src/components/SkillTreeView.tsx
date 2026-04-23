@@ -9,34 +9,47 @@ type Props = {
   onSelectConcept: (id: string) => void;
 };
 
+type LayoutNode = {
+  id: string;
+  x: number;
+  y: number;
+  title: string;
+  domainTag: string;
+  favorite: boolean;
+  width: number;
+  height: number;
+  isRoot: boolean;
+};
+
+type LayoutData = {
+  nodes: LayoutNode[];
+  mainEdges: [string, string][];
+  extraEdges: [string, string][];
+  rootId: string;
+};
+
 // 補助関数: 無向グラフの隣接リスト構築
 const buildGraph = (concepts: Concept[]): Map<string, string[]> => {
   const graph = new Map<string, string[]>();
-  concepts.forEach((concept) => {
-    graph.set(concept.id, []);
-  });
+  concepts.forEach((concept) => graph.set(concept.id, []));
+
   concepts.forEach((concept) => {
     concept.relatedIds.forEach((relatedId) => {
-      if (graph.has(relatedId)) {
-        // 無向なので両方向に追加
-        if (!graph.get(concept.id)!.includes(relatedId)) {
-          graph.get(concept.id)!.push(relatedId);
-        }
-        if (!graph.get(relatedId)!.includes(concept.id)) {
-          graph.get(relatedId)!.push(concept.id);
-        }
-      }
+      if (!graph.has(relatedId)) return;
+      const neighbors = graph.get(concept.id)!;
+      if (!neighbors.includes(relatedId)) neighbors.push(relatedId);
+      const opposite = graph.get(relatedId)!;
+      if (!opposite.includes(concept.id)) opposite.push(concept.id);
     });
   });
+
   return graph;
 };
 
 // 補助関数: degree 計算
 const computeDegree = (graph: Map<string, string[]>): Map<string, number> => {
   const degrees = new Map<string, number>();
-  graph.forEach((neighbors, node) => {
-    degrees.set(node, neighbors.length);
-  });
+  graph.forEach((neighbors, node) => degrees.set(node, neighbors.length));
   return degrees;
 };
 
@@ -46,7 +59,6 @@ const buildBFSTree = (
   root: string
 ): {
   tree: Map<string, string[]>;
-  visited: Set<string>;
   mainEdges: [string, string][];
   extraEdges: [string, string][];
 } => {
@@ -56,9 +68,7 @@ const buildBFSTree = (
   visited.add(root);
   tree.set(root, []);
   const mainEdges: [string, string][] = [];
-  const extraEdges: [string, string][] = [];
 
-  // 全エッジを収集（重複除去のため Set）
   const allEdges = new Set<string>();
   graph.forEach((neighbors, node) => {
     neighbors.forEach((neighbor) => {
@@ -81,94 +91,107 @@ const buildBFSTree = (
     });
   }
 
-  // extraEdges: BFS で使われなかったエッジ
+  const extraEdges: [string, string][] = [];
   allEdges.forEach((edgeKey) => {
-    const [source, target] = edgeKey.split('-');
-    const isMain = mainEdges.some(([s, t]) => (s === source && t === target) || (s === target && t === source));
-    if (!isMain) {
-      extraEdges.push([source, target]);
-    }
+    const [source, target] = edgeKey.split("-");
+    const isMain = mainEdges.some(
+      ([s, t]) => (s === source && t === target) || (s === target && t === source)
+    );
+    if (!isMain) extraEdges.push([source, target]);
   });
 
-  return { tree, visited, mainEdges, extraEdges };
+  return { tree, mainEdges, extraEdges };
+};
+
+const normalizeLabelLines = (title: string): string[] => {
+  const maxChars = 18;
+  if (title.length <= maxChars) return [title];
+  const first = title.slice(0, maxChars);
+  const rest = title.slice(maxChars, maxChars * 2);
+  const second = rest.length > maxChars ? `${rest.slice(0, maxChars - 3)}...` : rest;
+  return [first, second];
 };
 
 // 補助関数: ツリーレイアウト計算
 const computeTreeLayout = (
   tree: Map<string, string[]>,
   concepts: Concept[],
+  rootId: string,
   width: number,
   height: number
-): {
-  nodes: { id: string; x: number; y: number; title: string; domainTag: string; favorite: boolean }[];
-  mainEdges: [string, string][];
-  extraEdges: [string, string][];
-} => {
+): LayoutData => {
   const conceptMap = new Map(concepts.map((c) => [c.id, c]));
   const depths = new Map<string, number>();
   const levelNodes = new Map<number, string[]>();
 
-  // BFS で depth 計算
-  const queue: { node: string; depth: number }[] = [{ node: Array.from(tree.keys())[0], depth: 0 }];
-  depths.set(queue[0].node, 0);
-  if (!levelNodes.has(0)) levelNodes.set(0, []);
-  levelNodes.get(0)!.push(queue[0].node);
+  const queue: { node: string; depth: number }[] = [{ node: rootId, depth: 0 }];
+  depths.set(rootId, 0);
+  levelNodes.set(0, [rootId]);
 
   while (queue.length > 0) {
     const { node, depth } = queue.shift()!;
     const children = tree.get(node) || [];
     children.forEach((child) => {
-      if (!depths.has(child)) {
-        depths.set(child, depth + 1);
-        if (!levelNodes.has(depth + 1)) levelNodes.set(depth + 1, []);
-        levelNodes.get(depth + 1)!.push(child);
-        queue.push({ node: child, depth: depth + 1 });
-      }
+      if (depths.has(child)) return;
+      depths.set(child, depth + 1);
+      const current = levelNodes.get(depth + 1) ?? [];
+      levelNodes.set(depth + 1, [...current, child]);
+      queue.push({ node: child, depth: depth + 1 });
     });
   }
 
-  // レイアウト: x = depth * 200, y = 同じ depth 内で均等
   const maxDepth = Math.max(...Array.from(depths.values()));
-  const nodes: { id: string; x: number; y: number; title: string; domainTag: string; favorite: boolean }[] = [];
-  const xStep = width / (maxDepth + 1);
-  const yMargin = 50;
+  const xMargin = 80;
+  const yMargin = 40;
+  const columnWidth = (width - xMargin * 2) / Math.max(maxDepth, 1);
+  const cardWidth = 160;
+  const cardHeight = 54;
 
-  levelNodes.forEach((nodesAtDepth, depth) => {
-    const yStep = (height - yMargin * 2) / Math.max(nodesAtDepth.length, 1);
-    nodesAtDepth.forEach((nodeId, index) => {
-      const concept = conceptMap.get(nodeId)!;
+  const nodes: LayoutNode[] = [];
+  levelNodes.forEach((ids, depth) => {
+    const columnX = xMargin + depth * columnWidth;
+    const availableHeight = height - yMargin * 2;
+    const rowStep = Math.max(cardHeight + 18, availableHeight / Math.max(ids.length, 1));
+    ids.forEach((id, index) => {
+      const concept = conceptMap.get(id)!;
+      const centerY = yMargin + index * rowStep + cardHeight / 2;
       nodes.push({
-        id: nodeId,
-        x: (depth + 1) * xStep,
-        y: yMargin + index * yStep,
+        id,
+        x: columnX,
+        y: centerY,
         title: concept.title,
-        domainTag: concept.domainTags[0] || '',
+        domainTag: concept.domainTags[0] || "",
         favorite: concept.favorite,
+        width: cardWidth,
+        height: cardHeight,
+        isRoot: id === rootId,
       });
     });
   });
 
-  // mainEdges と extraEdges は buildBFSTree から取得済み
-  const { mainEdges, extraEdges } = buildBFSTree(buildGraph(concepts), Array.from(tree.keys())[0]);
+  const { mainEdges, extraEdges } = buildBFSTree(buildGraph(concepts), rootId);
 
-  return { nodes, mainEdges, extraEdges };
+  return { nodes, mainEdges, extraEdges, rootId };
 };
 
 export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
-  const layoutData = useMemo(() => {
-    if (concepts.length === 0) return { nodes: [], mainEdges: [], extraEdges: [] };
+  const layoutData = useMemo<LayoutData>(() => {
+    if (concepts.length === 0) return { nodes: [], mainEdges: [], extraEdges: [], rootId: "" };
 
     const graph = buildGraph(concepts);
     const degrees = computeDegree(graph);
     const root = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
-    const { tree } = buildBFSTree(graph, root);
+    const { tree, mainEdges, extraEdges } = buildBFSTree(graph, root);
+    const data = computeTreeLayout(tree, concepts, root, 900, 640);
 
-    return computeTreeLayout(tree, concepts, 800, 600); // 仮のサイズ
+    return { ...data, mainEdges, extraEdges };
   }, [concepts]);
 
   const handleNodeClick = (id: string) => {
     onSelectConcept(id);
   };
+
+  const nodeById = new Map(layoutData.nodes.map((node) => [node.id, node]));
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-quiet">
@@ -180,74 +203,108 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
       </header>
 
       <div className="w-full overflow-auto rounded-lg border border-slate-100 bg-slate-50">
-        <svg width="800" height="600" viewBox="0 0 800 600">
-          {/* 主エッジ */}
+        <svg width="900" height="640" viewBox="0 0 900 640">
           {layoutData.mainEdges.map(([source, target], index) => {
-            const sourceNode = layoutData.nodes.find((n) => n.id === source);
-            const targetNode = layoutData.nodes.find((n) => n.id === target);
+            const sourceNode = nodeById.get(source);
+            const targetNode = nodeById.get(target);
             if (!sourceNode || !targetNode) return null;
+            const x1 = sourceNode.x + sourceNode.width / 2;
+            const y1 = sourceNode.y;
+            const x2 = targetNode.x - targetNode.width / 2;
+            const y2 = targetNode.y;
             return (
               <line
                 key={`main-${index}`}
-                x1={sourceNode.x}
-                y1={sourceNode.y}
-                x2={targetNode.x}
-                y2={targetNode.y}
-                stroke="#374151"
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="#334155"
                 strokeWidth="2"
+                opacity="0.9"
               />
             );
           })}
-          {/* 追加エッジ（点線） */}
+
           {layoutData.extraEdges.map(([source, target], index) => {
-            const sourceNode = layoutData.nodes.find((n) => n.id === source);
-            const targetNode = layoutData.nodes.find((n) => n.id === target);
+            const sourceNode = nodeById.get(source);
+            const targetNode = nodeById.get(target);
             if (!sourceNode || !targetNode) return null;
+            const isSelectedRelated = selectedId === source || selectedId === target;
+            const x1 = sourceNode.x + sourceNode.width / 2;
+            const y1 = sourceNode.y;
+            const x2 = targetNode.x - targetNode.width / 2;
+            const y2 = targetNode.y;
             return (
               <line
                 key={`extra-${index}`}
-                x1={sourceNode.x}
-                y1={sourceNode.y}
-                x2={targetNode.x}
-                y2={targetNode.y}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
                 stroke="#9ca3af"
-                strokeWidth="1"
-                strokeDasharray="5,5"
+                strokeWidth={isSelectedRelated ? 1.5 : 0.8}
+                strokeDasharray="4,6"
+                opacity={isSelectedRelated ? 0.55 : 0.14}
               />
             );
           })}
-          {/* ノード */}
+
           {layoutData.nodes.map((node) => {
             const color = getDomainTagColor(node.domainTag, domainColorMap);
-            const radius = node.favorite ? 8 : 6;
             const isSelected = selectedId === node.id;
-            const displayTitle = node.title.length > 10 ? node.title.slice(0, 10) + '...' : node.title;
+            const cardFill = node.isRoot ? "#eff6ff" : "#ffffff";
+            const borderColor = node.isRoot ? "#2563eb" : isSelected ? "#1d4ed8" : "#cbd5e1";
+            const textColor = "#0f172a";
+            const labelLines = normalizeLabelLines(node.title);
+            const x = node.x - node.width / 2;
+            const y = node.y - node.height / 2;
             return (
-              <g key={node.id} onClick={() => handleNodeClick(node.id)} style={{ cursor: 'pointer' }}>
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={radius}
-                  fill={color}
-                  stroke={isSelected ? "#0f172a" : node.favorite ? "#f59e0b" : "none"}
-                  strokeWidth={isSelected ? 2 : node.favorite ? 1 : 0}
+              <g
+                key={node.id}
+                onClick={() => handleNodeClick(node.id)}
+                style={{ cursor: "pointer" }}
+              >
+                <rect
+                  x={x}
+                  y={y}
+                  width={node.width}
+                  height={node.height}
+                  rx="14"
+                  ry="14"
+                  fill={cardFill}
+                  stroke={borderColor}
+                  strokeWidth={node.isRoot || isSelected ? 2 : 1}
+                  filter="drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08))"
                 />
-                <text
-                  x={node.x}
-                  y={node.y + radius + 10}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fill="#334155"
-                >
-                  {displayTitle}
-                </text>
+                <rect
+                  x={x + 8}
+                  y={y + 10}
+                  width={10}
+                  height={10}
+                  rx="2"
+                  fill={color}
+                />
+                {labelLines.map((line, index) => (
+                  <text
+                    key={index}
+                    x={node.x}
+                    y={y + 22 + index * 14}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill={textColor}
+                    style={{ fontWeight: 500 }}
+                  >
+                    {line}
+                  </text>
+                ))}
               </g>
             );
           })}
         </svg>
       </div>
       <p className="mt-2 text-xs text-slate-500">
-        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。実線は主ツリー、点線は追加関係。
+        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。主線はツリー、点線は追加関係です。
       </p>
     </section>
   );
