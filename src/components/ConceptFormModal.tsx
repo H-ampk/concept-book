@@ -291,8 +291,8 @@ export const ConceptFormModal = ({
   const savedMediaSorted = [...(form.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
-      <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" onSubmit={handleSubmit}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-navy/50 px-4">
+      <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-nordic-surface p-5 shadow-xl" onSubmit={handleSubmit}>
         <header className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">
             {mode === "create" ? "新しい概念" : "概念を編集"}
@@ -304,53 +304,53 @@ export const ConceptFormModal = ({
 
         <div className="grid gap-3 md:grid-cols-2">
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-slate-700">タイトル *</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">タイトル *</span>
             <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             />
           </label>
 
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-slate-700">定義</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">定義</span>
             <textarea
               ref={definitionTextareaRef}
-              className="min-h-[200px] w-full resize-none overflow-hidden rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="min-h-[200px] w-full resize-none overflow-hidden rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.definition}
               onChange={(e) => setForm((prev) => ({ ...prev, definition: e.target.value }))}
             />
           </label>
 
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-slate-700">自分の解釈</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">自分の解釈</span>
             <textarea
-              className="min-h-20 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="min-h-20 w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.myInterpretation}
               onChange={(e) => setForm((prev) => ({ ...prev, myInterpretation: e.target.value }))}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-slate-700">分野タグ（カンマ区切り）</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">分野タグ（カンマ区切り）</span>
             <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={domainTagInput}
               onChange={(e) => setDomainTagInput(e.target.value)}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-slate-700">研究テーマタグ（カンマ区切り）</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">研究テーマタグ（カンマ区切り）</span>
             <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={researchTagInput}
               onChange={(e) => setResearchTagInput(e.target.value)}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-slate-700">状態</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">状態</span>
             <select
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               value={form.status}
@@ -383,7 +383,7 @@ export const ConceptFormModal = ({
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/gif,video/mp4,video/webm,.png,.jpg,.jpeg,.gif,.mp4,.webm"
               multiple
-              className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-1.5"
+              className="block w-full text-sm text-nordic-textPrimary file:mr-3 file:rounded-md file:border file:border-nordic-border file:bg-nordic-surface file:px-3 file:py-1.5"
               onChange={(e) => void handleAddFiles(e.target.files)}
             />
 
@@ -392,7 +392,7 @@ export const ConceptFormModal = ({
                 {savedMediaSorted.map((ref, index) => (
                   <li
                     key={ref.id}
-                    className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-start"
+                    className="flex flex-col gap-2 rounded-md border border-nordic-border bg-nordic-surface p-2 sm:flex-row sm:items-start"
                   >
                     <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-slate-100 sm:h-20 sm:w-28">
                       {ref.kind === "image" && previewUrls[ref.id] ? (
@@ -420,14 +420,14 @@ export const ConceptFormModal = ({
                       <div className="mt-1 flex flex-wrap gap-1">
                         <button
                           type="button"
-                          className="rounded border border-slate-300 px-2 py-0.5 text-xs"
+                          className="rounded border border-nordic-border px-2 py-0.5 text-xs"
                           onClick={() => void reorderMedia(index, -1)}
                         >
                           上へ
                         </button>
                         <button
                           type="button"
-                          className="rounded border border-slate-300 px-2 py-0.5 text-xs"
+                          className="rounded border border-nordic-border px-2 py-0.5 text-xs"
                           onClick={() => void reorderMedia(index, 1)}
                         >
                           下へ
@@ -451,7 +451,7 @@ export const ConceptFormModal = ({
                 <p className="text-xs text-slate-600">保存待ち（新規作成）</p>
                 {pendingMedia.map((p, index) => (
                   <li key={p.objectUrl} className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50/50 p-2 sm:flex-row">
-                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-white sm:h-20 sm:w-28">
+                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-nordic-surface sm:h-20 sm:w-28">
                       {p.file.type.startsWith("video/") ? (
                         <video src={p.objectUrl} className="h-full w-full object-contain" muted playsInline />
                       ) : (
@@ -470,14 +470,14 @@ export const ConceptFormModal = ({
                       <div className="mt-1 flex gap-1">
                         <button
                           type="button"
-                          className="rounded border border-slate-300 px-2 py-0.5 text-xs"
+                          className="rounded border border-nordic-border px-2 py-0.5 text-xs"
                           onClick={() => reorderMedia(index, -1)}
                         >
                           上へ
                         </button>
                         <button
                           type="button"
-                          className="rounded border border-slate-300 px-2 py-0.5 text-xs"
+                          className="rounded border border-nordic-border px-2 py-0.5 text-xs"
                           onClick={() => reorderMedia(index, 1)}
                         >
                           下へ
@@ -498,18 +498,18 @@ export const ConceptFormModal = ({
           </div>
 
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-slate-700">メモ</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">メモ</span>
             <textarea
-              className="min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="min-h-24 w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.notes}
               onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-slate-700">出典（書籍）</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">出典（書籍）</span>
             <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.source.book}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, source: { ...prev.source, book: e.target.value } }))
@@ -517,9 +517,9 @@ export const ConceptFormModal = ({
             />
           </label>
           <label>
-            <span className="mb-1 block text-sm text-slate-700">ページ</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">ページ</span>
             <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.source.page}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, source: { ...prev.source, page: e.target.value } }))
@@ -527,9 +527,9 @@ export const ConceptFormModal = ({
             />
           </label>
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-slate-700">著者</span>
+            <span className="mb-1 block text-sm text-nordic-textPrimary">著者</span>
             <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-nordic-border px-3 py-2 text-sm"
               value={form.source.author ?? ""}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, source: { ...prev.source, author: e.target.value } }))
@@ -552,7 +552,7 @@ export const ConceptFormModal = ({
         <footer className="mt-5 flex justify-end gap-2">
           <button
             type="button"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700"
+            className="rounded-md border border-nordic-border px-3 py-2 text-sm text-nordic-textPrimary"
             onClick={onClose}
           >
             キャンセル
@@ -560,7 +560,7 @@ export const ConceptFormModal = ({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-70"
+            className="rounded-md bg-nordic-navy px-3 py-2 text-sm text-nordic-surface disabled:opacity-70"
           >
             {submitting ? "保存中..." : "保存"}
           </button>

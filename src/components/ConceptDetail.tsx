@@ -63,18 +63,18 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">添付メディア</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-          <li key={ref.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-            {ref.caption && <p className="mb-1 text-xs text-slate-600">{ref.caption}</p>}
-            <p className="mb-1 text-xs text-slate-500">{ref.fileName}</p>
+            <li key={ref.id} className="rounded-lg border border-nordic-border bg-nordic-bg p-2">
+            {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
+            <p className="mb-1 text-xs text-nordic-textSecondary">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
               <img src={urls[ref.id]} alt={ref.caption ?? ref.fileName} className="max-h-64 w-full rounded object-contain" />
             ) : ref.kind === "video" && urls[ref.id] ? (
               <video src={urls[ref.id]} controls className="max-h-72 w-full rounded bg-black" playsInline />
             ) : (
-              <p className="text-xs text-slate-500">読み込み中…</p>
+              <p className="text-xs text-nordic-textSecondary">読み込み中…</p>
             )}
           </li>
         ))}
@@ -93,16 +93,16 @@ export const ConceptDetail = ({
 }: Props) => {
   if (!concept) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-quiet">
-        <p className="text-sm text-slate-500">左側の概念を選択すると詳細が表示されます。</p>
+      <section className="rounded-2xl border border-nordic-border bg-nordic-surface p-6 shadow-quiet">
+        <p className="text-sm text-nordic-textSecondary">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-quiet">
+    <section className="mx-auto max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border bg-nordic-surface p-6 shadow-quiet">
       <header className="flex flex-wrap items-center gap-2">
-        <h2 className="text-xl font-semibold text-slate-900">{concept.title}</h2>
+        <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
         {concept.favorite && (
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
             お気に入り
@@ -124,26 +124,26 @@ export const ConceptDetail = ({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-slate-700">
+      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textPrimary">
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">定義</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">自分の解釈</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">自分の解釈</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">メモ</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">メモ</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>
         </div>
       </article>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">分野タグ</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">分野タグ</h3>
         <div className="flex flex-wrap gap-1">
           {concept.domainTags.length === 0 ? (
-            <span className="text-sm text-slate-500">なし</span>
+            <span className="text-sm text-nordic-textSecondary">なし</span>
           ) : (
             concept.domainTags.map((tag) => (
               <span
@@ -159,17 +159,17 @@ export const ConceptDetail = ({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">
           研究テーマタグ
         </h3>
         <div className="flex flex-wrap gap-1">
           {concept.researchTags.length === 0 ? (
-            <span className="text-sm text-slate-500">なし</span>
+            <span className="text-sm text-nordic-textSecondary">なし</span>
           ) : (
             concept.researchTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700"
+                className="rounded-md bg-nordic-sage px-2 py-0.5 text-xs text-nordic-surface"
               >
                 #{tag}
               </span>
@@ -179,9 +179,9 @@ export const ConceptDetail = ({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">関連概念</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">関連概念</h3>
         {concept.relatedIds.length === 0 ? (
-          <p className="text-sm text-slate-500">関連概念なし</p>
+          <p className="text-sm text-nordic-textSecondary">関連概念なし</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {concept.relatedIds.map((relatedId) => {
@@ -199,7 +199,7 @@ export const ConceptDetail = ({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                    className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-bg"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -212,7 +212,7 @@ export const ConceptDetail = ({
         )}
       </div>
 
-      <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+      <div className="rounded-lg bg-nordic-bg p-3 text-xs text-nordic-textSecondary">
         <p>
           出典: {concept.source.book || "未入力"} / p.{concept.source.page || "-"} /{" "}
           {concept.source.author || "著者未入力"}

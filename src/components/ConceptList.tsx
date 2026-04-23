@@ -21,7 +21,7 @@ export const ConceptList = ({
 }: Props) => {
   if (concepts.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+      <div className="rounded-xl border border-dashed border-nordic-border bg-nordic-surface p-4 text-sm text-nordic-textSecondary">
         条件に一致する概念がありません。
       </div>
     );
@@ -32,16 +32,16 @@ export const ConceptList = ({
       {concepts.map((concept) => (
         <li
           key={concept.id}
-          className={`rounded-xl border bg-white p-3 shadow-quiet transition ${
-            selectedId === concept.id ? "border-slate-400" : "border-slate-200"
+          className={`rounded-xl border bg-nordic-surface p-3 shadow-quiet transition ${
+            selectedId === concept.id ? "border-nordic-navy" : "border-nordic-border"
           }`}
         >
           <button className="w-full text-left" onClick={() => onSelect(concept.id)} type="button">
             <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="line-clamp-1 text-base font-semibold text-slate-800">{concept.title}</h3>
+              <h3 className="line-clamp-1 text-base font-semibold text-nordic-textPrimary">{concept.title}</h3>
               <StatusBadge status={concept.status} />
             </div>
-            <p className="line-clamp-2 text-sm text-slate-600">{concept.definition || "定義未入力"}</p>
+            <p className="line-clamp-2 text-sm text-nordic-textSecondary">{concept.definition || "定義未入力"}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
@@ -55,7 +55,7 @@ export const ConceptList = ({
               {concept.researchTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-research-${tag}`}
-                  className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700"
+                  className="rounded-md bg-nordic-sage px-2 py-0.5 text-xs text-nordic-surface"
                 >
                   R:{tag}
                 </span>
@@ -65,14 +65,14 @@ export const ConceptList = ({
 
           <div className="mt-3 flex gap-2">
             <button
-              className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-bg"
               onClick={() => onEdit(concept)}
               type="button"
             >
               編集
             </button>
             <button
-              className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-bg"
               onClick={() => onToggleFavorite(concept)}
               type="button"
             >

@@ -173,23 +173,23 @@ export const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-nordic-bg text-nordic-textPrimary">
+      <header className="border-b border-nordic-border bg-nordic-surface">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">Concept Book App</h1>
-            <p className="text-xs text-slate-500">研究者のための静かな概念辞典</p>
+            <h1 className="text-xl font-semibold text-nordic-textPrimary">Concept Book App</h1>
+            <p className="text-xs text-nordic-textSecondary">研究者のための静かな概念辞典</p>
           </div>
           <nav className="flex gap-2 text-sm">
             <button
-              className={`rounded-md px-3 py-1.5 ${screen === "concepts" ? "bg-slate-800 text-white" : "bg-slate-200 text-slate-700"}`}
+              className={`rounded-md px-3 py-1.5 ${screen === "concepts" ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-surface text-nordic-textPrimary border border-nordic-border"}`}
               onClick={() => setScreen("concepts")}
               type="button"
             >
               概念
             </button>
             <button
-              className={`rounded-md px-3 py-1.5 ${screen === "settings" ? "bg-slate-800 text-white" : "bg-slate-200 text-slate-700"}`}
+              className={`rounded-md px-3 py-1.5 ${screen === "settings" ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-surface text-nordic-textPrimary border border-nordic-border"}`}
               onClick={() => setScreen("settings")}
               type="button"
             >
@@ -209,16 +209,16 @@ export const App = () => {
           />
         ) : (
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-quiet">
+            <section className="rounded-2xl border border-nordic-border bg-nordic-surface p-4 shadow-quiet">
               <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
                 <input
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-md border border-nordic-border px-3 py-2 text-sm"
                   placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
                 <button
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                  className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm text-nordic-textPrimary"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -226,7 +226,7 @@ export const App = () => {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md bg-slate-800 px-3 py-2 text-sm text-white"
+                  className="rounded-md bg-nordic-navy px-3 py-2 text-sm text-nordic-surface"
                   onClick={openCreate}
                 >
                   概念を追加
@@ -239,8 +239,8 @@ export const App = () => {
                   onClick={() => setConceptMainTab("list")}
                   className={`rounded-md px-2.5 py-1 text-xs ${
                     conceptMainTab === "list"
-                      ? "bg-slate-800 text-white"
-                      : "border border-slate-300 bg-white text-slate-700"
+                      ? "bg-nordic-navy text-nordic-surface"
+                      : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
                   }`}
                 >
                   一覧表示
@@ -250,8 +250,8 @@ export const App = () => {
                   onClick={() => setConceptMainTab("graph")}
                   className={`rounded-md px-2.5 py-1 text-xs ${
                     conceptMainTab === "graph"
-                      ? "bg-slate-800 text-white"
-                      : "border border-slate-300 bg-white text-slate-700"
+                      ? "bg-nordic-navy text-nordic-surface"
+                      : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
                   }`}
                 >
                   グラフ表示
@@ -261,8 +261,8 @@ export const App = () => {
                   onClick={() => setConceptMainTab("tree")}
                   className={`rounded-md px-2.5 py-1 text-xs ${
                     conceptMainTab === "tree"
-                      ? "bg-slate-800 text-white"
-                      : "border border-slate-300 bg-white text-slate-700"
+                      ? "bg-nordic-navy text-nordic-surface"
+                      : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
                   }`}
                 >
                   ツリー表示
@@ -282,8 +282,8 @@ export const App = () => {
                       onClick={() => setListViewMode(mode)}
                       className={`rounded-md px-2.5 py-1 text-xs ${
                         listViewMode === mode
-                          ? "bg-slate-800 text-white"
-                          : "border border-slate-300 bg-white text-slate-700"
+                          ? "bg-nordic-navy text-nordic-surface"
+                          : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
                       }`}
                     >
                       {label}
@@ -311,7 +311,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-full px-2.5 py-1 text-xs ${
-                            active ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-700"
+                            active ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-statusGreenText"
                           }`}
                         >
                           {tag}
@@ -340,7 +340,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-full px-2.5 py-1 text-xs ${
-                            active ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-700"
+                            active ? "bg-nordic-blue text-nordic-surface" : "bg-nordic-sage text-nordic-surface"
                           }`}
                         >
                           {tag}
@@ -366,7 +366,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-full px-2.5 py-1 text-xs ${
-                          active ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"
+                          active ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-statusGreenText"
                         }`}
                       >
                         {statusLabelMap[status]}
@@ -442,7 +442,7 @@ export const App = () => {
                 <div className={`${mobileDetail ? "block" : "hidden"} lg:block`}>
                   <div className="mb-2 block lg:hidden">
                     <button
-                      className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+                      className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-1.5 text-sm text-nordic-textPrimary"
                       type="button"
                       onClick={() => setMobileDetail(false)}
                     >
@@ -493,7 +493,7 @@ export const App = () => {
               <button
                 type="button"
                 disabled={deleting}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
+                className="rounded-md border border-nordic-border px-3 py-1.5 text-sm text-nordic-textPrimary disabled:opacity-60"
                 onClick={() => setDeleteTarget(undefined)}
               >
                 キャンセル

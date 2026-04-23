@@ -68,7 +68,7 @@ export const ConceptGroupSections = ({
 
   if (sections.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+      <div className="rounded-xl border border-dashed border-nordic-border bg-nordic-surface p-4 text-sm text-nordic-textSecondary">
         条件に一致する概念がありません。
       </div>
     );
@@ -79,19 +79,19 @@ export const ConceptGroupSections = ({
       {sections.map((section) => {
         const open = openMap[section.key] ?? true;
         return (
-          <section key={section.key} className="rounded-xl border border-slate-200 bg-white shadow-quiet">
+          <section key={section.key} className="rounded-xl border border-nordic-border bg-nordic-surface shadow-quiet">
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-slate-50"
+              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-nordic-bg"
               onClick={() => handleToggle(section.key)}
             >
-              <span className="text-sm font-semibold text-slate-800">{section.label}</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-sm font-semibold text-nordic-textPrimary">{section.label}</span>
+              <span className="text-xs text-nordic-textSecondary">
                 {section.concepts.length}件 / {open ? "閉じる" : "開く"}
               </span>
             </button>
             {open && (
-              <div className="border-t border-slate-100 p-2">
+              <div className="border-t border-nordic-border p-2">
                 <ConceptList
                   concepts={section.concepts}
                   selectedId={selectedId}

@@ -117,7 +117,7 @@ export const SettingsPage = ({
   };
 
   return (
-    <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-quiet">
+    <section className="space-y-5 rounded-2xl border border-nordic-border bg-nordic-surface p-5 shadow-quiet">
       <header>
         <h2 className="text-lg font-semibold text-slate-900">設定</h2>
         <p className="text-sm text-slate-600">バックアップ、復元、PWA運用状態を管理します。</p>
@@ -126,8 +126,8 @@ export const SettingsPage = ({
       <div className="rounded-lg border-2 border-indigo-200 bg-indigo-50/60 p-4">
         <h3 className="mb-2 text-sm font-semibold text-slate-800">パッケージ（ZIP）— 推奨・メディア付き</h3>
         <p className="mb-2 text-xs text-slate-600">
-          <code className="rounded bg-white px-1">concepts.json</code> と{" "}
-          <code className="rounded bg-white px-1">media/</code>{" "}
+          <code className="rounded bg-nordic-surface px-1">concepts.json</code> と{" "}
+          <code className="rounded bg-nordic-surface px-1">media/</code>{" "}
           以下のファイルをまとめたZIPです。別PCの同アプリでインポートすると画像・動画も再現されます。
         </p>
         <div className="mb-2 flex flex-wrap gap-2">
@@ -140,10 +140,10 @@ export const SettingsPage = ({
             ZIPを保存
           </button>
         </div>
-        <label className="mb-2 block text-sm text-slate-700">
+        <label className="mb-2 block text-sm text-nordic-textPrimary">
           取り込みモード（ZIP）
           <select
-            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm"
             value={packageMode}
             onChange={(e) => setPackageMode(e.target.value as "replace" | "merge")}
           >
@@ -156,13 +156,13 @@ export const SettingsPage = ({
           accept=".zip,application/zip"
           disabled={busy}
           onChange={(e) => void handlePackageImport(e.target.files?.[0])}
-          className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-1.5"
+          className="block w-full text-sm text-nordic-textPrimary file:mr-3 file:rounded-md file:border file:border-nordic-border file:bg-nordic-surface file:px-3 file:py-1.5"
         />
       </div>
 
-      <div className="rounded-lg bg-slate-50 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">JSONエクスポート</h3>
-        <p className="mb-2 text-xs text-slate-600">
+      <div className="rounded-lg bg-nordic-bg p-4">
+        <h3 className="mb-2 text-sm font-semibold text-nordic-textPrimary">JSONエクスポート</h3>
+        <p className="mb-2 text-xs text-nordic-textSecondary">
           エクスポートされる JSON には、定義・メモ・出典などの平文データがそのまま含まれます。
           画像・動画のバイナリは含まれません（メディア付き移行はZIPを利用してください）。
           共有クラウドや公開リポジトリに置かないでください。
@@ -170,7 +170,7 @@ export const SettingsPage = ({
         <button
           type="button"
           disabled={busy}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-60"
+          className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm text-nordic-textPrimary disabled:opacity-60"
           onClick={() => void handleExport()}
         >
           JSONを保存
@@ -182,10 +182,10 @@ export const SettingsPage = ({
         <p className="mb-2 text-xs text-slate-600">
           信頼できるバックアップファイルのみを取り込んでください。内容検証は最小限です。
         </p>
-        <label className="mb-2 block text-sm text-slate-700">
+        <label className="mb-2 block text-sm text-nordic-textPrimary">
           取り込みモード
           <select
-            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm"
             value={mode}
             onChange={(e) => setMode(e.target.value as "replace" | "merge")}
           >
@@ -198,7 +198,7 @@ export const SettingsPage = ({
           accept="application/json"
           disabled={busy}
           onChange={(e) => void handleImport(e.target.files?.[0])}
-          className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-1.5"
+          className="block w-full text-sm text-nordic-textPrimary file:mr-3 file:rounded-md file:border file:border-nordic-border file:bg-nordic-surface file:px-3 file:py-1.5"
         />
       </div>
 
@@ -226,7 +226,7 @@ export const SettingsPage = ({
               return (
                 <li
                   key={tag}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-nordic-border bg-nordic-surface px-3 py-2"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-800">{tag}</p>
@@ -238,7 +238,7 @@ export const SettingsPage = ({
                       type="color"
                       value={color}
                       onChange={(e) => onChangeDomainColor(tag, e.target.value)}
-                      className="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
+                      className="h-8 w-10 cursor-pointer rounded border border-nordic-border bg-nordic-surface p-0.5"
                     />
                   </label>
                 </li>
