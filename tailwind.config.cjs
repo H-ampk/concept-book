@@ -11,11 +11,12 @@ module.exports = {
           bg: '#2D506E',
           section: 'rgba(255,255,255,0.10)',
           surface: 'rgba(243,247,250,0.92)',
-          card: '#3A5F7A',
+          card: '#3A5C73',
           cardHover: '#406783',
           cardBorder: 'rgba(255,255,255,0.15)',
           cardAction: 'rgba(255,255,255,0.08)',
           cardActionHover: 'rgba(255,255,255,0.14)',
+          gold: '#C8A96A',
           border: 'rgba(255,255,255,0.22)',
           textPrimary: '#1E2F3D',
           textSecondary: '#5B7086',
@@ -31,7 +32,8 @@ module.exports = {
         }
       },
       boxShadow: {
-        quiet: "0 3px 10px rgba(15, 23, 42, 0.08)"
+        quiet: "0 3px 10px rgba(15, 23, 42, 0.08)",
+        card: "0 4px 20px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)"
       }
     }
   },

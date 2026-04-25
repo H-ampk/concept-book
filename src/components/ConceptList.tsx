@@ -21,7 +21,7 @@ export const ConceptList = ({
 }: Props) => {
   if (concepts.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-nordic-card-border bg-nordic-card p-4 text-sm text-nordic-textOnDark">
+      <div className="rounded-xl border-none bg-nordic-card p-4 text-sm text-white/70 shadow-card">
         条件に一致する概念がありません。
       </div>
     );
@@ -32,16 +32,16 @@ export const ConceptList = ({
       {concepts.map((concept) => (
         <li
           key={concept.id}
-          className={`rounded-xl border bg-nordic-card p-3 shadow-quiet transition-colors duration-150 ${
-            selectedId === concept.id ? "border-nordic-card-border ring-1 ring-white/15" : "border-nordic-card-border"
-          } hover:bg-nordic-card-hover`}
+          className={`relative rounded-xl border-none bg-nordic-card p-3 shadow-card transition-colors duration-150 ${
+            selectedId === concept.id ? "ring-2 ring-nordic-gold" : ""
+          } hover:bg-nordic-cardHover before:absolute before:left-0 before:top-4 before:bottom-4 before:w-0.5 before:bg-nordic-gold`}
         >
           <button className="w-full text-left" onClick={() => onSelect(concept.id)} type="button">
             <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="line-clamp-1 text-base font-semibold text-nordic-textOnDark">{concept.title}</h3>
+              <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-white">{concept.title}</h3>
               <StatusBadge status={concept.status} />
             </div>
-            <p className="line-clamp-2 text-sm text-nordic-textMuted">{concept.definition || "定義未入力"}</p>
+            <p className="line-clamp-2 text-sm text-white/70">{concept.definition || "定義未入力"}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
@@ -65,14 +65,14 @@ export const ConceptList = ({
 
           <div className="mt-3 flex gap-2">
             <button
-              className="rounded-md border border-nordic-card-border bg-nordic-cardAction px-2 py-1 text-xs text-nordic-textOnDark hover:bg-nordic-cardActionHover"
+              className="rounded-md border border-white/30 bg-transparent px-2 py-1 text-xs text-white hover:bg-white/10"
               onClick={() => onEdit(concept)}
               type="button"
             >
               編集
             </button>
             <button
-              className="rounded-md border border-nordic-card-border bg-nordic-cardAction px-2 py-1 text-xs text-nordic-textOnDark hover:bg-nordic-cardActionHover"
+              className="rounded-md border border-white/30 bg-transparent px-2 py-1 text-xs text-white hover:bg-white/10"
               onClick={() => onToggleFavorite(concept)}
               type="button"
             >
