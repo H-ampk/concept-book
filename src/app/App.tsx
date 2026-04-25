@@ -173,23 +173,23 @@ export const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-nordic-bg text-nordic-textPrimary">
-      <header className="border-b border-nordic-border bg-nordic-surface">
+    <div className="min-h-screen bg-nordic-bg text-nordic-textOnDark">
+      <header className="border-b border-nordic-border bg-nordic-bg">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-xl font-semibold text-nordic-textPrimary">Concept Book App</h1>
-            <p className="text-xs text-nordic-textSecondary">研究者のための静かな概念辞典</p>
+            <h1 className="text-xl font-semibold text-nordic-textOnDark">Concept Book App</h1>
+            <p className="text-xs text-nordic-textOnDark">研究者のための静かな概念辞典</p>
           </div>
           <nav className="flex gap-2 text-sm">
             <button
-              className={`rounded-md px-3 py-1.5 ${screen === "concepts" ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-surface text-nordic-textPrimary border border-nordic-border"}`}
+              className={`rounded-md px-3 py-1.5 ${screen === "concepts" ? "bg-nordic-primary text-nordic-surface" : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"}`}
               onClick={() => setScreen("concepts")}
               type="button"
             >
               概念
             </button>
             <button
-              className={`rounded-md px-3 py-1.5 ${screen === "settings" ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-surface text-nordic-textPrimary border border-nordic-border"}`}
+              className={`rounded-md px-3 py-1.5 ${screen === "settings" ? "bg-nordic-primary text-nordic-surface" : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"}`}
               onClick={() => setScreen("settings")}
               type="button"
             >
@@ -212,13 +212,13 @@ export const App = () => {
             <section className="rounded-2xl border border-nordic-border bg-nordic-section p-4 shadow-quiet">
               <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
                 <input
-                  className="rounded-md border border-nordic-border px-3 py-2 text-sm"
+                  className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm text-nordic-textPrimary placeholder:text-nordic-textSecondary"
                   placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
                 <button
-                  className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm text-nordic-textPrimary"
+                  className="rounded-md border border-nordic-border bg-nordic-section px-3 py-2 text-sm text-nordic-textOnDark"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -239,8 +239,8 @@ export const App = () => {
                   onClick={() => setConceptMainTab("list")}
                   className={`rounded-md px-2.5 py-1 text-xs ${
                     conceptMainTab === "list"
-                      ? "bg-nordic-navy text-nordic-surface"
-                      : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
+                  ? "bg-nordic-primary text-nordic-surface"
+                      : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
                   }`}
                 >
                   一覧表示
@@ -250,8 +250,8 @@ export const App = () => {
                   onClick={() => setConceptMainTab("graph")}
                   className={`rounded-md px-2.5 py-1 text-xs ${
                     conceptMainTab === "graph"
-                      ? "bg-nordic-navy text-nordic-surface"
-                      : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
+                      ? "bg-nordic-primary text-nordic-surface"
+                      : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
                   }`}
                 >
                   グラフ表示
@@ -261,8 +261,8 @@ export const App = () => {
                   onClick={() => setConceptMainTab("tree")}
                   className={`rounded-md px-2.5 py-1 text-xs ${
                     conceptMainTab === "tree"
-                      ? "bg-nordic-navy text-nordic-surface"
-                      : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
+                      ? "bg-nordic-primary text-nordic-surface"
+                      : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
                   }`}
                 >
                   ツリー表示
@@ -282,8 +282,8 @@ export const App = () => {
                       onClick={() => setListViewMode(mode)}
                       className={`rounded-md px-2.5 py-1 text-xs ${
                         listViewMode === mode
-                          ? "bg-nordic-navy text-nordic-surface"
-                          : "border border-nordic-border bg-nordic-surface text-nordic-textPrimary"
+                      ? "bg-nordic-primary text-nordic-surface"
+                          : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
                       }`}
                     >
                       {label}
@@ -311,7 +311,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-full px-2.5 py-1 text-xs ${
-                            active ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-statusGreenText"
+                      active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-section text-nordic-textOnDark"
                           }`}
                         >
                           {tag}
@@ -340,7 +340,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-full px-2.5 py-1 text-xs ${
-                            active ? "bg-nordic-blue text-nordic-surface" : "bg-nordic-sage text-nordic-surface"
+                      active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-sage text-nordic-surface"
                           }`}
                         >
                           {tag}
@@ -366,7 +366,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-full px-2.5 py-1 text-xs ${
-                          active ? "bg-nordic-navy text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-statusGreenText"
+                          active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-statusGreenText"
                         }`}
                       >
                         {statusLabelMap[status]}
@@ -378,7 +378,7 @@ export const App = () => {
             </section>
 
             {loading ? (
-              <p className="text-sm text-nordic-textSecondary">読み込み中...</p>
+              <p className="text-sm text-nordic-textOnDark">読み込み中...</p>
             ) : conceptMainTab === "graph" ? (
               <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
                 <div>

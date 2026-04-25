@@ -212,7 +212,7 @@ export const ConceptDetail = ({
         )}
       </div>
 
-      <div className="rounded-lg bg-nordic-bg p-3 text-xs text-nordic-textSecondary">
+      <div className="rounded-lg bg-nordic-section p-3 text-xs text-nordic-textOnDark">
         <p>
           出典: {concept.source.book || "未入力"} / p.{concept.source.page || "-"} /{" "}
           {concept.source.author || "著者未入力"}
