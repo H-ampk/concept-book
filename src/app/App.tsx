@@ -233,7 +233,7 @@ export const App = () => {
                 </button>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-nordic-textSecondary">表示:</span>
+                <span className="text-xs font-medium text-nordic-textOnDark">表示:</span>
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("list")}
@@ -270,7 +270,7 @@ export const App = () => {
               </div>
               {conceptMainTab === "list" && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">表示モード:</span>
+                  <span className="text-xs font-medium text-nordic-textOnDark">表示モード:</span>
                   {([
                     ["all", "全体"],
                     ["domain", "分野別"],
@@ -293,9 +293,9 @@ export const App = () => {
               )}
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">分野タグ:</span>
+                  <span className="text-xs font-medium text-nordic-textOnDark">分野タグ:</span>
                   {allDomainTags.length === 0 ? (
-                    <span className="text-xs text-nordic-textSecondary">未登録</span>
+                    <span className="text-xs text-nordic-textOnDark">未登録</span>
                   ) : (
                     allDomainTags.map((tag) => {
                       const active = selectedDomainTags.includes(tag);
@@ -322,9 +322,9 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">研究テーマタグ:</span>
+                  <span className="text-xs font-medium text-nordic-textOnDark">研究テーマタグ:</span>
                   {allResearchTags.length === 0 ? (
-                    <span className="text-xs text-nordic-textSecondary">未登録</span>
+                    <span className="text-xs text-nordic-textOnDark">未登録</span>
                   ) : (
                     allResearchTags.map((tag) => {
                       const active = selectedResearchTags.includes(tag);
@@ -351,7 +351,7 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">状態:</span>
+                  <span className="text-xs font-medium text-nordic-textOnDark">状態:</span>
                   {conceptStatusList.map((status) => {
                     const active = selectedStatuses.includes(status);
                     return (
@@ -366,7 +366,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-full px-2.5 py-1 text-xs ${
-                          active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-statusGreenText"
+                          active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-textOnDark"
                         }`}
                       >
                         {statusLabelMap[status]}
