@@ -178,7 +178,7 @@ export const App = () => {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div>
             <h1 className="text-xl font-semibold text-nordic-textOnDark">Concept Book App</h1>
-            <p className="text-xs text-nordic-textOnDark">研究者のための静かな概念辞典</p>
+            <p className="text-xs text-nordic-textOnDark">Et sted for tanker</p>
           </div>
           <nav className="flex gap-2 text-sm">
             <button
