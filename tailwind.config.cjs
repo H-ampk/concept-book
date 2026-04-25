@@ -29,11 +29,27 @@ module.exports = {
           navy: '#2D506E',
           statusGreenBg: '#D1E8DC',
           statusGreenText: '#2D5F42'
+        },
+        celestial: {
+          base: '#061A2D',
+          deepBlue: '#08213A',
+          panel: 'rgba(8, 33, 58, 0.82)',
+          panelHover: 'rgba(15, 48, 78, 0.9)',
+          gold: '#C89B5C',
+          softGold: '#E0C58B',
+          textMain: '#F4E8D0',
+          textSub: '#B9C7D1',
+          border: 'rgba(200, 155, 92, 0.3)',
+          shadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)'
         }
       },
       boxShadow: {
         quiet: "0 3px 10px rgba(15, 23, 42, 0.08)",
-        card: "0 4px 20px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)"
+        card: "0 4px 20px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)",
+        celestial: "0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)"
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       }
     }
   },

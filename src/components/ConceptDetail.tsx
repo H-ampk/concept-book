@@ -93,18 +93,18 @@ export const ConceptDetail = ({
 }: Props) => {
   if (!concept) {
     return (
-      <section className="rounded-2xl border border-nordic-card-border bg-nordic-card p-6 shadow-quiet">
-        <p className="text-sm text-nordic-textOnDark">左側の概念を選択すると詳細が表示されます。</p>
+      <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial">
+        <p className="text-sm text-celestial-textSub">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
   }
 
   return (
-    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-card-border bg-nordic-card p-6 shadow-quiet">
+    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial">
       <header className="flex flex-wrap items-center gap-2">
-        <h2 className="text-xl font-semibold text-nordic-textOnDark">{concept.title}</h2>
+        <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+          <span className="rounded-full bg-celestial-gold px-2 py-0.5 text-xs font-medium text-celestial-base">
             お気に入り
           </span>
         )}
@@ -116,7 +116,7 @@ export const ConceptDetail = ({
           type="button"
           onClick={() => onRequestDelete(concept)}
           disabled={deleting}
-          className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {deleting ? "削除中..." : "削除"}
         </button>
@@ -124,26 +124,26 @@ export const ConceptDetail = ({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textOnDark">
+      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-celestial-textMain">
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">定義</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">自分の解釈</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">自分の解釈</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">メモ</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">メモ</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>
         </div>
       </article>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">分野タグ</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-celestial-textSub">分野タグ</h3>
         <div className="flex flex-wrap gap-1">
           {concept.domainTags.length === 0 ? (
-            <span className="text-sm text-nordic-textSecondary">なし</span>
+            <span className="text-sm text-celestial-textSub">なし</span>
           ) : (
             concept.domainTags.map((tag) => (
               <span
@@ -159,17 +159,17 @@ export const ConceptDetail = ({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-celestial-textSub">
           研究テーマタグ
         </h3>
         <div className="flex flex-wrap gap-1">
           {concept.researchTags.length === 0 ? (
-            <span className="text-sm text-nordic-textSecondary">なし</span>
+            <span className="text-sm text-celestial-textSub">なし</span>
           ) : (
             concept.researchTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-nordic-sage px-2 py-0.5 text-xs text-nordic-surface"
+                className="rounded-md bg-celestial-softGold px-2 py-0.5 text-xs text-celestial-base"
               >
                 #{tag}
               </span>

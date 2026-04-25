@@ -173,23 +173,39 @@ export const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-nordic-bg text-nordic-textOnDark">
-      <header className="border-b border-nordic-border bg-nordic-bg">
+    <div className="min-h-screen bg-celestial-base text-celestial-textMain relative overflow-hidden">
+      {/* Decorative starry background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-celestial-base to-celestial-base opacity-80"></div>
+        <div className="absolute inset-0 bg-stars opacity-20"></div>
+        {/* Left plant decoration */}
+        <div className="absolute left-0 top-1/4 w-32 h-64 bg-plant-decoration opacity-30"></div>
+        {/* Right celestial arcs */}
+        <div className="absolute right-0 top-1/3 w-48 h-48 bg-celestial-arcs opacity-20"></div>
+        {/* Moon/star in top right */}
+        <div className="absolute top-8 right-16 w-12 h-12 bg-moon-star opacity-40"></div>
+      </div>
+
+      <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-xl font-semibold text-nordic-textOnDark">Concept Book App</h1>
-            <p className="text-xs text-nordic-textOnDark">Et sted for tanker</p>
+            <h1 className="text-xl font-semibold text-celestial-gold tracking-wider">Concept Book App</h1>
+            <p className="text-xs text-celestial-softGold">Et sted for tanker</p>
           </div>
           <nav className="flex gap-2 text-sm">
             <button
-              className={`rounded-md px-3 py-1.5 ${screen === "concepts" ? "bg-nordic-primary text-nordic-surface" : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"}`}
+              className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+                screen === "concepts" ? "bg-celestial-gold/20" : ""
+              }`}
               onClick={() => setScreen("concepts")}
               type="button"
             >
               概念
             </button>
             <button
-              className={`rounded-md px-3 py-1.5 ${screen === "settings" ? "bg-nordic-primary text-nordic-surface" : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"}`}
+              className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+                screen === "settings" ? "bg-celestial-gold/20" : ""
+              }`}
               onClick={() => setScreen("settings")}
               type="button"
             >
@@ -199,7 +215,7 @@ export const App = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-4">
+      <main className="mx-auto max-w-7xl px-4 py-4 relative z-10">
         {screen === "settings" ? (
           <SettingsPage
             onImported={reload}
@@ -209,16 +225,16 @@ export const App = () => {
           />
         ) : (
           <div className="space-y-4">
-            <section className="rounded-2xl border border-nordic-border bg-nordic-section p-4 shadow-quiet">
-              <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+            <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10">
+              <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <input
-                  className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm text-nordic-textPrimary placeholder:text-nordic-textSecondary"
+                  className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
                   placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
                 <button
-                  className="rounded-md border border-nordic-border bg-nordic-section px-3 py-2 text-sm text-nordic-textOnDark"
+                  className="rounded-lg border border-celestial-gold/30 bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold hover:bg-celestial-panelHover"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -226,21 +242,19 @@ export const App = () => {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md bg-nordic-navy px-3 py-2 text-sm text-nordic-surface"
+                  className="rounded-lg bg-celestial-gold px-4 py-3 text-sm text-celestial-base hover:bg-celestial-softGold"
                   onClick={openCreate}
                 >
                   概念を追加
                 </button>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-nordic-textOnDark">表示:</span>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-celestial-softGold">表示:</span>
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("list")}
-                  className={`rounded-md px-2.5 py-1 text-xs ${
-                    conceptMainTab === "list"
-                  ? "bg-nordic-primary text-nordic-surface"
-                      : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
+                  className={`rounded-lg px-3 py-1.5 text-sm border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover ${
+                    conceptMainTab === "list" ? "bg-celestial-gold/20 border-celestial-gold" : ""
                   }`}
                 >
                   一覧表示
@@ -248,10 +262,8 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("graph")}
-                  className={`rounded-md px-2.5 py-1 text-xs ${
-                    conceptMainTab === "graph"
-                      ? "bg-nordic-primary text-nordic-surface"
-                      : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
+                  className={`rounded-lg px-3 py-1.5 text-sm border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover ${
+                    conceptMainTab === "graph" ? "bg-celestial-gold/20 border-celestial-gold" : ""
                   }`}
                 >
                   グラフ表示
@@ -259,10 +271,8 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("tree")}
-                  className={`rounded-md px-2.5 py-1 text-xs ${
-                    conceptMainTab === "tree"
-                      ? "bg-nordic-primary text-nordic-surface"
-                      : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
+                  className={`rounded-lg px-3 py-1.5 text-sm border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover ${
+                    conceptMainTab === "tree" ? "bg-celestial-gold/20 border-celestial-gold" : ""
                   }`}
                 >
                   ツリー表示
@@ -270,7 +280,7 @@ export const App = () => {
               </div>
               {conceptMainTab === "list" && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textOnDark">表示モード:</span>
+                  <span className="text-xs font-medium text-celestial-softGold">表示モード:</span>
                   {([
                     ["all", "全体"],
                     ["domain", "分野別"],
@@ -282,8 +292,8 @@ export const App = () => {
                       onClick={() => setListViewMode(mode)}
                       className={`rounded-md px-2.5 py-1 text-xs ${
                         listViewMode === mode
-                      ? "bg-nordic-primary text-nordic-surface"
-                          : "border border-nordic-border bg-nordic-section text-nordic-textOnDark"
+                      ? "bg-celestial-gold text-celestial-base"
+                          : "border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold"
                       }`}
                     >
                       {label}
@@ -293,9 +303,9 @@ export const App = () => {
               )}
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textOnDark">分野タグ:</span>
+                  <span className="text-xs font-medium text-celestial-softGold">分野タグ:</span>
                   {allDomainTags.length === 0 ? (
-                    <span className="text-xs text-nordic-textOnDark">未登録</span>
+                    <span className="text-xs text-celestial-textSub">未登録</span>
                   ) : (
                     allDomainTags.map((tag) => {
                       const active = selectedDomainTags.includes(tag);
@@ -311,7 +321,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-full px-2.5 py-1 text-xs ${
-                      active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-section text-nordic-textOnDark"
+                      active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
                           }`}
                         >
                           {tag}
@@ -322,9 +332,9 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textOnDark">研究テーマタグ:</span>
+                  <span className="text-xs font-medium text-celestial-softGold">研究テーマタグ:</span>
                   {allResearchTags.length === 0 ? (
-                    <span className="text-xs text-nordic-textOnDark">未登録</span>
+                    <span className="text-xs text-celestial-textSub">未登録</span>
                   ) : (
                     allResearchTags.map((tag) => {
                       const active = selectedResearchTags.includes(tag);
@@ -340,7 +350,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-full px-2.5 py-1 text-xs ${
-                      active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-sage text-nordic-surface"
+                      active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
                           }`}
                         >
                           {tag}
@@ -351,7 +361,7 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textOnDark">状態:</span>
+                  <span className="text-xs font-medium text-celestial-softGold">状態:</span>
                   {conceptStatusList.map((status) => {
                     const active = selectedStatuses.includes(status);
                     return (
@@ -366,7 +376,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-full px-2.5 py-1 text-xs ${
-                          active ? "bg-nordic-primary text-nordic-surface" : "bg-nordic-statusGreenBg text-nordic-textOnDark"
+                          active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
                         }`}
                       >
                         {statusLabelMap[status]}

@@ -21,7 +21,7 @@ export const ConceptList = ({
 }: Props) => {
   if (concepts.length === 0) {
     return (
-      <div className="rounded-xl border-none bg-nordic-card p-4 text-sm text-white/70 shadow-card">
+      <div className="rounded-xl border border-celestial-border bg-celestial-panel p-4 text-sm text-celestial-textSub shadow-celestial">
         条件に一致する概念がありません。
       </div>
     );
@@ -32,16 +32,16 @@ export const ConceptList = ({
       {concepts.map((concept) => (
         <li
           key={concept.id}
-          className={`relative rounded-xl border-none bg-nordic-card p-3 shadow-card transition-colors duration-150 ${
-            selectedId === concept.id ? "ring-2 ring-nordic-gold" : ""
-          } hover:bg-nordic-cardHover before:absolute before:left-0 before:top-4 before:bottom-4 before:w-0.5 before:bg-nordic-gold`}
+          className={`relative rounded-xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial transition-colors duration-150 ${
+            selectedId === concept.id ? "ring-2 ring-celestial-gold" : ""
+          } hover:bg-celestial-panelHover before:absolute before:left-0 before:top-4 before:bottom-4 before:w-0.5 before:bg-celestial-gold before:rounded-full`}
         >
           <button className="w-full text-left" onClick={() => onSelect(concept.id)} type="button">
             <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-white">{concept.title}</h3>
+              <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-celestial-textMain">{concept.title}</h3>
               <StatusBadge status={concept.status} />
             </div>
-            <p className="line-clamp-2 text-sm text-white/70">{concept.definition || "定義未入力"}</p>
+            <p className="line-clamp-2 text-sm text-celestial-textSub">{concept.definition || "定義未入力"}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
@@ -55,7 +55,7 @@ export const ConceptList = ({
               {concept.researchTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-research-${tag}`}
-                  className="rounded-md bg-nordic-sage px-2 py-0.5 text-xs text-nordic-surface"
+                  className="rounded-md bg-celestial-softGold px-2 py-0.5 text-xs text-celestial-base"
                 >
                   R:{tag}
                 </span>
@@ -65,14 +65,14 @@ export const ConceptList = ({
 
           <div className="mt-3 flex gap-2">
             <button
-              className="rounded-md border border-white/30 bg-transparent px-2 py-1 text-xs text-white hover:bg-white/10"
+              className="rounded-md border border-celestial-gold/30 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
               onClick={() => onEdit(concept)}
               type="button"
             >
               編集
             </button>
             <button
-              className="rounded-md border border-white/30 bg-transparent px-2 py-1 text-xs text-white hover:bg-white/10"
+              className="rounded-md border border-celestial-gold/30 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
               onClick={() => onToggleFavorite(concept)}
               type="button"
             >

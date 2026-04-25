@@ -15,3 +15,30 @@
 body {
   margin: 0;
 }
+
+/* Celestial theme backgrounds */
+.bg-stars {
+  background-image: radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+                    radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
+                    radial-gradient(1px 1px at 90px 40px, #ffffff, transparent),
+                    radial-gradient(1px 1px at 130px 80px, #ffffff, transparent),
+                    radial-gradient(2px 2px at 160px 30px, #ffffff, transparent);
+  background-repeat: repeat;
+  background-size: 200px 100px;
+}
+
+.bg-plant-decoration {
+  background-image: linear-gradient(45deg, transparent 30%, rgba(200, 155, 92, 0.2) 30%, rgba(200, 155, 92, 0.2) 40%, transparent 40%),
+                    linear-gradient(-45deg, transparent 30%, rgba(200, 155, 92, 0.2) 30%, rgba(200, 155, 92, 0.2) 40%, transparent 40%);
+  background-size: 20px 20px;
+}
+
+.bg-celestial-arcs {
+  background-image: radial-gradient(circle at 50% 50%, transparent 40%, rgba(200, 155, 92, 0.1) 41%, rgba(200, 155, 92, 0.1) 42%, transparent 43%);
+  background-size: 100px 100px;
+}
+
+.bg-moon-star {
+  background-image: radial-gradient(circle, #ffffff 20%, transparent 21%),
+                    radial-gradient(circle at 30% 30%, #ffffff 2px, transparent 3px);
+}
