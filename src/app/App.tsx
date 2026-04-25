@@ -233,7 +233,7 @@ export const App = () => {
                 </button>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-slate-600">表示:</span>
+                <span className="text-xs font-medium text-nordic-textSecondary">表示:</span>
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("list")}
@@ -270,7 +270,7 @@ export const App = () => {
               </div>
               {conceptMainTab === "list" && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-600">表示モード:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">表示モード:</span>
                   {([
                     ["all", "全体"],
                     ["domain", "分野別"],
@@ -293,9 +293,9 @@ export const App = () => {
               )}
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-600">分野タグ:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">分野タグ:</span>
                   {allDomainTags.length === 0 ? (
-                    <span className="text-xs text-slate-500">未登録</span>
+                    <span className="text-xs text-nordic-textSecondary">未登録</span>
                   ) : (
                     allDomainTags.map((tag) => {
                       const active = selectedDomainTags.includes(tag);
@@ -322,9 +322,9 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-600">研究テーマタグ:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">研究テーマタグ:</span>
                   {allResearchTags.length === 0 ? (
-                    <span className="text-xs text-slate-500">未登録</span>
+                    <span className="text-xs text-nordic-textSecondary">未登録</span>
                   ) : (
                     allResearchTags.map((tag) => {
                       const active = selectedResearchTags.includes(tag);
@@ -351,7 +351,7 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-600">状態:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">状態:</span>
                   {conceptStatusList.map((status) => {
                     const active = selectedStatuses.includes(status);
                     return (
@@ -378,7 +378,7 @@ export const App = () => {
             </section>
 
             {loading ? (
-              <p className="text-sm text-slate-500">読み込み中...</p>
+              <p className="text-sm text-nordic-textSecondary">読み込み中...</p>
             ) : conceptMainTab === "graph" ? (
               <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
                 <div>
@@ -478,15 +478,15 @@ export const App = () => {
       />
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
-            <h3 className="text-base font-semibold text-slate-900">この概念を削除しますか？</h3>
-            <p className="mt-2 text-sm text-slate-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-navy/20 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-nordic-border bg-nordic-surface p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-nordic-textPrimary">この概念を削除しますか？</h3>
+            <p className="mt-2 text-sm text-nordic-textSecondary">
               この操作は元に戻せません。
               <br />
               必要なら先に JSON エクスポートでバックアップしてください。
             </p>
-            <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <p className="mt-2 rounded-md bg-nordic-section px-3 py-2 text-sm text-nordic-textPrimary">
               対象: {deleteTarget.title}
             </p>
             <div className="mt-4 flex justify-end gap-2">
@@ -512,12 +512,12 @@ export const App = () => {
       )}
 
       {feedback && (
-        <div className="fixed bottom-4 right-4 z-40 rounded-md bg-slate-800 px-3 py-2 text-sm text-slate-100 shadow-lg">
+        <div className="fixed bottom-4 right-4 z-40 rounded-md bg-nordic-primary px-3 py-2 text-sm text-nordic-surface shadow-quiet">
           <div className="flex items-center gap-2">
             <span>{feedback}</span>
             <button
               type="button"
-              className="rounded px-1 py-0.5 text-xs text-slate-300 hover:bg-slate-700 hover:text-white"
+              className="rounded px-1 py-0.5 text-xs text-nordic-surface hover:bg-nordic-accent"
               onClick={() => setFeedback(null)}
             >
               閉じる

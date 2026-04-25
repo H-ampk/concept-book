@@ -66,7 +66,7 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
       <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-            <li key={ref.id} className="rounded-lg border border-nordic-border bg-nordic-bg p-2">
+            <li key={ref.id} className="rounded-lg border border-nordic-border bg-nordic-surface p-2">
             {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
             <p className="mb-1 text-xs text-nordic-textSecondary">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
@@ -199,7 +199,7 @@ export const ConceptDetail = ({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-bg"
+                    className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-section"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >

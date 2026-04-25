@@ -65,14 +65,14 @@ export const ConceptList = ({
 
           <div className="mt-3 flex gap-2">
             <button
-              className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-bg"
+              className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-section"
               onClick={() => onEdit(concept)}
               type="button"
             >
               編集
             </button>
             <button
-              className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-bg"
+              className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-section"
               onClick={() => onToggleFavorite(concept)}
               type="button"
             >
