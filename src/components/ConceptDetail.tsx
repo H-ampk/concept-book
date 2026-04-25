@@ -93,16 +93,16 @@ export const ConceptDetail = ({
 }: Props) => {
   if (!concept) {
     return (
-      <section className="rounded-2xl border border-nordic-border bg-nordic-surface p-6 shadow-quiet">
-        <p className="text-sm text-nordic-textSecondary">左側の概念を選択すると詳細が表示されます。</p>
+      <section className="rounded-2xl border border-nordic-card-border bg-nordic-card p-6 shadow-quiet">
+        <p className="text-sm text-nordic-textOnDark">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
   }
 
   return (
-    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border bg-nordic-surface p-6 shadow-quiet">
+    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-card-border bg-nordic-card p-6 shadow-quiet">
       <header className="flex flex-wrap items-center gap-2">
-        <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
+        <h2 className="text-xl font-semibold text-nordic-textOnDark">{concept.title}</h2>
         {concept.favorite && (
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
             お気に入り
@@ -124,7 +124,7 @@ export const ConceptDetail = ({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textPrimary">
+      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textOnDark">
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
@@ -140,7 +140,7 @@ export const ConceptDetail = ({
       </article>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">分野タグ</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">分野タグ</h3>
         <div className="flex flex-wrap gap-1">
           {concept.domainTags.length === 0 ? (
             <span className="text-sm text-nordic-textSecondary">なし</span>
@@ -159,7 +159,7 @@ export const ConceptDetail = ({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
           研究テーマタグ
         </h3>
         <div className="flex flex-wrap gap-1">
@@ -179,7 +179,7 @@ export const ConceptDetail = ({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">関連概念</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">関連概念</h3>
         {concept.relatedIds.length === 0 ? (
           <p className="text-sm text-nordic-textSecondary">関連概念なし</p>
         ) : (
@@ -199,7 +199,7 @@ export const ConceptDetail = ({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-nordic-border px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-section"
+                    className="rounded-md border border-nordic-card-border bg-nordic-cardAction px-2 py-1 text-xs text-nordic-textOnDark hover:bg-nordic-cardActionHover"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
