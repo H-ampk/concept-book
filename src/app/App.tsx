@@ -69,19 +69,19 @@ const DecorativeBackground = () => (
       src="/decorations/moon.png"
       alt=""
       aria-hidden="true"
-      className="fixed top-20 right-20 w-64 opacity-100"
+      className="fixed top-20 right-20 w-40 opacity-40"
     />
     <img
       src="/decorations/botanical.png"
       alt=""
       aria-hidden="true"
-      className="fixed left-0 bottom-0 h-[90vh] opacity-80"
+      className="fixed left-0 bottom-0 h-[90vh] opacity-25 blur-[0.5px]"
     />
     <img
       src="/decorations/constellation.png"
       alt=""
       aria-hidden="true"
-      className="fixed right-0 top-32 w-[760px] opacity-80"
+      className="fixed right-[-120px] top-32 w-[760px] opacity-15 blur-[0.8px]"
     />
   </div>
 );
