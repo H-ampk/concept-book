@@ -8,10 +8,10 @@ const labelMap: Record<ConceptStatus, string> = {
 };
 
 const colorMap: Record<ConceptStatus, string> = {
-  active: "bg-nordic-statusGreenBg text-nordic-statusGreenText",
-  researching: "bg-nordic-blue text-nordic-surface",
-  unclear: "bg-amber-100 text-amber-900",
-  archived: "bg-nordic-border text-nordic-textPrimary"
+  active: "bg-[#C89B5C]/20 text-[#E0C58B] border border-[#C89B5C]/40",
+  researching: "bg-[#4A7C92]/20 text-[#B9C7D1] border border-[#4A7C92]/40",
+  unclear: "bg-[#C89B5C]/15 text-[#E0C58B] border border-[#C89B5C]/30",
+  archived: "bg-[#2D506E]/30 text-[#B9C7D1] border border-[#2D506E]/50"
 };
 
 type Props = {
