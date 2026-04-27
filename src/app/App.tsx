@@ -61,6 +61,29 @@ const buildTagSections = (
   return sections;
 };
 
+const DecorativeBackground = () => (
+  <div className="pointer-events-none fixed inset-0 z-[5]">
+    <img
+      src="/decorations/moon.png"
+      alt=""
+      aria-hidden="true"
+      className="fixed top-6 right-12 w-[160px] opacity-[0.75]"
+    />
+    <img
+      src="/decorations/botanical.png"
+      alt=""
+      aria-hidden="true"
+      className="fixed left-0 bottom-0 h-[85vh] opacity-[0.45]"
+    />
+    <img
+      src="/decorations/constellation.png"
+      alt=""
+      aria-hidden="true"
+      className="fixed right-[-80px] top-[160px] w-[720px] opacity-[0.18]"
+    />
+  </div>
+);
+
 export const App = () => {
   const {
     concepts,
@@ -185,6 +208,7 @@ export const App = () => {
         {/* Moon/star in top right */}
         <div className="absolute top-8 right-16 w-12 h-12 bg-moon-star opacity-40"></div>
       </div>
+      <DecorativeBackground />
 
       <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
