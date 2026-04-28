@@ -4,8 +4,8 @@
 
 :root {
   font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #0f172a;
-  background-color: #f1f5f9;
+  color: #e6d3a3;
+  background-color: #0b1e2d;
 }
 
 * {
@@ -14,31 +14,88 @@
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background-color: #0b1e2d;
+  color: #e6d3a3;
 }
 
 /* Celestial theme backgrounds */
 .bg-stars {
-  background-image: radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
-                    radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
-                    radial-gradient(1px 1px at 90px 40px, #ffffff, transparent),
-                    radial-gradient(1px 1px at 130px 80px, #ffffff, transparent),
-                    radial-gradient(2px 2px at 160px 30px, #ffffff, transparent);
+  background-image: radial-gradient(1px 1px at 18px 34px, rgba(230,211,163,0.16), transparent),
+                    radial-gradient(1px 1px at 46px 78px, rgba(230,211,163,0.12), transparent),
+                    radial-gradient(1px 1px at 84px 26px, rgba(230,211,163,0.14), transparent),
+                    radial-gradient(1px 1px at 132px 86px, rgba(230,211,163,0.1), transparent),
+                    radial-gradient(1px 1px at 162px 34px, rgba(230,211,163,0.14), transparent);
   background-repeat: repeat;
-  background-size: 200px 100px;
+  background-size: 240px 120px;
+}
+
+.bg-radial-gradient {
+  background-image: radial-gradient(circle at top left, rgba(212,175,55,0.14), transparent 20%),
+                    radial-gradient(circle at bottom right, rgba(230,211,163,0.08), transparent 18%);
 }
 
 .bg-plant-decoration {
-  background-image: linear-gradient(45deg, transparent 30%, rgba(200, 155, 92, 0.2) 30%, rgba(200, 155, 92, 0.2) 40%, transparent 40%),
-                    linear-gradient(-45deg, transparent 30%, rgba(200, 155, 92, 0.2) 30%, rgba(200, 155, 92, 0.2) 40%, transparent 40%);
+  background-image: linear-gradient(45deg, transparent 30%, rgba(212,175,55,0.12) 30%, rgba(212,175,55,0.12) 40%, transparent 40%),
+                    linear-gradient(-45deg, transparent 30%, rgba(212,175,55,0.12) 30%, rgba(212,175,55,0.12) 40%, transparent 40%);
   background-size: 20px 20px;
 }
 
 .bg-celestial-arcs {
-  background-image: radial-gradient(circle at 50% 50%, transparent 40%, rgba(200, 155, 92, 0.1) 41%, rgba(200, 155, 92, 0.1) 42%, transparent 43%);
+  background-image: radial-gradient(circle at 50% 50%, transparent 40%, rgba(212,175,55,0.1) 41%, rgba(212,175,55,0.1) 42%, transparent 43%);
   background-size: 100px 100px;
 }
 
 .bg-moon-star {
-  background-image: radial-gradient(circle, #ffffff 20%, transparent 21%),
-                    radial-gradient(circle at 30% 30%, #ffffff 2px, transparent 3px);
+  background-image: radial-gradient(circle, rgba(230,211,163,0.24) 18%, transparent 20%),
+                    radial-gradient(circle at 30% 30%, rgba(230,211,163,0.18) 2px, transparent 3px);
+}
+
+.bg-celestial-panel {
+  background-image: linear-gradient(180deg, rgba(15,42,64,0.92), rgba(11,30,45,0.96));
+  background-color: rgba(11,30,45,0.88);
+  border-color: rgba(212,175,55,0.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(212,175,55,0.08), 0 15px 40px rgba(0,0,0,0.26);
+}
+
+.bg-celestial-deepBlue {
+  background-image: linear-gradient(180deg, #0f2a40 0%, #0b1e2d 100%);
+}
+
+.border-celestial-border {
+  border-color: rgba(212,175,55,0.6) !important;
+}
+
+.shadow-celestial {
+  box-shadow: 0 18px 46px rgba(212,175,55,0.16), inset 0 1px 1px rgba(255,255,255,0.05);
+}
+
+.bg-radial-gradient {
+  background-image: radial-gradient(circle at top left, rgba(212,175,55,0.14), transparent 20%), radial-gradient(circle at bottom right, rgba(230,211,163,0.08), transparent 18%);
+}
+
+button.bg-celestial-gold {
+  background-color: #d4af37;
+  color: #10263a;
+}
+
+button.bg-celestial-gold:hover {
+  background-color: #f1d67a;
+}
+
+button:hover {
+  filter: brightness(1.03);
+}
+
+input,
+textarea,
+select {
+  border-color: rgba(212,175,55,0.45);
+  background-color: rgba(11,30,45,0.95);
+  color: #e6d3a3;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(230,211,163,0.7);
 }

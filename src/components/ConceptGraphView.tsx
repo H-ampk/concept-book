@@ -79,22 +79,22 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   }, [concepts]);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-quiet">
+    <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial">
       <header className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-800">概念グラフ</h3>
-        <p className="text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-celestial-textMain">概念グラフ</h3>
+        <p className="text-xs text-celestial-textSub">
           ノード {graphData.nodes.length} / エッジ {graphData.links.length}
         </p>
       </header>
 
-      <div ref={frameRef} className="w-full overflow-x-auto rounded-lg border border-slate-100 bg-slate-50">
+      <div ref={frameRef} className="w-full overflow-x-auto rounded-lg border border-celestial-border bg-nordic-surface">
         <ForceGraph2D
           width={size.width}
           height={size.height}
           graphData={graphData}
           nodeRelSize={6}
           linkWidth={0.8}
-          linkColor={() => "#cbd5e1"}
+          linkColor={() => "rgba(212,175,55,0.45)"}
           cooldownTicks={120}
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
           nodeCanvasObject={(nodeObject, context, globalScale) => {
@@ -111,21 +111,21 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             if (node.favorite || isSelected) {
               context.beginPath();
               context.arc(node.x, node.y, radius + 1.8, 0, Math.PI * 2, false);
-              context.strokeStyle = isSelected ? "#0f172a" : "#f59e0b";
+              context.strokeStyle = isSelected ? "#0b1e2d" : "#f1d67a";
               context.lineWidth = isSelected ? 2.2 : 1.4;
               context.stroke();
             }
 
             const fontSize = Math.max(10, 12 / globalScale);
             context.font = `${fontSize}px sans-serif`;
-            context.fillStyle = "#334155";
+            context.fillStyle = "#e6d3a3";
             context.textAlign = "center";
             context.textBaseline = "top";
             context.fillText(node.title, node.x, node.y + radius + 2);
           }}
         />
       </div>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-celestial-textSub">
         研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。
       </p>
     </section>

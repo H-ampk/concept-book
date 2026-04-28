@@ -358,10 +358,10 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
   }, [selectedId, nodeById]);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-quiet">
+    <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial">
       <header className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-800">スキルツリー</h3>
-        <p className="text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-celestial-textMain">スキルツリー</h3>
+        <p className="text-xs text-celestial-textSub">
           ノード {layoutData.nodes.length} / 主エッジ {layoutData.mainEdges.length} / 追加エッジ {layoutData.extraEdges.length}
         </p>
       </header>
@@ -372,7 +372,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         onKeyDown={handleKeyDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className="w-full overflow-auto rounded-lg border border-slate-100 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400/60"
+        className="w-full overflow-auto rounded-lg border border-celestial-border bg-nordic-surface focus:outline-none focus:ring-2 focus:ring-celestial-softGold/40"
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
         <svg width="900" height="640" viewBox="0 0 900 640" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
@@ -399,7 +399,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="#334155"
+                stroke="#8c6b1f"
                 strokeWidth="2"
                 opacity="0.9"
               />
@@ -422,7 +422,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="#9ca3af"
+                stroke="#f1d67a"
                 strokeWidth={isSelectedRelated ? 1.5 : 0.8}
                 strokeDasharray="4,6"
                 opacity={isSelectedRelated ? 0.55 : 0.14}
@@ -433,9 +433,9 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
           {layoutData.nodes.map((node) => {
             const color = getDomainTagColor(node.domainTag, domainColorMap);
             const isSelected = selectedId === node.id;
-            const cardFill = node.isRoot ? "#eff6ff" : isSelected ? "#f8fafc" : "#ffffff";
-            const borderColor = node.isRoot ? "#2563eb" : isSelected ? "#0f172a" : "#cbd5e1";
-            const textColor = "#0f172a";
+            const cardFill = node.isRoot ? "#183051" : isSelected ? "#142d44" : "#102a3f";
+            const borderColor = node.isRoot ? "#d4af37" : isSelected ? "#f1d67a" : "#8c6b1f";
+            const textColor = "#e6d3a3";
             const labelLines = normalizeLabelLines(node.title);
             const x = node.x + offset.x - node.width / 2;
             const y = node.y + offset.y - node.height / 2;
@@ -455,7 +455,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                   fill={cardFill}
                   stroke={borderColor}
                   strokeWidth={node.isRoot || isSelected ? 2 : 1}
-                  filter="drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08))"
+                  filter="drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18))"
                 />
                 <rect
                   x={x + 8}
@@ -483,7 +483,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
           })}
         </svg>
       </div>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-celestial-textSub">
         研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。主線はツリー、点線は追加関係です。
       </p>
     </section>

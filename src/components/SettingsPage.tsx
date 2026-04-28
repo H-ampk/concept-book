@@ -117,33 +117,33 @@ export const SettingsPage = ({
   };
 
   return (
-    <section className="space-y-5 rounded-2xl border border-nordic-border bg-nordic-section p-5 shadow-quiet">
+    <section className="space-y-5 rounded-2xl border border-celestial-border bg-celestial-panel p-5 shadow-celestial">
       <header>
-        <h2 className="text-lg font-semibold text-slate-900">設定</h2>
-        <p className="text-sm text-slate-600">バックアップ、復元、PWA運用状態を管理します。</p>
+        <h2 className="text-lg font-semibold text-celestial-textMain">設定</h2>
+        <p className="text-sm text-celestial-textSub">バックアップ、復元、PWA運用状態を管理します。</p>
       </header>
 
-      <div className="rounded-lg border-2 border-indigo-200 bg-indigo-50/60 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">パッケージ（ZIP）— 推奨・メディア付き</h3>
-        <p className="mb-2 text-xs text-slate-600">
-          <code className="rounded bg-nordic-surface px-1">concepts.json</code> と{" "}
-          <code className="rounded bg-nordic-surface px-1">media/</code>{" "}
+      <div className="rounded-lg border-2 border-celestial-border bg-celestial-panel/80 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">パッケージ（ZIP）— 推奨・メディア付き</h3>
+        <p className="mb-2 text-xs text-celestial-textSub">
+          <code className="rounded bg-nordic-surface px-1">concepts.json</code> と{' '}
+          <code className="rounded bg-nordic-surface px-1">media/</code>{' '}
           以下のファイルをまとめたZIPです。別PCの同アプリでインポートすると画像・動画も再現されます。
         </p>
         <div className="mb-2 flex flex-wrap gap-2">
           <button
             type="button"
             disabled={busy}
-            className="rounded-md bg-indigo-700 px-3 py-2 text-sm text-white disabled:opacity-60"
+            className="rounded-md bg-celestial-gold px-3 py-2 text-sm text-celestial-base disabled:opacity-60"
             onClick={() => void handlePackageExport()}
           >
             ZIPを保存
           </button>
         </div>
-        <label className="mb-2 block text-sm text-nordic-textPrimary">
+        <label className="mb-2 block text-sm text-celestial-textMain">
           取り込みモード（ZIP）
           <select
-            className="mt-1 w-full rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-celestial-border bg-nordic-surface px-3 py-2 text-sm text-celestial-textMain"
             value={packageMode}
             onChange={(e) => setPackageMode(e.target.value as "replace" | "merge")}
           >
@@ -156,13 +156,13 @@ export const SettingsPage = ({
           accept=".zip,application/zip"
           disabled={busy}
           onChange={(e) => void handlePackageImport(e.target.files?.[0])}
-          className="block w-full text-sm text-nordic-textPrimary file:mr-3 file:rounded-md file:border file:border-nordic-border file:bg-nordic-surface file:px-3 file:py-1.5"
+          className="block w-full text-sm text-celestial-textMain file:mr-3 file:rounded-md file:border file:border-celestial-border file:bg-nordic-surface file:px-3 file:py-1.5"
         />
       </div>
 
-      <div className="rounded-lg bg-nordic-bg p-4">
-        <h3 className="mb-2 text-sm font-semibold text-nordic-textPrimary">JSONエクスポート</h3>
-        <p className="mb-2 text-xs text-nordic-textSecondary">
+      <div className="rounded-lg bg-nordic-surface p-4">
+        <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">JSONエクスポート</h3>
+        <p className="mb-2 text-xs text-celestial-textSub">
           エクスポートされる JSON には、定義・メモ・出典などの平文データがそのまま含まれます。
           画像・動画のバイナリは含まれません（メディア付き移行はZIPを利用してください）。
           共有クラウドや公開リポジトリに置かないでください。
@@ -170,22 +170,22 @@ export const SettingsPage = ({
         <button
           type="button"
           disabled={busy}
-          className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm text-nordic-textPrimary disabled:opacity-60"
+          className="rounded-md border border-celestial-border bg-celestial-panel px-3 py-2 text-sm text-celestial-textMain disabled:opacity-60"
           onClick={() => void handleExport()}
         >
           JSONを保存
         </button>
       </div>
 
-      <div className="rounded-lg bg-slate-50 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">JSONインポート</h3>
-        <p className="mb-2 text-xs text-slate-600">
+      <div className="rounded-lg bg-nordic-surface p-4">
+        <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">JSONインポート</h3>
+        <p className="mb-2 text-xs text-celestial-textSub">
           信頼できるバックアップファイルのみを取り込んでください。内容検証は最小限です。
         </p>
-        <label className="mb-2 block text-sm text-nordic-textPrimary">
+        <label className="mb-2 block text-sm text-celestial-textMain">
           取り込みモード
           <select
-            className="mt-1 w-full rounded-md border border-nordic-border bg-nordic-surface px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-celestial-border bg-nordic-surface px-3 py-2 text-sm text-celestial-textMain"
             value={mode}
             onChange={(e) => setMode(e.target.value as "replace" | "merge")}
           >
@@ -198,13 +198,13 @@ export const SettingsPage = ({
           accept="application/json"
           disabled={busy}
           onChange={(e) => void handleImport(e.target.files?.[0])}
-          className="block w-full text-sm text-nordic-textPrimary file:mr-3 file:rounded-md file:border file:border-nordic-border file:bg-nordic-surface file:px-3 file:py-1.5"
+          className="block w-full text-sm text-celestial-textMain file:mr-3 file:rounded-md file:border file:border-celestial-border file:bg-nordic-surface file:px-3 file:py-1.5"
         />
       </div>
 
-      <div className="rounded-lg bg-slate-50 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">保存とPWA</h3>
-        <ul className="space-y-1 text-sm text-slate-700">
+      <div className="rounded-lg bg-nordic-surface p-4">
+        <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">保存とPWA</h3>
+        <ul className="space-y-1 text-sm text-celestial-textSub">
           <li>・概念データはこのブラウザの IndexedDB に保存されます（同一オリジン内のローカル保存）</li>
           <li>・GitHub Pages 公開版でも端末/ブラウザごとに別保存です（自動クラウド同期なし）</li>
           <li>・別端末へ移す場合は「パッケージ（ZIP）」を推奨（メディア込み）。JSONのみでは添付ファイルは移りません</li>
@@ -215,10 +215,10 @@ export const SettingsPage = ({
         </ul>
       </div>
 
-      <div className="rounded-lg bg-slate-50 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">分野タグの色設定</h3>
+      <div className="rounded-lg bg-nordic-surface p-4">
+        <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">分野タグの色設定</h3>
         {domainTags.length === 0 ? (
-          <p className="text-sm text-slate-500">分野タグがまだありません。</p>
+          <p className="text-sm text-celestial-textSub">分野タグがまだありません。</p>
         ) : (
           <ul className="space-y-2">
             {domainTags.map((tag) => {
@@ -226,19 +226,19 @@ export const SettingsPage = ({
               return (
                 <li
                   key={tag}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-nordic-border bg-nordic-surface px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-celestial-border bg-nordic-surface px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{tag}</p>
-                    <p className="text-xs text-slate-500">{color}</p>
+                    <p className="truncate text-sm font-medium text-celestial-textMain">{tag}</p>
+                    <p className="text-xs text-celestial-textSub">{color}</p>
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <label className="flex items-center gap-2 text-xs text-celestial-textSub">
                     色
                     <input
                       type="color"
                       value={color}
                       onChange={(e) => onChangeDomainColor(tag, e.target.value)}
-                      className="h-8 w-10 cursor-pointer rounded border border-nordic-border bg-nordic-surface p-0.5"
+                      className="h-8 w-10 cursor-pointer rounded border border-celestial-border bg-nordic-surface p-0.5"
                     />
                   </label>
                 </li>
@@ -248,7 +248,7 @@ export const SettingsPage = ({
         )}
       </div>
 
-      <p className="rounded-md bg-slate-900 px-3 py-2 text-sm text-slate-100">{message}</p>
+      <p className="rounded-md bg-celestial-base px-3 py-2 text-sm text-celestial-textMain">{message}</p>
     </section>
   );
 };
