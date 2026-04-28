@@ -20,7 +20,12 @@ body {
 }
 
 /* Celestial theme backgrounds */
-.bg-stars {
+.bg-stars,
+.star-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background-image: radial-gradient(circle 2px at 18px 24px, rgba(200,220,255,0.12), transparent 0),
                     radial-gradient(circle 2px at 52px 76px, rgba(200,220,255,0.10), transparent 0),
                     radial-gradient(circle 2px at 84px 30px, rgba(200,220,255,0.08), transparent 0),
