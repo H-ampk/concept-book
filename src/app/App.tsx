@@ -64,7 +64,7 @@ const buildTagSections = (
 const DecorativeBackground = () => (
   <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
     <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-celestial-base to-celestial-base opacity-80"></div>
-    <div className="absolute inset-0 bg-stars opacity-20"></div>
+    <div className="absolute inset-0 bg-stars"></div>
     <img
       src="/decorations/moon.png"
       alt=""

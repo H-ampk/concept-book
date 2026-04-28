@@ -21,13 +21,20 @@ body {
 
 /* Celestial theme backgrounds */
 .bg-stars {
-  background-image: radial-gradient(1px 1px at 18px 34px, rgba(230,211,163,0.16), transparent),
-                    radial-gradient(1px 1px at 46px 78px, rgba(230,211,163,0.12), transparent),
-                    radial-gradient(1px 1px at 84px 26px, rgba(230,211,163,0.14), transparent),
-                    radial-gradient(1px 1px at 132px 86px, rgba(230,211,163,0.1), transparent),
-                    radial-gradient(1px 1px at 162px 34px, rgba(230,211,163,0.14), transparent);
+  background-image: radial-gradient(circle 2px at 18px 24px, rgba(200,220,255,0.12), transparent 0),
+                    radial-gradient(circle 2px at 52px 76px, rgba(200,220,255,0.10), transparent 0),
+                    radial-gradient(circle 2px at 84px 30px, rgba(200,220,255,0.08), transparent 0),
+                    radial-gradient(circle 2px at 138px 88px, rgba(200,220,255,0.11), transparent 0),
+                    radial-gradient(circle 2px at 224px 44px, rgba(200,220,255,0.10), transparent 0),
+                    radial-gradient(circle 3px at 62px 112px, rgba(200,220,255,0.18), transparent 0),
+                    radial-gradient(circle 3px at 212px 28px, rgba(200,220,255,0.20), transparent 0),
+                    radial-gradient(circle 2px at 132px 64px, rgba(200,220,255,0.12), transparent 0),
+                    radial-gradient(circle 2px at 264px 20px, rgba(200,220,255,0.10), transparent 0),
+                    radial-gradient(circle 2px at 182px 132px, rgba(200,220,255,0.09), transparent 0),
+                    radial-gradient(circle 2px at 38px 136px, rgba(200,220,255,0.12), transparent 0),
+                    radial-gradient(circle 2px at 148px 98px, rgba(200,220,255,0.11), transparent 0);
   background-repeat: repeat;
-  background-size: 240px 120px;
+  background-size: 280px 160px;
 }
 
 .bg-radial-gradient {
