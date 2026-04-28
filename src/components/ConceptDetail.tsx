@@ -93,14 +93,14 @@ export const ConceptDetail = ({
 }: Props) => {
   if (!concept) {
     return (
-      <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial">
+      <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
         <p className="text-sm text-celestial-textSub">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
   }
 
   return (
-    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial">
+    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
       <header className="flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
         {concept.favorite && (

@@ -240,7 +240,7 @@ export const App = () => {
           />
         ) : (
           <div className="space-y-4">
-            <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10">
+            <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card">
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"

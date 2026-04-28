@@ -117,7 +117,7 @@ export const SettingsPage = ({
   };
 
   return (
-    <section className="space-y-5 rounded-2xl border border-celestial-border bg-celestial-panel p-5 shadow-celestial">
+    <section className="space-y-5 rounded-2xl border border-celestial-border bg-celestial-panel p-5 shadow-celestial decorated-card">
       <header>
         <h2 className="text-lg font-semibold text-celestial-textMain">設定</h2>
         <p className="text-sm text-celestial-textSub">バックアップ、復元、PWA運用状態を管理します。</p>
