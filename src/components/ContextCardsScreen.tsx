@@ -8,40 +8,49 @@ const domainLabel = (domain: string) => (domain === "all" ? "すべて" : domain
 
 const DomainSelection = ({
   domains,
+  contextCards,
   onSelectDomain
 }: {
   domains: string[];
+  contextCards: ContextCard[];
   onSelectDomain: (domain: string) => void;
-}) => (
-  <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm">
-    <div className="mb-4">
-      <h2 className="text-xl font-semibold text-celestial-textMain">文脈カードの分野を選択</h2>
-      <p className="mt-2 text-sm text-celestial-textSub">分野を選ぶと、その分野の文脈カード一覧に進みます。</p>
-    </div>
-    <div className="flex flex-wrap gap-3">
-      <button
-        type="button"
-        className="rounded-2xl border border-celestial-gold/30 bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
-        onClick={() => onSelectDomain("all")}
-      >
-        すべて
-      </button>
-      {domains.map((domain) => (
-        <button
-          key={domain}
-          type="button"
-          className="rounded-2xl border border-celestial-gold/30 bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
-          onClick={() => onSelectDomain(domain)}
-        >
-          {domain}
-        </button>
-      ))}
-    </div>
-    {domains.length === 0 && (
-      <p className="mt-4 text-sm text-celestial-textSub">まだ文脈カードがありません。新規作成で文脈カードを追加してください。</p>
-    )}
-  </section>
-);
+}) => {
+  const domainCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    counts["all"] = contextCards.length;
+    domains.forEach(domain => {
+      counts[domain] = contextCards.filter(card => card.domainTags[0] === domain).length;
+    });
+    return counts;
+  }, [domains, contextCards]);
+
+  const allDomains = ["all", ...domains];
+
+  return (
+    <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm">
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold text-celestial-textMain">文脈カードの分野を選択</h2>
+        <p className="mt-2 text-sm text-celestial-textSub">分野を選ぶと、その分野の文脈カード一覧に進みます。</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {allDomains.map((domain) => (
+          <button
+            key={domain}
+            type="button"
+            className="rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue p-4 text-left hover:bg-celestial-gold/10 transition-colors"
+            onClick={() => onSelectDomain(domain)}
+          >
+            <div className="text-lg font-semibold text-celestial-softGold">{domain === "all" ? "すべて" : domain}</div>
+            <div className="mt-1 text-sm text-celestial-textSub">文脈カード {domainCounts[domain]}件</div>
+          </button>
+        ))}
+      </div>
+      {domains.length === 0 && (
+        <p className="mt-4 text-sm text-celestial-textSub">まだ文脈カードがありません。新規作成で文脈カードを追加してください。</p>
+      )}
+    </section>
+  );
+};
 
 const ContextCardList = ({
   cards,
@@ -125,13 +134,15 @@ const ContextCardDetail = ({
   onBack,
   onEdit,
   concepts,
-  onNavigateToConcept
+  onNavigateToConcept,
+  onViewRelatedConcepts
 }: {
   card?: ContextCard;
   onBack: () => void;
   onEdit: (card: ContextCard) => void;
   concepts: any[];
   onNavigateToConcept: (id: string) => void;
+  onViewRelatedConcepts: () => void;
 }) => {
   if (!card) {
     return (
@@ -162,6 +173,13 @@ const ContextCardDetail = ({
             onClick={onBack}
           >
             一覧へ戻る
+          </button>
+          <button
+            type="button"
+            className="rounded-2xl border border-celestial-gold/30 bg-celestial-panel px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+            onClick={onViewRelatedConcepts}
+          >
+            関連概念一覧を見る
           </button>
           <button
             type="button"
@@ -231,10 +249,70 @@ const ContextCardDetail = ({
   );
 };
 
+const RelatedConceptsScreen = ({
+  contextCard,
+  concepts,
+  onNavigateToConcept,
+  onBack
+}: {
+  contextCard: ContextCard;
+  concepts: any[];
+  onNavigateToConcept: (id: string) => void;
+  onBack: () => void;
+}) => {
+  const relatedConcepts = useMemo(() => {
+    const contextTags = contextCard.domainTags.map(tag => tag.trim());
+    return concepts.filter(concept =>
+      concept.domainTags.some((tag: string) => contextTags.includes(tag.trim()))
+    );
+  }, [contextCard.domainTags, concepts]);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-celestial-textMain">関連概念一覧</h2>
+          <p className="mt-1 text-sm text-celestial-textSub">文脈カード: {contextCard.title}</p>
+        </div>
+        <button
+          type="button"
+          className="rounded-2xl border border-celestial-gold/30 bg-celestial-panel px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+          onClick={onBack}
+        >
+          文脈カード詳細へ戻る
+        </button>
+      </div>
+
+      {relatedConcepts.length === 0 ? (
+        <div className="rounded-3xl border border-celestial-border bg-celestial-deepBlue p-6 text-sm text-celestial-textSub">
+          この文脈カードと同じ分野タグを持つ概念カードはまだありません。
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {relatedConcepts.map((concept) => (
+            <div key={concept.id} className="rounded-3xl border border-celestial-border bg-celestial-panel p-5 shadow-celestial">
+              <button
+                type="button"
+                className="w-full text-left"
+                onClick={() => onNavigateToConcept(concept.id)}
+              >
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-celestial-gold hover:underline">{concept.title}</h3>
+                  <p className="text-sm text-celestial-textMain line-clamp-3">{concept.definition || "定義未入力"}</p>
+                </div>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
 export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcept: (id: string) => void }) => {
   const { contextCards, loading, domains, create, update } = useContextCards();
   const { concepts } = useConcepts();
-  const [activeScreen, setActiveScreen] = useState<"selection" | "list" | "detail">("selection");
+  const [activeScreen, setActiveScreen] = useState<"selection" | "list" | "detail" | "relatedConcepts">("selection");
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
@@ -336,7 +414,7 @@ export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcep
       {loading ? (
         <p className="text-sm text-celestial-textSub">読み込み中...</p>
       ) : activeScreen === "selection" ? (
-        <DomainSelection domains={domains} onSelectDomain={handleSelectDomain} />
+        <DomainSelection domains={domains} contextCards={contextCards} onSelectDomain={handleSelectDomain} />
       ) : activeScreen === "list" ? (
         <ContextCardList
           cards={filteredCards}
@@ -346,8 +424,15 @@ export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcep
           onSelect={handleSelectCard}
           onEdit={openEdit}
         />
+      ) : activeScreen === "relatedConcepts" ? (
+        <RelatedConceptsScreen
+          contextCard={selectedCard!}
+          concepts={concepts}
+          onNavigateToConcept={onNavigateToConcept}
+          onBack={() => setActiveScreen("detail")}
+        />
       ) : (
-        <ContextCardDetail card={selectedCard} onBack={handleBackToList} onEdit={openEdit} concepts={concepts} onNavigateToConcept={onNavigateToConcept} />
+        <ContextCardDetail card={selectedCard} onBack={handleBackToList} onEdit={openEdit} concepts={concepts} onNavigateToConcept={onNavigateToConcept} onViewRelatedConcepts={() => setActiveScreen("relatedConcepts")} />
       )}
 
       <ContextCardFormModal
