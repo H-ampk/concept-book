@@ -98,7 +98,7 @@ const ContextCardList = ({
                 >
                   {card.title || "無題の文脈カード"}
                 </button>
-                <p className="text-sm text-celestial-textSub">分野: {card.domain || "未設定"}</p>
+                <p className="text-sm text-celestial-textSub">分野: {card.domainTags[0] || "未設定"}</p>
                 <p className="text-sm text-celestial-textMain">{card.centralQuestion || "中心的な問いは未入力です。"}</p>
                 <p className="text-sm text-celestial-textSub line-clamp-2">重要概念: {card.keyConcepts || "未入力"}</p>
               </div>
@@ -171,11 +171,6 @@ const ContextCardDetail = ({
       <div className="mt-6 grid gap-4">
         <div className="space-y-2 rounded-2xl border border-celestial-border bg-celestial-deepBlue p-4">
           <p className="text-sm text-celestial-softGold">分野</p>
-          <p className="text-base text-celestial-textMain">{card.domain || "未設定"}</p>
-        </div>
-
-        <div className="space-y-2 rounded-2xl border border-celestial-border bg-celestial-deepBlue p-4">
-          <p className="text-sm text-celestial-softGold">分野タグ</p>
           <p className="text-base text-celestial-textMain">{card.domainTags.length > 0 ? card.domainTags.join("、") : "未設定"}</p>
         </div>
 
@@ -216,7 +211,7 @@ export const ContextCardsScreen = () => {
     () =>
       selectedDomain === "all"
         ? contextCards
-        : contextCards.filter((card) => card.domain === selectedDomain),
+        : contextCards.filter((card) => card.domainTags[0] === selectedDomain),
     [contextCards, selectedDomain]
   );
 

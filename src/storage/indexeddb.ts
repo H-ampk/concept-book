@@ -570,11 +570,13 @@ const createContextCardId = (): string =>
 const sanitizeContextCard = (
   card: Partial<ContextCard>
 ): ContextCard => {
+  const domainTags = Array.isArray(card.domainTags) ? card.domainTags.filter(Boolean) : [];
+  const fallbackDomainTags = domainTags.length > 0 ? domainTags : (card.domain ? [card.domain] : []);
   return {
     id: card.id ?? createContextCardId(),
     title: card.title ?? "",
-    domain: card.domain ?? "",
-    domainTags: Array.isArray(card.domainTags) ? card.domainTags.filter(Boolean) : [],
+    domain: card.domain,
+    domainTags: fallbackDomainTags,
     centralQuestion: card.centralQuestion ?? "",
     background: card.background ?? "",
     flow: card.flow ?? "",
@@ -607,10 +609,12 @@ export class ContextCardIndexedDBStorage implements ContextCardStorage {
     return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
       const store = getStore(STORE_CONTEXT_CARDS);
       const now = nowIso();
+      const domainTags = Array.isArray(input.domainTags) ? input.domainTags.map((tag) => tag.trim()).filter(Boolean) : [];
       const card: ContextCard = {
         ...input,
         id: createContextCardId(),
-        domainTags: Array.isArray(input.domainTags) ? input.domainTags.map((tag) => tag.trim()).filter(Boolean) : [],
+        domain: domainTags[0] || undefined,
+        domainTags,
         linkedConcepts: Array.isArray(input.linkedConcepts) ? input.linkedConcepts.map((link) => link.trim()).filter(Boolean) : [],
         createdAt: now,
         updatedAt: now
@@ -631,13 +635,15 @@ export class ContextCardIndexedDBStorage implements ContextCardStorage {
         return undefined;
       }
       const existing = sanitizeContextCard(existingRaw);
+      const domainTags =
+        updates.domainTags !== undefined
+          ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
+          : existing.domainTags;
       const updated: ContextCard = {
         ...existing,
         ...updates,
-        domainTags:
-          updates.domainTags !== undefined
-            ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
-            : existing.domainTags,
+        domain: domainTags[0] || existing.domain,
+        domainTags,
         linkedConcepts:
           updates.linkedConcepts !== undefined
             ? updates.linkedConcepts.map((link) => link.trim()).filter(Boolean)

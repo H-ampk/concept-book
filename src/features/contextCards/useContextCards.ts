@@ -50,7 +50,7 @@ export const useContextCards = () => {
   );
 
   const domains = useMemo(
-    () => [...new Set(contextCards.map((card) => card.domain).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ja")),
+    () => [...new Set(contextCards.map((card) => card.domainTags[0]).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ja")),
     [contextCards]
   );
 

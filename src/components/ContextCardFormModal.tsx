@@ -37,7 +37,6 @@ export const ContextCardFormModal = ({
     if (mode === "edit" && baseContextCard) {
       setForm({
         title: baseContextCard.title,
-        domain: baseContextCard.domain,
         domainTags: baseContextCard.domainTags,
         centralQuestion: baseContextCard.centralQuestion,
         background: baseContextCard.background,
@@ -63,17 +62,12 @@ export const ContextCardFormModal = ({
       setError("タイトルは必須です。");
       return;
     }
-    if (!form.domain.trim()) {
-      setError("分野は必須です。");
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
       const payload: ContextCardInput = {
         ...form,
         title: form.title.trim(),
-        domain: form.domain.trim(),
         domainTags: splitCsv(domainTagInput),
         linkedConcepts: form.linkedConcepts ?? []
       };
@@ -126,23 +120,13 @@ export const ContextCardFormModal = ({
               />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-celestial-softGold">分野</label>
-                <input
-                  className="w-full rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain"
-                  value={form.domain}
-                  onChange={(e) => setForm((prev) => ({ ...prev, domain: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-celestial-softGold">分野タグ（カンマ区切り）</label>
-                <input
-                  className="w-full rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain"
-                  value={domainTagInput}
-                  onChange={(e) => setDomainTagInput(e.target.value)}
-                />
-              </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-celestial-softGold">分野タグ（カンマ区切り）</label>
+              <input
+                className="w-full rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain"
+                value={domainTagInput}
+                onChange={(e) => setDomainTagInput(e.target.value)}
+              />
             </div>
 
             <div>
