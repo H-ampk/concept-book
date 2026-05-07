@@ -1,3 +1,4 @@
+import React from "react";
 import { StatusBadge } from "./StatusBadge";
 import type { Concept } from "../types/concept";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
@@ -9,6 +10,7 @@ type Props = {
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
+  cardRefs: React.RefObject<Map<string, HTMLLIElement>>;
 };
 
 export const ConceptList = ({
@@ -17,7 +19,8 @@ export const ConceptList = ({
   domainColorMap,
   onSelect,
   onEdit,
-  onToggleFavorite
+  onToggleFavorite,
+  cardRefs
 }: Props) => {
   if (concepts.length === 0) {
     return (
@@ -32,6 +35,15 @@ export const ConceptList = ({
       {concepts.map((concept) => (
         <li
           key={concept.id}
+          ref={(el) => {
+            if (cardRefs.current) {
+              if (el) {
+                cardRefs.current.set(concept.id, el);
+              } else {
+                cardRefs.current.delete(concept.id);
+              }
+            }
+          }}
           className={`group relative rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
             selectedId === concept.id ? "ring-2 ring-[#C89B5C]" : ""
           }`}

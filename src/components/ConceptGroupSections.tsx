@@ -18,6 +18,7 @@ type Props = {
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
+  cardRefs: React.RefObject<Map<string, HTMLLIElement>>;
 };
 
 export const ConceptGroupSections = ({
@@ -27,7 +28,8 @@ export const ConceptGroupSections = ({
   domainColorMap,
   onSelect,
   onEdit,
-  onToggleFavorite
+  onToggleFavorite,
+  cardRefs
 }: Props) => {
   const initialOpenState = useMemo(
     () =>
@@ -62,6 +64,7 @@ export const ConceptGroupSections = ({
         onSelect={onSelect}
         onEdit={onEdit}
         onToggleFavorite={onToggleFavorite}
+        cardRefs={cardRefs}
       />
     );
   }
@@ -99,6 +102,7 @@ export const ConceptGroupSections = ({
                   onSelect={onSelect}
                   onEdit={onEdit}
                   onToggleFavorite={onToggleFavorite}
+                  cardRefs={cardRefs}
                 />
               </div>
             )}

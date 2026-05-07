@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 import { ConceptGraphView } from "../components/ConceptGraphView";
@@ -122,6 +122,10 @@ export const App = () => {
   const [conceptMainTab, setConceptMainTab] = useState<ConceptMainTab>("list");
   const [listViewMode, setListViewMode] = useState<ListViewMode>("all");
   const [domainColorMap, setDomainColorMap] = useState<Record<string, string>>({});
+  const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
+
+  const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const detailContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setDomainColorMap(loadDomainColorMap());
@@ -161,6 +165,19 @@ export const App = () => {
   const handleSelect = (id: string) => {
     setSelectedId(id);
     setMobileDetail(true);
+
+    requestAnimationFrame(() => {
+      const selectedCard = cardRefs.current.get(id);
+      const detailContainer = detailContainerRef.current;
+      if (!selectedCard || !detailContainer) return;
+
+      selectedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      const cardRect = selectedCard.getBoundingClientRect();
+      const detailRect = detailContainer.getBoundingClientRect();
+      const relativeTop = cardRect.top - detailRect.top + detailContainer.scrollTop - 40;
+      detailContainer.scrollTo({ top: Math.max(relativeTop, 0), behavior: 'smooth' });
+    });
   };
   const handleGraphSelect = (id: string) => {
     setSelectedId(id);
@@ -335,32 +352,72 @@ export const App = () => {
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-medium text-celestial-softGold">分野タグ:</span>
-                  {allDomainTags.length === 0 ? (
-                    <span className="text-xs text-celestial-textSub">未登録</span>
-                  ) : (
-                    allDomainTags.map((tag) => {
-                      const active = selectedDomainTags.includes(tag);
-                      return (
-                        <button
-                          key={`domain-${tag}`}
-                          type="button"
-                          onClick={() =>
-                            setSelectedDomainTags((prev) =>
-                              prev.includes(tag)
-                                ? prev.filter((item) => item !== tag)
-                                : [...prev, tag]
-                            )
-                          }
-                          className={`rounded-full px-2.5 py-1 text-xs ${
-                      active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })
+                  {!isFieldTagsExpanded && (
+                    <>
+                      {selectedDomainTags.length > 0 ? (
+                        selectedDomainTags.map((tag) => (
+                          <button
+                            key={`domain-selected-${tag}`}
+                            type="button"
+                            onClick={() =>
+                              setSelectedDomainTags((prev) =>
+                                prev.includes(tag)
+                                  ? prev.filter((item) => item !== tag)
+                                  : [...prev, tag]
+                              )
+                            }
+                            className="rounded-full px-2.5 py-1 text-xs bg-celestial-gold text-celestial-base"
+                          >
+                            {tag}
+                          </button>
+                        ))
+                      ) : (
+                        <span className="text-xs text-celestial-textSub">全体</span>
+                      )}
+                      {allDomainTags.length > selectedDomainTags.length && (
+                        <span className="text-xs text-celestial-textSub">
+                          ほか {allDomainTags.length - selectedDomainTags.length} 件
+                        </span>
+                      )}
+                    </>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
+                    className="rounded-full px-2.5 py-1 text-xs border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover"
+                  >
+                    {isFieldTagsExpanded ? "畳む" : "展開"}
+                  </button>
                 </div>
+                {isFieldTagsExpanded && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {allDomainTags.length === 0 ? (
+                      <span className="text-xs text-celestial-textSub">未登録</span>
+                    ) : (
+                      allDomainTags.map((tag) => {
+                        const active = selectedDomainTags.includes(tag);
+                        return (
+                          <button
+                            key={`domain-${tag}`}
+                            type="button"
+                            onClick={() =>
+                              setSelectedDomainTags((prev) =>
+                                prev.includes(tag)
+                                  ? prev.filter((item) => item !== tag)
+                                  : [...prev, tag]
+                              )
+                            }
+                            className={`rounded-full px-2.5 py-1 text-xs ${
+                        active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-medium text-celestial-softGold">研究テーマタグ:</span>
@@ -468,7 +525,7 @@ export const App = () => {
               </section>
             ) : (
               <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
-                <div className={`${mobileDetail ? "hidden" : "block"} lg:block`}>
+                <div className={`${mobileDetail ? "hidden" : "block"} lg:block max-h-screen overflow-y-auto hide-scrollbar`}>
                   <ConceptGroupSections
                     mode={listViewMode}
                     sections={groupedSections}
@@ -477,10 +534,11 @@ export const App = () => {
                     onSelect={handleSelect}
                     onEdit={openEdit}
                     onToggleFavorite={(concept) => void toggleFavorite(concept)}
+                    cardRefs={cardRefs}
                   />
                 </div>
 
-                <div className={`${mobileDetail ? "block" : "hidden"} lg:block`}>
+                <div className={`${mobileDetail ? "block" : "hidden"} lg:block max-h-screen overflow-y-auto hide-scrollbar`}>
                   <div className="mb-2 block lg:hidden">
                     <button
                       className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-1.5 text-sm text-nordic-textPrimary"
@@ -491,6 +549,7 @@ export const App = () => {
                     </button>
                   </div>
                   <ConceptDetail
+                    ref={detailContainerRef}
                     concept={selectedConcept}
                     conceptMap={conceptMap}
                     domainColorMap={domainColorMap}

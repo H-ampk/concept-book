@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import type { Concept } from "../types/concept";
 import { getStorage } from "../storage";
 import { shortDateTime } from "../utils/date";
@@ -83,14 +83,14 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
   );
 };
 
-export const ConceptDetail = ({
+export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   concept,
   conceptMap,
   domainColorMap,
   onSelectRelated,
   onRequestDelete,
   deleting
-}: Props) => {
+}, ref) => {
   if (!concept) {
     return (
       <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
@@ -100,7 +100,7 @@ export const ConceptDetail = ({
   }
 
   return (
-    <section className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
+    <section ref={ref} className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
       <header className="flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
         {concept.favorite && (
@@ -222,4 +222,4 @@ export const ConceptDetail = ({
       </div>
     </section>
   );
-};
+});

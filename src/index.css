@@ -99,6 +99,15 @@ body {
   transform: scale(-1, -1);
 }
 
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .decorated-card:hover::before,
 .decorated-card:hover::after {
   filter: drop-shadow(0 0 6px rgba(212,175,55,0.5));
