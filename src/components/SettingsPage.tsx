@@ -78,7 +78,7 @@ export const SettingsPage = ({
       const result = await storage.importConceptBookPackage(file, packageMode);
       await onImported();
       setMessage(
-        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
+        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
     } catch (e) {
       setMessage(
@@ -126,9 +126,8 @@ export const SettingsPage = ({
       <div className="rounded-lg border-2 border-celestial-border bg-celestial-panel/80 p-4">
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">パッケージ（ZIP）— 推奨・メディア付き</h3>
         <p className="mb-2 text-xs text-celestial-textSub">
-          <code className="rounded bg-nordic-surface px-1">concepts.json</code> と{' '}
-          <code className="rounded bg-nordic-surface px-1">media/</code>{' '}
-          以下のファイルをまとめたZIPです。別PCの同アプリでインポートすると画像・動画も再現されます。
+          エクスポートされる ZIP には、定義・メモ・出典・文脈カードなどの平文データと画像・動画のバイナリが含まれます。
+          別PCの同アプリでインポートすると画像・動画も再現されます。
         </p>
         <div className="mb-2 flex flex-wrap gap-2">
           <button

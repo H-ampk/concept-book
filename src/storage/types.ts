@@ -48,6 +48,8 @@ export type ConceptStorage = {
   ) => Promise<{
     importedConcepts: number;
     skippedConcepts: number;
+    importedContextCards: number;
+    skippedContextCards: number;
     importedMedia: number;
     missingMedia: number;
   }>;

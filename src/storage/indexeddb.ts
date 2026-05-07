@@ -1,5 +1,5 @@
 import { buildConceptBookZip, parseConceptBookZip } from "../utils/conceptBookZip";
-import { validateConceptImportPayload } from "../utils/conceptImportValidation";
+import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 import { normalizeMediaRefs } from "../utils/conceptImportValidation";
 import { nowIso } from "../utils/date";
 import { guessMimeFromFileName } from "../utils/mediaConstraints";
@@ -461,7 +461,7 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   async exportConceptBookPackage(): Promise<Blob> {
-    const concepts = await this.getAllConcepts();
+    const data = await this.exportBackupData();
     const mediaRecords: MediaRecord[] = [];
     const mediaFiles: { id: string; data: Uint8Array }[] = [];
     const seen = new Set<string>();
@@ -469,7 +469,7 @@ export class IndexedDBStorage implements ConceptStorage {
     // Transaction 内では IndexedDB アクセスのみ実行する。
     await withTransaction([STORE_MEDIA], "readonly", async (getStore) => {
       const mediaStore = getStore(STORE_MEDIA);
-      for (const c of concepts) {
+      for (const c of data.concepts) {
         for (const ref of c.media ?? []) {
           if (seen.has(ref.id)) {
             continue;
@@ -490,7 +490,7 @@ export class IndexedDBStorage implements ConceptStorage {
       mediaFiles.push({ id: rec.id, data: new Uint8Array(buf) });
     }
 
-    const json = JSON.stringify(concepts, null, 2);
+    const json = JSON.stringify(data, null, 2);
     const zipped = buildConceptBookZip(json, mediaFiles);
     return new Blob([new Uint8Array(zipped)], { type: "application/zip" });
   }
@@ -501,17 +501,18 @@ export class IndexedDBStorage implements ConceptStorage {
   ): Promise<{
     importedConcepts: number;
     skippedConcepts: number;
+    importedContextCards: number;
+    skippedContextCards: number;
     importedMedia: number;
     missingMedia: number;
   }> {
     const buffer = await file.arrayBuffer();
     const { conceptsText, mediaEntries } = parseConceptBookZip(buffer);
     const parsed: unknown = JSON.parse(conceptsText);
-    const validation = validateConceptImportPayload(parsed);
+    const validation = validateBackupImportPayload(parsed);
     if (!validation.success) {
       throw new Error(validation.errorMessage);
     }
-    const concepts = validation.concepts;
 
     if (mode === "replace") {
       await withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
@@ -520,7 +521,7 @@ export class IndexedDBStorage implements ConceptStorage {
       });
     }
 
-    const { imported, skipped } = await this.importConcepts(concepts, mode);
+    const { importedConcepts, skippedConcepts, importedContextCards, skippedContextCards } = await this.importBackupData(validation, mode);
 
     let importedMedia = 0;
     let missingMedia = 0;
@@ -540,7 +541,7 @@ export class IndexedDBStorage implements ConceptStorage {
         );
       };
 
-      for (const c of concepts) {
+      for (const c of validation.concepts) {
         const row = (await requestToPromise(conceptStore.get(c.id))) as StoredConcept | undefined;
         if (!row) {
           continue;
@@ -579,8 +580,10 @@ export class IndexedDBStorage implements ConceptStorage {
     });
 
     return {
-      importedConcepts: imported,
-      skippedConcepts: skipped,
+      importedConcepts,
+      skippedConcepts,
+      importedContextCards,
+      skippedContextCards,
       importedMedia,
       missingMedia
     };
