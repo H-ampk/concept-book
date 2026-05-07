@@ -249,7 +249,11 @@ export const App = () => {
             onChangeDomainColor={handleChangeDomainColor}
           />
         ) : screen === "contexts" ? (
-          <ContextCardsScreen />
+          <ContextCardsScreen onNavigateToConcept={(id) => {
+            setScreen("concepts");
+            setSelectedId(id);
+            setMobileDetail(true);
+          }} />
         ) : (
           <div className="space-y-4">
             <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card">

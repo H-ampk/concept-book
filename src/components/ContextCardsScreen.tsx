@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ContextCardFormModal } from "./ContextCardFormModal";
 import { useContextCards } from "../features/contextCards/useContextCards";
+import { useConcepts } from "../features/concepts/useConcepts";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 
 const domainLabel = (domain: string) => (domain === "all" ? "すべて" : domain);
@@ -122,11 +123,15 @@ const ContextCardList = ({
 const ContextCardDetail = ({
   card,
   onBack,
-  onEdit
+  onEdit,
+  concepts,
+  onNavigateToConcept
 }: {
   card?: ContextCard;
   onBack: () => void;
   onEdit: (card: ContextCard) => void;
+  concepts: any[];
+  onNavigateToConcept: (id: string) => void;
 }) => {
   if (!card) {
     return (
@@ -191,15 +196,44 @@ const ContextCardDetail = ({
 
         <div className="space-y-2 rounded-2xl border border-celestial-border bg-celestial-deepBlue p-4">
           <p className="text-sm text-celestial-softGold">重要概念</p>
-          <p className="whitespace-pre-wrap text-base text-celestial-textMain">{card.keyConcepts || "未入力"}</p>
+          {card.keyConcepts ? (
+            <div className="flex flex-wrap gap-2">
+              {card.keyConcepts.split(",").map((keyConcept, index) => {
+                const trimmed = keyConcept.trim();
+                const matchedConcept = concepts.find((concept) => concept.title.trim() === trimmed);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`rounded-full px-3 py-1 text-sm ${
+                      matchedConcept
+                        ? "bg-celestial-gold text-celestial-base hover:bg-celestial-softGold cursor-pointer"
+                        : "bg-celestial-panel text-celestial-softGold cursor-default"
+                    }`}
+                    onClick={() => {
+                      if (matchedConcept) {
+                        onNavigateToConcept(matchedConcept.id);
+                      }
+                    }}
+                    disabled={!matchedConcept}
+                  >
+                    {trimmed}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-base text-celestial-textMain">未入力</p>
+          )}
         </div>
       </div>
     </section>
   );
 };
 
-export const ContextCardsScreen = () => {
+export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcept: (id: string) => void }) => {
   const { contextCards, loading, domains, create, update } = useContextCards();
+  const { concepts } = useConcepts();
   const [activeScreen, setActiveScreen] = useState<"selection" | "list" | "detail">("selection");
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
@@ -313,7 +347,7 @@ export const ContextCardsScreen = () => {
           onEdit={openEdit}
         />
       ) : (
-        <ContextCardDetail card={selectedCard} onBack={handleBackToList} onEdit={openEdit} />
+        <ContextCardDetail card={selectedCard} onBack={handleBackToList} onEdit={openEdit} concepts={concepts} onNavigateToConcept={onNavigateToConcept} />
       )}
 
       <ContextCardFormModal
