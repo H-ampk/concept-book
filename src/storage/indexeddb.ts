@@ -4,13 +4,15 @@ import { nowIso } from "../utils/date";
 import { guessMimeFromFileName } from "../utils/mediaConstraints";
 import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaConstraints";
 import type { Concept, ConceptInput } from "../types/concept";
+import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
-import type { ConceptStorage } from "./types";
+import type { ConceptStorage, ContextCardStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
+const STORE_CONTEXT_CARDS = "contextCards";
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -83,6 +85,12 @@ const openDb = (): Promise<IDBDatabase> =>
       if (oldVersion < 2 && !db.objectStoreNames.contains(STORE_MEDIA)) {
         const mediaStore = db.createObjectStore(STORE_MEDIA, { keyPath: "id" });
         mediaStore.createIndex("conceptId", "conceptId", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_CONTEXT_CARDS)) {
+        const contextStore = db.createObjectStore(STORE_CONTEXT_CARDS, { keyPath: "id" });
+        contextStore.createIndex("title", "title", { unique: false });
+        contextStore.createIndex("domain", "domain", { unique: false });
+        contextStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
     };
 
@@ -553,5 +561,98 @@ export class IndexedDBStorage implements ConceptStorage {
       importedMedia,
       missingMedia
     };
+  }
+}
+
+const createContextCardId = (): string =>
+  `context_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const sanitizeContextCard = (
+  card: Partial<ContextCard>
+): ContextCard => {
+  return {
+    id: card.id ?? createContextCardId(),
+    title: card.title ?? "",
+    domain: card.domain ?? "",
+    domainTags: Array.isArray(card.domainTags) ? card.domainTags.filter(Boolean) : [],
+    centralQuestion: card.centralQuestion ?? "",
+    background: card.background ?? "",
+    flow: card.flow ?? "",
+    keyConcepts: card.keyConcepts ?? "",
+    linkedConcepts: Array.isArray(card.linkedConcepts) ? card.linkedConcepts.filter(Boolean) : [],
+    createdAt: card.createdAt ?? nowIso(),
+    updatedAt: card.updatedAt ?? nowIso()
+  };
+};
+
+export class ContextCardIndexedDBStorage implements ContextCardStorage {
+  async getAllContextCards(): Promise<ContextCard[]> {
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONTEXT_CARDS);
+      const data = (await requestToPromise(store.getAll())) as Partial<ContextCard>[];
+      const normalized = data.map((raw) => sanitizeContextCard(raw));
+      return normalized.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    });
+  }
+
+  async getContextCardById(id: string): Promise<ContextCard | undefined> {
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONTEXT_CARDS);
+      const raw = (await requestToPromise(store.get(id))) as Partial<ContextCard> | undefined;
+      return raw ? sanitizeContextCard(raw) : undefined;
+    });
+  }
+
+  async createContextCard(input: ContextCardInput): Promise<ContextCard> {
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONTEXT_CARDS);
+      const now = nowIso();
+      const card: ContextCard = {
+        ...input,
+        id: createContextCardId(),
+        domainTags: Array.isArray(input.domainTags) ? input.domainTags.map((tag) => tag.trim()).filter(Boolean) : [],
+        linkedConcepts: Array.isArray(input.linkedConcepts) ? input.linkedConcepts.map((link) => link.trim()).filter(Boolean) : [],
+        createdAt: now,
+        updatedAt: now
+      };
+      await requestToPromise(store.add(card));
+      return card;
+    });
+  }
+
+  async updateContextCard(
+    id: string,
+    updates: Partial<ContextCardInput>
+  ): Promise<ContextCard | undefined> {
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONTEXT_CARDS);
+      const existingRaw = (await requestToPromise(store.get(id))) as Partial<ContextCard> | undefined;
+      if (!existingRaw) {
+        return undefined;
+      }
+      const existing = sanitizeContextCard(existingRaw);
+      const updated: ContextCard = {
+        ...existing,
+        ...updates,
+        domainTags:
+          updates.domainTags !== undefined
+            ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
+            : existing.domainTags,
+        linkedConcepts:
+          updates.linkedConcepts !== undefined
+            ? updates.linkedConcepts.map((link) => link.trim()).filter(Boolean)
+            : existing.linkedConcepts,
+        updatedAt: nowIso()
+      };
+      await requestToPromise(store.put(updated));
+      return updated;
+    });
+  }
+
+  async deleteContextCard(id: string): Promise<void> {
+    await withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONTEXT_CARDS);
+      await requestToPromise(store.delete(id));
+    });
   }
 }

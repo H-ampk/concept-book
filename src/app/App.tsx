@@ -12,8 +12,9 @@ import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
+import { ContextCardsScreen } from "../components/ContextCardsScreen";
 
-type Screen = "concepts" | "settings";
+type Screen = "concepts" | "contexts" | "settings";
 type ConceptMainTab = "list" | "graph" | "tree";
 
 const statusLabelMap: Record<ConceptStatus, string> = {
@@ -219,6 +220,15 @@ export const App = () => {
             </button>
             <button
               className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+                screen === "contexts" ? "bg-celestial-gold/20" : ""
+              }`}
+              onClick={() => setScreen("contexts")}
+              type="button"
+            >
+              文脈
+            </button>
+            <button
+              className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "settings" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("settings")}
@@ -238,6 +248,8 @@ export const App = () => {
             domainColorMap={domainColorMap}
             onChangeDomainColor={handleChangeDomainColor}
           />
+        ) : screen === "contexts" ? (
+          <ContextCardsScreen />
         ) : (
           <div className="space-y-4">
             <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card">

@@ -1,5 +1,6 @@
 import type { Concept, ConceptInput } from "../types/concept";
 import type { ConceptMediaRef } from "../types/media";
+import type { ContextCard, ContextCardInput } from "../types/contextCard";
 
 // Security note for future sync backends:
 // - Keep this interface storage-agnostic so UI never talks directly to remote APIs.
@@ -45,4 +46,15 @@ export type ConceptStorage = {
     importedMedia: number;
     missingMedia: number;
   }>;
+};
+
+export type ContextCardStorage = {
+  getAllContextCards: () => Promise<ContextCard[]>;
+  getContextCardById: (id: string) => Promise<ContextCard | undefined>;
+  createContextCard: (input: ContextCardInput) => Promise<ContextCard>;
+  updateContextCard: (
+    id: string,
+    updates: Partial<ContextCardInput>
+  ) => Promise<ContextCard | undefined>;
+  deleteContextCard: (id: string) => Promise<void>;
 };
