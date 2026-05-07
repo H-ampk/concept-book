@@ -1,5 +1,6 @@
 import { buildConceptBookZip, parseConceptBookZip } from "../utils/conceptBookZip";
-import { normalizeMediaRefs, validateConceptImportPayload } from "../utils/conceptImportValidation";
+import { validateConceptImportPayload } from "../utils/conceptImportValidation";
+import { normalizeMediaRefs } from "../utils/conceptImportValidation";
 import { nowIso } from "../utils/date";
 import { guessMimeFromFileName } from "../utils/mediaConstraints";
 import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaConstraints";
@@ -275,6 +276,13 @@ export class IndexedDBStorage implements ConceptStorage {
     return this.getAllConcepts();
   }
 
+  async exportBackupData(): Promise<{ concepts: Concept[]; contextCards: ContextCard[] }> {
+    const concepts = await this.getAllConcepts();
+    const contextStorage = new ContextCardIndexedDBStorage();
+    const contextCards = await contextStorage.getAllContextCards();
+    return { concepts, contextCards };
+  }
+
   async importConcepts(
     concepts: Concept[],
     mode: "replace" | "merge"
@@ -308,6 +316,21 @@ export class IndexedDBStorage implements ConceptStorage {
       }
       return { imported, skipped };
     });
+  }
+
+  async importBackupData(
+    data: { concepts: Concept[]; contextCards: ContextCard[] },
+    mode: "replace" | "merge"
+  ): Promise<{ importedConcepts: number; skippedConcepts: number; importedContextCards: number; skippedContextCards: number }> {
+    const conceptResult = await this.importConcepts(data.concepts, mode);
+    const contextStorage = new ContextCardIndexedDBStorage();
+    const contextCardResult = await contextStorage.importContextCards(data.contextCards, mode);
+    return {
+      importedConcepts: conceptResult.imported,
+      skippedConcepts: conceptResult.skipped,
+      importedContextCards: contextCardResult.imported,
+      skippedContextCards: contextCardResult.skipped
+    };
   }
 
   async addMedia(input: {
@@ -659,6 +682,41 @@ export class ContextCardIndexedDBStorage implements ContextCardStorage {
     await withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
       const store = getStore(STORE_CONTEXT_CARDS);
       await requestToPromise(store.delete(id));
+    });
+  }
+
+  async importContextCards(
+    contextCards: ContextCard[],
+    mode: "replace" | "merge"
+  ): Promise<{ imported: number; skipped: number }> {
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONTEXT_CARDS);
+      let imported = 0;
+      let skipped = 0;
+      if (mode === "replace") {
+        await requestToPromise(store.clear());
+      }
+
+      for (const raw of contextCards) {
+        if (!raw?.id || !raw?.title) {
+          skipped += 1;
+          continue;
+        }
+        const card = sanitizeContextCard(raw);
+        if (mode === "merge") {
+          const existing = (await requestToPromise(store.get(card.id))) as ContextCard | undefined;
+          if (existing) {
+            const newer =
+              existing.updatedAt.localeCompare(card.updatedAt) >= 0 ? existing : card;
+            await requestToPromise(store.put(newer));
+            imported += 1;
+            continue;
+          }
+        }
+        await requestToPromise(store.put(card));
+        imported += 1;
+      }
+      return { imported, skipped };
     });
   }
 }

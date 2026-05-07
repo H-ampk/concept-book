@@ -26,6 +26,11 @@ export type ConceptStorage = {
     concepts: Concept[],
     mode: "replace" | "merge"
   ) => Promise<{ imported: number; skipped: number }>;
+  exportBackupData: () => Promise<{ concepts: Concept[]; contextCards: ContextCard[] }>;
+  importBackupData: (
+    data: { concepts: Concept[]; contextCards: ContextCard[] },
+    mode: "replace" | "merge"
+  ) => Promise<{ importedConcepts: number; skippedConcepts: number; importedContextCards: number; skippedContextCards: number }>;
   /** 画像・動画を保存し、概念の media 参照を更新する */
   addMedia: (input: {
     conceptId: string;
@@ -57,4 +62,8 @@ export type ContextCardStorage = {
     updates: Partial<ContextCardInput>
   ) => Promise<ContextCard | undefined>;
   deleteContextCard: (id: string) => Promise<void>;
+  importContextCards: (
+    contextCards: ContextCard[],
+    mode: "replace" | "merge"
+  ) => Promise<{ imported: number; skipped: number }>;
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getStorage } from "../storage";
 import { getDomainTagColor } from "../utils/domainColors";
-import { validateConceptImportPayload } from "../utils/conceptImportValidation";
+import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 
 const storage = getStorage();
 
@@ -45,9 +45,9 @@ export const SettingsPage = ({
   const handleExport = async () => {
     setBusy(true);
     try {
-      const concepts = await storage.exportConcepts();
-      downloadJson(`concept-backup-${new Date().toISOString()}.json`, concepts);
-      setMessage(`${concepts.length} 件の概念をエクスポートしました。`);
+      const data = await storage.exportBackupData();
+      downloadJson(`concept-backup-${new Date().toISOString()}.json`, data);
+      setMessage(`${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カードをエクスポートしました。`);
     } catch {
       setMessage("エクスポートに失敗しました。");
     } finally {
@@ -97,14 +97,14 @@ export const SettingsPage = ({
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
-      const validationResult = validateConceptImportPayload(parsed);
+      const validationResult = validateBackupImportPayload(parsed);
       if (!validationResult.success) {
         setMessage(`インポートに失敗しました。${validationResult.errorMessage}`);
         return;
       }
-      const result = await storage.importConcepts(validationResult.concepts, mode);
+      const result = await storage.importBackupData(validationResult, mode);
       await onImported();
-      setMessage(`インポート完了: ${result.imported}件、スキップ: ${result.skipped}件`);
+      setMessage(`インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）`);
     } catch (error) {
       if (error instanceof SyntaxError) {
         setMessage("インポートに失敗しました。JSONの構文が不正です。");
@@ -163,7 +163,7 @@ export const SettingsPage = ({
       <div className="rounded-lg bg-nordic-surface p-4">
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">JSONエクスポート</h3>
         <p className="mb-2 text-xs text-celestial-textSub">
-          エクスポートされる JSON には、定義・メモ・出典などの平文データがそのまま含まれます。
+          エクスポートされる JSON には、定義・メモ・出典などの平文データと文脈カードがそのまま含まれます。
           画像・動画のバイナリは含まれません（メディア付き移行はZIPを利用してください）。
           共有クラウドや公開リポジトリに置かないでください。
         </p>

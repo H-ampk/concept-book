@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { conceptStatusList, type Concept } from "../types/concept";
+import type { ContextCard } from "../types/contextCard";
 import type { ConceptMediaRef } from "../types/media";
 import { nowIso } from "./date";
 
@@ -45,6 +46,27 @@ const conceptSchema = z.object({
 });
 
 const conceptArraySchema = z.array(conceptSchema);
+
+const contextCardSchema = z.object({
+  id: z.string().min(1),
+  title: z.string(),
+  domain: z.string().optional(),
+  domainTags: z.array(z.string()),
+  centralQuestion: z.string(),
+  background: z.string(),
+  flow: z.string(),
+  keyConcepts: z.string(),
+  linkedConcepts: z.array(z.string()),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1)
+});
+
+const contextCardArraySchema = z.array(contextCardSchema);
+
+const backupObjectSchema = z.object({
+  concepts: conceptArraySchema,
+  contextCards: contextCardArraySchema.optional()
+});
 
 const rawConceptSchema = z
   .object({
@@ -150,4 +172,25 @@ export const validateConceptImportPayload = (
   }
 
   return { success: true, concepts: conceptsResult.data };
+};
+
+export const validateBackupImportPayload = (
+  payload: unknown
+): { success: true; concepts: Concept[]; contextCards: ContextCard[] } | { success: false; errorMessage: string } => {
+  // Try backup object format first
+  const backupResult = backupObjectSchema.safeParse(payload);
+  if (backupResult.success) {
+    return {
+      success: true,
+      concepts: backupResult.data.concepts,
+      contextCards: backupResult.data.contextCards ?? []
+    };
+  }
+
+  // Fallback to legacy concept array format
+  const legacyResult = validateConceptImportPayload(payload);
+  if (legacyResult.success) {
+    return { success: true, concepts: legacyResult.concepts, contextCards: [] };
+  }
+  return legacyResult;
 };
