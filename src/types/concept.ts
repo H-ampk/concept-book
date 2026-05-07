@@ -15,6 +15,12 @@ export type ConceptSource = {
   author: string | null;
 };
 
+export type ContextDefinition = {
+  id: string;
+  context: string;
+  definition: string;
+};
+
 export type Concept = {
   id: string;
   title: string;
@@ -31,6 +37,7 @@ export type Concept = {
   favorite: boolean;
   createdAt: string;
   updatedAt: string;
+  contextDefinitions?: ContextDefinition[];
 };
 
 export type ConceptInput = Omit<Concept, "id" | "createdAt" | "updatedAt">;
@@ -50,5 +57,6 @@ export const createEmptyConceptInput = (): ConceptInput => ({
   },
   notes: "",
   status: "active",
-  favorite: false
+  favorite: false,
+  contextDefinitions: []
 });

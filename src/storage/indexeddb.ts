@@ -58,7 +58,8 @@ const sanitizeConcept = (
     status: concept.status ?? "active",
     favorite: Boolean(concept.favorite),
     createdAt: concept.createdAt ?? nowIso(),
-    updatedAt: concept.updatedAt ?? nowIso()
+    updatedAt: concept.updatedAt ?? nowIso(),
+    contextDefinitions: toArray(concept.contextDefinitions).filter(Boolean)
   };
 
   const migrated =

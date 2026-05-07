@@ -133,6 +133,19 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">自分の解釈</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
+        {(concept.contextDefinitions ?? []).length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">文脈別定義</h3>
+            <div className="space-y-3">
+              {(concept.contextDefinitions ?? []).map((ctxDef) => (
+                <div key={ctxDef.id} className="rounded-lg border border-celestial-border bg-celestial-panel/50 p-3">
+                  <h4 className="mb-1 text-sm font-medium text-celestial-softGold">{ctxDef.context || "文脈未指定"}</h4>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-celestial-textMain">{ctxDef.definition || "定義未入力"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">メモ</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>

@@ -97,7 +97,8 @@ export const ConceptFormModal = ({
         source: baseConcept.source,
         notes: baseConcept.notes,
         status: baseConcept.status,
-        favorite: baseConcept.favorite
+        favorite: baseConcept.favorite,
+        contextDefinitions: baseConcept.contextDefinitions ?? []
       });
       setDomainTagInput(joinCsv(baseConcept.domainTags));
       setResearchTagInput(joinCsv(baseConcept.researchTags));
@@ -251,12 +252,22 @@ export const ConceptFormModal = ({
       setError("タイトルは必須です。");
       return;
     }
+
+    const cleanContextDefinitions = (form.contextDefinitions ?? [])
+      .map(item => ({
+        id: item.id,
+        context: (item.context ?? "").trim(),
+        definition: (item.definition ?? "").trim(),
+      }))
+      .filter(item => item.context !== "" || item.definition !== "");
+
     const payload: ConceptInput = {
       ...form,
       title: form.title.trim(),
       domainTags: splitCsv(domainTagInput),
       researchTags: splitCsv(researchTagInput),
       media: mode === "create" ? [] : form.media ?? [],
+      contextDefinitions: cleanContextDefinitions,
       source: {
         book: form.source.book.trim(),
         page: form.source.page.trim(),
@@ -330,6 +341,78 @@ export const ConceptFormModal = ({
               onChange={(e) => setForm((prev) => ({ ...prev, myInterpretation: e.target.value }))}
             />
           </label>
+
+          <div className="md:col-span-2">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-medium text-[#F4E8D0]">文脈別定義</span>
+              <button
+                type="button"
+                className="rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/18 transition-colors"
+                onClick={() => setForm((prev) => ({
+                  ...prev,
+                  contextDefinitions: [
+                    ...(prev.contextDefinitions ?? []),
+                    {
+                      id: crypto.randomUUID(),
+                      context: "",
+                      definition: "",
+                    },
+                  ],
+                }))}
+              >
+                ＋ 文脈別定義を追加
+              </button>
+            </div>
+            {(form.contextDefinitions ?? []).length > 0 && (
+              <div className="space-y-3">
+                {(form.contextDefinitions ?? []).map((ctxDef, index) => (
+                  <div key={ctxDef.id} className="rounded-lg border border-[#C89B5C]/30 bg-[#0A253C] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium text-[#F4E8D0]">文脈 {index + 1}</span>
+                      <button
+                        type="button"
+                        className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20 transition-colors"
+                        onClick={() => setForm((prev) => ({
+                          ...prev,
+                          contextDefinitions: (prev.contextDefinitions ?? []).filter(item => item.id !== ctxDef.id),
+                        }))}
+                      >
+                        削除
+                      </button>
+                    </div>
+                    <label className="mb-2 block">
+                      <span className="mb-1 block text-xs text-[#F4E8D0]">文脈名</span>
+                      <input
+                        className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+                        placeholder="例: 情報理論、心理学、哲学、確率論"
+                        value={ctxDef.context}
+                        onChange={(e) => setForm((prev) => ({
+                          ...prev,
+                          contextDefinitions: (prev.contextDefinitions ?? []).map(item =>
+                            item.id === ctxDef.id ? { ...item, context: e.target.value } : item
+                          ),
+                        }))}
+                      />
+                    </label>
+                    <label>
+                      <span className="mb-1 block text-xs text-[#F4E8D0]">この文脈での定義</span>
+                      <textarea
+                        className="min-h-16 w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+                        placeholder="この分野・文脈ではどういう意味で使うかを書く"
+                        value={ctxDef.definition}
+                        onChange={(e) => setForm((prev) => ({
+                          ...prev,
+                          contextDefinitions: (prev.contextDefinitions ?? []).map(item =>
+                            item.id === ctxDef.id ? { ...item, definition: e.target.value } : item
+                          ),
+                        }))}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <label>
             <span className="mb-1 block text-sm text-[#F4E8D0]">分野タグ（カンマ区切り）</span>

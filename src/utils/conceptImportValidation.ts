@@ -42,7 +42,12 @@ const conceptSchema = z.object({
   status: conceptStatusSchema,
   favorite: z.boolean(),
   createdAt: z.string().min(1),
-  updatedAt: z.string().min(1)
+  updatedAt: z.string().min(1),
+  contextDefinitions: z.array(z.object({
+    id: z.string().min(1),
+    context: z.string(),
+    definition: z.string()
+  })).optional()
 });
 
 const conceptArraySchema = z.array(conceptSchema);
