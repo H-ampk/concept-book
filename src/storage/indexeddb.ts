@@ -281,7 +281,14 @@ export class IndexedDBStorage implements ConceptStorage {
     const concepts = await this.getAllConcepts();
     const contextStorage = new ContextCardIndexedDBStorage();
     const contextCards = await contextStorage.getAllContextCards();
-    return { concepts, contextCards };
+
+    // Ensure contextDefinitions is present in each concept
+    const conceptsWithContextDefs = concepts.map(concept => ({
+      ...concept,
+      contextDefinitions: concept.contextDefinitions ?? []
+    }));
+
+    return { concepts: conceptsWithContextDefs, contextCards };
   }
 
   async importConcepts(
