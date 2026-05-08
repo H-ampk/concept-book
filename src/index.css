@@ -39,92 +39,49 @@ body {
 }
 
 .ornament-line {
-  position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.38rem;
-  color: rgba(230, 211, 163, 0.85);
-  text-shadow: 0 0 10px rgba(212, 175, 55, 0.26);
   pointer-events: none;
+  user-select: none;
 }
 
-.ornament-line::after {
-  content: "";
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  top: 50%;
-  height: 1px;
-  transform: translateY(-50%);
-  background: linear-gradient(90deg, transparent, rgba(230, 211, 163, 0.16), transparent);
-}
-
-.ornament-line-header {
-  width: min(700px, 64vw);
-  margin-top: 0.3rem;
-}
-
-.ornament-line-panel {
-  width: min(390px, 56vw);
-  margin: 0.1rem auto 0.55rem auto;
-}
-
-.ornament-segment {
-  position: relative;
+.ornament-line-image {
   display: block;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.5) 24%, rgba(230, 211, 163, 0.92) 52%, rgba(212, 175, 55, 0.5) 78%, transparent 100%);
-}
-
-.ornament-segment::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -2px;
-  height: 1px;
-  opacity: 0.45;
-  background: linear-gradient(90deg, transparent, rgba(230, 211, 163, 0.5), transparent);
-}
-
-.ornament-segment-left,
-.ornament-segment-right {
-  flex: 1 1 40%;
-}
-
-.ornament-segment-mid {
-  flex: 0 1 13%;
-  opacity: 0.9;
-}
-
-.ornament-glyph {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1rem;
-  font-size: 0.76rem;
-  line-height: 1;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.18));
   opacity: 0.92;
 }
 
-.ornament-glyph-center {
-  font-size: 0.8rem;
-  opacity: 0.98;
+.ornament-line-header {
+  width: min(720px, 58vw);
+  margin: 0.35rem 0 0.2rem;
 }
 
-.ornament-knot {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 0.9rem;
-  font-size: 0.62rem;
-  line-height: 1;
-  opacity: 0.82;
+.ornament-line-panel {
+  width: min(420px, 42vw);
+  margin: 0.25rem 0 0.9rem;
+}
+
+.ornament-line-header .ornament-line-image {
+  max-height: 54px;
+}
+
+.ornament-line-panel .ornament-line-image {
+  max-height: 34px;
+  opacity: 0.78;
+}
+
+@media (max-width: 768px) {
+  .ornament-line-header {
+    width: min(92vw, 560px);
+  }
+
+  .ornament-line-panel {
+    width: min(78vw, 360px);
+  }
 }
 
 /* Celestial theme backgrounds */
