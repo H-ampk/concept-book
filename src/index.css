@@ -337,6 +337,19 @@ body {
     0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
+.concept-card-main-button {
+  border: 0;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.concept-card-main-button:hover,
+.concept-card-main-button:focus-visible,
+.concept-card-main-button:active {
+  box-shadow: none !important;
+  filter: none;
+}
+
 .bg-celestial-deepBlue {
   background-image: linear-gradient(180deg, #0f2a40 0%, #0b1e2d 100%);
 }

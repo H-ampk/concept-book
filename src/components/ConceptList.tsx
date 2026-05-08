@@ -56,7 +56,7 @@ export const ConceptList = ({
           {/* Background radial gradient */}
           <div className="absolute inset-0 rounded-xl bg-radial-gradient opacity-20"></div>
 
-          <button className="relative w-full text-left" onClick={() => onSelect(concept.id)} type="button">
+          <button className="concept-card-main-button relative w-full text-left" onClick={() => onSelect(concept.id)} type="button">
             <div className="mb-1 flex items-center justify-between gap-2">
               <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-[#F4E8D0]">{concept.title}</h3>
               <StatusBadge status={concept.status} />
