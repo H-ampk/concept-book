@@ -44,10 +44,14 @@ export const ConceptList = ({
               }
             }
           }}
-          className={`concept-card group relative rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
+          className={`concept-card group relative overflow-visible rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
             selectedId === concept.id ? "concept-card-selected" : ""
           }`}
         >
+          <span className="card-corner card-corner-top-left" aria-hidden="true" />
+          <span className="card-corner card-corner-top-right" aria-hidden="true" />
+          <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+          <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
           {/* Left decoration line */}
           <div className="absolute left-0 top-4 bottom-4 w-[2px] bg-[#C89B5C] rounded-full"></div>
           {/* Corner decorations */}
