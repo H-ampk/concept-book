@@ -259,7 +259,7 @@ export const App = () => {
             <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
             <OrnamentLine variant="header" />
           </div>
-          <nav className="flex gap-2 text-sm">
+          <nav className="header-nav-button-group flex gap-2 text-sm">
             <button
               className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "concepts" ? "bg-celestial-gold/20" : ""
@@ -312,7 +312,6 @@ export const App = () => {
               <span className="card-corner card-corner-top-right" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-              <OrnamentLine variant="panel" />
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"

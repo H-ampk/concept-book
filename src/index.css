@@ -79,18 +79,22 @@ body {
 }
 
 .header-nav-button {
-  padding: 0.48rem 0.78rem;
-  min-height: 40px;
+  padding: 0.42rem 0.72rem;
+  min-height: 38px;
   border-width: 1px;
-  border-color: rgba(212, 175, 55, 0.72);
-  border-radius: 10px;
-  font-size: 0.92rem;
-  line-height: 1.1;
+  border-color: rgba(212, 175, 55, 0.66);
+  border-radius: 9px;
+  font-size: 0.88rem;
+  line-height: 1.05;
   font-weight: 600;
 }
 
 .header-nav-button:hover {
   box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+}
+
+.header-nav-button-group {
+  gap: 0.75rem;
 }
 
 @media (max-width: 768px) {
