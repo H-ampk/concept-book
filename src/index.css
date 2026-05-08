@@ -34,67 +34,97 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   opacity: 0.92;
 }
 
-.ritual-subtitle::before,
-.ritual-subtitle::after {
-  content: "";
-  width: 20px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
-}
-
 .ornament-line {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.38rem;
   color: rgba(230, 211, 163, 0.85);
-  text-shadow: 0 0 8px rgba(212, 175, 55, 0.24);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.26);
   pointer-events: none;
 }
 
+.ornament-line::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, rgba(230, 211, 163, 0.16), transparent);
+}
+
 .ornament-line-header {
-  width: min(680px, 62vw);
-  margin-top: 0.25rem;
+  width: min(700px, 64vw);
+  margin-top: 0.3rem;
 }
 
 .ornament-line-panel {
-  width: min(360px, 52vw);
-  margin: 0 auto 0.45rem auto;
+  width: min(390px, 56vw);
+  margin: 0.1rem auto 0.55rem auto;
 }
 
 .ornament-segment {
+  position: relative;
   display: block;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.88), transparent);
+  background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.5) 24%, rgba(230, 211, 163, 0.92) 52%, rgba(212, 175, 55, 0.5) 78%, transparent 100%);
+}
+
+.ornament-segment::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 1px;
+  opacity: 0.45;
+  background: linear-gradient(90deg, transparent, rgba(230, 211, 163, 0.5), transparent);
 }
 
 .ornament-segment-left,
 .ornament-segment-right {
-  flex: 1 1 42%;
+  flex: 1 1 40%;
 }
 
 .ornament-segment-mid {
-  flex: 0 1 16%;
-  opacity: 0.85;
-}
-
-.ornament-glyph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.1rem;
-  font-size: 0.78rem;
-  line-height: 1;
+  flex: 0 1 13%;
   opacity: 0.9;
 }
 
-.ornament-glyph-owl,
-.ornament-glyph-quill {
-  font-size: 0.74rem;
+.ornament-glyph {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  font-size: 0.76rem;
+  line-height: 1;
+  opacity: 0.92;
+}
+
+.ornament-glyph-center {
+  font-size: 0.8rem;
+  opacity: 0.98;
+}
+
+.ornament-knot {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.9rem;
+  font-size: 0.62rem;
+  line-height: 1;
+  opacity: 0.82;
 }
 
 /* Celestial theme backgrounds */
@@ -259,25 +289,11 @@ body {
 }
 
 .ritual-altar::after {
-  content: "";
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  top: 10px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), rgba(230, 211, 163, 0.55), rgba(212, 175, 55, 0.8), transparent);
-  pointer-events: none;
+  display: none;
 }
 
 .ritual-altar::before {
-  content: "";
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  bottom: 10px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), rgba(230, 211, 163, 0.32), rgba(212, 175, 55, 0.45), transparent);
-  pointer-events: none;
+  display: none;
 }
 
 .ritual-altar > * {
@@ -294,19 +310,7 @@ body {
 
 .ritual-altar h2,
 .ritual-altar h3 {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ritual-altar h2::before,
-.ritual-altar h2::after,
-.ritual-altar h3::before,
-.ritual-altar h3::after {
-  content: "";
-  width: 12px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
+  letter-spacing: 0.02em;
 }
 
 .card-corner {

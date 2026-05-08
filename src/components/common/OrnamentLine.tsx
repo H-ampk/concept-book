@@ -12,11 +12,11 @@ export const OrnamentLine = ({ variant, className = "" }: Props) => {
       aria-hidden="true"
     >
       <span className="ornament-segment ornament-segment-left" />
-      <span className="ornament-glyph ornament-glyph-owl">🦉</span>
+      <span className="ornament-knot ornament-knot-left">✦</span>
       <span className="ornament-segment ornament-segment-mid" />
-      <span className="ornament-glyph ornament-glyph-seal">✶</span>
+      <span className="ornament-glyph ornament-glyph-center">✶</span>
       <span className="ornament-segment ornament-segment-mid" />
-      <span className="ornament-glyph ornament-glyph-quill">✒</span>
+      <span className="ornament-knot ornament-knot-right">✦</span>
       <span className="ornament-segment ornament-segment-right" />
     </div>
   );
