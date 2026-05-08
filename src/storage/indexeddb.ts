@@ -4,7 +4,7 @@ import { normalizeMediaRefs } from "../utils/conceptImportValidation";
 import { nowIso } from "../utils/date";
 import { guessMimeFromFileName } from "../utils/mediaConstraints";
 import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaConstraints";
-import type { Concept, ConceptInput } from "../types/concept";
+import type { Concept, ConceptInput, ContextDefinition } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
 import type { ConceptStorage, ContextCardStorage } from "./types";
@@ -30,7 +30,7 @@ type StoredConcept = Partial<Concept> & {
 const normalizeContextDefinitions = (value: unknown): Concept["contextDefinitions"] =>
   toArray(value as Concept["contextDefinitions"])
     .map((item, index) => {
-      const raw = (item ?? {}) as Partial<Concept["contextDefinitions"][number]> & {
+      const raw = (item ?? {}) as Partial<ContextDefinition> & {
         label?: string;
         text?: string;
       };

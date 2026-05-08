@@ -82,7 +82,7 @@ body {
   position: absolute;
   width: 110px;
   height: 110px;
-  background: url('/decorations/corner.svg') no-repeat center/contain;
+  background: var(--corner-decoration-url, url("/decorations/corner.svg")) no-repeat center/contain;
   opacity: 1;
   pointer-events: none;
   z-index: 0;

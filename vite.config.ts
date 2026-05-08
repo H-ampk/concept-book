@@ -3,8 +3,8 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => ({
-  // GitHub Pages (concept-book) 配下では /concept-book/ で配信される。
-  base: mode === "production" ? "/concept-book/" : "/",
+  // アプリ化後（file:// や任意パス配下）でも参照が壊れないよう相対ベースを利用。
+  base: mode === "production" ? "./" : "/",
   plugins: [
     react(),
     VitePWA({

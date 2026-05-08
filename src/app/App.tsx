@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 import { ConceptGraphView } from "../components/ConceptGraphView";
@@ -23,6 +23,9 @@ const statusLabelMap: Record<ConceptStatus, string> = {
   unclear: "未整理",
   archived: "保管"
 };
+
+const assetUrl = (path: string): string =>
+  `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
 const buildTagSections = (
   concepts: Concept[],
@@ -67,19 +70,19 @@ const DecorativeBackground = () => (
     <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-celestial-base to-celestial-base opacity-80"></div>
     <div className="star-field absolute inset-0 opacity-30"></div>
     <img
-      src="/decorations/moon.png"
+      src={assetUrl("decorations/moon.png")}
       alt=""
       aria-hidden="true"
       className="fixed top-20 right-20 w-40 opacity-12"
     />
     <img
-      src="/decorations/botanical.png"
+      src={assetUrl("decorations/botanical.png")}
       alt=""
       aria-hidden="true"
       className="fixed left-0 bottom-0 h-[90vh] opacity-08 blur-[1px]"
     />
     <img
-      src="/decorations/constellation.png"
+      src={assetUrl("decorations/constellation.png")}
       alt=""
       aria-hidden="true"
       className="fixed right-[-120px] top-32 w-[760px] opacity-06 blur-[1px]"
@@ -123,6 +126,13 @@ export const App = () => {
   const [listViewMode, setListViewMode] = useState<ListViewMode>("all");
   const [domainColorMap, setDomainColorMap] = useState<Record<string, string>>({});
   const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
+  const appShellStyle = useMemo(
+    () =>
+      ({
+        "--corner-decoration-url": `url("${assetUrl("decorations/corner.svg")}")`
+      }) as CSSProperties,
+    []
+  );
 
   const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map());
   const detailContainerRef = useRef<HTMLDivElement>(null);
@@ -216,7 +226,7 @@ export const App = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-nordic-bg text-celestial-textMain overflow-hidden">
+    <div className="relative min-h-screen bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
       <DecorativeBackground />
 
       <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
