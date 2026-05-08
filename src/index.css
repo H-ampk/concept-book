@@ -274,35 +274,39 @@ body {
 
 .card-corner {
   position: absolute;
+  display: block;
   width: 64px;
   height: 64px;
-  background: var(--corner-decoration-url, url("/decorations/corner.svg")) no-repeat center/contain;
-  opacity: 0.72;
+  background-image: var(--corner-decoration-url, url("/decorations/corner.svg"));
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.85;
   pointer-events: none;
-  z-index: 2;
+  z-index: 5;
   filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2));
 }
 
 .card-corner-top-left {
-  top: 6px;
-  left: 6px;
+  top: -8px;
+  left: -8px;
 }
 
 .card-corner-top-right {
-  top: 6px;
-  right: 6px;
+  top: -8px;
+  right: -8px;
   transform: scaleX(-1);
 }
 
 .card-corner-bottom-left {
-  bottom: 6px;
-  left: 6px;
+  bottom: -8px;
+  left: -8px;
   transform: scaleY(-1);
 }
 
 .card-corner-bottom-right {
-  bottom: 6px;
-  right: 6px;
+  bottom: -8px;
+  right: -8px;
   transform: scale(-1, -1);
 }
 

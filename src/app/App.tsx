@@ -151,7 +151,7 @@ export const App = () => {
   const appShellStyle = useMemo(
     () =>
       ({
-        "--corner-decoration-url": `url("${assetUrl("decorations/corner.svg")}")`
+        "--corner-decoration-url": `url(${assetUrl("decorations/corner.svg")})`
       }) as CSSProperties,
     []
   );
