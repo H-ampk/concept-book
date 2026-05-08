@@ -80,6 +80,10 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
 
   return (
     <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial decorated-card">
+      <span className="card-corner card-corner-top-left" aria-hidden="true" />
+      <span className="card-corner card-corner-top-right" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <header className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-celestial-textMain">概念グラフ</h3>
         <p className="text-xs text-celestial-textSub">

@@ -94,6 +94,10 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   if (!concept) {
     return (
       <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
+        <span className="card-corner card-corner-top-left" aria-hidden="true" />
+        <span className="card-corner card-corner-top-right" aria-hidden="true" />
+        <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+        <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
         <p className="text-sm text-celestial-textSub">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
@@ -107,6 +111,10 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 
   return (
     <section ref={ref} className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
+      <span className="card-corner card-corner-top-left" aria-hidden="true" />
+      <span className="card-corner card-corner-top-right" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <header className="flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
         {concept.favorite && (

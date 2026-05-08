@@ -272,27 +272,37 @@ body {
   background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
 }
 
-.decorated-card::before,
-.decorated-card::after {
-  content: "";
+.card-corner {
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 64px;
+  height: 64px;
   background: var(--corner-decoration-url, url("/decorations/corner.svg")) no-repeat center/contain;
-  opacity: 1;
+  opacity: 0.72;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
   filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2));
 }
 
-.decorated-card::before {
-  top: 8px;
-  left: 8px;
+.card-corner-top-left {
+  top: 6px;
+  left: 6px;
 }
 
-.decorated-card::after {
-  bottom: 8px;
-  right: 8px;
+.card-corner-top-right {
+  top: 6px;
+  right: 6px;
+  transform: scaleX(-1);
+}
+
+.card-corner-bottom-left {
+  bottom: 6px;
+  left: 6px;
+  transform: scaleY(-1);
+}
+
+.card-corner-bottom-right {
+  bottom: 6px;
+  right: 6px;
   transform: scale(-1, -1);
 }
 
@@ -305,8 +315,7 @@ body {
   display: none;
 }
 
-.decorated-card:hover::before,
-.decorated-card:hover::after {
+.decorated-card:hover .card-corner {
   filter: drop-shadow(0 0 6px rgba(212,175,55,0.5));
 }
 

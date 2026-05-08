@@ -30,6 +30,7 @@ const assetUrl = (path: string): string =>
 // Temporary visual toggles for background image layers.
 const SHOW_MOON_BACKGROUND = false;
 const SHOW_BOTANICAL_BACKGROUND = false;
+const SHOW_CONSTELLATION_BACKGROUND = false;
 
 const buildTagSections = (
   concepts: Concept[],
@@ -100,12 +101,14 @@ const DecorativeBackground = () => (
         className="fixed left-[-24px] bottom-0 h-[92vh] opacity-05 blur-[1px]"
       />
     )}
-    <img
-      src={assetUrl("decorations/constellation.png")}
-      alt=""
-      aria-hidden="true"
-      className="fixed right-[-120px] top-32 w-[760px] opacity-08 blur-[1px]"
-    />
+    {SHOW_CONSTELLATION_BACKGROUND && (
+      <img
+        src={assetUrl("decorations/constellation.png")}
+        alt=""
+        aria-hidden="true"
+        className="fixed right-[-120px] top-32 w-[760px] opacity-08 blur-[1px]"
+      />
+    )}
   </div>
 );
 
@@ -303,6 +306,10 @@ export const App = () => {
         ) : (
           <div className="space-y-4">
             <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card ritual-altar">
+              <span className="card-corner card-corner-top-left" aria-hidden="true" />
+              <span className="card-corner card-corner-top-right" aria-hidden="true" />
+              <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+              <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"

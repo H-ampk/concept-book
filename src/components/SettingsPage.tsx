@@ -121,6 +121,10 @@ export const SettingsPage = ({
 
   return (
     <section className="space-y-5 rounded-2xl border border-celestial-border bg-celestial-panel p-5 shadow-celestial decorated-card">
+      <span className="card-corner card-corner-top-left" aria-hidden="true" />
+      <span className="card-corner card-corner-top-right" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <header>
         <h2 className="text-lg font-semibold text-celestial-textMain">設定</h2>
         <p className="text-sm text-celestial-textSub">バックアップ、復元、PWA運用状態を管理します。</p>
