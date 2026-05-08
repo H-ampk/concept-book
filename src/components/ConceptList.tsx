@@ -44,8 +44,8 @@ export const ConceptList = ({
               }
             }
           }}
-          className={`group relative rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
-            selectedId === concept.id ? "ring-2 ring-[#C89B5C]" : ""
+          className={`concept-card group relative rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
+            selectedId === concept.id ? "ring-2 ring-[#C89B5C] concept-card-selected" : ""
           }`}
         >
           {/* Left decoration line */}
@@ -66,7 +66,7 @@ export const ConceptList = ({
               {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-domain-${tag}`}
-                  className="rounded-md border border-[#C89B5C]/30 bg-[#C89B5C]/10 px-2 py-0.5 text-xs text-[#E0C58B]"
+                  className="tag-chip rounded-md border border-[#C89B5C]/30 bg-[#C89B5C]/10 px-2 py-0.5 text-xs text-[#E0C58B]"
                   style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
                 >
                   D:{tag}
@@ -75,7 +75,7 @@ export const ConceptList = ({
               {concept.researchTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-research-${tag}`}
-                  className="rounded-md border border-[#C89B5C]/30 bg-[#C89B5C]/10 px-2 py-0.5 text-xs text-[#E0C58B]"
+                  className="tag-chip rounded-md border border-[#C89B5C]/30 bg-[#C89B5C]/10 px-2 py-0.5 text-xs text-[#E0C58B]"
                 >
                   R:{tag}
                 </span>
@@ -85,14 +85,14 @@ export const ConceptList = ({
 
           <div className="relative mt-3 flex gap-2">
             <button
-              className="rounded-md border border-[#C89B5C]/50 bg-transparent px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+              className="filter-button rounded-md border border-[#C89B5C]/50 bg-transparent px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
               onClick={() => onEdit(concept)}
               type="button"
             >
               編集
             </button>
             <button
-              className="rounded-md border border-[#C89B5C]/50 bg-transparent px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+              className="filter-button rounded-md border border-[#C89B5C]/50 bg-transparent px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
               onClick={() => onToggleFavorite(concept)}
               type="button"
             >

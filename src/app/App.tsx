@@ -67,25 +67,36 @@ const buildTagSections = (
 
 const DecorativeBackground = () => (
   <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-celestial-base to-celestial-base opacity-80"></div>
-    <div className="star-field absolute inset-0 opacity-30"></div>
+    <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-celestial-base to-celestial-base opacity-85"></div>
+    <div className="star-field absolute inset-0 opacity-28"></div>
+    <div className="astral-chart absolute inset-0"></div>
+    <div className="cathedral-frame cathedral-frame-left"></div>
+    <div className="cathedral-frame cathedral-frame-right"></div>
+    <div className="moon-emblem" aria-hidden="true">
+      <div className="moon-ring moon-ring-outer"></div>
+      <div className="moon-ring moon-ring-middle"></div>
+      <div className="moon-ring moon-ring-inner"></div>
+      <div className="moon-axis moon-axis-1"></div>
+      <div className="moon-axis moon-axis-2"></div>
+      <div className="moon-axis moon-axis-3"></div>
+    </div>
     <img
       src={assetUrl("decorations/moon.png")}
       alt=""
       aria-hidden="true"
-      className="fixed top-20 right-20 w-40 opacity-12"
+      className="fixed top-20 right-20 w-44 opacity-18 moon-core"
     />
     <img
       src={assetUrl("decorations/botanical.png")}
       alt=""
       aria-hidden="true"
-      className="fixed left-0 bottom-0 h-[90vh] opacity-08 blur-[1px]"
+      className="fixed left-[-24px] bottom-0 h-[92vh] opacity-05 blur-[1px]"
     />
     <img
       src={assetUrl("decorations/constellation.png")}
       alt=""
       aria-hidden="true"
-      className="fixed right-[-120px] top-32 w-[760px] opacity-06 blur-[1px]"
+      className="fixed right-[-120px] top-32 w-[760px] opacity-08 blur-[1px]"
     />
   </div>
 );
@@ -226,14 +237,14 @@ export const App = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
+    <div className="app-background relative min-h-screen bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
       <DecorativeBackground />
 
       <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="text-xl font-semibold text-celestial-gold tracking-wider">Concept Book App</h1>
-            <p className="text-xs text-celestial-softGold">Et sted for tanker</p>
+          <div className="header-insignia">
+            <h1 className="text-xl font-semibold text-celestial-gold tracking-wider ritual-title">Concept Book App</h1>
+            <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
           </div>
           <nav className="flex gap-2 text-sm">
             <button
@@ -283,7 +294,7 @@ export const App = () => {
           }} />
         ) : (
           <div className="space-y-4">
-            <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card">
+            <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card ritual-altar">
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"

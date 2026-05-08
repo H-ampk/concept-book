@@ -19,6 +19,33 @@ body {
   color: #e6d3a3;
 }
 
+.header-insignia {
+  position: relative;
+  display: inline-block;
+  padding: 2px 0;
+}
+
+.ritual-title {
+  letter-spacing: 0.09em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), 0 0 16px rgba(212, 175, 55, 0.22);
+}
+
+.ritual-subtitle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.92;
+}
+
+.ritual-subtitle::before,
+.ritual-subtitle::after {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
+}
+
 /* Celestial theme backgrounds */
 .bg-stars,
 .star-field {
@@ -40,6 +67,130 @@ body {
                     radial-gradient(circle 2px at 148px 98px, rgba(200,220,255,0.11) 0%, transparent 100%);
   background-repeat: repeat;
   background-size: 280px 160px;
+}
+
+.astral-chart {
+  z-index: 0;
+  opacity: 0.32;
+  background-image:
+    radial-gradient(circle at 78% 16%, rgba(212, 175, 55, 0.14) 0 1px, transparent 1px 100%),
+    radial-gradient(circle at 78% 16%, transparent 0 62px, rgba(212, 175, 55, 0.18) 63px 64px, transparent 65px),
+    radial-gradient(circle at 78% 16%, transparent 0 108px, rgba(230, 211, 163, 0.12) 109px 110px, transparent 111px),
+    linear-gradient(90deg, transparent 13%, rgba(212, 175, 55, 0.08) 50%, transparent 87%),
+    linear-gradient(0deg, transparent 10%, rgba(230, 211, 163, 0.06) 50%, transparent 90%);
+  background-repeat: no-repeat;
+}
+
+.moon-core {
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.26));
+}
+
+.moon-emblem {
+  position: fixed;
+  top: 62px;
+  right: 56px;
+  width: 220px;
+  height: 220px;
+  z-index: 1;
+  opacity: 0.45;
+}
+
+.moon-ring {
+  position: absolute;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 999px;
+}
+
+.moon-ring-outer {
+  inset: 0;
+}
+
+.moon-ring-middle {
+  inset: 28px;
+  border-color: rgba(230, 211, 163, 0.32);
+}
+
+.moon-ring-inner {
+  inset: 52px;
+  border-color: rgba(212, 175, 55, 0.24);
+}
+
+.moon-axis {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 84%;
+  height: 1px;
+  transform-origin: center;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.55), transparent);
+}
+
+.moon-axis-1 {
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+
+.moon-axis-2 {
+  transform: translate(-50%, -50%) rotate(38deg);
+}
+
+.moon-axis-3 {
+  transform: translate(-50%, -50%) rotate(92deg);
+}
+
+.cathedral-frame {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 152px;
+  z-index: 0;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(180deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.06) 20%, rgba(212, 175, 55, 0.22) 60%, rgba(212, 175, 55, 0.08)),
+    linear-gradient(180deg, transparent 0 4%, rgba(230, 211, 163, 0.22) 5% 5.4%, transparent 5.5% 13%, rgba(212, 175, 55, 0.14) 13.1% 13.6%, transparent 13.7%),
+    repeating-linear-gradient(180deg, rgba(212, 175, 55, 0.1) 0 1px, transparent 1px 46px);
+}
+
+.cathedral-frame-left {
+  left: 0;
+  border-right: 1px solid rgba(212, 175, 55, 0.22);
+  box-shadow: inset -20px 0 36px rgba(0, 0, 0, 0.18);
+}
+
+.cathedral-frame-right {
+  right: 0;
+  border-left: 1px solid rgba(212, 175, 55, 0.22);
+  transform: scaleX(-1);
+  box-shadow: inset -20px 0 36px rgba(0, 0, 0, 0.18);
+}
+
+.app-background::before,
+.app-background::after {
+  content: "";
+  position: fixed;
+  top: 72px;
+  bottom: 0;
+  width: 9rem;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.24;
+  background:
+    linear-gradient(90deg, rgba(218, 180, 80, 0.2), transparent 38%),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 3.2rem,
+      rgba(218, 180, 80, 0.1) 3.24rem,
+      transparent 3.4rem
+    );
+}
+
+.app-background::before {
+  left: 0;
+}
+
+.app-background::after {
+  right: 0;
+  transform: scaleX(-1);
 }
 
 .bg-radial-gradient {
@@ -74,6 +225,51 @@ body {
   position: relative;
   z-index: 1;
   overflow: visible;
+  box-shadow: 0 18px 46px rgba(212, 175, 55, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.05), inset 0 0 26px rgba(212, 175, 55, 0.05);
+}
+
+.ritual-altar::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), rgba(230, 211, 163, 0.55), rgba(212, 175, 55, 0.8), transparent);
+  pointer-events: none;
+}
+
+.ritual-altar::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), rgba(230, 211, 163, 0.32), rgba(212, 175, 55, 0.45), transparent);
+  pointer-events: none;
+}
+
+.ritual-altar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ritual-altar h2,
+.ritual-altar h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ritual-altar h2::before,
+.ritual-altar h2::after,
+.ritual-altar h3::before,
+.ritual-altar h3::after {
+  content: "";
+  width: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
 }
 
 .decorated-card::before,
@@ -86,6 +282,7 @@ body {
   opacity: 1;
   pointer-events: none;
   z-index: 0;
+  filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2));
 }
 
 .decorated-card::before {
@@ -113,6 +310,33 @@ body {
   filter: drop-shadow(0 0 6px rgba(212,175,55,0.5));
 }
 
+.concept-card {
+  position: relative;
+  box-shadow: inset 0 0 18px rgba(218, 180, 80, 0.045), 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.concept-card::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 0.65rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(218, 180, 80, 0),
+    rgba(218, 180, 80, 0.35),
+    rgba(218, 180, 80, 0)
+  );
+}
+
+.concept-card-selected {
+  box-shadow:
+    inset 0 0 26px rgba(218, 180, 80, 0.1),
+    0 0 18px rgba(218, 180, 80, 0.2),
+    0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
 .bg-celestial-deepBlue {
   background-image: linear-gradient(180deg, #0f2a40 0%, #0b1e2d 100%);
 }
@@ -132,6 +356,7 @@ body {
 button.bg-celestial-gold {
   background-color: #d4af37;
   color: #10263a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(83, 55, 8, 0.2), 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 button.bg-celestial-gold:hover {
@@ -139,7 +364,29 @@ button.bg-celestial-gold:hover {
 }
 
 button:hover {
-  filter: brightness(1.03);
+  filter: brightness(1.05);
+}
+
+button {
+  box-shadow: inset 0 0 0 1px rgba(230, 211, 163, 0.08);
+}
+
+[class*="rounded-full"][class*="text-xs"] {
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.15);
+}
+
+.tag-chip,
+.filter-button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 170, 0.18),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.18);
+}
+
+.tag-chip:hover,
+.filter-button:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 170, 0.25),
+    0 0 10px rgba(218, 180, 80, 0.28);
 }
 
 input,
