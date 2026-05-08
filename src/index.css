@@ -46,6 +46,57 @@ body {
   background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
 }
 
+.ornament-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: rgba(230, 211, 163, 0.85);
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.24);
+  pointer-events: none;
+}
+
+.ornament-line-header {
+  width: min(680px, 62vw);
+  margin-top: 0.25rem;
+}
+
+.ornament-line-panel {
+  width: min(360px, 52vw);
+  margin: 0 auto 0.45rem auto;
+}
+
+.ornament-segment {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.88), transparent);
+}
+
+.ornament-segment-left,
+.ornament-segment-right {
+  flex: 1 1 42%;
+}
+
+.ornament-segment-mid {
+  flex: 0 1 16%;
+  opacity: 0.85;
+}
+
+.ornament-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  font-size: 0.78rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.ornament-glyph-owl,
+.ornament-glyph-quill {
+  font-size: 0.74rem;
+}
+
 /* Celestial theme backgrounds */
 .bg-stars,
 .star-field {
@@ -193,27 +244,6 @@ body {
   transform: scaleX(-1);
 }
 
-.bg-radial-gradient {
-  background-image: radial-gradient(circle at top left, rgba(212,175,55,0.14), transparent 20%),
-                    radial-gradient(circle at bottom right, rgba(230,211,163,0.08), transparent 18%);
-}
-
-.bg-plant-decoration {
-  background-image: linear-gradient(45deg, transparent 30%, rgba(212,175,55,0.12) 30%, rgba(212,175,55,0.12) 40%, transparent 40%),
-                    linear-gradient(-45deg, transparent 30%, rgba(212,175,55,0.12) 30%, rgba(212,175,55,0.12) 40%, transparent 40%);
-  background-size: 20px 20px;
-}
-
-.bg-celestial-arcs {
-  background-image: radial-gradient(circle at 50% 50%, transparent 40%, rgba(212,175,55,0.1) 41%, rgba(212,175,55,0.1) 42%, transparent 43%);
-  background-size: 100px 100px;
-}
-
-.bg-moon-star {
-  background-image: radial-gradient(circle, rgba(230,211,163,0.24) 18%, transparent 20%),
-                    radial-gradient(circle at 30% 30%, rgba(230,211,163,0.18) 2px, transparent 3px);
-}
-
 .bg-celestial-panel {
   background-image: linear-gradient(180deg, rgba(15,42,64,0.92), rgba(11,30,45,0.96));
   background-color: rgba(11,30,45,0.88);
@@ -225,7 +255,7 @@ body {
   position: relative;
   z-index: 1;
   overflow: visible;
-  box-shadow: 0 18px 46px rgba(212, 175, 55, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.05), inset 0 0 26px rgba(212, 175, 55, 0.05);
+  box-shadow: 0 18px 46px rgba(212, 175, 55, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.05), inset 0 0 28px rgba(212, 175, 55, 0.06);
 }
 
 .ritual-altar::after {
@@ -253,6 +283,13 @@ body {
 .ritual-altar > * {
   position: relative;
   z-index: 1;
+}
+
+.ritual-altar {
+  box-shadow:
+    0 22px 52px rgba(212, 175, 55, 0.14),
+    inset 0 0 34px rgba(212, 175, 55, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .ritual-altar h2,
@@ -325,7 +362,7 @@ body {
 
 .concept-card {
   position: relative;
-  box-shadow: inset 0 0 8px rgba(218, 180, 80, 0.025), 0 8px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 6px rgba(218, 180, 80, 0.02), 0 8px 22px rgba(0, 0, 0, 0.28);
 }
 
 .concept-card::before {
@@ -345,8 +382,8 @@ body {
 
 .concept-card-selected {
   box-shadow:
-    inset 0 0 10px rgba(218, 180, 80, 0.04),
-    0 0 14px rgba(218, 180, 80, 0.2),
+    inset 0 0 8px rgba(218, 180, 80, 0.03),
+    0 0 12px rgba(218, 180, 80, 0.2),
     0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
@@ -404,8 +441,9 @@ button {
 .tag-chip,
 .filter-button {
   box-shadow:
-    inset 0 1px 0 rgba(255, 238, 170, 0.18),
+    inset 0 1px 0 rgba(255, 238, 170, 0.2),
     inset 0 -8px 16px rgba(0, 0, 0, 0.18);
+  border-color: rgba(212, 175, 55, 0.42);
 }
 
 .tag-chip:hover,
@@ -413,6 +451,13 @@ button {
   box-shadow:
     inset 0 1px 0 rgba(255, 238, 170, 0.25),
     0 0 10px rgba(218, 180, 80, 0.28);
+}
+
+.filter-button:active,
+.tag-chip:active {
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.26),
+    0 0 8px rgba(218, 180, 80, 0.2);
 }
 
 input,

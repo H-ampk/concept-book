@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
+import { OrnamentLine } from "./common/OrnamentLine";
 
 type GraphNode = {
   id: string;
@@ -84,6 +85,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
       <span className="card-corner card-corner-top-right" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+      <OrnamentLine variant="panel" />
       <header className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-celestial-textMain">概念グラフ</h3>
         <p className="text-xs text-celestial-textSub">

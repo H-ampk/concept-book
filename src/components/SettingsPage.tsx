@@ -2,6 +2,7 @@ import { useState } from "react";
 import { getStorage } from "../storage";
 import { getDomainTagColor } from "../utils/domainColors";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
+import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
 
@@ -102,10 +103,8 @@ export const SettingsPage = ({
         setMessage(`インポートに失敗しました。${validationResult.errorMessage}`);
         return;
       }
-      console.log("[JSON validation] validationResult.concepts sample", validationResult.concepts?.[0]);
 
       const result = await storage.importBackupData(validationResult, mode);
-      console.log("[JSON import after save] result", result);
       await onImported();
       setMessage(`インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）`);
     } catch (error) {
@@ -125,6 +124,7 @@ export const SettingsPage = ({
       <span className="card-corner card-corner-top-right" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+      <OrnamentLine variant="panel" />
       <header>
         <h2 className="text-lg font-semibold text-celestial-textMain">設定</h2>
         <p className="text-sm text-celestial-textSub">バックアップ、復元、PWA運用状態を管理します。</p>

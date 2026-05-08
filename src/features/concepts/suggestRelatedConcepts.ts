@@ -113,7 +113,6 @@ export const suggestRelatedConcepts = (
   }>,
   options?: SuggestRelatedConceptsOptions
 ): RelatedConceptSuggestion[] => {
-  const isDev = import.meta.env.DEV;
   const stopwords = new Set(options?.stopwords ?? [...DEFAULT_STOPWORDS]);
   const inputNode = toComparableNode(inputNodeRaw);
 
@@ -178,16 +177,6 @@ export const suggestRelatedConcepts = (
       score += 1;
       reasons.push(`共通語「${keyword}」があります`);
     });
-
-    if (isDev) {
-      console.log("score breakdown", {
-        inputTitle,
-        inputDefinition: inputNode.definition,
-        candidateTitle,
-        score,
-        reasons
-      });
-    }
 
     if (score <= 0) {
       return;

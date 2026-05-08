@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
+import { OrnamentLine } from "./common/OrnamentLine";
 
 type Props = {
   concepts: Concept[];
@@ -358,7 +359,12 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
   }, [selectedId, nodeById]);
 
   return (
-    <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial">
+    <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial decorated-card">
+      <span className="card-corner card-corner-top-left" aria-hidden="true" />
+      <span className="card-corner card-corner-top-right" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+      <OrnamentLine variant="panel" />
       <header className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-celestial-textMain">スキルツリー</h3>
         <p className="text-xs text-celestial-textSub">

@@ -13,6 +13,7 @@ import { useConcepts } from "../features/concepts/useConcepts";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
+import { OrnamentLine } from "../components/common/OrnamentLine";
 
 type Screen = "concepts" | "contexts" | "settings";
 type ConceptMainTab = "list" | "graph" | "tree";
@@ -256,6 +257,7 @@ export const App = () => {
           <div className="header-insignia">
             <h1 className="text-xl font-semibold text-celestial-gold tracking-wider ritual-title">Concept Book App</h1>
             <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
+            <OrnamentLine variant="header" />
           </div>
           <nav className="flex gap-2 text-sm">
             <button
@@ -310,6 +312,7 @@ export const App = () => {
               <span className="card-corner card-corner-top-right" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+              <OrnamentLine variant="panel" />
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <input
                   className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
