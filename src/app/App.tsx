@@ -261,7 +261,7 @@ export const App = () => {
           </div>
           <nav className="flex gap-2 text-sm">
             <button
-              className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+              className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "concepts" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("concepts")}
@@ -270,7 +270,7 @@ export const App = () => {
               概念
             </button>
             <button
-              className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+              className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "contexts" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("contexts")}
@@ -279,7 +279,7 @@ export const App = () => {
               文脈
             </button>
             <button
-              className={`rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+              className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "settings" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("settings")}
