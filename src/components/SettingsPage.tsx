@@ -102,7 +102,10 @@ export const SettingsPage = ({
         setMessage(`インポートに失敗しました。${validationResult.errorMessage}`);
         return;
       }
+      console.log("[JSON validation] validationResult.concepts sample", validationResult.concepts?.[0]);
+
       const result = await storage.importBackupData(validationResult, mode);
+      console.log("[JSON import after save] result", result);
       await onImported();
       setMessage(`インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）`);
     } catch (error) {

@@ -89,7 +89,18 @@ const rawConceptSchema = z
     status: conceptStatusSchema.optional(),
     favorite: z.boolean().optional(),
     createdAt: z.string().optional(),
-    updatedAt: z.string().optional()
+    updatedAt: z.string().optional(),
+    contextDefinitions: z
+      .array(
+        z.object({
+          id: z.string().optional(),
+          context: z.string().optional(),
+          label: z.string().optional(),
+          definition: z.string().optional(),
+          text: z.string().optional()
+        })
+      )
+      .optional()
   })
   .passthrough();
 
@@ -101,6 +112,21 @@ const formatIssue = (issue: z.ZodIssue): string => {
 const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => {
   const normalizedDomainTags = raw.domainTags ?? raw.tags ?? [];
   const media = normalizeMediaRefs(raw.media);
+  const contextDefinitions = (raw.contextDefinitions ?? [])
+    .map((item, index) => {
+      const context = (item.context ?? item.label ?? "").toString();
+      const definition = (item.definition ?? item.text ?? "").toString();
+      if (!context.trim() && !definition.trim()) {
+        return null;
+      }
+      return {
+        id: item.id?.toString() || `ctx_${index}_${Math.random().toString(36).slice(2, 8)}`,
+        context,
+        definition
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
   return {
     id: raw.id,
     title: raw.title,
@@ -119,7 +145,8 @@ const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => 
     status: raw.status ?? "active",
     favorite: raw.favorite ?? false,
     createdAt: raw.createdAt ?? nowIso(),
-    updatedAt: raw.updatedAt ?? nowIso()
+    updatedAt: raw.updatedAt ?? nowIso(),
+    contextDefinitions
   };
 };
 

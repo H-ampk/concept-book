@@ -99,6 +99,12 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
     );
   }
 
+  const contextDefinitions = (concept.contextDefinitions ?? []).filter((item) => {
+    const context = (item.context ?? "").trim();
+    const definition = (item.definition ?? "").trim();
+    return context !== "" || definition !== "";
+  });
+
   return (
     <section ref={ref} className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
       <header className="flex flex-wrap items-center gap-2">
@@ -133,14 +139,14 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">自分の解釈</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
-        {(concept.contextDefinitions ?? []).length > 0 && (
+        {contextDefinitions.length > 0 && (
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">文脈別定義</h3>
             <div className="space-y-3">
-              {(concept.contextDefinitions ?? []).map((ctxDef) => (
+              {contextDefinitions.map((ctxDef) => (
                 <div key={ctxDef.id} className="rounded-lg border border-celestial-border bg-celestial-panel/50 p-3">
-                  <h4 className="mb-1 text-sm font-medium text-celestial-softGold">{ctxDef.context || "文脈未指定"}</h4>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-celestial-textMain">{ctxDef.definition || "定義未入力"}</p>
+                  <h4 className="mb-1 text-sm font-medium text-celestial-softGold">{ctxDef.context.trim() || "文脈未指定"}</h4>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-celestial-textMain">{ctxDef.definition.trim() || "定義未入力"}</p>
                 </div>
               ))}
             </div>

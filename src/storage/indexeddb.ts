@@ -27,6 +27,26 @@ type StoredConcept = Partial<Concept> & {
   tags?: string[];
 };
 
+const normalizeContextDefinitions = (value: unknown): Concept["contextDefinitions"] =>
+  toArray(value as Concept["contextDefinitions"])
+    .map((item, index) => {
+      const raw = (item ?? {}) as Partial<Concept["contextDefinitions"][number]> & {
+        label?: string;
+        text?: string;
+      };
+      const context = (raw.context ?? raw.label ?? "").toString();
+      const definition = (raw.definition ?? raw.text ?? "").toString();
+      if (!context.trim() && !definition.trim()) {
+        return null;
+      }
+      return {
+        id: raw.id?.toString() || `ctx_${index}_${Math.random().toString(36).slice(2, 8)}`,
+        context,
+        definition
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
 const sanitizeConcept = (
   concept: StoredConcept
 ): {
@@ -59,7 +79,7 @@ const sanitizeConcept = (
     favorite: Boolean(concept.favorite),
     createdAt: concept.createdAt ?? nowIso(),
     updatedAt: concept.updatedAt ?? nowIso(),
-    contextDefinitions: toArray(concept.contextDefinitions).filter(Boolean)
+    contextDefinitions: normalizeContextDefinitions(concept.contextDefinitions)
   };
 
   const migrated =
@@ -517,6 +537,7 @@ export class IndexedDBStorage implements ConceptStorage {
     const buffer = await file.arrayBuffer();
     const { conceptsText, mediaEntries } = parseConceptBookZip(buffer);
     const parsed: unknown = JSON.parse(conceptsText);
+
     const validation = validateBackupImportPayload(parsed);
     if (!validation.success) {
       throw new Error(validation.errorMessage);
