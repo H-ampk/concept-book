@@ -15,7 +15,7 @@ export const OrnamentLine = ({ variant, className = "" }: Props) => {
       aria-hidden="true"
     >
       <img
-        src={assetUrl("decorations/line.svg")}
+        src={assetUrl("decorations/line.png")}
         alt=""
         aria-hidden="true"
         className="ornament-line-image"
