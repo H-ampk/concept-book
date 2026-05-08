@@ -312,7 +312,7 @@ body {
 
 .concept-card {
   position: relative;
-  box-shadow: inset 0 0 18px rgba(218, 180, 80, 0.045), 0 8px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 8px rgba(218, 180, 80, 0.025), 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 .concept-card::before {
@@ -332,8 +332,8 @@ body {
 
 .concept-card-selected {
   box-shadow:
-    inset 0 0 26px rgba(218, 180, 80, 0.1),
-    0 0 18px rgba(218, 180, 80, 0.2),
+    inset 0 0 10px rgba(218, 180, 80, 0.04),
+    0 0 14px rgba(218, 180, 80, 0.2),
     0 10px 28px rgba(0, 0, 0, 0.35);
 }
 

@@ -45,7 +45,7 @@ export const ConceptList = ({
             }
           }}
           className={`concept-card group relative rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
-            selectedId === concept.id ? "ring-2 ring-[#C89B5C] concept-card-selected" : ""
+            selectedId === concept.id ? "concept-card-selected" : ""
           }`}
         >
           {/* Left decoration line */}
