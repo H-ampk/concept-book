@@ -251,6 +251,7 @@ export const App = () => {
 
   return (
     <div className="app-background relative min-h-screen bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
+      <div className="cyber-ambient" aria-hidden="true" />
       <DecorativeBackground />
 
       <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">

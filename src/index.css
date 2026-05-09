@@ -977,6 +977,95 @@ textarea::placeholder {
   color: rgba(111, 141, 120, 0.85);
 }
 
+/* ─── 常時アンビエントHUD：超薄スキャンライン + 右中段の円環HUD ─── */
+@keyframes ambientScan {
+  0% {
+    transform: translateY(-40vh);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.3;
+  }
+  88% {
+    opacity: 0.16;
+  }
+  100% {
+    transform: translateY(120vh);
+    opacity: 0;
+  }
+}
+
+@keyframes hudRingPulse {
+  0%,
+  100% {
+    opacity: 0.1;
+    filter: drop-shadow(0 0 8px rgba(77, 255, 154, 0.1));
+  }
+  50% {
+    opacity: 0.18;
+    filter: drop-shadow(0 0 18px rgba(77, 255, 154, 0.2));
+  }
+}
+
+.cyber-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.cyber-ambient::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26vh;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(77, 255, 154, 0.025) 30%,
+    rgba(77, 255, 154, 0.07) 50%,
+    rgba(77, 255, 154, 0.025) 70%,
+    transparent 100%
+  );
+  animation: ambientScan 28s linear infinite;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+.cyber-ambient::after {
+  content: "";
+  position: absolute;
+  right: 6vw;
+  top: 22vh;
+  width: clamp(180px, 22vw, 280px);
+  height: clamp(180px, 22vw, 280px);
+  border-radius: 50%;
+  opacity: 0.14;
+  background:
+    radial-gradient(circle, transparent 52%, rgba(77, 255, 154, 0.22) 53%, transparent 56%),
+    radial-gradient(circle, transparent 66%, rgba(77, 255, 154, 0.12) 67%, transparent 70%),
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(77, 255, 154, 0.28) 24deg,
+      transparent 42deg,
+      transparent 94deg,
+      rgba(77, 255, 154, 0.18) 112deg,
+      transparent 140deg,
+      transparent 210deg,
+      rgba(77, 255, 154, 0.22) 232deg,
+      transparent 260deg
+    );
+  animation:
+    hudRotateSlow 72s linear infinite,
+    hudRingPulse 8s ease-in-out infinite;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -988,6 +1077,11 @@ textarea::placeholder {
   }
 
   .hud-global-ring {
+    animation: none !important;
+  }
+
+  .cyber-ambient::before,
+  .cyber-ambient::after {
     animation: none !important;
   }
 }
