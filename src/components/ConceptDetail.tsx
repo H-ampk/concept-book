@@ -117,7 +117,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <OrnamentLine variant="panel" />
-      <header className="flex flex-wrap items-center gap-2">
+      <header className="hud-detail-heading flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
         {concept.favorite && (
           <span className="rounded-full bg-celestial-gold px-2 py-0.5 text-xs font-medium text-celestial-base">

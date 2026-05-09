@@ -404,14 +404,6 @@ body {
     inset 0 0 28px rgba(77, 255, 154, 0.06);
 }
 
-.ritual-altar::after {
-  display: none;
-}
-
-.ritual-altar::before {
-  display: none;
-}
-
 .ritual-altar > * {
   position: relative;
   z-index: 1;
@@ -422,6 +414,290 @@ body {
   border-color: var(--green-border);
   color: var(--text-primary);
   animation: panelBreath 6.5s ease-in-out infinite;
+}
+
+/* ─── HUD フレーム：フィルターパネル（強） ─── */
+.ritual-altar.decorated-card::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  width: 76px;
+  height: 22px;
+  border-top: 1px solid rgba(77, 255, 154, 0.44);
+  border-left: 1px solid rgba(77, 255, 154, 0.44);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.82;
+  border-radius: 3px 0 0 0;
+}
+
+.ritual-altar.decorated-card::after {
+  content: "";
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  width: 76px;
+  height: 22px;
+  border-right: 1px solid rgba(77, 255, 154, 0.34);
+  border-bottom: 1px solid rgba(77, 255, 154, 0.34);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.72;
+  border-radius: 0 0 3px 0;
+}
+
+/* ─── HUD フレーム：グラフ／ツリー／詳細など主要パネル（やや弱） ─── */
+.decorated-card:not(.ritual-altar)::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  width: 52px;
+  height: 16px;
+  border-top: 1px solid rgba(77, 255, 154, 0.32);
+  border-left: 1px solid rgba(77, 255, 154, 0.32);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.68;
+  border-radius: 2px 0 0 0;
+}
+
+.decorated-card:not(.ritual-altar)::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  width: 52px;
+  height: 16px;
+  border-right: 1px solid rgba(77, 255, 154, 0.26);
+  border-bottom: 1px solid rgba(77, 255, 154, 0.26);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.62;
+  border-radius: 0 0 2px 0;
+}
+
+@keyframes hudRotateSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 背景：画面右下の薄い円環 HUD（本文から外した位置） */
+.hud-global-ring {
+  position: fixed;
+  right: clamp(12px, 3vw, 40px);
+  bottom: clamp(48px, 10vh, 120px);
+  width: min(200px, 38vw);
+  height: min(200px, 38vw);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.16;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 54%, rgba(77, 255, 154, 0.28) 55.5%, transparent 57%),
+    conic-gradient(
+      from 200deg,
+      rgba(77, 255, 154, 0),
+      rgba(77, 255, 154, 0.22),
+      rgba(77, 255, 154, 0),
+      rgba(77, 255, 154, 0.14),
+      rgba(77, 255, 154, 0)
+    );
+  filter: drop-shadow(0 0 14px rgba(77, 255, 154, 0.12));
+  animation: hudRotateSlow 52s linear infinite;
+}
+
+/* 検索欄まわりスキャンライン */
+.hud-search-wrap {
+  position: relative;
+}
+
+.hud-search-wrap::before,
+.hud-search-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 180ms ease;
+}
+
+.hud-search-wrap::before {
+  top: -7px;
+  background: linear-gradient(
+    90deg,
+    transparent 4%,
+    rgba(77, 255, 154, 0.12),
+    rgba(77, 255, 154, 0.28),
+    rgba(77, 255, 154, 0.12),
+    transparent 96%
+  );
+}
+
+.hud-search-wrap::after {
+  bottom: -7px;
+  background: linear-gradient(
+    90deg,
+    transparent 6%,
+    rgba(77, 255, 154, 0.18),
+    rgba(77, 255, 154, 0.42),
+    rgba(77, 255, 154, 0.18),
+    transparent 94%
+  );
+}
+
+.hud-search-wrap:focus-within::before,
+.hud-search-wrap:focus-within::after {
+  opacity: 0.88;
+}
+
+/* フィルタセクション：表示モード行の下にゲージ風ライン */
+.hud-mode-strip {
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.hud-mode-strip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: min(220px, 72%);
+  height: 2px;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(77, 255, 154, 0.35) 0 8px,
+    transparent 8px 13px
+  );
+  mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85), transparent);
+}
+
+/* タグ・状態フィルタブロック左の縦リード線 */
+.hud-filter-stack {
+  position: relative;
+  padding-left: 0.6rem;
+}
+
+.hud-filter-stack::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(77, 255, 154, 0.22),
+    rgba(77, 255, 154, 0.32),
+    rgba(77, 255, 154, 0.18),
+    transparent
+  );
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* ヘッダー題字・蛇装飾まわりの HUD 補助線 */
+.hud-header-cluster {
+  position: relative;
+}
+
+.hud-header-cluster::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  pointer-events: none;
+  opacity: 0.45;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(77, 255, 154, 0.12),
+    rgba(77, 255, 154, 0.28),
+    rgba(77, 255, 154, 0.12),
+    transparent
+  );
+}
+
+/* 蛇ライン上下の短い目盛り（画像はそのまま・CSS のみで端末感） */
+.ornament-line-header {
+  padding-bottom: 2px;
+}
+
+.ornament-line-header::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 0.2rem auto 0;
+  width: min(92%, 720px);
+  opacity: 0.55;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(77, 255, 154, 0.08) 12%,
+    rgba(77, 255, 154, 0.22),
+    rgba(77, 255, 154, 0.08) 88%,
+    transparent
+  );
+}
+
+.ornament-line-panel::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 0.25rem auto 0;
+  width: min(88%, 520px);
+  opacity: 0.38;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(77, 255, 154, 0.06),
+    rgba(77, 255, 154, 0.16),
+    rgba(77, 255, 154, 0.06),
+    transparent
+  );
+}
+
+/* 詳細パネル見出し：解析ライン */
+.hud-detail-heading {
+  position: relative;
+  padding-bottom: 0.35rem;
+}
+
+.hud-detail-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: min(100%, 420px);
+  height: 1px;
+  pointer-events: none;
+  opacity: 0.5;
+  background: linear-gradient(
+    90deg,
+    rgba(77, 255, 154, 0.42),
+    rgba(77, 255, 154, 0.12),
+    transparent 85%
+  );
+}
+
+/* 状態バッジ：小型端末ラベル */
+.hud-terminal-badge {
+  box-shadow:
+    inset 0 0 0 1px rgba(77, 255, 154, 0.22),
+    inset 0 1px 0 rgba(200, 255, 220, 0.06),
+    0 0 12px rgba(77, 255, 154, 0.08);
 }
 
 .ritual-altar h2,
@@ -511,6 +787,22 @@ body {
     rgba(77, 255, 154, 0.28),
     rgba(77, 255, 154, 0)
   );
+}
+
+/* 一覧カード：控えめな HUD 角（右下のみ・::before は上端スキャンライン用） */
+.concept-card::after {
+  content: "";
+  position: absolute;
+  right: 11px;
+  bottom: 10px;
+  width: 28px;
+  height: 11px;
+  border-right: 1px solid rgba(77, 255, 154, 0.22);
+  border-bottom: 1px solid rgba(77, 255, 154, 0.16);
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.5;
+  border-radius: 0 0 3px 0;
 }
 
 .concept-card-selected {
@@ -693,5 +985,9 @@ textarea::placeholder {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .hud-global-ring {
+    animation: none !important;
   }
 }

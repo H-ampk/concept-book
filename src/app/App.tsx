@@ -73,6 +73,7 @@ const buildTagSections = (
 
 const DecorativeBackground = () => (
   <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+    <div className="hud-global-ring" aria-hidden="true" />
     <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-celestial-base to-celestial-base opacity-85"></div>
     <div className="star-field absolute inset-0 opacity-28"></div>
     <div className="astral-chart absolute inset-0"></div>
@@ -254,7 +255,7 @@ export const App = () => {
 
       <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2">
-          <div className="header-insignia min-w-0">
+          <div className="header-insignia hud-header-cluster min-w-0">
             <h1 className="text-xl font-semibold text-celestial-gold tracking-wider ritual-title">Concept Book App</h1>
             <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
             <OrnamentLine variant="header" />
@@ -313,12 +314,14 @@ export const App = () => {
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                <input
-                  className="rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
-                  placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
+                <div className="hud-search-wrap min-w-0">
+                  <input
+                    className="w-full rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
+                    placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </div>
                 <button
                   className="rounded-lg border border-celestial-gold/30 bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold hover:bg-celestial-panelHover"
                   type="button"
@@ -334,7 +337,7 @@ export const App = () => {
                   概念を追加
                 </button>
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
+              <div className="hud-mode-strip mt-4 flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium text-celestial-softGold">表示:</span>
                 <button
                   type="button"
@@ -387,7 +390,7 @@ export const App = () => {
                   ))}
                 </div>
               )}
-              <div className="mt-3 space-y-2">
+              <div className="hud-filter-stack mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-medium text-celestial-softGold">分野タグ:</span>
                   {!isFieldTagsExpanded && (
