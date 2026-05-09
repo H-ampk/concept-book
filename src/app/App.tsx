@@ -253,15 +253,15 @@ export const App = () => {
       <DecorativeBackground />
 
       <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="header-insignia">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2">
+          <div className="header-insignia min-w-0">
             <h1 className="text-xl font-semibold text-celestial-gold tracking-wider ritual-title">Concept Book App</h1>
             <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
             <OrnamentLine variant="header" />
           </div>
-          <nav className="header-nav-button-group flex gap-2 text-sm">
+          <nav className="header-nav-button-group shrink-0">
             <button
-              className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+              className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "concepts" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("concepts")}
@@ -270,7 +270,7 @@ export const App = () => {
               概念
             </button>
             <button
-              className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+              className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "contexts" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("contexts")}
@@ -279,7 +279,7 @@ export const App = () => {
               文脈
             </button>
             <button
-              className={`header-nav-button rounded-md px-3 py-1.5 border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
+              className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "settings" ? "bg-celestial-gold/20" : ""
               }`}
               onClick={() => setScreen("settings")}
