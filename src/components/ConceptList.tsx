@@ -44,7 +44,7 @@ export const ConceptList = ({
               }
             }
           }}
-          className={`concept-card group relative overflow-visible rounded-xl border border-celestial-border bg-nordic-card p-3 shadow-celestial transition-all duration-200 hover:-translate-y-0.5 hover:border-celestial-gold/45 hover:shadow-[0_16px_36px_rgba(0,0,0,0.35),0_0_18px_rgba(77,255,154,0.12)] ${
+          className={`concept-card group relative overflow-visible rounded-xl border border-celestial-border bg-nordic-card p-3 shadow-celestial transition-all duration-200 ${
             selectedId === concept.id ? "concept-card-selected" : ""
           }`}
         >
