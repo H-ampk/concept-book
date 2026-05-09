@@ -24,7 +24,7 @@ export const ConceptList = ({
 }: Props) => {
   if (concepts.length === 0) {
     return (
-      <div className="rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-4 text-sm text-[#B9C7D1] shadow-[0_8px_32px_rgba(0,0,0,0.28)]">
+      <div className="rounded-xl border border-celestial-border bg-celestial-deepBlue p-4 text-sm text-celestial-textSub shadow-celestial">
         条件に一致する概念がありません。
       </div>
     );
@@ -44,7 +44,7 @@ export const ConceptList = ({
               }
             }
           }}
-          className={`concept-card group relative overflow-visible rounded-xl border border-[#C89B5C]/45 bg-gradient-to-br from-[#0A253C] via-[#0B2D49] to-[#123A59] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E0C58B]/70 hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] ${
+          className={`concept-card group relative overflow-visible rounded-xl border border-celestial-border bg-nordic-card p-3 shadow-celestial transition-all duration-200 hover:-translate-y-0.5 hover:border-celestial-gold/45 hover:shadow-[0_16px_36px_rgba(0,0,0,0.35),0_0_18px_rgba(77,255,154,0.12)] ${
             selectedId === concept.id ? "concept-card-selected" : ""
           }`}
         >
@@ -53,24 +53,24 @@ export const ConceptList = ({
           <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
           <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
           {/* Left decoration line */}
-          <div className="absolute left-0 top-4 bottom-4 w-[2px] bg-[#C89B5C] rounded-full"></div>
+          <div className="absolute left-0 top-4 bottom-4 w-[2px] rounded-full bg-celestial-emerald/70"></div>
           {/* Corner decorations */}
-          <div className="absolute top-3 right-3 w-6 h-6 border-t border-r border-[#C89B5C]/60"></div>
-          <div className="absolute bottom-3 left-3 w-6 h-6 border-b border-l border-[#C89B5C]/40"></div>
+          <div className="absolute top-3 right-3 h-6 w-6 border-t border-r border-celestial-gold/45"></div>
+          <div className="absolute bottom-3 left-3 h-6 w-6 border-b border-l border-celestial-gold/30"></div>
           {/* Background radial gradient */}
           <div className="absolute inset-0 rounded-xl bg-radial-gradient opacity-20"></div>
 
           <button className="concept-card-main-button relative w-full text-left" onClick={() => onSelect(concept.id)} type="button">
             <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-[#F4E8D0]">{concept.title}</h3>
+              <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-celestial-textMain">{concept.title}</h3>
               <StatusBadge status={concept.status} />
             </div>
-            <p className="line-clamp-2 text-sm text-[#B9C7D1] leading-relaxed">{concept.definition || "定義未入力"}</p>
+            <p className="line-clamp-2 text-sm leading-relaxed text-celestial-textSub">{concept.definition || "定義未入力"}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               {concept.domainTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-domain-${tag}`}
-                  className="tag-chip rounded-md border border-[#C89B5C]/30 bg-[#C89B5C]/10 px-2 py-0.5 text-xs text-[#E0C58B]"
+                  className="tag-chip rounded-md border border-celestial-gold/25 bg-celestial-gold/10 px-2 py-0.5 text-xs text-celestial-textMain"
                   style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
                 >
                   D:{tag}
@@ -79,7 +79,7 @@ export const ConceptList = ({
               {concept.researchTags.slice(0, 2).map((tag) => (
                 <span
                   key={`${concept.id}-research-${tag}`}
-                  className="tag-chip rounded-md border border-[#C89B5C]/30 bg-[#C89B5C]/10 px-2 py-0.5 text-xs text-[#E0C58B]"
+                  className="tag-chip rounded-md border border-celestial-gold/25 bg-celestial-gold/10 px-2 py-0.5 text-xs text-celestial-textMain"
                 >
                   R:{tag}
                 </span>
@@ -89,14 +89,14 @@ export const ConceptList = ({
 
           <div className="relative mt-3 flex gap-2">
             <button
-              className="filter-button rounded-md border border-[#C89B5C]/50 bg-transparent px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+              className="filter-button rounded-md border border-celestial-gold/40 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors"
               onClick={() => onEdit(concept)}
               type="button"
             >
               編集
             </button>
             <button
-              className="filter-button rounded-md border border-[#C89B5C]/50 bg-transparent px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+              className="filter-button rounded-md border border-celestial-gold/40 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors"
               onClick={() => onToggleFavorite(concept)}
               type="button"
             >

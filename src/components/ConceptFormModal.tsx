@@ -302,41 +302,41 @@ export const ConceptFormModal = ({
   const savedMediaSorted = [...(form.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
-      <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[#0B2D49] p-5 shadow-xl border border-[#C89B5C]/45" onSubmit={handleSubmit}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-4">
+      <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-celestial-panel p-5 shadow-xl border border-celestial-border" onSubmit={handleSubmit}>
         <header className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#F4E8D0]">
+          <h2 className="text-lg font-semibold text-celestial-textMain">
             {mode === "create" ? "新しい概念" : "概念を編集"}
           </h2>
-          <button className="rounded-md px-2 py-1 text-sm text-[#E0C58B] hover:bg-[#C89B5C]/18 transition-colors" onClick={onClose} type="button">
+          <button className="rounded-md px-2 py-1 text-sm text-celestial-softGold hover:bg-celestial-gold/10 transition-colors" onClick={onClose} type="button">
             閉じる
           </button>
         </header>
 
         <div className="grid gap-3 md:grid-cols-2">
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-[#F4E8D0]">タイトル *</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">タイトル *</span>
             <input
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             />
           </label>
 
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-[#F4E8D0]">定義</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">定義</span>
             <textarea
               ref={definitionTextareaRef}
-              className="min-h-[200px] w-full resize-none overflow-hidden rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="min-h-[200px] w-full resize-none overflow-hidden rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.definition}
               onChange={(e) => setForm((prev) => ({ ...prev, definition: e.target.value }))}
             />
           </label>
 
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-[#F4E8D0]">自分の解釈</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">自分の解釈</span>
             <textarea
-              className="min-h-20 w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="min-h-20 w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.myInterpretation}
               onChange={(e) => setForm((prev) => ({ ...prev, myInterpretation: e.target.value }))}
             />
@@ -344,10 +344,10 @@ export const ConceptFormModal = ({
 
           <div className="md:col-span-2">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-[#F4E8D0]">文脈別定義</span>
+              <span className="text-sm font-medium text-celestial-textMain">文脈別定義</span>
               <button
                 type="button"
-                className="rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-2 py-1 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/18 transition-colors"
+                className="action-button rounded-md px-2 py-1 text-xs"
                 onClick={() => setForm((prev) => ({
                   ...prev,
                   contextDefinitions: [
@@ -366,9 +366,9 @@ export const ConceptFormModal = ({
             {(form.contextDefinitions ?? []).length > 0 && (
               <div className="space-y-3">
                 {(form.contextDefinitions ?? []).map((ctxDef, index) => (
-                  <div key={ctxDef.id} className="rounded-lg border border-[#C89B5C]/30 bg-[#0A253C] p-3">
+                  <div key={ctxDef.id} className="rounded-lg border border-celestial-gold/25 bg-celestial-deepBlue p-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#F4E8D0]">文脈 {index + 1}</span>
+                      <span className="text-xs font-medium text-celestial-textMain">文脈 {index + 1}</span>
                       <button
                         type="button"
                         className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20 transition-colors"
@@ -381,9 +381,9 @@ export const ConceptFormModal = ({
                       </button>
                     </div>
                     <label className="mb-2 block">
-                      <span className="mb-1 block text-xs text-[#F4E8D0]">文脈名</span>
+                      <span className="mb-1 block text-xs text-celestial-textMain">文脈名</span>
                       <input
-                        className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+                        className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
                         placeholder="例: 情報理論、心理学、哲学、確率論"
                         value={ctxDef.context}
                         onChange={(e) => setForm((prev) => ({
@@ -395,9 +395,9 @@ export const ConceptFormModal = ({
                       />
                     </label>
                     <label>
-                      <span className="mb-1 block text-xs text-[#F4E8D0]">この文脈での定義</span>
+                      <span className="mb-1 block text-xs text-celestial-textMain">この文脈での定義</span>
                       <textarea
-                        className="min-h-16 w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+                        className="min-h-16 w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
                         placeholder="この分野・文脈ではどういう意味で使うかを書く"
                         value={ctxDef.definition}
                         onChange={(e) => setForm((prev) => ({
@@ -415,27 +415,27 @@ export const ConceptFormModal = ({
           </div>
 
           <label>
-            <span className="mb-1 block text-sm text-[#F4E8D0]">分野タグ（カンマ区切り）</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">分野タグ（カンマ区切り）</span>
             <input
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={domainTagInput}
               onChange={(e) => setDomainTagInput(e.target.value)}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-[#F4E8D0]">研究テーマタグ（カンマ区切り）</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">研究テーマタグ（カンマ区切り）</span>
             <input
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={researchTagInput}
               onChange={(e) => setResearchTagInput(e.target.value)}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-[#F4E8D0]">状態</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">状態</span>
             <select
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
               value={form.status}
               onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as Concept["status"] }))}
             >
@@ -457,16 +457,16 @@ export const ConceptFormModal = ({
             onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
           />
 
-          <div className="md:col-span-2 rounded-lg border border-[#C89B5C]/30 bg-[#0A253C] p-3">
-            <span className="mb-2 block text-sm font-medium text-[#F4E8D0]">画像・動画（png/jpg/jpeg/gif、mp4/webm・1ファイル最大20MB）</span>
-            <p className="mb-2 text-xs text-[#B9C7D1]">
+          <div className="md:col-span-2 rounded-lg border border-celestial-gold/25 bg-celestial-deepBlue p-3">
+            <span className="mb-2 block text-sm font-medium text-celestial-textMain">画像・動画（png/jpg/jpeg/gif、mp4/webm・1ファイル最大20MB）</span>
+            <p className="mb-2 text-xs text-celestial-textSub">
               新規作成では保存後にファイルがアップロードされます。別PCへは設定の「パッケージ（ZIP）」でエクスポートしてください。
             </p>
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/gif,video/mp4,video/webm,.png,.jpg,.jpeg,.gif,.mp4,.webm"
               multiple
-              className="block w-full text-sm text-[#F4E8D0] file:mr-3 file:rounded-md file:border file:border-[#C89B5C]/45 file:bg-[#061A2D] file:px-3 file:py-1.5 file:text-[#E0C58B]"
+              className="block w-full text-sm text-celestial-textMain file:mr-3 file:rounded-md file:border file:border-celestial-border file:bg-celestial-deepBlue file:px-3 file:py-1.5 file:text-celestial-softGold"
               onChange={(e) => void handleAddFiles(e.target.files)}
             />
 
@@ -475,22 +475,22 @@ export const ConceptFormModal = ({
                 {savedMediaSorted.map((ref, index) => (
                   <li
                     key={ref.id}
-                    className="flex flex-col gap-2 rounded-md border border-[#C89B5C]/30 bg-[#061A2D] p-2 sm:flex-row sm:items-start"
+                    className="flex flex-col gap-2 rounded-md border border-celestial-gold/25 bg-celestial-deepBlue p-2 sm:flex-row sm:items-start"
                   >
-                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-[#0A253C] sm:h-20 sm:w-28">
+                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-celestial-deepBlue sm:h-20 sm:w-28">
                       {ref.kind === "image" && previewUrls[ref.id] ? (
                         <img src={previewUrls[ref.id]} alt="" className="h-full w-full object-contain" />
                       ) : ref.kind === "video" && previewUrls[ref.id] ? (
                         <video src={previewUrls[ref.id]} className="h-full w-full object-contain" muted playsInline />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-[#B9C7D1]">読込中…</div>
+                        <div className="flex h-full items-center justify-center text-xs text-celestial-textSub">読込中…</div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-[#F4E8D0]">{ref.fileName}</p>
+                      <p className="truncate text-xs font-medium text-celestial-textMain">{ref.fileName}</p>
                       <input
                         type="text"
-                        className="mt-1 w-full rounded border border-[#C89B5C]/30 bg-[#061A2D] px-2 py-1 text-xs text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+                        className="mt-1 w-full rounded border border-celestial-gold/25 bg-celestial-deepBlue px-2 py-1 text-xs text-celestial-textMain placeholder:text-celestial-textSub"
                         placeholder="キャプション（任意）"
                         defaultValue={ref.caption ?? ""}
                         key={ref.id + (ref.caption ?? "")}
@@ -503,14 +503,14 @@ export const ConceptFormModal = ({
                       <div className="mt-1 flex flex-wrap gap-1">
                         <button
                           type="button"
-                          className="rounded border border-[#C89B5C]/45 px-2 py-0.5 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
                           onClick={() => void reorderMedia(index, -1)}
                         >
                           上へ
                         </button>
                         <button
                           type="button"
-                          className="rounded border border-[#C89B5C]/45 px-2 py-0.5 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
                           onClick={() => void reorderMedia(index, 1)}
                         >
                           下へ
@@ -530,11 +530,11 @@ export const ConceptFormModal = ({
             )}
 
             {pendingMedia.length > 0 && (
-              <ul className="mt-3 space-y-2 border-t border-[#C89B5C]/30 pt-2">
-                <p className="text-xs text-[#B9C7D1]">保存待ち（新規作成）</p>
+              <ul className="mt-3 space-y-2 border-t border-celestial-gold/25 pt-2">
+                <p className="text-xs text-celestial-textSub">保存待ち（新規作成）</p>
                 {pendingMedia.map((p, index) => (
-                  <li key={p.objectUrl} className="flex flex-col gap-2 rounded-md border border-[#C89B5C]/30 bg-[#061A2D] p-2 sm:flex-row">
-                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-[#0A253C] sm:h-20 sm:w-28">
+                  <li key={p.objectUrl} className="flex flex-col gap-2 rounded-md border border-celestial-gold/25 bg-celestial-deepBlue p-2 sm:flex-row">
+                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-celestial-deepBlue sm:h-20 sm:w-28">
                       {p.file.type.startsWith("video/") ? (
                         <video src={p.objectUrl} className="h-full w-full object-contain" muted playsInline />
                       ) : (
@@ -542,10 +542,10 @@ export const ConceptFormModal = ({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-[#F4E8D0]">{p.file.name}</p>
+                      <p className="truncate text-xs font-medium text-celestial-textMain">{p.file.name}</p>
                       <input
                         type="text"
-                        className="mt-1 w-full rounded border border-[#C89B5C]/30 bg-[#061A2D] px-2 py-1 text-xs text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+                        className="mt-1 w-full rounded border border-celestial-gold/25 bg-celestial-deepBlue px-2 py-1 text-xs text-celestial-textMain placeholder:text-celestial-textSub"
                         placeholder="キャプション（任意）"
                         value={p.caption}
                         onChange={(e) => updatePendingCaption(index, e.target.value)}
@@ -553,14 +553,14 @@ export const ConceptFormModal = ({
                       <div className="mt-1 flex gap-1">
                         <button
                           type="button"
-                          className="rounded border border-[#C89B5C]/45 px-2 py-0.5 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
                           onClick={() => reorderMedia(index, -1)}
                         >
                           上へ
                         </button>
                         <button
                           type="button"
-                          className="rounded border border-[#C89B5C]/45 px-2 py-0.5 text-xs text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
                           onClick={() => reorderMedia(index, 1)}
                         >
                           下へ
@@ -581,18 +581,18 @@ export const ConceptFormModal = ({
           </div>
 
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-[#F4E8D0]">メモ</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">メモ</span>
             <textarea
-              className="min-h-24 w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="min-h-24 w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.notes}
               onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
             />
           </label>
 
           <label>
-            <span className="mb-1 block text-sm text-[#F4E8D0]">出典（書籍）</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">出典（書籍）</span>
             <input
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.source.book}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, source: { ...prev.source, book: e.target.value } }))
@@ -600,9 +600,9 @@ export const ConceptFormModal = ({
             />
           </label>
           <label>
-            <span className="mb-1 block text-sm text-[#F4E8D0]">ページ</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">ページ</span>
             <input
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.source.page}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, source: { ...prev.source, page: e.target.value } }))
@@ -610,9 +610,9 @@ export const ConceptFormModal = ({
             />
           </label>
           <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-[#F4E8D0]">著者</span>
+            <span className="mb-1 block text-sm text-celestial-textMain">著者</span>
             <input
-              className="w-full rounded-md border border-[#C89B5C]/45 bg-[#061A2D] px-3 py-2 text-sm text-[#F4E8D0] placeholder:text-[#B9C7D1]"
+              className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
               value={form.source.author ?? ""}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, source: { ...prev.source, author: e.target.value } }))
@@ -621,7 +621,7 @@ export const ConceptFormModal = ({
           </label>
         </div>
 
-        <label className="mt-3 flex items-center gap-2 text-sm text-[#F4E8D0]">
+        <label className="mt-3 flex items-center gap-2 text-sm text-celestial-textMain">
           <input
             type="checkbox"
             checked={form.favorite}
@@ -630,12 +630,12 @@ export const ConceptFormModal = ({
           お気に入りにする
         </label>
 
-        {error && <p className="mt-3 rounded-md bg-[#2D1B1B] border border-[#C89B5C]/30 px-3 py-2 text-sm text-[#F4E8D0]">{error}</p>}
+        {error && <p className="mt-3 rounded-md border border-red-500/40 bg-red-950/50 px-3 py-2 text-sm text-red-100">{error}</p>}
 
         <footer className="mt-5 flex justify-end gap-2">
           <button
             type="button"
-            className="rounded-md border border-[#C89B5C]/45 px-3 py-2 text-sm text-[#E0C58B] hover:bg-[#C89B5C]/15 transition-colors"
+            className="rounded-md border border-celestial-border px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
             onClick={onClose}
           >
             キャンセル
@@ -643,7 +643,7 @@ export const ConceptFormModal = ({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-[#C89B5C] px-3 py-2 text-sm text-[#061A2D] hover:bg-[#E0C58B] disabled:opacity-70 transition-colors"
+            className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-70"
           >
             {submitting ? "保存中..." : "保存"}
           </button>

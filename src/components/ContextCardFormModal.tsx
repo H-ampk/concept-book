@@ -180,7 +180,7 @@ export const ContextCardFormModal = ({
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-2xl bg-celestial-gold px-4 py-2 text-sm text-celestial-base hover:bg-celestial-softGold disabled:opacity-60"
+                className="action-button rounded-2xl px-4 py-2 text-sm disabled:opacity-60"
               >
                 {saving ? "保存中..." : "保存する"}
               </button>

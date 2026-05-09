@@ -4,8 +4,48 @@
 
 :root {
   font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #e6d3a3;
-  background-color: #0b1e2d;
+  color: var(--text-primary);
+  background-color: var(--bg-main);
+  /* 地下書庫 × サイバー魔導端末 — 黒基調・本文は淡い黄緑／白緑・ネオン緑は枠・発光のみ・オレンジは .action-button のみ */
+  --bg-main: #020403;
+  --bg-main-alt: #040807;
+  --bg-panel: #07110d;
+  --bg-card: #0b1712;
+  --bg-input: #030a07;
+  --overlay-bg: rgba(2, 8, 5, 0.86);
+
+  --text-primary: #e7ffe8;
+  --text-secondary: #a8cbb2;
+  --text-muted: #6f8d78;
+  --text-disabled: #405448;
+
+  --green-neon: #4dff9a;
+  --green-acid: #7cff6b;
+  --green-emerald: #1edc7a;
+  --green-deep: #0f3d2e;
+  --green-border: rgba(77, 255, 154, 0.28);
+  --green-border-strong: rgba(77, 255, 154, 0.48);
+  --green-glow: rgba(77, 255, 154, 0.18);
+  --green-glow-strong: rgba(77, 255, 154, 0.32);
+
+  --orange-action: #ff9b3d;
+  --orange-action-hover: #ffb15f;
+  --orange-action-active: #e87820;
+  --orange-action-text: #120804;
+  --orange-action-glow: rgba(255, 155, 61, 0.24);
+
+  --danger-red: #ff5f6d;
+  --danger-glow: rgba(255, 95, 109, 0.22);
+
+  --app-bg: var(--bg-main);
+  --panel-bg: var(--bg-panel);
+  --card-bg: var(--bg-card);
+  --input-bg: var(--bg-input);
+  --border-default: var(--green-border);
+  --border-strong: var(--green-border-strong);
+  --neon: var(--green-neon);
+  --neon-soft: var(--green-acid);
+  --deep-emerald: var(--green-deep);
 }
 
 * {
@@ -15,8 +55,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #0b1e2d;
-  color: #e6d3a3;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
 }
 
 .header-insignia {
@@ -27,7 +67,7 @@ body {
 
 .ritual-title {
   letter-spacing: 0.09em;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), 0 0 16px rgba(212, 175, 55, 0.22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55), 0 0 18px rgba(77, 255, 154, 0.2);
 }
 
 .ritual-subtitle {
@@ -51,7 +91,8 @@ body {
   width: 100%;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.18));
+  /* 金色の line.png を強い緑寄せせず、わずかに色相を動かしてから緑の光彩を重ねる */
+  filter: hue-rotate(-16deg) saturate(1.06) drop-shadow(0 0 5px rgba(77, 255, 154, 0.18));
   opacity: 0.92;
 }
 
@@ -69,13 +110,13 @@ body {
 .ornament-line-header .ornament-line-image {
   max-height: 86px;
   opacity: 0.96;
-  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.22));
+  filter: hue-rotate(-16deg) saturate(1.06) drop-shadow(0 0 9px rgba(77, 255, 154, 0.24));
 }
 
 .ornament-line-panel .ornament-line-image {
   max-height: 56px;
   opacity: 0.86;
-  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.16));
+  filter: hue-rotate(-14deg) saturate(1.05) drop-shadow(0 0 5px rgba(77, 255, 154, 0.16));
 }
 
 .header-nav-button {
@@ -83,8 +124,10 @@ body {
   min-height: 38px;
   padding: 0.42rem 0.82rem;
   border-width: 1px;
-  border-color: rgba(212, 175, 55, 0.72);
+  border-color: rgba(77, 255, 154, 0.45);
   border-radius: 9px;
+  background-color: rgba(11, 23, 18, 0.72);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.1;
   font-weight: 600;
@@ -93,7 +136,7 @@ body {
 }
 
 .header-nav-button:hover {
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 12px rgba(77, 255, 154, 0.18);
 }
 
 .header-nav-button-group {
@@ -130,18 +173,18 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle 2px at 18px 24px, rgba(200,220,255,0.12) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 52px 76px, rgba(200,220,255,0.10) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 84px 30px, rgba(200,220,255,0.08) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 138px 88px, rgba(200,220,255,0.11) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 224px 44px, rgba(200,220,255,0.10) 0%, transparent 100%),
-                    radial-gradient(circle 3px at 62px 112px, rgba(200,220,255,0.18) 0%, transparent 100%),
-                    radial-gradient(circle 3px at 212px 28px, rgba(200,220,255,0.20) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 132px 64px, rgba(200,220,255,0.12) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 264px 20px, rgba(200,220,255,0.10) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 182px 132px, rgba(200,220,255,0.09) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 38px 136px, rgba(200,220,255,0.12) 0%, transparent 100%),
-                    radial-gradient(circle 2px at 148px 98px, rgba(200,220,255,0.11) 0%, transparent 100%);
+  background-image: radial-gradient(circle 2px at 18px 24px, rgba(120, 220, 170, 0.1) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 52px 76px, rgba(90, 200, 150, 0.09) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 84px 30px, rgba(80, 190, 140, 0.07) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 138px 88px, rgba(110, 215, 165, 0.09) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 224px 44px, rgba(100, 210, 155, 0.08) 0%, transparent 100%),
+                    radial-gradient(circle 3px at 62px 112px, rgba(130, 235, 185, 0.12) 0%, transparent 100%),
+                    radial-gradient(circle 3px at 212px 28px, rgba(140, 240, 190, 0.14) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 132px 64px, rgba(105, 212, 160, 0.09) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 264px 20px, rgba(95, 205, 152, 0.08) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 182px 132px, rgba(85, 198, 148, 0.07) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 38px 136px, rgba(115, 218, 168, 0.09) 0%, transparent 100%),
+                    radial-gradient(circle 2px at 148px 98px, rgba(100, 208, 158, 0.09) 0%, transparent 100%);
   background-repeat: repeat;
   background-size: 280px 160px;
 }
@@ -150,16 +193,16 @@ body {
   z-index: 0;
   opacity: 0.32;
   background-image:
-    radial-gradient(circle at 78% 16%, rgba(212, 175, 55, 0.14) 0 1px, transparent 1px 100%),
-    radial-gradient(circle at 78% 16%, transparent 0 62px, rgba(212, 175, 55, 0.18) 63px 64px, transparent 65px),
-    radial-gradient(circle at 78% 16%, transparent 0 108px, rgba(230, 211, 163, 0.12) 109px 110px, transparent 111px),
-    linear-gradient(90deg, transparent 13%, rgba(212, 175, 55, 0.08) 50%, transparent 87%),
-    linear-gradient(0deg, transparent 10%, rgba(230, 211, 163, 0.06) 50%, transparent 90%);
+    radial-gradient(circle at 78% 16%, rgba(77, 255, 154, 0.12) 0 1px, transparent 1px 100%),
+    radial-gradient(circle at 78% 16%, transparent 0 62px, rgba(77, 255, 154, 0.14) 63px 64px, transparent 65px),
+    radial-gradient(circle at 78% 16%, transparent 0 108px, rgba(168, 203, 178, 0.1) 109px 110px, transparent 111px),
+    linear-gradient(90deg, transparent 13%, rgba(77, 255, 154, 0.06) 50%, transparent 87%),
+    linear-gradient(0deg, transparent 10%, rgba(168, 203, 178, 0.05) 50%, transparent 90%);
   background-repeat: no-repeat;
 }
 
 .moon-core {
-  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.26));
+  filter: drop-shadow(0 0 10px rgba(77, 255, 154, 0.22));
 }
 
 .moon-emblem {
@@ -174,7 +217,7 @@ body {
 
 .moon-ring {
   position: absolute;
-  border: 1px solid rgba(212, 175, 55, 0.45);
+  border: 1px solid rgba(77, 255, 154, 0.38);
   border-radius: 999px;
 }
 
@@ -184,12 +227,12 @@ body {
 
 .moon-ring-middle {
   inset: 28px;
-  border-color: rgba(230, 211, 163, 0.32);
+  border-color: rgba(168, 203, 178, 0.28);
 }
 
 .moon-ring-inner {
   inset: 52px;
-  border-color: rgba(212, 175, 55, 0.24);
+  border-color: rgba(77, 255, 154, 0.22);
 }
 
 .moon-axis {
@@ -199,7 +242,7 @@ body {
   width: 84%;
   height: 1px;
   transform-origin: center;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.55), transparent);
+  background: linear-gradient(90deg, transparent, rgba(77, 255, 154, 0.45), transparent);
 }
 
 .moon-axis-1 {
@@ -222,20 +265,20 @@ body {
   z-index: 0;
   opacity: 0.2;
   background-image:
-    linear-gradient(180deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.06) 20%, rgba(212, 175, 55, 0.22) 60%, rgba(212, 175, 55, 0.08)),
-    linear-gradient(180deg, transparent 0 4%, rgba(230, 211, 163, 0.22) 5% 5.4%, transparent 5.5% 13%, rgba(212, 175, 55, 0.14) 13.1% 13.6%, transparent 13.7%),
-    repeating-linear-gradient(180deg, rgba(212, 175, 55, 0.1) 0 1px, transparent 1px 46px);
+    linear-gradient(180deg, rgba(77, 255, 154, 0.14), rgba(15, 61, 46, 0.12) 20%, rgba(77, 255, 154, 0.12) 60%, rgba(15, 61, 46, 0.1)),
+    linear-gradient(180deg, transparent 0 4%, rgba(168, 203, 178, 0.12) 5% 5.4%, transparent 5.5% 13%, rgba(77, 255, 154, 0.08) 13.1% 13.6%, transparent 13.7%),
+    repeating-linear-gradient(180deg, rgba(77, 255, 154, 0.08) 0 1px, transparent 1px 46px);
 }
 
 .cathedral-frame-left {
   left: 0;
-  border-right: 1px solid rgba(212, 175, 55, 0.22);
+  border-right: 1px solid rgba(77, 255, 154, 0.22);
   box-shadow: inset -20px 0 36px rgba(0, 0, 0, 0.18);
 }
 
 .cathedral-frame-right {
   right: 0;
-  border-left: 1px solid rgba(212, 175, 55, 0.22);
+  border-left: 1px solid rgba(77, 255, 154, 0.22);
   transform: scaleX(-1);
   box-shadow: inset -20px 0 36px rgba(0, 0, 0, 0.18);
 }
@@ -251,12 +294,12 @@ body {
   z-index: 0;
   opacity: 0.24;
   background:
-    linear-gradient(90deg, rgba(218, 180, 80, 0.2), transparent 38%),
+    linear-gradient(90deg, rgba(77, 255, 154, 0.12), transparent 38%),
     repeating-linear-gradient(
       180deg,
       transparent 0,
       transparent 3.2rem,
-      rgba(218, 180, 80, 0.1) 3.24rem,
+      rgba(77, 255, 154, 0.06) 3.24rem,
       transparent 3.4rem
     );
 }
@@ -271,17 +314,28 @@ body {
 }
 
 .bg-celestial-panel {
-  background-image: linear-gradient(180deg, rgba(15,42,64,0.92), rgba(11,30,45,0.96));
-  background-color: rgba(11,30,45,0.88);
-  border-color: rgba(212,175,55,0.6);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(212,175,55,0.08), 0 15px 40px rgba(0,0,0,0.26);
+  background-image: linear-gradient(180deg, rgba(15, 61, 46, 0.78), rgba(7, 17, 13, 0.96));
+  background-color: rgba(7, 17, 13, 0.94);
+  border-color: var(--green-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(77, 255, 154, 0.1),
+    0 15px 40px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(77, 255, 154, 0.06);
 }
 
 .decorated-card {
   position: relative;
   z-index: 1;
   overflow: visible;
-  box-shadow: 0 18px 46px rgba(212, 175, 55, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.05), inset 0 0 28px rgba(212, 175, 55, 0.06);
+  background: linear-gradient(180deg, rgba(11, 23, 18, 0.94), rgba(4, 8, 7, 0.96));
+  border-color: var(--green-border);
+  color: var(--text-primary);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.42),
+    0 0 24px rgba(77, 255, 154, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.04),
+    inset 0 0 28px rgba(77, 255, 154, 0.05);
 }
 
 .ritual-altar::after {
@@ -298,10 +352,14 @@ body {
 }
 
 .ritual-altar {
+  background: linear-gradient(180deg, rgba(11, 23, 18, 0.94), rgba(4, 8, 7, 0.96));
+  border-color: var(--green-border);
+  color: var(--text-primary);
   box-shadow:
-    0 22px 52px rgba(212, 175, 55, 0.14),
-    inset 0 0 34px rgba(212, 175, 55, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 22px 52px rgba(0, 0, 0, 0.42),
+    0 0 26px rgba(77, 255, 154, 0.08),
+    inset 0 0 34px rgba(77, 255, 154, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .ritual-altar h2,
@@ -321,7 +379,7 @@ body {
   opacity: 0.85;
   pointer-events: none;
   z-index: 5;
-  filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2));
+  filter: drop-shadow(0 0 4px rgba(77, 255, 154, 0.18));
 }
 
 .card-corner-top-left {
@@ -357,12 +415,12 @@ body {
 }
 
 .decorated-card:hover .card-corner {
-  filter: drop-shadow(0 0 6px rgba(212,175,55,0.5));
+  filter: drop-shadow(0 0 6px rgba(77, 255, 154, 0.38));
 }
 
 .concept-card {
   position: relative;
-  box-shadow: inset 0 0 6px rgba(218, 180, 80, 0.02), 0 8px 22px rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 6px rgba(77, 255, 154, 0.03), 0 8px 22px rgba(0, 0, 0, 0.32);
 }
 
 .concept-card::before {
@@ -374,17 +432,18 @@ body {
   height: 1px;
   background: linear-gradient(
     90deg,
-    rgba(218, 180, 80, 0),
-    rgba(218, 180, 80, 0.35),
-    rgba(218, 180, 80, 0)
+    rgba(77, 255, 154, 0),
+    rgba(77, 255, 154, 0.28),
+    rgba(77, 255, 154, 0)
   );
 }
 
 .concept-card-selected {
+  border-color: var(--green-border-strong);
   box-shadow:
-    inset 0 0 8px rgba(218, 180, 80, 0.03),
-    0 0 12px rgba(218, 180, 80, 0.2),
-    0 10px 28px rgba(0, 0, 0, 0.35);
+    inset 0 0 14px rgba(77, 255, 154, 0.06),
+    0 0 18px var(--green-glow-strong),
+    0 10px 28px rgba(0, 0, 0, 0.42);
 }
 
 .concept-card-main-button {
@@ -401,29 +460,70 @@ body {
 }
 
 .bg-celestial-deepBlue {
-  background-image: linear-gradient(180deg, #0f2a40 0%, #0b1e2d 100%);
+  background-image: linear-gradient(180deg, #0b1712 0%, #020403 100%);
 }
 
 .border-celestial-border {
-  border-color: rgba(212,175,55,0.6) !important;
+  border-color: rgba(77, 255, 154, 0.35) !important;
 }
 
 .shadow-celestial {
-  box-shadow: 0 18px 46px rgba(212,175,55,0.16), inset 0 1px 1px rgba(255,255,255,0.05);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.04),
+    0 0 20px rgba(77, 255, 154, 0.06);
 }
 
 .bg-radial-gradient {
-  background-image: radial-gradient(circle at top left, rgba(212,175,55,0.14), transparent 20%), radial-gradient(circle at bottom right, rgba(230,211,163,0.08), transparent 18%);
+  background-image:
+    radial-gradient(circle at top left, rgba(77, 255, 154, 0.1), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(168, 203, 178, 0.06), transparent 20%);
+}
+
+/* Orange：データ作成・保存・実行などの行動ボタンのみ */
+.action-button {
+  background: linear-gradient(180deg, var(--orange-action-hover), var(--orange-action));
+  color: var(--orange-action-text);
+  border: 1px solid rgba(255, 177, 95, 0.75);
+  box-shadow:
+    0 0 16px var(--orange-action-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  font-weight: 600;
+}
+
+.action-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffc47d, var(--orange-action));
+  box-shadow:
+    0 0 22px rgba(255, 155, 61, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  filter: none;
+}
+
+.action-button:active:not(:disabled) {
+  background: linear-gradient(180deg, var(--orange-action-hover), var(--orange-action-active));
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-button:focus-visible {
+  outline: 2px solid rgba(255, 155, 61, 0.45);
+  outline-offset: 2px;
 }
 
 button.bg-celestial-gold {
-  background-color: #d4af37;
-  color: #10263a;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(83, 55, 8, 0.2), 0 6px 14px rgba(0, 0, 0, 0.22);
+  background-color: #4dff9a;
+  color: #020403;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 1px rgba(77, 255, 154, 0.35),
+    0 6px 18px rgba(77, 255, 154, 0.15);
 }
 
 button.bg-celestial-gold:hover {
-  background-color: #f1d67a;
+  background-color: #7cff6b;
 }
 
 button:hover {
@@ -431,44 +531,54 @@ button:hover {
 }
 
 button {
-  box-shadow: inset 0 0 0 1px rgba(230, 211, 163, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(168, 203, 178, 0.1);
 }
 
 [class*="rounded-full"][class*="text-xs"] {
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(77, 255, 154, 0.18);
 }
 
 .tag-chip,
 .filter-button {
   box-shadow:
-    inset 0 1px 0 rgba(255, 238, 170, 0.2),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.18);
-  border-color: rgba(212, 175, 55, 0.42);
+    inset 0 1px 0 rgba(200, 255, 220, 0.08),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.22);
+  border-color: rgba(77, 255, 154, 0.32);
 }
 
 .tag-chip:hover,
 .filter-button:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 238, 170, 0.25),
-    0 0 10px rgba(218, 180, 80, 0.28);
+    inset 0 1px 0 rgba(200, 255, 220, 0.1),
+    0 0 12px rgba(77, 255, 154, 0.18);
 }
 
 .filter-button:active,
 .tag-chip:active {
   box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.26),
-    0 0 8px rgba(218, 180, 80, 0.2);
+    inset 0 2px 5px rgba(0, 0, 0, 0.28),
+    0 0 10px rgba(77, 255, 154, 0.14);
 }
 
 input,
 textarea,
 select {
-  border-color: rgba(212,175,55,0.45);
-  background-color: rgba(11,30,45,0.95);
-  color: #e6d3a3;
+  border-color: var(--green-border);
+  background-color: rgba(3, 10, 7, 0.96);
+  color: var(--text-primary);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: rgba(77, 255, 154, 0.52);
+  box-shadow:
+    0 0 0 2px rgba(77, 255, 154, 0.18),
+    0 0 14px rgba(77, 255, 154, 0.14);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(230,211,163,0.7);
+  color: rgba(111, 141, 120, 0.85);
 }

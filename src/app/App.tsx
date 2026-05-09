@@ -328,7 +328,7 @@ export const App = () => {
                 </button>
                 <button
                   type="button"
-                  className="rounded-lg bg-celestial-gold px-4 py-3 text-sm text-celestial-base hover:bg-celestial-softGold"
+                  className="action-button rounded-lg px-4 py-3 text-sm"
                   onClick={openCreate}
                 >
                   概念を追加
@@ -650,12 +650,12 @@ export const App = () => {
       )}
 
       {feedback && (
-        <div className="fixed bottom-4 right-4 z-40 rounded-md bg-nordic-primary px-3 py-2 text-sm text-nordic-surface shadow-quiet">
+        <div className="fixed bottom-4 right-4 z-40 rounded-md border border-celestial-border bg-nordic-primary px-3 py-2 text-sm text-nordic-textPrimary shadow-quiet">
           <div className="flex items-center gap-2">
             <span>{feedback}</span>
             <button
               type="button"
-              className="rounded px-1 py-0.5 text-xs text-nordic-surface hover:bg-nordic-accent"
+              className="rounded px-1 py-0.5 text-xs text-celestial-softGold hover:bg-black/25"
               onClick={() => setFeedback(null)}
             >
               閉じる

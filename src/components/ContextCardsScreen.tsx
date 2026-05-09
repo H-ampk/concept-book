@@ -83,7 +83,7 @@ const ContextCardList = ({
         </button>
         <button
           type="button"
-          className="rounded-2xl bg-celestial-gold px-4 py-2 text-sm text-celestial-base hover:bg-celestial-softGold"
+          className="action-button rounded-2xl px-4 py-2 text-sm"
           onClick={onCreate}
         >
           新規作成
@@ -115,7 +115,7 @@ const ContextCardList = ({
               <div className="flex shrink-0 flex-wrap gap-2">
                 <button
                   type="button"
-                  className="rounded-2xl border border-celestial-gold/30 bg-celestial-panel px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+                  className="action-button rounded-2xl px-3 py-2 text-sm"
                   onClick={() => onEdit(card)}
                 >
                   編集
@@ -183,7 +183,7 @@ const ContextCardDetail = ({
           </button>
           <button
             type="button"
-            className="rounded-2xl bg-celestial-gold px-4 py-2 text-sm text-celestial-base hover:bg-celestial-softGold"
+            className="action-button rounded-2xl px-4 py-2 text-sm"
             onClick={() => onEdit(card)}
           >
             編集

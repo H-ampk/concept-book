@@ -1,14 +1,14 @@
 const DOMAIN_COLOR_STORAGE_KEY = "concept-book-domain-colors";
 
 const fallbackPalette = [
-  "#64748b",
-  "#3b82f6",
-  "#0ea5e9",
-  "#8b5cf6",
-  "#059669",
-  "#b45309",
-  "#65a30d",
-  "#475569"
+  "#2d6b52",
+  "#047857",
+  "#0f766e",
+  "#15803d",
+  "#166534",
+  "#3d8f6f",
+  "#14532d",
+  "#365314"
 ];
 
 const hashString = (value: string): number => {
@@ -47,7 +47,7 @@ export const saveDomainColorMap = (map: Record<string, string>): void => {
 
 export const getFallbackDomainColor = (tag: string): string => {
   if (!tag) {
-    return "#64748b";
+    return "#5f7d70";
   }
   return fallbackPalette[hashString(tag) % fallbackPalette.length];
 };

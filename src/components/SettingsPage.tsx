@@ -140,7 +140,7 @@ export const SettingsPage = ({
           <button
             type="button"
             disabled={busy}
-            className="rounded-md bg-celestial-gold px-3 py-2 text-sm text-celestial-base disabled:opacity-60"
+            className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-60"
             onClick={() => void handlePackageExport()}
           >
             ZIPを保存
@@ -176,7 +176,7 @@ export const SettingsPage = ({
         <button
           type="button"
           disabled={busy}
-          className="rounded-md border border-celestial-border bg-celestial-panel px-3 py-2 text-sm text-celestial-textMain disabled:opacity-60"
+          className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-60"
           onClick={() => void handleExport()}
         >
           JSONを保存
