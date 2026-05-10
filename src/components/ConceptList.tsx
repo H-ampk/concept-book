@@ -1,7 +1,15 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMatchMedia } from "../hooks/useMatchMedia";
 import { StatusBadge } from "./StatusBadge";
 import type { Concept } from "../types/concept";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
+
+const LIST_GAP_PX = 12;
+const MOBILE_ESTIMATE_PX = 140;
+const OVERSCAN = 8;
+
+export type ConceptListLayout = "full" | "grouped";
 
 type Props = {
   concepts: Concept[];
@@ -10,8 +18,106 @@ type Props = {
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
-  cardRefs: React.RefObject<Map<string, HTMLLIElement>>;
+  cardRefs: React.RefObject<Map<string, HTMLElement>>;
+  /** スマホ仮想スクロール時の縦方向の取り方（全体一覧 vs グループ内） */
+  listLayout?: ConceptListLayout;
 };
+
+const cardClassName = (selected: boolean) =>
+  `concept-card group relative overflow-visible rounded-xl border border-celestial-border bg-nordic-card p-3 shadow-celestial transition-all duration-200 ${
+    selected ? "concept-card-selected" : ""
+  }`;
+
+function ConceptListItem({
+  concept,
+  selectedId,
+  domainColorMap,
+  onSelect,
+  onEdit,
+  onToggleFavorite,
+  outerRef,
+  as = "li",
+  style,
+  virtualRowIndex
+}: {
+  concept: Concept;
+  selectedId?: string;
+  domainColorMap: Record<string, string>;
+  onSelect: (id: string) => void;
+  onEdit: (concept: Concept) => void;
+  onToggleFavorite: (concept: Concept) => void;
+  outerRef?: React.RefCallback<HTMLElement>;
+  as?: "li" | "div";
+  style?: React.CSSProperties;
+  /** 仮想リスト行の measure 用（@tanstack/react-virtual） */
+  virtualRowIndex?: number;
+}) {
+  const selected = selectedId === concept.id;
+  const Wrapper = as;
+
+  return (
+    <Wrapper
+      ref={outerRef}
+      style={style}
+      {...(virtualRowIndex !== undefined ? { "data-index": virtualRowIndex } : {})}
+      {...(as === "div" ? { role: "listitem" as const } : {})}
+      className={cardClassName(selected)}
+    >
+      <span className="card-corner card-corner-top-left" aria-hidden="true" />
+      <span className="card-corner card-corner-top-right" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
+      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+      <div className="absolute left-0 top-4 bottom-4 w-[2px] rounded-full bg-celestial-emerald/70"></div>
+      <div className="absolute top-3 right-3 h-6 w-6 border-t border-r border-celestial-gold/45"></div>
+      <div className="absolute bottom-3 left-3 h-6 w-6 border-b border-l border-celestial-gold/30"></div>
+      <div className="absolute inset-0 rounded-xl bg-radial-gradient opacity-20"></div>
+
+      <button className="concept-card-main-button relative w-full text-left" onClick={() => onSelect(concept.id)} type="button">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-celestial-textMain">{concept.title}</h3>
+          <StatusBadge status={concept.status} />
+        </div>
+        <p className="line-clamp-2 text-sm leading-relaxed text-celestial-textSub">{concept.definition || "定義未入力"}</p>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {concept.domainTags.slice(0, 2).map((tag) => (
+            <span
+              key={`${concept.id}-domain-${tag}`}
+              className="tag-chip rounded-md border border-celestial-gold/25 bg-celestial-gold/10 px-2 py-0.5 text-xs text-celestial-textMain"
+              style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
+            >
+              D:{tag}
+            </span>
+          ))}
+          {concept.researchTags.slice(0, 2).map((tag) => (
+            <span
+              key={`${concept.id}-research-${tag}`}
+              className="tag-chip rounded-md border border-celestial-gold/25 bg-celestial-gold/10 px-2 py-0.5 text-xs text-celestial-textMain"
+            >
+              R:{tag}
+            </span>
+          ))}
+        </div>
+      </button>
+
+      <div className="relative mt-3 flex gap-2">
+        <button
+          className="filter-button rounded-md border border-celestial-gold/40 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors"
+          onClick={() => onEdit(concept)}
+          type="button"
+        >
+          編集
+        </button>
+        <button
+          className="filter-button rounded-md border border-celestial-gold/40 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors"
+          onClick={() => onToggleFavorite(concept)}
+          type="button"
+        >
+          {concept.favorite ? "お気に入り解除" : "お気に入り"}
+        </button>
+      </div>
+    </Wrapper>
+  );
+}
 
 export const ConceptList = ({
   concepts,
@@ -20,8 +126,32 @@ export const ConceptList = ({
   onSelect,
   onEdit,
   onToggleFavorite,
-  cardRefs
+  cardRefs,
+  listLayout = "full"
 }: Props) => {
+  const isMobile = useMatchMedia("(max-width: 768px)");
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: concepts.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => MOBILE_ESTIMATE_PX,
+    overscan: OVERSCAN,
+    gap: LIST_GAP_PX,
+    enabled: isMobile && concepts.length > 0
+  });
+
+  /* 選択 ID が変わったときだけ追従（concepts を依存に含めると検索デバウンスのたびにスクロールが動く） */
+  useEffect(() => {
+    if (!isMobile || concepts.length === 0 || !selectedId) {
+      return;
+    }
+    const idx = concepts.findIndex((c) => c.id === selectedId);
+    if (idx >= 0) {
+      rowVirtualizer.scrollToIndex(idx, { align: "center" });
+    }
+  }, [selectedId, isMobile, rowVirtualizer]);
+
   if (concepts.length === 0) {
     return (
       <div className="rounded-xl border border-celestial-border bg-celestial-deepBlue p-4 text-sm text-celestial-textSub shadow-celestial">
@@ -30,81 +160,79 @@ export const ConceptList = ({
     );
   }
 
-  return (
-    <ul className="space-y-3">
-      {concepts.map((concept) => (
-        <li
-          key={concept.id}
-          ref={(el) => {
-            if (cardRefs.current) {
-              if (el) {
-                cardRefs.current.set(concept.id, el);
-              } else {
-                cardRefs.current.delete(concept.id);
+  if (!isMobile) {
+    return (
+      <ul className="space-y-3">
+        {concepts.map((concept) => (
+          <ConceptListItem
+            key={concept.id}
+            as="li"
+            concept={concept}
+            selectedId={selectedId}
+            domainColorMap={domainColorMap}
+            onSelect={onSelect}
+            onEdit={onEdit}
+            onToggleFavorite={onToggleFavorite}
+            outerRef={(el) => {
+              if (cardRefs.current) {
+                if (el) {
+                  cardRefs.current.set(concept.id, el);
+                } else {
+                  cardRefs.current.delete(concept.id);
+                }
               }
-            }
-          }}
-          className={`concept-card group relative overflow-visible rounded-xl border border-celestial-border bg-nordic-card p-3 shadow-celestial transition-all duration-200 ${
-            selectedId === concept.id ? "concept-card-selected" : ""
-          }`}
-        >
-          <span className="card-corner card-corner-top-left" aria-hidden="true" />
-          <span className="card-corner card-corner-top-right" aria-hidden="true" />
-          <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-          <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-          {/* Left decoration line */}
-          <div className="absolute left-0 top-4 bottom-4 w-[2px] rounded-full bg-celestial-emerald/70"></div>
-          {/* Corner decorations */}
-          <div className="absolute top-3 right-3 h-6 w-6 border-t border-r border-celestial-gold/45"></div>
-          <div className="absolute bottom-3 left-3 h-6 w-6 border-b border-l border-celestial-gold/30"></div>
-          {/* Background radial gradient */}
-          <div className="absolute inset-0 rounded-xl bg-radial-gradient opacity-20"></div>
+            }}
+          />
+        ))}
+      </ul>
+    );
+  }
 
-          <button className="concept-card-main-button relative w-full text-left" onClick={() => onSelect(concept.id)} type="button">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="line-clamp-1 text-lg font-semibold tracking-wide text-celestial-textMain">{concept.title}</h3>
-              <StatusBadge status={concept.status} />
-            </div>
-            <p className="line-clamp-2 text-sm leading-relaxed text-celestial-textSub">{concept.definition || "定義未入力"}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {concept.domainTags.slice(0, 2).map((tag) => (
-                <span
-                  key={`${concept.id}-domain-${tag}`}
-                  className="tag-chip rounded-md border border-celestial-gold/25 bg-celestial-gold/10 px-2 py-0.5 text-xs text-celestial-textMain"
-                  style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
-                >
-                  D:{tag}
-                </span>
-              ))}
-              {concept.researchTags.slice(0, 2).map((tag) => (
-                <span
-                  key={`${concept.id}-research-${tag}`}
-                  className="tag-chip rounded-md border border-celestial-gold/25 bg-celestial-gold/10 px-2 py-0.5 text-xs text-celestial-textMain"
-                >
-                  R:{tag}
-                </span>
-              ))}
-            </div>
-          </button>
+  const scrollClass =
+    listLayout === "full" ? "concept-list-scroll concept-list-scroll--full" : "concept-list-scroll concept-list-scroll--grouped";
 
-          <div className="relative mt-3 flex gap-2">
-            <button
-              className="filter-button rounded-md border border-celestial-gold/40 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors"
-              onClick={() => onEdit(concept)}
-              type="button"
-            >
-              編集
-            </button>
-            <button
-              className="filter-button rounded-md border border-celestial-gold/40 bg-transparent px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors"
-              onClick={() => onToggleFavorite(concept)}
-              type="button"
-            >
-              {concept.favorite ? "お気に入り解除" : "お気に入り"}
-            </button>
-          </div>
-        </li>
-      ))}
-    </ul>
+  return (
+    <div ref={parentRef} className={scrollClass} role="list">
+      <div
+        className="relative w-full"
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const concept = concepts[virtualRow.index];
+          return (
+            <ConceptListItem
+              key={concept.id}
+              as="div"
+              virtualRowIndex={virtualRow.index}
+              concept={concept}
+              selectedId={selectedId}
+              domainColorMap={domainColorMap}
+              onSelect={onSelect}
+              onEdit={onEdit}
+              onToggleFavorite={onToggleFavorite}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`
+              }}
+              outerRef={(el) => {
+                rowVirtualizer.measureElement(el);
+                if (cardRefs.current) {
+                  if (el) {
+                    cardRefs.current.set(concept.id, el);
+                  } else {
+                    cardRefs.current.delete(concept.id);
+                  }
+                }
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 };

@@ -18,7 +18,7 @@ type Props = {
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
-  cardRefs: React.RefObject<Map<string, HTMLLIElement>>;
+  cardRefs: React.RefObject<Map<string, HTMLElement>>;
 };
 
 export const ConceptGroupSections = ({
@@ -65,6 +65,7 @@ export const ConceptGroupSections = ({
         onEdit={onEdit}
         onToggleFavorite={onToggleFavorite}
         cardRefs={cardRefs}
+        listLayout="full"
       />
     );
   }
@@ -103,6 +104,7 @@ export const ConceptGroupSections = ({
                   onEdit={onEdit}
                   onToggleFavorite={onToggleFavorite}
                   cardRefs={cardRefs}
+                  listLayout="grouped"
                 />
               </div>
             )}

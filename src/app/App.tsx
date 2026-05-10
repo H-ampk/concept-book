@@ -163,7 +163,7 @@ export const App = () => {
     []
   );
 
-  const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const detailContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -578,7 +578,9 @@ export const App = () => {
               </Suspense>
             ) : (
               <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
-                <div className={`${mobileDetail ? "hidden" : "block"} lg:block max-h-screen overflow-y-auto hide-scrollbar`}>
+                <div
+                  className={`${mobileDetail ? "hidden" : "block"} lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto lg:hide-scrollbar`}
+                >
                   <ConceptGroupSections
                     mode={listViewMode}
                     sections={groupedSections}

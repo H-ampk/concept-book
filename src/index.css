@@ -1210,4 +1210,25 @@ textarea::placeholder {
   .action-button:hover:not(:disabled) {
     transform: none;
   }
+
+  /* 用語一覧：仮想スクロール領域（モバイルのみ JSX で付与） */
+  .concept-list-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    contain: layout paint;
+  }
+
+  .concept-list-scroll--full {
+    height: calc(100dvh - 140px);
+    max-height: calc(100dvh - 140px);
+  }
+
+  .concept-list-scroll--grouped {
+    height: min(42vh, 380px);
+    max-height: min(42vh, 380px);
+  }
+
+  .concept-list-scroll .concept-card {
+    contain: layout paint;
+  }
 }
