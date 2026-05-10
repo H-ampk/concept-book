@@ -14,6 +14,35 @@ const createQuizQuestionId = (): string =>
 const createChoiceId = (): string =>
   `choice_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const MAX_DOMAIN_TAGS_IN_LABEL = 3;
+
+const normalizeDomainTagsForLabel = (tags: string[]): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of tags) {
+    const s = t.trim();
+    if (!s || seen.has(s)) {
+      continue;
+    }
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+};
+
+/** ネイティブ select の option 表示用（保存値は concept.id のまま） */
+const formatConceptSelectLabel = (concept: Concept): string => {
+  const title = concept.title?.trim() ? concept.title.trim() : "無題のConcept";
+  const tags = normalizeDomainTagsForLabel(concept.domainTags ?? []);
+  if (tags.length === 0) {
+    return title;
+  }
+  const head = tags.slice(0, MAX_DOMAIN_TAGS_IN_LABEL);
+  const hidden = tags.length - head.length;
+  const inner = head.join(" / ") + (hidden > 0 ? ` +${hidden}` : "");
+  return `${title} 〔${inner}〕`;
+};
+
 const defaultChoices = (): QuizChoice[] => [
   { id: createChoiceId(), text: "" },
   { id: createChoiceId(), text: "" }
@@ -231,7 +260,7 @@ export const QuizQuestionFormModal = ({
               <option value="">なし</option>
               {concepts.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.title || "無題"}
+                  {formatConceptSelectLabel(c)}
                 </option>
               ))}
             </select>
