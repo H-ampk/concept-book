@@ -7,13 +7,18 @@ import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaCo
 import type { Concept, ConceptInput, ContextDefinition } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
+import type { QuizAttemptLog, QuizChoice, QuizQuestion, QuizVisibility } from "../types/quiz";
+import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import { stripInvalidQuizReferences } from "../utils/quizConceptLink";
 import type { ConceptStorage, ContextCardStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 3;
+const DB_VERSION = 5;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
+const STORE_QUIZ_QUESTIONS = "quizQuestions";
+const STORE_QUIZ_ATTEMPT_LOGS = "quizAttemptLogs";
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -90,6 +95,87 @@ const sanitizeConcept = (
   return { concept: normalized, migrated };
 };
 
+type StoredQuizQuestion = Partial<QuizQuestion> & {
+  choices?: unknown;
+};
+
+const isQuizVisibility = (v: unknown): v is QuizVisibility =>
+  v === "private" || v === "public";
+
+const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
+  const choices: QuizChoice[] = Array.isArray(raw.choices)
+    ? raw.choices.map((c, index) => {
+        const item = (c ?? {}) as Partial<QuizChoice>;
+        const id = item.id?.toString() || `choice_${index}_${Math.random().toString(36).slice(2, 8)}`;
+        const text = item.text?.toString() ?? "";
+        const lidRaw = item.linkedConceptId?.toString().trim();
+        const choice: QuizChoice = { id, text };
+        if (lidRaw) {
+          choice.linkedConceptId = lidRaw;
+        }
+        return choice;
+      })
+    : [];
+
+  const visibility: QuizVisibility = isQuizVisibility(raw.visibility) ? raw.visibility : "private";
+  const schemaVersion =
+    typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
+      ? raw.schemaVersion
+      : QUIZ_QUESTION_SCHEMA_VERSION;
+
+  const cidRaw = raw.conceptId?.toString().trim();
+
+  return {
+    id: raw.id?.toString() ?? "",
+    ...(cidRaw ? { conceptId: cidRaw } : {}),
+    prompt: raw.prompt?.toString() ?? "",
+    choices,
+    correctChoiceId: raw.correctChoiceId?.toString() ?? "",
+    explanation: raw.explanation !== undefined ? raw.explanation.toString() : undefined,
+    visibility,
+    sortOrder: typeof raw.sortOrder === "number" && Number.isFinite(raw.sortOrder) ? raw.sortOrder : undefined,
+    schemaVersion,
+    createdAt: raw.createdAt?.toString() ?? nowIso(),
+    updatedAt: raw.updatedAt?.toString() ?? nowIso()
+  };
+};
+
+type StoredQuizAttemptLog = Partial<QuizAttemptLog>;
+
+const normalizeQuizAttemptLog = (raw: StoredQuizAttemptLog): QuizAttemptLog => {
+  const timeMsRaw = raw.timeMs;
+  const timeMs =
+    typeof timeMsRaw === "number" && Number.isFinite(timeMsRaw) && timeMsRaw >= 0 ? timeMsRaw : 0;
+  const schemaVersion =
+    typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
+      ? raw.schemaVersion
+      : QUIZ_ATTEMPT_LOG_SCHEMA_VERSION;
+
+  const sid = raw.sessionId?.toString().trim();
+  const qcid = raw.questionConceptId?.toString().trim();
+  const selLink = raw.selectedLinkedConceptId?.toString().trim();
+  const corrLink = raw.correctLinkedConceptId?.toString().trim();
+
+  return {
+    id: raw.id?.toString() ?? "",
+    ...(sid ? { sessionId: sid } : {}),
+    questionId: raw.questionId?.toString() ?? "",
+    questionPromptSnapshot: raw.questionPromptSnapshot?.toString() ?? "",
+    ...(qcid ? { questionConceptId: qcid } : {}),
+    selectedChoiceId: raw.selectedChoiceId?.toString() ?? "",
+    selectedChoiceTextSnapshot: raw.selectedChoiceTextSnapshot?.toString() ?? "",
+    ...(selLink ? { selectedLinkedConceptId: selLink } : {}),
+    correctChoiceId: raw.correctChoiceId?.toString() ?? "",
+    correctChoiceTextSnapshot: raw.correctChoiceTextSnapshot?.toString() ?? "",
+    ...(corrLink ? { correctLinkedConceptId: corrLink } : {}),
+    correct: Boolean(raw.correct),
+    startedAt: raw.startedAt?.toString() ?? nowIso(),
+    answeredAt: raw.answeredAt?.toString() ?? nowIso(),
+    timeMs,
+    schemaVersion
+  };
+};
+
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -113,6 +199,21 @@ const openDb = (): Promise<IDBDatabase> =>
         contextStore.createIndex("title", "title", { unique: false });
         contextStore.createIndex("domain", "domain", { unique: false });
         contextStore.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_QUIZ_QUESTIONS)) {
+        const quizStore = db.createObjectStore(STORE_QUIZ_QUESTIONS, { keyPath: "id" });
+        quizStore.createIndex("conceptId", "conceptId", { unique: false });
+        quizStore.createIndex("visibility", "visibility", { unique: false });
+        quizStore.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_QUIZ_ATTEMPT_LOGS)) {
+        const logStore = db.createObjectStore(STORE_QUIZ_ATTEMPT_LOGS, { keyPath: "id" });
+        logStore.createIndex("questionId", "questionId", { unique: false });
+        logStore.createIndex("questionConceptId", "questionConceptId", { unique: false });
+        logStore.createIndex("selectedLinkedConceptId", "selectedLinkedConceptId", { unique: false });
+        logStore.createIndex("correctLinkedConceptId", "correctLinkedConceptId", { unique: false });
+        logStore.createIndex("answeredAt", "answeredAt", { unique: false });
+        logStore.createIndex("sessionId", "sessionId", { unique: false });
       }
     };
 
@@ -270,8 +371,43 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  private async stripQuizReferencesToDeletedConcept(deletedConceptId: string): Promise<void> {
+    await withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_QUESTIONS);
+      const all = (await requestToPromise(store.getAll())) as StoredQuizQuestion[];
+      for (const raw of all) {
+        const q = normalizeQuizQuestion(raw);
+        let changed = false;
+        let nextConceptId = q.conceptId;
+        if (nextConceptId === deletedConceptId) {
+          nextConceptId = undefined;
+          changed = true;
+        }
+        const nextChoices: QuizChoice[] = q.choices.map((c) => {
+          if (c.linkedConceptId === deletedConceptId) {
+            changed = true;
+            const { linkedConceptId: _, ...rest } = c;
+            return rest;
+          }
+          return c;
+        });
+        if (!changed) {
+          continue;
+        }
+        const next: QuizQuestion = {
+          ...q,
+          conceptId: nextConceptId,
+          choices: nextChoices,
+          updatedAt: nowIso()
+        };
+        await requestToPromise(store.put(normalizeQuizQuestion(next as StoredQuizQuestion)));
+      }
+    });
+  }
+
   async deleteConcept(id: string): Promise<void> {
     await this.deleteMediaForConceptId(id);
+    await this.stripQuizReferencesToDeletedConcept(id);
     await withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
       const store = getStore(STORE_CONCEPTS);
       await requestToPromise(store.delete(id));
@@ -293,22 +429,142 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  async getQuizQuestions(): Promise<QuizQuestion[]> {
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readonly", async (getStore) => {
+      const store = getStore(STORE_QUIZ_QUESTIONS);
+      const data = (await requestToPromise(store.getAll())) as StoredQuizQuestion[];
+      return data
+        .map((raw) => normalizeQuizQuestion(raw))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    });
+  }
+
+  async getQuizQuestionsByConceptId(conceptId: string): Promise<QuizQuestion[]> {
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readonly", async (getStore) => {
+      const store = getStore(STORE_QUIZ_QUESTIONS);
+      const data = (await requestToPromise(store.getAll())) as StoredQuizQuestion[];
+      return data
+        .map((raw) => normalizeQuizQuestion(raw))
+        .filter(
+          (q) =>
+            q.conceptId === conceptId ||
+            q.choices.some((c) => c.linkedConceptId === conceptId)
+        )
+        .sort((a, b) => {
+          const orderA = a.sortOrder ?? 0;
+          const orderB = b.sortOrder ?? 0;
+          if (orderA !== orderB) {
+            return orderA - orderB;
+          }
+          return b.updatedAt.localeCompare(a.updatedAt);
+        });
+    });
+  }
+
+  async saveQuizQuestion(question: QuizQuestion): Promise<void> {
+    if (!question.id?.trim()) {
+      throw new Error("QuizQuestion の id が空です。");
+    }
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
+      const normalized = normalizeQuizQuestion(question);
+      await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).put(normalized));
+    });
+  }
+
+  async deleteQuizQuestion(id: string): Promise<void> {
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).delete(id));
+    });
+  }
+
+  async deleteQuizQuestionsByConceptId(conceptId: string): Promise<void> {
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_QUESTIONS);
+      const index = store.index("conceptId");
+      const rows = (await requestToPromise(index.getAll(conceptId))) as StoredQuizQuestion[];
+      await Promise.all(
+        rows.map((r) => {
+          const key = r.id?.toString();
+          if (!key) {
+            return Promise.resolve();
+          }
+          return requestToPromise(store.delete(key));
+        })
+      );
+    });
+  }
+
+  async getQuizAttemptLogs(): Promise<QuizAttemptLog[]> {
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readonly", async (getStore) => {
+      const store = getStore(STORE_QUIZ_ATTEMPT_LOGS);
+      const data = (await requestToPromise(store.getAll())) as StoredQuizAttemptLog[];
+      return data
+        .map((raw) => normalizeQuizAttemptLog(raw))
+        .filter((l) => l.id.length > 0 && l.questionId.length > 0)
+        .sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
+    });
+  }
+
+  async getQuizAttemptLogsByQuestionId(questionId: string): Promise<QuizAttemptLog[]> {
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readonly", async (getStore) => {
+      const store = getStore(STORE_QUIZ_ATTEMPT_LOGS);
+      const index = store.index("questionId");
+      const data = (await requestToPromise(index.getAll(questionId))) as StoredQuizAttemptLog[];
+      return data
+        .map((raw) => normalizeQuizAttemptLog(raw))
+        .sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
+    });
+  }
+
+  async saveQuizAttemptLog(log: QuizAttemptLog): Promise<void> {
+    if (!log.id?.trim()) {
+      throw new Error("QuizAttemptLog の id が空です。");
+    }
+    if (!log.questionId?.trim()) {
+      throw new Error("QuizAttemptLog の questionId が空です。");
+    }
+    if (!log.selectedChoiceId?.trim() || !log.correctChoiceId?.trim()) {
+      throw new Error("QuizAttemptLog の選択肢 ID が空です。");
+    }
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
+      const normalized = normalizeQuizAttemptLog(log);
+      await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).put(normalized));
+    });
+  }
+
+  async deleteQuizAttemptLog(id: string): Promise<void> {
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).delete(id));
+    });
+  }
+
+  async clearQuizAttemptLogs(): Promise<void> {
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).clear());
+    });
+  }
+
   async exportConcepts(): Promise<Concept[]> {
     return this.getAllConcepts();
   }
 
-  async exportBackupData(): Promise<{ concepts: Concept[]; contextCards: ContextCard[] }> {
+  async exportBackupData(): Promise<{
+    concepts: Concept[];
+    contextCards: ContextCard[];
+    quizQuestions: QuizQuestion[];
+  }> {
     const concepts = await this.getAllConcepts();
     const contextStorage = new ContextCardIndexedDBStorage();
     const contextCards = await contextStorage.getAllContextCards();
+    const quizQuestions = await this.getQuizQuestions();
 
     // Ensure contextDefinitions is present in each concept
-    const conceptsWithContextDefs = concepts.map(concept => ({
+    const conceptsWithContextDefs = concepts.map((concept) => ({
       ...concept,
       contextDefinitions: concept.contextDefinitions ?? []
     }));
 
-    return { concepts: conceptsWithContextDefs, contextCards };
+    return { concepts: conceptsWithContextDefs, contextCards, quizQuestions };
   }
 
   async importConcepts(
@@ -346,18 +602,75 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  async importBackupData(
-    data: { concepts: Concept[]; contextCards: ContextCard[] },
+  private async importQuizQuestions(
+    questions: QuizQuestion[],
     mode: "replace" | "merge"
-  ): Promise<{ importedConcepts: number; skippedConcepts: number; importedContextCards: number; skippedContextCards: number }> {
+  ): Promise<{ imported: number; skipped: number }> {
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_QUESTIONS);
+      let imported = 0;
+      let skipped = 0;
+      if (mode === "replace") {
+        await requestToPromise(store.clear());
+      }
+      for (const q of questions) {
+        if (!q.id?.trim()) {
+          skipped += 1;
+          continue;
+        }
+        const normalized = normalizeQuizQuestion(q);
+        if (mode === "merge") {
+          const existingRaw = (await requestToPromise(store.get(normalized.id))) as StoredQuizQuestion | undefined;
+          if (existingRaw) {
+            const existing = normalizeQuizQuestion(existingRaw);
+            const newer =
+              existing.updatedAt.localeCompare(normalized.updatedAt) >= 0 ? existing : normalized;
+            await requestToPromise(store.put(newer));
+            imported += 1;
+            continue;
+          }
+        }
+        await requestToPromise(store.put(normalized));
+        imported += 1;
+      }
+      return { imported, skipped };
+    });
+  }
+
+  async importBackupData(
+    data: {
+      concepts: Concept[];
+      contextCards: ContextCard[];
+      quizQuestions: QuizQuestion[];
+      quizQuestionParseSkipped: number;
+    },
+    mode: "replace" | "merge"
+  ): Promise<{
+    importedConcepts: number;
+    skippedConcepts: number;
+    importedContextCards: number;
+    skippedContextCards: number;
+    importedQuizQuestions: number;
+    skippedQuizQuestions: number;
+  }> {
     const conceptResult = await this.importConcepts(data.concepts, mode);
     const contextStorage = new ContextCardIndexedDBStorage();
     const contextCardResult = await contextStorage.importContextCards(data.contextCards, mode);
+
+    const allConcepts = await this.getAllConcepts();
+    const validConceptIds = new Set(allConcepts.map((c) => c.id));
+    const quizSanitized = data.quizQuestions.map((q) => stripInvalidQuizReferences(q, validConceptIds));
+    const quizResult = await this.importQuizQuestions(quizSanitized, mode);
+
+    const skippedQuizQuestions = data.quizQuestionParseSkipped + quizResult.skipped;
+
     return {
       importedConcepts: conceptResult.imported,
       skippedConcepts: conceptResult.skipped,
       importedContextCards: contextCardResult.imported,
-      skippedContextCards: contextCardResult.skipped
+      skippedContextCards: contextCardResult.skipped,
+      importedQuizQuestions: quizResult.imported,
+      skippedQuizQuestions
     };
   }
 
@@ -531,6 +844,8 @@ export class IndexedDBStorage implements ConceptStorage {
     skippedConcepts: number;
     importedContextCards: number;
     skippedContextCards: number;
+    importedQuizQuestions: number;
+    skippedQuizQuestions: number;
     importedMedia: number;
     missingMedia: number;
   }> {
@@ -544,13 +859,29 @@ export class IndexedDBStorage implements ConceptStorage {
     }
 
     if (mode === "replace") {
-      await withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+      await withTransaction([STORE_CONCEPTS, STORE_MEDIA, STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
         await requestToPromise(getStore(STORE_MEDIA).clear());
         await requestToPromise(getStore(STORE_CONCEPTS).clear());
+        await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).clear());
       });
     }
 
-    const { importedConcepts, skippedConcepts, importedContextCards, skippedContextCards } = await this.importBackupData(validation, mode);
+    const {
+      importedConcepts,
+      skippedConcepts,
+      importedContextCards,
+      skippedContextCards,
+      importedQuizQuestions,
+      skippedQuizQuestions
+    } = await this.importBackupData(
+      {
+        concepts: validation.concepts,
+        contextCards: validation.contextCards,
+        quizQuestions: validation.quizQuestions,
+        quizQuestionParseSkipped: validation.quizQuestionParseSkipped
+      },
+      mode
+    );
 
     let importedMedia = 0;
     let missingMedia = 0;
@@ -613,6 +944,8 @@ export class IndexedDBStorage implements ConceptStorage {
       skippedConcepts,
       importedContextCards,
       skippedContextCards,
+      importedQuizQuestions,
+      skippedQuizQuestions,
       importedMedia,
       missingMedia
     };

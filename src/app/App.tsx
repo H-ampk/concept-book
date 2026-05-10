@@ -21,6 +21,10 @@ import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
 import { LabPlaceholderPage } from "../components/LabPlaceholderPage";
+import { QuizAnalysisDashboardPage } from "../components/QuizAnalysisDashboardPage";
+import { QuizBuilderPage } from "../components/QuizBuilderPage";
+import { QuizLearningLogsPage } from "../components/QuizLearningLogsPage";
+import { QuizPlayPage } from "../components/QuizPlayPage";
 import { type LabRoute, isLabRoute } from "../constants/labRoutes";
 
 type Screen = "concepts" | "contexts" | "settings" | LabRoute;
@@ -292,7 +296,33 @@ export const App = () => {
             setMobileDetail(true);
           }} />
         ) : isLabRoute(screen) ? (
-          <LabPlaceholderPage route={screen} onBack={() => setScreen("concepts")} />
+          screen === "quiz-builder" ? (
+            <QuizBuilderPage onBack={() => setScreen("concepts")} />
+          ) : screen === "quiz-play" ? (
+            <QuizPlayPage
+              onBack={() => setScreen("concepts")}
+              onNavigateToConcept={(id) => {
+                setScreen("concepts");
+                setSelectedId(id);
+                setMobileDetail(true);
+              }}
+              onGoToQuizBuilder={() => setScreen("quiz-builder")}
+            />
+          ) : screen === "analysis-dashboard" ? (
+            <QuizAnalysisDashboardPage
+              onBack={() => setScreen("concepts")}
+              onGoToQuizPlay={() => setScreen("quiz-play")}
+              onGoToLearningLogs={() => setScreen("learning-logs")}
+            />
+          ) : screen === "learning-logs" ? (
+            <QuizLearningLogsPage
+              onBack={() => setScreen("concepts")}
+              onGoToQuizPlay={() => setScreen("quiz-play")}
+              onGoToAnalysisDashboard={() => setScreen("analysis-dashboard")}
+            />
+          ) : (
+            <LabPlaceholderPage route={screen} onBack={() => setScreen("concepts")} />
+          )
         ) : (
           <div className="space-y-4">
             <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card ritual-altar">

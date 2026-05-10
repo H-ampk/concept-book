@@ -2,6 +2,8 @@ import { z } from "zod";
 import { conceptStatusList, type Concept } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
 import type { ConceptMediaRef } from "../types/media";
+import type { QuizChoice, QuizQuestion, QuizVisibility } from "../types/quiz";
+import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import { nowIso } from "./date";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
@@ -68,9 +70,150 @@ const contextCardSchema = z.object({
 
 const contextCardArraySchema = z.array(contextCardSchema);
 
+/** ZIP / JSON バックアップ用。将来 quizAttemptLogs 等を足す余地あり */
+export const quizVisibilitySchema = z.enum(["private", "public"]);
+
+export const quizChoiceSchema = z.object({
+  id: z.string().min(1),
+  text: z.string(),
+  linkedConceptId: z.string().min(1).optional()
+});
+
+export const quizQuestionSchema = z.object({
+  id: z.string().min(1),
+  conceptId: z.string().min(1).optional(),
+  prompt: z.string().min(1),
+  choices: z.array(quizChoiceSchema),
+  correctChoiceId: z.string().min(1),
+  explanation: z.string().optional(),
+  visibility: quizVisibilitySchema,
+  sortOrder: z.number().optional(),
+  schemaVersion: z.number(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1)
+});
+
+const normalizeQuizChoiceEntry = (entry: unknown): QuizChoice | null => {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+  const o = entry as Record<string, unknown>;
+  const id = typeof o.id === "string" ? o.id.trim() : "";
+  const text = typeof o.text === "string" ? o.text : "";
+  if (!id) {
+    return null;
+  }
+  const lidRaw = typeof o.linkedConceptId === "string" ? o.linkedConceptId.trim() : "";
+  const choice: QuizChoice = { id, text };
+  if (lidRaw) {
+    choice.linkedConceptId = lidRaw;
+  }
+  return choice;
+};
+
+const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const raw = item as Record<string, unknown>;
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  const rawCid = typeof raw.conceptId === "string" ? raw.conceptId.trim() : "";
+  const conceptId = rawCid.length > 0 ? rawCid : undefined;
+  const prompt = typeof raw.prompt === "string" ? raw.prompt.trim() : "";
+  if (!id || !prompt) {
+    return null;
+  }
+
+  if (!Array.isArray(raw.choices)) {
+    return null;
+  }
+  const choices: QuizChoice[] = [];
+  for (const entry of raw.choices) {
+    const c = normalizeQuizChoiceEntry(entry);
+    if (!c) {
+      return null;
+    }
+    choices.push(c);
+  }
+  if (choices.length < 2) {
+    return null;
+  }
+
+  const correctChoiceId = typeof raw.correctChoiceId === "string" ? raw.correctChoiceId.trim() : "";
+  if (!correctChoiceId || !choices.some((c) => c.id === correctChoiceId)) {
+    return null;
+  }
+
+  const visResult = quizVisibilitySchema.safeParse(raw.visibility);
+  const visibility: QuizVisibility = visResult.success ? visResult.data : "private";
+
+  const schemaVersion =
+    typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
+      ? raw.schemaVersion
+      : QUIZ_QUESTION_SCHEMA_VERSION;
+
+  const explanation =
+    raw.explanation === undefined || raw.explanation === null
+      ? undefined
+      : String(raw.explanation);
+
+  const sortOrder =
+    typeof raw.sortOrder === "number" && Number.isFinite(raw.sortOrder) ? raw.sortOrder : undefined;
+
+  const createdAt =
+    typeof raw.createdAt === "string" && raw.createdAt.trim().length > 0 ? raw.createdAt : nowIso();
+  const updatedAt =
+    typeof raw.updatedAt === "string" && raw.updatedAt.trim().length > 0 ? raw.updatedAt : nowIso();
+
+  const candidate: QuizQuestion = {
+    id,
+    prompt,
+    choices,
+    correctChoiceId,
+    explanation,
+    visibility,
+    sortOrder,
+    schemaVersion,
+    createdAt,
+    updatedAt
+  };
+  if (conceptId) {
+    candidate.conceptId = conceptId;
+  }
+
+  const parsed = quizQuestionSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
+};
+
+export const normalizeQuizQuestionsForBackupImport = (
+  input: unknown | undefined
+): { questions: QuizQuestion[]; skipped: number } => {
+  if (input === undefined) {
+    return { questions: [], skipped: 0 };
+  }
+  if (!Array.isArray(input)) {
+    return { questions: [], skipped: 0 };
+  }
+  const questions: QuizQuestion[] = [];
+  let skipped = 0;
+  for (const item of input) {
+    const q = normalizeQuizQuestionItem(item);
+    if (!q) {
+      skipped += 1;
+      continue;
+    }
+    questions.push(q);
+  }
+  return { questions, skipped };
+};
+
 const backupObjectSchema = z.object({
   concepts: conceptArraySchema,
-  contextCards: contextCardArraySchema.optional()
+  contextCards: contextCardArraySchema.optional(),
+  quizQuestions: z
+    .unknown()
+    .optional()
+    .transform((v) => (Array.isArray(v) ? v : undefined))
 });
 
 const rawConceptSchema = z
@@ -206,23 +349,40 @@ export const validateConceptImportPayload = (
   return { success: true, concepts: conceptsResult.data };
 };
 
+export type BackupImportValidationSuccess = {
+  success: true;
+  concepts: Concept[];
+  contextCards: ContextCard[];
+  quizQuestions: QuizQuestion[];
+  quizQuestionParseSkipped: number;
+};
+
 export const validateBackupImportPayload = (
   payload: unknown
-): { success: true; concepts: Concept[]; contextCards: ContextCard[] } | { success: false; errorMessage: string } => {
+): BackupImportValidationSuccess | { success: false; errorMessage: string } => {
   // Try backup object format first
   const backupResult = backupObjectSchema.safeParse(payload);
   if (backupResult.success) {
+    const { questions, skipped } = normalizeQuizQuestionsForBackupImport(backupResult.data.quizQuestions);
     return {
       success: true,
       concepts: backupResult.data.concepts,
-      contextCards: backupResult.data.contextCards ?? []
+      contextCards: backupResult.data.contextCards ?? [],
+      quizQuestions: questions,
+      quizQuestionParseSkipped: skipped
     };
   }
 
   // Fallback to legacy concept array format
   const legacyResult = validateConceptImportPayload(payload);
   if (legacyResult.success) {
-    return { success: true, concepts: legacyResult.concepts, contextCards: [] };
+    return {
+      success: true,
+      concepts: legacyResult.concepts,
+      contextCards: [],
+      quizQuestions: [],
+      quizQuestionParseSkipped: 0
+    };
   }
   return legacyResult;
 };

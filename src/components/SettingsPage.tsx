@@ -48,7 +48,9 @@ export const SettingsPage = ({
     try {
       const data = await storage.exportBackupData();
       downloadJson(`concept-backup-${new Date().toISOString()}.json`, data);
-      setMessage(`${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カードをエクスポートしました。`);
+      setMessage(
+        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズをエクスポートしました。`
+      );
     } catch {
       setMessage("エクスポートに失敗しました。");
     } finally {
@@ -79,7 +81,7 @@ export const SettingsPage = ({
       const result = await storage.importConceptBookPackage(file, packageMode);
       await onImported();
       setMessage(
-        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
+        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
     } catch (e) {
       setMessage(
@@ -104,9 +106,15 @@ export const SettingsPage = ({
         return;
       }
 
-      const result = await storage.importBackupData(validationResult, mode);
+      const { concepts, contextCards, quizQuestions, quizQuestionParseSkipped } = validationResult;
+      const result = await storage.importBackupData(
+        { concepts, contextCards, quizQuestions, quizQuestionParseSkipped },
+        mode
+      );
       await onImported();
-      setMessage(`インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）`);
+      setMessage(
+        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）`
+      );
     } catch (error) {
       if (error instanceof SyntaxError) {
         setMessage("インポートに失敗しました。JSONの構文が不正です。");
