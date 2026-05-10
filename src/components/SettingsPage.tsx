@@ -49,7 +49,7 @@ export const SettingsPage = ({
       const data = await storage.exportBackupData();
       downloadJson(`concept-backup-${new Date().toISOString()}.json`, data);
       setMessage(
-        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズをエクスポートしました。`
+        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）をエクスポートしました。`
       );
     } catch {
       setMessage("エクスポートに失敗しました。");
@@ -61,9 +61,12 @@ export const SettingsPage = ({
   const handlePackageExport = async () => {
     setBusy(true);
     try {
+      const snapshot = await storage.exportBackupData();
       const blob = await storage.exportConceptBookPackage();
       downloadBlob(`concept-book-export-${new Date().toISOString().slice(0, 10)}.zip`, blob);
-      setMessage("概念ブック（ZIP・メディア含む）をエクスポートしました。");
+      setMessage(
+        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件を含みます。`
+      );
     } catch (err) {
       console.error("ZIP export failed:", err);
       setMessage("ZIPエクスポートに失敗しました。");
@@ -81,7 +84,7 @@ export const SettingsPage = ({
       const result = await storage.importConceptBookPackage(file, packageMode);
       await onImported();
       setMessage(
-        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
+        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
     } catch (e) {
       setMessage(
@@ -106,14 +109,28 @@ export const SettingsPage = ({
         return;
       }
 
-      const { concepts, contextCards, quizQuestions, quizQuestionParseSkipped } = validationResult;
+      const {
+        concepts,
+        contextCards,
+        quizQuestions,
+        quizQuestionParseSkipped,
+        quizDecks,
+        quizDeckParseSkipped
+      } = validationResult;
       const result = await storage.importBackupData(
-        { concepts, contextCards, quizQuestions, quizQuestionParseSkipped },
+        {
+          concepts,
+          contextCards,
+          quizQuestions,
+          quizQuestionParseSkipped,
+          quizDecks,
+          quizDeckParseSkipped
+        },
         mode
       );
       await onImported();
       setMessage(
-        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）`
+        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）`
       );
     } catch (error) {
       if (error instanceof SyntaxError) {

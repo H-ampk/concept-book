@@ -1,7 +1,7 @@
 import type { Concept, ConceptInput } from "../types/concept";
 import type { ConceptMediaRef } from "../types/media";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
-import type { QuizAttemptLog, QuizQuestion } from "../types/quiz";
+import type { QuizAttemptLog, QuizDeck, QuizQuestion } from "../types/quiz";
 
 // Security note for future sync backends:
 // - Keep this interface storage-agnostic so UI never talks directly to remote APIs.
@@ -31,6 +31,7 @@ export type ConceptStorage = {
     concepts: Concept[];
     contextCards: ContextCard[];
     quizQuestions: QuizQuestion[];
+    quizDecks: QuizDeck[];
   }>;
   importBackupData: (
     data: {
@@ -38,6 +39,8 @@ export type ConceptStorage = {
       contextCards: ContextCard[];
       quizQuestions: QuizQuestion[];
       quizQuestionParseSkipped: number;
+      quizDecks: QuizDeck[];
+      quizDeckParseSkipped: number;
     },
     mode: "replace" | "merge"
   ) => Promise<{
@@ -47,6 +50,8 @@ export type ConceptStorage = {
     skippedContextCards: number;
     importedQuizQuestions: number;
     skippedQuizQuestions: number;
+    importedQuizDecks: number;
+    skippedQuizDecks: number;
   }>;
   /** 画像・動画を保存し、概念の media 参照を更新する */
   addMedia: (input: {
@@ -69,6 +74,8 @@ export type ConceptStorage = {
     skippedContextCards: number;
     importedQuizQuestions: number;
     skippedQuizQuestions: number;
+    importedQuizDecks: number;
+    skippedQuizDecks: number;
     importedMedia: number;
     missingMedia: number;
   }>;
@@ -79,6 +86,13 @@ export type ConceptStorage = {
   saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
   deleteQuizQuestion: (id: string) => Promise<void>;
   deleteQuizQuestionsByConceptId: (conceptId: string) => Promise<void>;
+
+  /** QuizDeck（IndexedDB `quizDecks`。ZIP は別フェーズ） */
+  getQuizDecks: () => Promise<QuizDeck[]>;
+  getQuizDeck: (id: string) => Promise<QuizDeck | undefined>;
+  getQuizDecksByDeckKey: (deckKey: string) => Promise<QuizDeck[]>;
+  saveQuizDeck: (deck: QuizDeck) => Promise<void>;
+  deleteQuizDeck: (id: string) => Promise<void>;
 
   /** クイズ回答ログ（ZIP 非対象） */
   getQuizAttemptLogs: () => Promise<QuizAttemptLog[]>;

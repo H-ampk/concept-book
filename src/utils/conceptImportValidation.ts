@@ -2,8 +2,8 @@ import { z } from "zod";
 import { conceptStatusList, type Concept } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
 import type { ConceptMediaRef } from "../types/media";
-import type { QuizChoice, QuizQuestion, QuizVisibility } from "../types/quiz";
-import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import type { QuizChoice, QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
+import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import { nowIso } from "./date";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
@@ -70,7 +70,7 @@ const contextCardSchema = z.object({
 
 const contextCardArraySchema = z.array(contextCardSchema);
 
-/** ZIP / JSON バックアップ用。将来 quizAttemptLogs 等を足す余地あり */
+/** ZIP / JSON バックアップ用。quizDecks は optional。quizAttemptLogs は別フェーズ */
 export const quizVisibilitySchema = z.enum(["private", "public"]);
 
 export const quizChoiceSchema = z.object({
@@ -92,6 +92,132 @@ export const quizQuestionSchema = z.object({
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1)
 });
+
+/** バックアップ JSON 内の QuizDeck 検証用（正規化後の最終形） */
+export const quizDeckSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  deckKey: z.string().optional(),
+  domainTags: z.array(z.string()).optional(),
+  questionIds: z.array(z.string()),
+  visibility: quizVisibilitySchema,
+  schemaVersion: z.number(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1)
+});
+
+const dedupeDeckStringsPreserveOrder = (items: string[]): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items) {
+    if (!item || seen.has(item)) {
+      continue;
+    }
+    seen.add(item);
+    out.push(item);
+  }
+  return out;
+};
+
+const normalizeImportedDeckDomainTags = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const trimmed = value
+    .map((t) => (t ?? "").toString().trim())
+    .filter(Boolean);
+  const unique = dedupeDeckStringsPreserveOrder(trimmed);
+  return unique.length > 0 ? unique : undefined;
+};
+
+const normalizeImportedDeckQuestionIds = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const ids = value
+    .map((id) => (id ?? "").toString().trim())
+    .filter(Boolean);
+  return dedupeDeckStringsPreserveOrder(ids);
+};
+
+const normalizeQuizDeckItem = (item: unknown): QuizDeck | null => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const raw = item as Record<string, unknown>;
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  const titleRaw = typeof raw.title === "string" ? raw.title.trim() : "";
+  if (!id || !titleRaw) {
+    return null;
+  }
+
+  const descRaw =
+    raw.description === undefined || raw.description === null
+      ? ""
+      : String(raw.description).trim();
+  const dkRaw = typeof raw.deckKey === "string" ? raw.deckKey.trim() : "";
+
+  const visResult = quizVisibilitySchema.safeParse(raw.visibility);
+  const visibility: QuizVisibility = visResult.success ? visResult.data : "private";
+
+  const schemaVersion =
+    typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
+      ? raw.schemaVersion
+      : QUIZ_DECK_SCHEMA_VERSION;
+
+  const createdAt =
+    typeof raw.createdAt === "string" && raw.createdAt.trim().length > 0 ? raw.createdAt : nowIso();
+  const updatedAt =
+    typeof raw.updatedAt === "string" && raw.updatedAt.trim().length > 0 ? raw.updatedAt : nowIso();
+
+  const questionIds = normalizeImportedDeckQuestionIds(raw.questionIds);
+  const domainTags = normalizeImportedDeckDomainTags(raw.domainTags);
+
+  const candidate: QuizDeck = {
+    id,
+    title: titleRaw,
+    questionIds,
+    visibility,
+    schemaVersion,
+    createdAt,
+    updatedAt
+  };
+  if (descRaw) {
+    candidate.description = descRaw;
+  }
+  if (dkRaw) {
+    candidate.deckKey = dkRaw;
+  }
+  if (domainTags) {
+    candidate.domainTags = domainTags;
+  }
+
+  const parsed = quizDeckSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
+};
+
+export const normalizeQuizDecksForBackupImport = (
+  input: unknown | undefined
+): { decks: QuizDeck[]; skipped: number } => {
+  if (input === undefined) {
+    return { decks: [], skipped: 0 };
+  }
+  if (!Array.isArray(input)) {
+    return { decks: [], skipped: 0 };
+  }
+  const decks: QuizDeck[] = [];
+  let skipped = 0;
+  for (const item of input) {
+    const d = normalizeQuizDeckItem(item);
+    if (!d) {
+      skipped += 1;
+      continue;
+    }
+    decks.push(d);
+  }
+  return { decks, skipped };
+};
 
 const normalizeQuizChoiceEntry = (entry: unknown): QuizChoice | null => {
   if (!entry || typeof entry !== "object") {
@@ -211,6 +337,10 @@ const backupObjectSchema = z.object({
   concepts: conceptArraySchema,
   contextCards: contextCardArraySchema.optional(),
   quizQuestions: z
+    .unknown()
+    .optional()
+    .transform((v) => (Array.isArray(v) ? v : undefined)),
+  quizDecks: z
     .unknown()
     .optional()
     .transform((v) => (Array.isArray(v) ? v : undefined))
@@ -355,6 +485,8 @@ export type BackupImportValidationSuccess = {
   contextCards: ContextCard[];
   quizQuestions: QuizQuestion[];
   quizQuestionParseSkipped: number;
+  quizDecks: QuizDeck[];
+  quizDeckParseSkipped: number;
 };
 
 export const validateBackupImportPayload = (
@@ -364,12 +496,15 @@ export const validateBackupImportPayload = (
   const backupResult = backupObjectSchema.safeParse(payload);
   if (backupResult.success) {
     const { questions, skipped } = normalizeQuizQuestionsForBackupImport(backupResult.data.quizQuestions);
+    const { decks, skipped: deckSkipped } = normalizeQuizDecksForBackupImport(backupResult.data.quizDecks);
     return {
       success: true,
       concepts: backupResult.data.concepts,
       contextCards: backupResult.data.contextCards ?? [],
       quizQuestions: questions,
-      quizQuestionParseSkipped: skipped
+      quizQuestionParseSkipped: skipped,
+      quizDecks: decks,
+      quizDeckParseSkipped: deckSkipped
     };
   }
 
@@ -381,7 +516,9 @@ export const validateBackupImportPayload = (
       concepts: legacyResult.concepts,
       contextCards: [],
       quizQuestions: [],
-      quizQuestionParseSkipped: 0
+      quizQuestionParseSkipped: 0,
+      quizDecks: [],
+      quizDeckParseSkipped: 0
     };
   }
   return legacyResult;

@@ -26,9 +26,19 @@ type Props = {
   concepts: Concept[];
   onClose: () => void;
   onSaved: () => void;
+  /** 保存直後に呼ばれる（クイズ集への紐づけなど） */
+  onSavedQuestion?: (saved: QuizQuestion) => void;
 };
 
-export const QuizQuestionFormModal = ({ open, mode, question, concepts, onClose, onSaved }: Props) => {
+export const QuizQuestionFormModal = ({
+  open,
+  mode,
+  question,
+  concepts,
+  onClose,
+  onSaved,
+  onSavedQuestion
+}: Props) => {
   const [conceptId, setConceptId] = useState("");
   const [prompt, setPrompt] = useState("");
   const [choices, setChoices] = useState<QuizChoice[]>(defaultChoices);
@@ -159,6 +169,7 @@ export const QuizQuestionFormModal = ({ open, mode, question, concepts, onClose,
     setError(null);
     try {
       await storage.saveQuizQuestion(payload);
+      onSavedQuestion?.(payload);
       onSaved();
       onClose();
     } catch {
