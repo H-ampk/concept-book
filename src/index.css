@@ -267,10 +267,6 @@ body {
   background-repeat: no-repeat;
 }
 
-.moon-core {
-  filter: drop-shadow(0 0 10px rgba(77, 255, 154, 0.22));
-}
-
 .moon-emblem {
   position: fixed;
   top: 62px;
@@ -1170,10 +1166,6 @@ textarea::placeholder {
 
   .moon-emblem {
     opacity: 0.22;
-  }
-
-  .moon-core {
-    filter: none !important;
   }
 
   .cathedral-frame {

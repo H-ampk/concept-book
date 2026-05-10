@@ -33,11 +33,6 @@ const statusLabelMap: Record<ConceptStatus, string> = {
 const assetUrl = (path: string): string =>
   `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
-// Temporary visual toggles for background image layers.
-const SHOW_MOON_BACKGROUND = false;
-const SHOW_BOTANICAL_BACKGROUND = false;
-const SHOW_CONSTELLATION_BACKGROUND = false;
-
 const buildTagSections = (
   concepts: Concept[],
   type: "domain" | "research"
@@ -92,30 +87,6 @@ const DecorativeBackground = () => (
       <div className="moon-axis moon-axis-2"></div>
       <div className="moon-axis moon-axis-3"></div>
     </div>
-    {SHOW_MOON_BACKGROUND && (
-      <img
-        src={assetUrl("decorations/moon.png")}
-        alt=""
-        aria-hidden="true"
-        className="fixed top-20 right-20 w-44 opacity-18 moon-core"
-      />
-    )}
-    {SHOW_BOTANICAL_BACKGROUND && (
-      <img
-        src={assetUrl("decorations/botanical.png")}
-        alt=""
-        aria-hidden="true"
-        className="fixed left-[-24px] bottom-0 h-[92vh] opacity-05 blur-[1px]"
-      />
-    )}
-    {SHOW_CONSTELLATION_BACKGROUND && (
-      <img
-        src={assetUrl("decorations/constellation.png")}
-        alt=""
-        aria-hidden="true"
-        className="fixed right-[-120px] top-32 w-[760px] opacity-08 blur-[1px]"
-      />
-    )}
   </div>
 );
 
