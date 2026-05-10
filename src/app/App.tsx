@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
-import { ConceptGraphView } from "../components/ConceptGraphView";
-import { SkillTreeView } from "../components/SkillTreeView";
+
+const ConceptGraphView = lazy(() =>
+  import("../components/ConceptGraphView").then((m) => ({ default: m.ConceptGraphView }))
+);
+const SkillTreeView = lazy(() =>
+  import("../components/SkillTreeView").then((m) => ({ default: m.SkillTreeView }))
+);
 import {
   ConceptGroupSections,
   type ConceptGroupSection,
@@ -519,52 +524,58 @@ export const App = () => {
 
             {loading ? (
               <p className="text-sm text-nordic-textOnDark">読み込み中...</p>
-            ) : conceptMainTab === "graph" ? (
-              <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
-                <div>
-                  <ConceptGraphView
-                    concepts={visibleConcepts}
-                    domainColorMap={domainColorMap}
-                    selectedId={selectedId}
-                    onSelectConcept={handleGraphSelect}
-                  />
-                </div>
-                <div>
-                  <ConceptDetail
-                    concept={selectedConcept}
-                    conceptMap={conceptMap}
-                    domainColorMap={domainColorMap}
-                    onRequestDelete={handleRequestDelete}
-                    deleting={deleting}
-                    onSelectRelated={(id) => {
-                      setSelectedId(id);
-                    }}
-                  />
-                </div>
-              </section>
-            ) : conceptMainTab === "tree" ? (
-              <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
-                <div>
-                  <SkillTreeView
-                    concepts={visibleConcepts}
-                    domainColorMap={domainColorMap}
-                    selectedId={selectedId}
-                    onSelectConcept={handleGraphSelect}
-                  />
-                </div>
-                <div>
-                  <ConceptDetail
-                    concept={selectedConcept}
-                    conceptMap={conceptMap}
-                    domainColorMap={domainColorMap}
-                    onRequestDelete={handleRequestDelete}
-                    deleting={deleting}
-                    onSelectRelated={(id) => {
-                      setSelectedId(id);
-                    }}
-                  />
-                </div>
-              </section>
+            ) : conceptMainTab === "graph" || conceptMainTab === "tree" ? (
+              <Suspense
+                fallback={<p className="text-sm text-nordic-textOnDark">表示を読み込み中...</p>}
+              >
+                {conceptMainTab === "graph" ? (
+                  <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
+                    <div>
+                      <ConceptGraphView
+                        concepts={visibleConcepts}
+                        domainColorMap={domainColorMap}
+                        selectedId={selectedId}
+                        onSelectConcept={handleGraphSelect}
+                      />
+                    </div>
+                    <div>
+                      <ConceptDetail
+                        concept={selectedConcept}
+                        conceptMap={conceptMap}
+                        domainColorMap={domainColorMap}
+                        onRequestDelete={handleRequestDelete}
+                        deleting={deleting}
+                        onSelectRelated={(id) => {
+                          setSelectedId(id);
+                        }}
+                      />
+                    </div>
+                  </section>
+                ) : (
+                  <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
+                    <div>
+                      <SkillTreeView
+                        concepts={visibleConcepts}
+                        domainColorMap={domainColorMap}
+                        selectedId={selectedId}
+                        onSelectConcept={handleGraphSelect}
+                      />
+                    </div>
+                    <div>
+                      <ConceptDetail
+                        concept={selectedConcept}
+                        conceptMap={conceptMap}
+                        domainColorMap={domainColorMap}
+                        onRequestDelete={handleRequestDelete}
+                        deleting={deleting}
+                        onSelectRelated={(id) => {
+                          setSelectedId(id);
+                        }}
+                      />
+                    </div>
+                  </section>
+                )}
+              </Suspense>
             ) : (
               <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
                 <div className={`${mobileDetail ? "hidden" : "block"} lg:block max-h-screen overflow-y-auto hide-scrollbar`}>

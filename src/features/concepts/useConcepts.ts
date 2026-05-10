@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { getStorage } from "../../storage";
 import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
 import { collectTagGroups, filterConcepts } from "./conceptFilters";
@@ -59,11 +60,13 @@ export const useConcepts = () => {
     [reload]
   );
 
+  const debouncedSearchQuery = useDebouncedValue(query, 250);
+
   const visibleConcepts = useMemo(
     () =>
       filterConcepts(
         concepts,
-        query,
+        debouncedSearchQuery,
         selectedDomainTags,
         selectedResearchTags,
         selectedStatuses,
@@ -71,8 +74,8 @@ export const useConcepts = () => {
       ),
     [
       concepts,
+      debouncedSearchQuery,
       onlyFavorite,
-      query,
       selectedDomainTags,
       selectedResearchTags,
       selectedStatuses
