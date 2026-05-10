@@ -21,6 +21,8 @@ import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
 import { LabPlaceholderPage } from "../components/LabPlaceholderPage";
+import { ConceptGraphAnalysisPage } from "../components/ConceptGraphAnalysisPage";
+import { ResearchReportPage } from "../components/ResearchReportPage";
 import { QuizAnalysisDashboardPage } from "../components/QuizAnalysisDashboardPage";
 import { QuizBuilderPage } from "../components/QuizBuilderPage";
 import { QuizLearningLogsPage } from "../components/QuizLearningLogsPage";
@@ -319,6 +321,13 @@ export const App = () => {
               onBack={() => setScreen("concepts")}
               onGoToQuizPlay={() => setScreen("quiz-play")}
               onGoToAnalysisDashboard={() => setScreen("analysis-dashboard")}
+            />
+          ) : screen === "concept-graph-analysis" ? (
+            <ConceptGraphAnalysisPage onBack={() => setScreen("concepts")} />
+          ) : screen === "research-report" ? (
+            <ResearchReportPage
+              onBack={() => setScreen("concepts")}
+              onGoToQuizPlay={() => setScreen("quiz-play")}
             />
           ) : (
             <LabPlaceholderPage route={screen} onBack={() => setScreen("concepts")} />

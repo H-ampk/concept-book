@@ -255,6 +255,13 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     if (corr.linkedConceptId) {
       log.correctLinkedConceptId = corr.linkedConceptId;
     }
+    if (sessionDeckId) {
+      log.deckId = sessionDeckId;
+      const snap = sessionDeckTitle?.trim();
+      if (snap) {
+        log.deckTitleSnapshot = snap;
+      }
+    }
 
     void storage.saveQuizAttemptLog(log).catch((err) => {
       console.warn("[QuizPlayPage] QuizAttemptLog の保存に失敗しました。", err);

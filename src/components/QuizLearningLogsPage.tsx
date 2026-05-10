@@ -6,6 +6,7 @@ import { shortDateTime } from "../utils/date";
 import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
 import {
   computeOverallSummary,
+  formatDeckSourceLabel,
   formatRelatedConceptSummary,
   formatSecondsFromMs,
   isUsableReactionTimeMs
@@ -32,7 +33,8 @@ const matchesSearch = (log: QuizAttemptLog, q: string): boolean => {
   return (
     norm(log.questionPromptSnapshot).includes(n) ||
     norm(log.selectedChoiceTextSnapshot).includes(n) ||
-    norm(log.correctChoiceTextSnapshot).includes(n)
+    norm(log.correctChoiceTextSnapshot).includes(n) ||
+    (log.deckTitleSnapshot ? norm(log.deckTitleSnapshot).includes(n) : false)
   );
 };
 
@@ -440,9 +442,14 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                     className="rounded-xl border border-celestial-border/70 bg-nordic-navy/40 p-4 backdrop-blur-sm"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <time className="text-xs text-celestial-textSub" dateTime={log.answeredAt}>
-                        {shortDateTime(log.answeredAt)}
-                      </time>
+                      <div className="min-w-0">
+                        <time className="text-xs text-celestial-textSub" dateTime={log.answeredAt}>
+                          {shortDateTime(log.answeredAt)}
+                        </time>
+                        <p className="mt-1 text-[11px] font-medium text-celestial-softGold">
+                          {formatDeckSourceLabel(log)}
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => void handleDeleteOne(log)}
@@ -493,12 +500,15 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                 className="hidden overflow-x-auto scrollbar-none rounded-xl border border-celestial-border/70 bg-nordic-navy/35 backdrop-blur-sm md:block"
                 aria-label="学習ログ一覧（表表示）"
               >
-                <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+                <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
                   <caption className="sr-only">学習ログ。回答日時の新しい順</caption>
                   <thead>
                     <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
                       <th scope="col" className="px-4 py-3 font-medium">
                         回答日時
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        学習元
                       </th>
                       <th scope="col" className="px-4 py-3 font-medium">
                         問題文
@@ -528,6 +538,11 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                       <tr key={log.id} className="border-b border-celestial-border/30 last:border-0">
                         <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
                           <time dateTime={log.answeredAt}>{shortDateTime(log.answeredAt)}</time>
+                        </td>
+                        <td className="max-w-[160px] px-4 py-3 text-celestial-textMain">
+                          <span className="line-clamp-2 text-celestial-softGold" title={formatDeckSourceLabel(log)}>
+                            {formatDeckSourceLabel(log)}
+                          </span>
                         </td>
                         <td className="max-w-xs px-4 py-3 text-celestial-textMain">
                           <span className="line-clamp-2" title={questionTitleHint(log)}>

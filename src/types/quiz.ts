@@ -78,10 +78,6 @@ export const QUIZ_QUESTION_SCHEMA_VERSION = 1;
  * --- 将来のクイズで学習 UI（未実装）---
  * - Deck 選択 → questionIds 順に出題（未選択時は従来どおり全 Question / Concept 絞り込みでも可）
  *
- * --- 将来の QuizAttemptLog 拡張案（未実装）---
- * - `deckId?: string` … どの QuizDeck で解いたか
- * - `deckTitleSnapshot?: string` … 回答時点の Deck タイトル（Deck 別分析・履歴用）
- *
  * --- 将来フィールド候補（型にはまだ含めない）---
  * - coverConceptId, shuffleMode: "fixed" | "shuffle", estimatedMinutes, source: "manual" | "auto"
  *
@@ -139,6 +135,10 @@ export interface QuizAttemptLog {
   answeredAt: string;
   /** 表示開始から回答までの経過（ミリ秒） */
   timeMs: number;
+  /** Deck 学習で解いた場合の QuizDeck ID。自由学習時は未設定 */
+  deckId?: string;
+  /** 回答時点の Deck タイトル（Deck 削除後も履歴表示用） */
+  deckTitleSnapshot?: string;
   schemaVersion: number;
 }
 

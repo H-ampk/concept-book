@@ -7,9 +7,11 @@ import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
 import {
   computeConceptStats,
   computeConfusionPairs,
+  computeDeckStats,
   computeOverallSummary,
   computeQuestionStats,
   formatConceptRef,
+  formatDeckSourceLabel,
   formatRelatedConceptSummary,
   formatSecondsFromMs,
   isUsableReactionTimeMs,
@@ -73,6 +75,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
   );
 
   const summary = useMemo(() => computeOverallSummary(logsInPeriod), [logsInPeriod]);
+  const deckStats = useMemo(() => computeDeckStats(logsInPeriod), [logsInPeriod]);
   const questionStats = useMemo(() => computeQuestionStats(logsInPeriod), [logsInPeriod]);
   const conceptStats = useMemo(() => computeConceptStats(logsInPeriod), [logsInPeriod]);
   const confusionPairs = useMemo(() => computeConfusionPairs(logsInPeriod), [logsInPeriod]);
@@ -261,6 +264,73 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                   {summary.lastAnsweredAt ? shortDateTime(summary.lastAnsweredAt) : "—"}
                 </p>
               </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="quiz-analysis-deck-heading" className="space-y-3">
+            <h2 id="quiz-analysis-deck-heading" className="text-sm font-semibold text-celestial-softGold">
+              クイズ集別成績
+            </h2>
+            <p className="text-xs text-celestial-textSub">
+              クイズ集ごとの回答数・正答率・平均反応時間を確認します。自由学習（deckId のないログ）は独立した項目として表示します。削除済み Deck も、ログに残ったタイトルスナップショットで表示できます。
+            </p>
+            <div className="overflow-x-auto scrollbar-none rounded-xl border border-celestial-border/70 bg-nordic-navy/35 backdrop-blur-sm">
+              <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+                <caption className="sr-only">クイズ集別・自由学習別の回答数・正答率・平均反応時間・最終回答</caption>
+                <thead>
+                  <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      学習元
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      回答数
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      正解数
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      正答率
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      平均反応時間
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      最終回答
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deckStats.map((row) => (
+                    <tr
+                      key={row.bucketKey}
+                      className="border-b border-celestial-border/30 last:border-0"
+                    >
+                      <th scope="row" className="max-w-[260px] px-4 py-3 font-normal text-celestial-textMain">
+                        <span className="line-clamp-2 text-celestial-softGold" title={row.displayName}>
+                          {row.displayName}
+                        </span>
+                      </th>
+                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.answerCount}</td>
+                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.correctCount}</td>
+                      <td
+                        className={`px-4 py-3 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
+                        title={`正答率 ${pctText(row.accuracy)}（正解 ${row.correctCount} / ${row.answerCount}）`}
+                      >
+                        {pctText(row.accuracy)}
+                        <span className="sr-only">
+                          。正解 {row.correctCount} 件、全 {row.answerCount} 件中。
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                        {row.averageTimeMs != null ? formatSecondsFromMs(row.averageTimeMs) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                        <time dateTime={row.lastAnsweredAt}>{shortDateTime(row.lastAnsweredAt)}</time>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
 
@@ -473,12 +543,15 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
               <span className="text-celestial-textSub"> — 全件の履歴や絞り込みはこちらから。</span>
             </p>
             <div className="overflow-x-auto scrollbar-none rounded-xl border border-celestial-border/70 bg-nordic-navy/35 backdrop-blur-sm">
-              <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
                 <caption className="sr-only">最近のクイズ回答ログ</caption>
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
                     <th scope="col" className="px-4 py-3 font-medium">
                       回答日時
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      学習元
                     </th>
                     <th scope="col" className="px-4 py-3 font-medium">
                       問題文
@@ -505,6 +578,11 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                     <tr key={log.id} className="border-b border-celestial-border/30 last:border-0">
                       <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
                         {shortDateTime(log.answeredAt)}
+                      </td>
+                      <td className="max-w-[160px] px-4 py-3 text-celestial-textMain">
+                        <span className="line-clamp-2 text-celestial-softGold" title={formatDeckSourceLabel(log)}>
+                          {formatDeckSourceLabel(log)}
+                        </span>
                       </td>
                       <td className="max-w-xs px-4 py-3 text-celestial-textMain">
                         <span className="line-clamp-2" title={log.questionPromptSnapshot}>

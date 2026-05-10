@@ -262,6 +262,8 @@ const normalizeQuizAttemptLog = (raw: StoredQuizAttemptLog): QuizAttemptLog => {
   const qcid = raw.questionConceptId?.toString().trim();
   const selLink = raw.selectedLinkedConceptId?.toString().trim();
   const corrLink = raw.correctLinkedConceptId?.toString().trim();
+  const did = raw.deckId?.toString().trim();
+  const dts = raw.deckTitleSnapshot?.toString().trim();
 
   return {
     id: raw.id?.toString() ?? "",
@@ -275,6 +277,8 @@ const normalizeQuizAttemptLog = (raw: StoredQuizAttemptLog): QuizAttemptLog => {
     correctChoiceId: raw.correctChoiceId?.toString() ?? "",
     correctChoiceTextSnapshot: raw.correctChoiceTextSnapshot?.toString() ?? "",
     ...(corrLink ? { correctLinkedConceptId: corrLink } : {}),
+    ...(did ? { deckId: did } : {}),
+    ...(dts ? { deckTitleSnapshot: dts } : {}),
     correct: Boolean(raw.correct),
     startedAt: raw.startedAt?.toString() ?? nowIso(),
     answeredAt: raw.answeredAt?.toString() ?? nowIso(),
