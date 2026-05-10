@@ -12,17 +12,63 @@
 - 群青＋金の基調は維持し、装飾は情報の邪魔をしない範囲に留める
 - 背景画像に依存しすぎず、CSS装飾で世界観を支える
 
+## Active ornaments
+
+ランタイムで **実際に参照されている** 装飾素材と役割:
+
+### Header ornament line
+
+- **画像:** `public/decorations/serpent-line.svg`
+- **実装:** `src/components/common/OrnamentLine.tsx` の `<img>`（`variant="header"`）
+- **利用箇所:** `src/app/App.tsx` のヘッダー（題字・ナビの装飾線として表示）
+
+### Card corner decoration
+
+- **画像:** `public/decorations/corner.svg`
+- **実装:** ルート要素のインラインスタイル `--corner-decoration-url`（`src/app/App.tsx`）と、`src/index.css` の `.card-corner` の `background-image`
+- **用途:** 主要パネル・カード四隅の角モチーフ（`<span class="card-corner" />`）
+
+### CSS-only moon emblem
+
+- **実装:** `src/app/App.tsx` の `DecorativeBackground` 内 `.moon-emblem` と、`src/index.css` の `.moon-ring` / `.moon-axis` など
+- **用途:** 固定的な月環モチーフ（画像ファイルではなく CSS の線・円で描画）
+
+## Inactive / archived assets
+
+次の PNG は **`public/decorations/` にファイルとして残しているが、現時点ではランタイムから参照されていない**（`<img>` や CSS `url()` の対象になっていない）:
+
+- `moon.png`
+- `botanical.png`
+- `constellation.png`
+
+以前は `src/app/App.tsx` で背景用 PNG をフラグ付き `<img>` として差し込む案があったが、**未使用の隠れ参照を避けるためそのフラグと JSX は削除済み**である。素材ファイル自体はリポジトリに残してあり、アーカイブ扱いとする。
+
+## Background composition（CSS レイヤー）
+
+アプリ全体の背景は主に CSS で構成される:
+
+- ベース: 群青グラデーション（`DecorativeBackground` 内のレイヤー）
+- 補助: 星粒（`.star-field`）、天体図風ライン（`.astral-chart`）、左右フレーム（`.cathedral-frame`）、環境 HUD（`.cyber-ambient` / `.hud-global-ring`）など
+
+画像ファイルへの依存は **Active ornaments** に記載したものと、アーカイブ PNG を除き最小限とする。
+
+## Maintenance note
+
+- **コードに存在しない「無効化フラグ」だけをドキュメントに書かない。** 装飾の ON/OFF は実装側にソースオブジェクトがあるべきである。
+- **アーカイブ PNG を再度画面に出す場合は、`DecorativeBackground`（または該当コンポーネント）側に明示的に `<img>` / `background-image` を追加する。** その変更と同じ PR で本ドキュメントの **Active ornaments / Inactive** も更新する。
+- 一覧カードや IndexedDB・ZIP などの機能レイヤーへ、装飾目的だけの変更を混ぜない。
+
 ## Components
 
 ### `OrnamentLine`
 
 ファイル: `src/components/common/OrnamentLine.tsx`
 
-- 役割: 共通の装飾線（ornament line）を描画する軽量コンポーネント
+- 役割: 共通の装飾線（蛇・棘モチーフの横長 SVG）を描画するコンポーネント
 - 用途: ヘッダーと主要パネルに統一された意匠を適用する
 - バリアント:
-  - `header`: ヘッダー用の長い装飾線
-  - `panel`: パネル用の短い装飾線
+  - `header`: ヘッダー用の長い装飾線（`decorations/serpent-line.svg`）
+  - `panel`: パネル用の短い装飾線（同一 SVG、幅クラスが異なる）
 
 ### バリアント使い分け
 
@@ -71,74 +117,48 @@
 ### OrnamentLine 関連クラス
 
 - `ornament-line`
+- `ornament-line-image`
 - `ornament-line-header`
 - `ornament-line-panel`
-- `ornament-segment*`
-- `ornament-glyph*`
 
 役割分担:
 
-- `ornament-line*`: レイアウトとサイズ
-- `ornament-segment*`: 線分部分
-- `ornament-glyph*`: 中央モチーフ部分
-
-## Background Assets
-
-背景は以下の方針で構成:
-
-- ベース: 群青グラデーション
-- 補助: 星粒、天体図風ライン、建築的ライン（CSS）
-- 画像は必要最小限で管理し、依存しすぎない
-
-## Current Disabled Assets
-
-ファイル: `src/app/App.tsx`
-
-現在は以下をフラグで OFF:
-
-- `SHOW_MOON_BACKGROUND = false`
-- `SHOW_BOTANICAL_BACKGROUND = false`
-- `SHOW_CONSTELLATION_BACKGROUND = false`
-
-意図:
-
-- CSS装飾のみで雰囲気を確認・調整するため
-- 後で戻す場合はフラグを `true` にするだけで復帰可能
+- `ornament-line`: フレックスレイアウトの土台
+- `ornament-line-header` / `ornament-line-panel`: 横幅・マージン・見出し周りの補助線（`::after` のグラデ線を含む）
+- `ornament-line-image`: SVG 画像のサイズ・ドロップシャドウ・アニメーション
 
 ## corner.svg の扱い
 
-- `corner.svg` は背景画像ではなく **カード装飾** として利用
+- `corner.svg` は背景フルスクリーン画像ではなく **カード／パネル角の装飾** として利用する
 - 疑似要素競合を避けるため、`::before/::after` ではなく `span.card-corner` 方式を採用
-- 画像参照は CSS 変数 `--corner-decoration-url`（`App.tsx` で定義）＋fallback で管理
+- 画像参照は CSS 変数 `--corner-decoration-url`（`App.tsx` で定義）＋ `src/index.css` の fallback で管理
 
 ## Future Asset Phase
 
-素材追加が必要になった場合は、**phase_5** で実施する。
+素材追加が必要になった場合は、フェーズを切って実施する。
 
 - まず OrnamentLine の SVG 差し替えを優先
-- 背景素材は主役にせず、控えめな補助として扱う
+- アーカイブ PNG を復活させる場合は **実装を追加したうえで** 本書の Active / Inactive を更新する（上記 Maintenance note を参照）
 - 追加後も「一覧カードは簡潔、主要パネルは重厚」のバランスを維持する
 
 ## Class / File Index
 
 | Item | File | 用途 |
 |---|---|---|
-| `OrnamentLine` | `src/components/common/OrnamentLine.tsx` | ヘッダー/主要パネルで共通装飾線を描画するコンポーネント |
+| `OrnamentLine` | `src/components/common/OrnamentLine.tsx` | ヘッダー/主要パネルで共通装飾線（serpent-line.svg）を描画 |
+| `serpent-line.svg` | `public/decorations/` | OrnamentLine が参照するヘッダー／パネル装飾線 |
 | `.ornament-line` | `src/index.css` | OrnamentLine の共通レイアウト（土台） |
-| `.ornament-line-header` | `src/index.css` | ヘッダー用の横長装飾線サイズ |
-| `.ornament-line-panel` | `src/index.css` | パネル用の短い装飾線サイズ |
-| `.ornament-segment` | `src/index.css` | 装飾線の線分部分 |
-| `.ornament-glyph` | `src/index.css` | 装飾線中央のモチーフ表示部分 |
+| `.ornament-line-header` | `src/index.css` | ヘッダー用の横長装飾線サイズと補助線 |
+| `.ornament-line-panel` | `src/index.css` | パネル用の短い装飾線サイズと補助線 |
 | `.ritual-altar` | `src/index.css`（適用: `src/app/App.tsx`） | 主役パネルの重厚化（上下線/光彩/陰影） |
 | `.decorated-card` | `src/index.css`（適用: 主要パネル各TSX） | 角装飾・線装飾の基準となる共通土台 |
 | `.concept-card-main-button` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード内部ボタンの内枠見えを抑制 |
 | `.concept-card-selected` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード選択時の外側グロー強調 |
 | `.tag-chip` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード内タグの印章風質感 |
 | `.filter-button` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード内小ボタンの印章風質感 |
-| `SHOW_MOON_BACKGROUND` | `src/app/App.tsx` | `moon.png` 背景レイヤーの表示切替フラグ |
-| `SHOW_BOTANICAL_BACKGROUND` | `src/app/App.tsx` | `botanical.png` 背景レイヤーの表示切替フラグ |
-| `SHOW_CONSTELLATION_BACKGROUND` | `src/app/App.tsx` | `constellation.png` 背景レイヤーの表示切替フラグ |
-| `--corner-decoration-url` | 定義: `src/app/App.tsx` / 使用: `src/index.css` | `corner.svg` の参照先をカード角装飾へ渡す CSS 変数 |
+| `.moon-emblem` ほか | `src/index.css` / `DecorativeBackground`（`App.tsx`） | CSS のみの月環モチーフ |
+| `moon.png` / `botanical.png` / `constellation.png` | `public/decorations/` | **現状ランタイム未参照**（アーカイブ素材） |
+| `--corner-decoration-url` | 定義: `src/app/App.tsx` / 使用: `src/index.css` | `corner.svg` をカード角装飾へ渡す CSS 変数 |
 
 ## Do / Don't
 
@@ -153,3 +173,4 @@
 - 機能ロジックへ装飾目的で手を入れない
 - 一覧カードへ主要パネル級の装飾を横展開しない
 - 一時デバッグスタイル（赤枠など）を残したままにしない
+- **無効化だけのフラグをコードに残さず、ドキュメントだけで「将来 ON にする」と書かない**

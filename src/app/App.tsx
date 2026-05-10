@@ -19,8 +19,11 @@ import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus 
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
+import { LabNavDropdown } from "../components/LabNavDropdown";
+import { LabPlaceholderPage } from "../components/LabPlaceholderPage";
+import { type LabRoute, isLabRoute } from "../constants/labRoutes";
 
-type Screen = "concepts" | "contexts" | "settings";
+type Screen = "concepts" | "contexts" | "settings" | LabRoute;
 type ConceptMainTab = "list" | "graph" | "tree";
 
 const statusLabelMap: Record<ConceptStatus, string> = {
@@ -256,6 +259,11 @@ export const App = () => {
             >
               文脈
             </button>
+            <LabNavDropdown
+              screen={screen}
+              isLabActive={isLabRoute(screen)}
+              onNavigate={(route) => setScreen(route)}
+            />
             <button
               className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
                 screen === "settings" ? "bg-celestial-gold/20" : ""
@@ -283,6 +291,8 @@ export const App = () => {
             setSelectedId(id);
             setMobileDetail(true);
           }} />
+        ) : isLabRoute(screen) ? (
+          <LabPlaceholderPage route={screen} onBack={() => setScreen("concepts")} />
         ) : (
           <div className="space-y-4">
             <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card ritual-altar">
