@@ -189,7 +189,9 @@ export const ConceptList = ({
   }
 
   const scrollClass =
-    listLayout === "full" ? "concept-list-scroll concept-list-scroll--full" : "concept-list-scroll concept-list-scroll--grouped";
+    listLayout === "full"
+      ? "concept-list-scroll concept-list-scroll--full scrollbar-none"
+      : "concept-list-scroll concept-list-scroll--grouped scrollbar-none";
 
   return (
     <div ref={parentRef} className={scrollClass} role="list">

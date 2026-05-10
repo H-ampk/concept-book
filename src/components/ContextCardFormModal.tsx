@@ -105,7 +105,7 @@ export const ContextCardFormModal = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="flex-1 overflow-y-auto scrollbar-none px-6 pb-6">
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error && (
               <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>

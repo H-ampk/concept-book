@@ -233,7 +233,7 @@ export const App = () => {
       <div className="cyber-ambient" aria-hidden="true" />
       <DecorativeBackground />
 
-      <header className="border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-10">
+      <header className="app-header-shell border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-30 overflow-visible">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2">
           <div className="header-insignia hud-header-cluster min-w-0">
             <h1 className="text-xl font-semibold text-celestial-gold tracking-wider ritual-title">Concept Book App</h1>
@@ -560,7 +560,7 @@ export const App = () => {
             ) : (
               <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
                 <div
-                  className={`${mobileDetail ? "hidden" : "block"} lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto lg:hide-scrollbar`}
+                  className={`${mobileDetail ? "hidden" : "block"} lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto scrollbar-none`}
                 >
                   <ConceptGroupSections
                     mode={listViewMode}
@@ -574,7 +574,7 @@ export const App = () => {
                   />
                 </div>
 
-                <div className={`${mobileDetail ? "block" : "hidden"} lg:block max-h-screen overflow-y-auto hide-scrollbar`}>
+                <div className={`${mobileDetail ? "block" : "hidden"} lg:block max-h-screen overflow-y-auto scrollbar-none`}>
                   <div className="mb-2 block lg:hidden">
                     <button
                       className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-1.5 text-sm text-nordic-textPrimary"

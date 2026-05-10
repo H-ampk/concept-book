@@ -93,7 +93,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
         </p>
       </header>
 
-      <div ref={frameRef} className="w-full overflow-x-auto rounded-lg border border-celestial-border bg-nordic-surface">
+      <div ref={frameRef} className="w-full overflow-x-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface">
         <ForceGraph2D
           width={size.width}
           height={size.height}

@@ -378,7 +378,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         onKeyDown={handleKeyDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className="w-full overflow-auto rounded-lg border border-celestial-border bg-nordic-surface focus:outline-none focus:ring-2 focus:ring-celestial-softGold/40"
+        className="w-full overflow-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface focus:outline-none focus:ring-2 focus:ring-celestial-softGold/40"
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
         <svg width="900" height="640" viewBox="0 0 900 640" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>

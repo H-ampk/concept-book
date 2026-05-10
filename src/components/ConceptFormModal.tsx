@@ -303,7 +303,7 @@ export const ConceptFormModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-4">
-      <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-celestial-panel p-5 shadow-xl border border-celestial-border" onSubmit={handleSubmit}>
+      <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto scrollbar-none rounded-2xl bg-celestial-panel p-5 shadow-xl border border-celestial-border" onSubmit={handleSubmit}>
         <header className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-celestial-textMain">
             {mode === "create" ? "新しい概念" : "概念を編集"}

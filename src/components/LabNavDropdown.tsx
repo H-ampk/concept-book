@@ -1,5 +1,12 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { LAB_MENU_ITEMS, type LabRoute } from "../constants/labRoutes";
+
+type MenuPosition = {
+  top: number;
+  left: number;
+  width: number;
+};
 
 type Props = {
   screen: string;
@@ -7,26 +14,81 @@ type Props = {
   onNavigate: (route: LabRoute) => void;
 };
 
+const MENU_MAX_W = 288;
+const MENU_GAP = 8;
+const VIEW_MARGIN = 8;
+
+const clampMenuLeft = (rect: DOMRect, menuWidth: number): number => {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+  const w = Math.min(menuWidth, vw - VIEW_MARGIN * 2);
+  const preferredRight = rect.right;
+  let left = preferredRight - w;
+  left = Math.max(VIEW_MARGIN, left);
+  left = Math.min(left, vw - w - VIEW_MARGIN);
+  return left;
+};
+
 export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
 
+  const measureMenuPosition = (): MenuPosition | null => {
+    const btn = buttonRef.current;
+    if (!btn) {
+      return null;
+    }
+    const rect = btn.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const menuWidth = Math.min(MENU_MAX_W, vw - VIEW_MARGIN * 2);
+    return {
+      top: rect.bottom + MENU_GAP,
+      left: clampMenuLeft(rect, menuWidth),
+      width: menuWidth
+    };
+  };
+
   useEffect(() => {
     setOpen(false);
   }, [screen]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuPos(null);
+      return;
+    }
+    const next = measureMenuPosition();
+    setMenuPos(next);
+    const onResizeOrScroll = () => {
+      const p = measureMenuPosition();
+      if (p) {
+        setMenuPos(p);
+      }
+    };
+    window.addEventListener("resize", onResizeOrScroll);
+    window.addEventListener("scroll", onResizeOrScroll, true);
+    return () => {
+      window.removeEventListener("resize", onResizeOrScroll);
+      window.removeEventListener("scroll", onResizeOrScroll, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
     const onDocPointer = (e: MouseEvent | TouchEvent) => {
-      const node = containerRef.current;
-      if (node && !node.contains(e.target as Node)) {
-        setOpen(false);
+      const t = e.target as Node;
+      if (containerRef.current?.contains(t)) {
+        return;
       }
+      if (menuRef.current?.contains(t)) {
+        return;
+      }
+      setOpen(false);
     };
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -46,12 +108,14 @@ export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
   }, [open]);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !menuPos) {
       return;
     }
-    const first = menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]');
-    first?.focus();
-  }, [open]);
+    requestAnimationFrame(() => {
+      const first = menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]');
+      first?.focus();
+    });
+  }, [open, menuPos]);
 
   const toggle = () => setOpen((prev) => !prev);
 
@@ -80,6 +144,39 @@ export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
     list[next]?.focus();
   };
 
+  const menuPanel = open && menuPos ? (
+    <div
+      ref={menuRef}
+      id={menuId}
+      role="menu"
+      aria-labelledby={`${menuId}-trigger`}
+      className="lab-dropdown-panel lab-dropdown-panel--portal scrollbar-none fixed z-[45] max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border border-celestial-border py-2 shadow-[0_20px_48px_rgba(0,0,0,0.55),0_0_0_1px_rgba(77,255,154,0.2),0_0_32px_rgba(77,255,154,0.12)] backdrop-blur-md"
+      style={{
+        top: menuPos.top,
+        left: menuPos.left,
+        width: menuPos.width,
+        backgroundColor: "rgba(4, 10, 8, 0.96)"
+      }}
+      onKeyDown={handleMenuKeyDown}
+    >
+      {LAB_MENU_ITEMS.map((item) => (
+        <button
+          key={item.route}
+          type="button"
+          role="menuitem"
+          className="lab-dropdown-item flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(4,10,8,0.98)]"
+          onClick={() => {
+            onNavigate(item.route);
+            setOpen(false);
+          }}
+        >
+          <span className="font-semibold text-celestial-softGold">{item.label}</span>
+          <span className="text-xs leading-snug text-celestial-textSub line-clamp-2">{item.description}</span>
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   return (
     <div ref={containerRef} className="lab-nav-dropdown relative shrink-0">
       <button
@@ -98,32 +195,7 @@ export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
         Lab
       </button>
 
-      {open && (
-        <div
-          ref={menuRef}
-          id={menuId}
-          role="menu"
-          aria-labelledby={`${menuId}-trigger`}
-          className="lab-dropdown-panel absolute right-0 z-50 mt-2 max-h-[min(70vh,28rem)] w-[min(calc(100vw-2rem),18rem)] overflow-y-auto rounded-xl border border-celestial-border/80 bg-[rgba(4,8,7,0.92)] py-2 shadow-celestial backdrop-blur-md md:w-72"
-          onKeyDown={handleMenuKeyDown}
-        >
-          {LAB_MENU_ITEMS.map((item) => (
-            <button
-              key={item.route}
-              type="button"
-              role="menuitem"
-              className="lab-dropdown-item flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(4,8,7,0.95)]"
-              onClick={() => {
-                onNavigate(item.route);
-                setOpen(false);
-              }}
-            >
-              <span className="font-semibold text-celestial-softGold">{item.label}</span>
-              <span className="text-xs leading-snug text-celestial-textSub line-clamp-2">{item.description}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {typeof document !== "undefined" && menuPanel != null ? createPortal(menuPanel, document.body) : null}
     </div>
   );
 };

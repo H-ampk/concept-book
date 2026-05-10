@@ -120,7 +120,7 @@ export const RelatedConceptPicker = ({
   return (
     <div className="md:col-span-2">
       <span className="mb-1 block text-sm text-celestial-softGold">現在の関連概念</span>
-      <div className="mb-2 max-h-24 overflow-y-auto rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue p-2">
+      <div className="mb-2 max-h-24 overflow-y-auto scrollbar-none rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue p-2">
         <div className="flex flex-wrap gap-2">
         {selectedConcepts.length === 0 ? (
           <span className="text-xs text-celestial-textSub">未設定</span>
@@ -155,7 +155,7 @@ export const RelatedConceptPicker = ({
         {suggestedCandidates.length === 0 ? (
           <p className="mt-1 text-xs text-celestial-textSub">候補が見つかりません</p>
         ) : (
-          <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto pr-1">
+          <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto scrollbar-none pr-1">
             {suggestedCandidates.map((candidate) => (
               <li
                 key={candidate.id}
@@ -207,7 +207,7 @@ export const RelatedConceptPicker = ({
         />
 
         {open && (
-          <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue shadow-celestial">
+          <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto scrollbar-none rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue shadow-celestial">
             {searchCandidates.length === 0 ? (
               <p className="px-3 py-2 text-xs text-celestial-textSub">該当なし</p>
             ) : (
