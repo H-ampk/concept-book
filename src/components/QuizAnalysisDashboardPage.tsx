@@ -601,7 +601,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                       </td>
                       <td className="px-4 py-3">
                         {log.correct ? (
-                          <span className="text-sky-600">
+                          <span className="text-celestial-emerald">
                             正解<span className="sr-only">。正しい回答です。</span>
                           </span>
                         ) : (

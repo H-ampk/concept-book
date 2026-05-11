@@ -334,7 +334,7 @@ export const App = () => {
           )
         ) : (
           <div className="space-y-4">
-            <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm relative z-10 decorated-card ritual-altar">
+            <section className="relative z-10 rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-[22px] saturate-[165%] decorated-card ritual-altar">
               <span className="card-corner card-corner-top-left" aria-hidden="true" />
               <span className="card-corner card-corner-top-right" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
@@ -342,14 +342,14 @@ export const App = () => {
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <div className="hud-search-wrap min-w-0">
                   <input
-                    className="w-full rounded-lg border border-celestial-gold/30 bg-celestial-deepBlue px-4 py-3 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
+                    className="w-full rounded-xl border border-celestial-border bg-celestial-panel px-4 py-3 text-sm text-celestial-textMain shadow-celestial backdrop-blur-[22px] saturate-[165%] placeholder:text-celestial-textSub"
                     placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </div>
                 <button
-                  className="rounded-lg border border-celestial-gold/30 bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold hover:bg-celestial-panelHover"
+                  className="rounded-xl border border-celestial-border bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold shadow-celestial backdrop-blur-[22px] saturate-[165%] hover:bg-celestial-panelHover"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -433,7 +433,7 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                            className="rounded-full px-2.5 py-1 text-xs bg-celestial-gold text-celestial-base"
+                            className="rounded-[10px] px-2.5 py-1 text-xs bg-celestial-gold text-celestial-base"
                           >
                             {tag}
                           </button>
@@ -451,7 +451,7 @@ export const App = () => {
                   <button
                     type="button"
                     onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
-                    className="rounded-full px-2.5 py-1 text-xs border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover"
+                    className="rounded-[10px] px-2.5 py-1 text-xs border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover"
                   >
                     {isFieldTagsExpanded ? "畳む" : "展開"}
                   </button>
@@ -474,7 +474,7 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                            className={`rounded-full px-2.5 py-1 text-xs ${
+                            className={`rounded-[10px] px-2.5 py-1 text-xs ${
                         active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
                             }`}
                           >
@@ -504,7 +504,7 @@ export const App = () => {
                                 : [...prev, tag]
                             )
                           }
-                          className={`rounded-full px-2.5 py-1 text-xs ${
+                          className={`rounded-[10px] px-2.5 py-1 text-xs ${
                       active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
                           }`}
                         >
@@ -530,7 +530,7 @@ export const App = () => {
                               : [...prev, status]
                           )
                         }
-                        className={`rounded-full px-2.5 py-1 text-xs ${
+                        className={`rounded-[10px] px-2.5 py-1 text-xs ${
                           active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
                         }`}
                       >
@@ -543,10 +543,10 @@ export const App = () => {
             </section>
 
             {loading ? (
-              <p className="text-sm text-nordic-textOnDark">読み込み中...</p>
+              <p className="text-sm text-celestial-textSub">読み込み中...</p>
             ) : conceptMainTab === "graph" || conceptMainTab === "tree" ? (
               <Suspense
-                fallback={<p className="text-sm text-nordic-textOnDark">表示を読み込み中...</p>}
+                fallback={<p className="text-sm text-celestial-textSub">表示を読み込み中...</p>}
               >
                 {conceptMainTab === "graph" ? (
                   <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">

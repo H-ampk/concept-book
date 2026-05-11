@@ -120,7 +120,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-full bg-celestial-gold px-2 py-0.5 text-xs font-medium text-celestial-base">
+          <span className="rounded-[10px] bg-celestial-gold px-2 py-0.5 text-xs font-medium text-celestial-base">
             お気に入り
           </span>
         )}
@@ -228,7 +228,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-nordic-card-border bg-nordic-cardAction px-2 py-1 text-xs text-nordic-textOnDark hover:bg-nordic-cardActionHover"
+                    className="rounded-md border border-nordic-card-border bg-nordic-cardAction px-2 py-1 text-xs text-celestial-textMain hover:bg-nordic-cardActionHover"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -241,7 +241,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      <div className="rounded-lg bg-nordic-section p-3 text-xs text-nordic-textOnDark">
+      <div className="rounded-lg bg-nordic-section p-3 text-xs text-celestial-textSub">
         <p>
           出典: {concept.source.book || "未入力"} / p.{concept.source.page || "-"} /{" "}
           {concept.source.author || "著者未入力"}

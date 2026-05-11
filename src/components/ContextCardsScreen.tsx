@@ -223,7 +223,7 @@ const ContextCardDetail = ({
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full px-3 py-1 text-sm ${
+                    className={`rounded-[10px] px-3 py-1 text-sm ${
                       matchedConcept
                         ? "bg-celestial-gold text-celestial-base hover:bg-celestial-softGold cursor-pointer"
                         : "bg-celestial-panel text-celestial-softGold cursor-default"

@@ -383,12 +383,12 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                               ) : null}
                               <div className="flex flex-wrap items-center gap-2">
                                 {qd.deckKey ? (
-                                  <code className="rounded-md border border-sky-400/40 bg-sky-100/90 px-2 py-0.5 font-mono text-[11px] text-sky-900/90">
+                                  <code className="rounded-md border border-celestial-border bg-celestial-deepBlue px-2 py-0.5 font-mono text-[11px] text-celestial-textMain">
                                     {qd.deckKey}
                                   </code>
                                 ) : null}
                                 <span
-                                  className={`rounded-full px-2 py-0.5 text-xs ${
+                                  className={`rounded-[10px] px-2 py-0.5 text-xs ${
                                     qd.visibility === "public"
                                       ? "border border-celestial-gold/50 bg-celestial-gold/10 text-celestial-gold"
                                       : "border border-celestial-border text-celestial-textSub"
@@ -409,7 +409,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                                   {qd.domainTags!.map((tag) => (
                                     <span
                                       key={tag}
-                                      className="rounded-full border border-celestial-border/60 bg-celestial-panel/60 px-2 py-0.5 text-[11px] text-celestial-softGold"
+                                      className="rounded-[10px] border border-celestial-border/60 bg-celestial-panel/60 px-2 py-0.5 text-[11px] text-celestial-softGold"
                                     >
                                       {tag}
                                     </span>

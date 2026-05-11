@@ -117,7 +117,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             if (node.favorite || isSelected) {
               context.beginPath();
               context.arc(node.x, node.y, radius + 1.8, 0, Math.PI * 2, false);
-              context.strokeStyle = isSelected ? "#0ea5e9" : "#7dd3fc";
+              context.strokeStyle = isSelected ? "#2f5f57" : "#5f8f87";
               context.lineWidth = isSelected ? 2.2 : 1.4;
               context.stroke();
             }

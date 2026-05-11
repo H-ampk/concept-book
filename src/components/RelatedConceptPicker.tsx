@@ -128,7 +128,7 @@ export const RelatedConceptPicker = ({
           selectedConcepts.map((concept) => (
             <span
               key={concept.id}
-              className="inline-flex items-center gap-2 rounded-full border border-celestial-gold/30 bg-celestial-panel px-2.5 py-1 text-xs text-celestial-softGold"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-celestial-gold/30 bg-celestial-panel px-2.5 py-1 text-xs text-celestial-softGold"
             >
               <span>
                 {concept.title}

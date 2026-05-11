@@ -24,7 +24,7 @@ type Props = {
 };
 
 const cardClassName = (selected: boolean) =>
-  `concept-card group relative overflow-visible rounded-xl border border-celestial-border bg-nordic-card p-3 shadow-celestial transition-all duration-200 ${
+  `concept-card group relative overflow-visible rounded-3xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial backdrop-blur-[22px] saturate-[165%] transition-all duration-200 ${
     selected ? "concept-card-selected" : ""
   }`;
 
