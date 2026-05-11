@@ -83,7 +83,7 @@ const buildTagSections = (
 const DecorativeBackground = () => (
   <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
     <div className="hud-global-ring" aria-hidden="true" />
-    <div className="absolute inset-0 bg-gradient-radial from-celestial-deepBlue via-white to-celestial-base opacity-95"></div>
+    <div className="absolute inset-0 bg-gradient-radial from-nordic-bgAlt via-nordic-bg to-nordic-muted opacity-[0.97]"></div>
     <div className="star-field absolute inset-0 opacity-45"></div>
     <div className="astral-chart absolute inset-0"></div>
     <div className="cathedral-frame cathedral-frame-left"></div>
@@ -239,17 +239,17 @@ export const App = () => {
       <div className="cyber-ambient" aria-hidden="true" />
       <DecorativeBackground />
 
-      <header className="app-header-shell border-b border-celestial-border bg-celestial-panel/50 backdrop-blur-sm relative z-30 overflow-visible">
+      <header className="app-header-shell app-header relative z-30 overflow-visible">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2">
           <div className="header-insignia hud-header-cluster min-w-0">
-            <h1 className="text-xl font-semibold text-celestial-gold tracking-wider ritual-title">Concept Book App</h1>
+            <h1 className="text-xl font-semibold tracking-wider ritual-title">Concept Book App</h1>
             <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
             <OrnamentLine variant="header" />
           </div>
           <nav className="header-nav-button-group shrink-0">
             <button
-              className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
-                screen === "concepts" ? "bg-celestial-gold/20" : ""
+              className={`header-nav-button rounded-md ${
+                screen === "concepts" ? "header-nav-button--active" : ""
               }`}
               onClick={() => setScreen("concepts")}
               type="button"
@@ -257,8 +257,8 @@ export const App = () => {
               概念
             </button>
             <button
-              className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
-                screen === "contexts" ? "bg-celestial-gold/20" : ""
+              className={`header-nav-button rounded-md ${
+                screen === "contexts" ? "header-nav-button--active" : ""
               }`}
               onClick={() => setScreen("contexts")}
               type="button"
@@ -271,8 +271,8 @@ export const App = () => {
               onNavigate={(route) => setScreen(route)}
             />
             <button
-              className={`header-nav-button rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10 ${
-                screen === "settings" ? "bg-celestial-gold/20" : ""
+              className={`header-nav-button rounded-md ${
+                screen === "settings" ? "header-nav-button--active" : ""
               }`}
               onClick={() => setScreen("settings")}
               type="button"
@@ -334,7 +334,7 @@ export const App = () => {
           )
         ) : (
           <div className="space-y-4">
-            <section className="relative z-10 rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-[22px] saturate-[165%] decorated-card ritual-altar">
+            <section className="relative z-10 rounded-3xl border border-white/40 p-6 shadow-celestial backdrop-blur-[24px] saturate-[180%] decorated-card ritual-altar">
               <span className="card-corner card-corner-top-left" aria-hidden="true" />
               <span className="card-corner card-corner-top-right" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
@@ -342,14 +342,14 @@ export const App = () => {
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <div className="hud-search-wrap min-w-0">
                   <input
-                    className="w-full rounded-xl border border-celestial-border bg-celestial-panel px-4 py-3 text-sm text-celestial-textMain shadow-celestial backdrop-blur-[22px] saturate-[165%] placeholder:text-celestial-textSub"
+                    className="w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-sm text-white shadow-[0_12px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.1)] backdrop-blur-[24px] saturate-[180%] placeholder:text-white/55"
                     placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </div>
                 <button
-                  className="rounded-xl border border-celestial-border bg-celestial-panel px-4 py-3 text-sm text-celestial-softGold shadow-celestial backdrop-blur-[22px] saturate-[165%] hover:bg-celestial-panelHover"
+                  className="rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-sm text-white/88 shadow-[0_12px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.1)] backdrop-blur-[24px] saturate-[180%] hover:border-white/48 hover:bg-white/18"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -368,8 +368,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("list")}
-                  className={`rounded-lg px-3 py-1.5 text-sm border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover ${
-                    conceptMainTab === "list" ? "bg-celestial-gold/20 border-celestial-gold" : ""
+                  className={`rounded-lg border border-white/30 px-3 py-1.5 text-sm text-celestial-softGold shadow-[0_8px_22px_rgba(31,63,58,0.1),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[24px] hover:border-white/45 hover:bg-white/18 ${
+                    conceptMainTab === "list"
+                      ? "border-white/45 bg-white/22 text-[#1f2f2c]"
+                      : "bg-white/12"
                   }`}
                 >
                   一覧表示
@@ -377,8 +379,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("graph")}
-                  className={`rounded-lg px-3 py-1.5 text-sm border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover ${
-                    conceptMainTab === "graph" ? "bg-celestial-gold/20 border-celestial-gold" : ""
+                  className={`rounded-lg border border-white/30 px-3 py-1.5 text-sm text-celestial-softGold shadow-[0_8px_22px_rgba(31,63,58,0.1),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[24px] hover:border-white/45 hover:bg-white/18 ${
+                    conceptMainTab === "graph"
+                      ? "border-white/45 bg-white/22 text-[#1f2f2c]"
+                      : "bg-white/12"
                   }`}
                 >
                   グラフ表示
@@ -386,8 +390,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("tree")}
-                  className={`rounded-lg px-3 py-1.5 text-sm border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover ${
-                    conceptMainTab === "tree" ? "bg-celestial-gold/20 border-celestial-gold" : ""
+                  className={`rounded-lg border border-white/30 px-3 py-1.5 text-sm text-celestial-softGold shadow-[0_8px_22px_rgba(31,63,58,0.1),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[24px] hover:border-white/45 hover:bg-white/18 ${
+                    conceptMainTab === "tree"
+                      ? "border-white/45 bg-white/22 text-[#1f2f2c]"
+                      : "bg-white/12"
                   }`}
                 >
                   ツリー表示
@@ -407,8 +413,8 @@ export const App = () => {
                       onClick={() => setListViewMode(mode)}
                       className={`rounded-md px-2.5 py-1 text-xs ${
                         listViewMode === mode
-                      ? "bg-celestial-gold text-celestial-base"
-                          : "border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold"
+                      ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]"
+                          : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
                       }`}
                     >
                       {label}
@@ -433,7 +439,7 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                            className="rounded-[10px] px-2.5 py-1 text-xs bg-celestial-gold text-celestial-base"
+                            className="rounded-[10px] px-2.5 py-1 text-xs bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]"
                           >
                             {tag}
                           </button>
@@ -451,7 +457,7 @@ export const App = () => {
                   <button
                     type="button"
                     onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
-                    className="rounded-[10px] px-2.5 py-1 text-xs border border-celestial-gold/30 bg-celestial-panel text-celestial-softGold hover:bg-celestial-panelHover"
+                    className="rounded-[10px] border border-white/35 bg-white/12 px-2.5 py-1 text-xs text-celestial-softGold backdrop-blur-[24px] hover:border-white/48 hover:bg-white/18"
                   >
                     {isFieldTagsExpanded ? "畳む" : "展開"}
                   </button>
@@ -475,7 +481,7 @@ export const App = () => {
                               )
                             }
                             className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                        active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
+                        active ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
                             }`}
                           >
                             {tag}
@@ -505,7 +511,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                      active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
+                      active ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
                           }`}
                         >
                           {tag}
@@ -531,7 +537,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                          active ? "bg-celestial-gold text-celestial-base" : "bg-celestial-panel text-celestial-softGold"
+                          active ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
                         }`}
                       >
                         {statusLabelMap[status]}

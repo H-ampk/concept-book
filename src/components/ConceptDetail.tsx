@@ -2,7 +2,6 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import type { Concept } from "../types/concept";
 import { getStorage } from "../storage";
 import { shortDateTime } from "../utils/date";
-import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 import { StatusBadge } from "./StatusBadge";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -64,18 +63,18 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textSecondary">添付メディア</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-            <li key={ref.id} className="rounded-lg border border-nordic-border bg-nordic-surface p-2">
-            {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
-            <p className="mb-1 text-xs text-nordic-textSecondary">{ref.fileName}</p>
+            <li key={ref.id} className="rounded-lg border border-white/20 bg-white/10 p-2 backdrop-blur-sm">
+            {ref.caption && <p className="mb-1 text-xs text-white/75">{ref.caption}</p>}
+            <p className="mb-1 text-xs text-white/65">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
               <img src={urls[ref.id]} alt={ref.caption ?? ref.fileName} className="max-h-64 w-full rounded object-contain" />
             ) : ref.kind === "video" && urls[ref.id] ? (
               <video src={urls[ref.id]} controls className="max-h-72 w-full rounded bg-black" playsInline />
             ) : (
-              <p className="text-xs text-nordic-textSecondary">読み込み中…</p>
+              <p className="text-xs text-white/70">読み込み中…</p>
             )}
           </li>
         ))}
@@ -87,19 +86,19 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
 export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   concept,
   conceptMap,
-  domainColorMap,
+  domainColorMap: _domainColorMap,
   onSelectRelated,
   onRequestDelete,
   deleting
 }, ref) => {
   if (!concept) {
     return (
-      <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
+      <section className="concept-detail-panel rounded-2xl border border-white/20 p-6 shadow-celestial decorated-card backdrop-blur-[22px]">
         <span className="card-corner card-corner-top-left" aria-hidden="true" />
         <span className="card-corner card-corner-top-right" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-        <p className="text-sm text-celestial-textSub">左側の概念を選択すると詳細が表示されます。</p>
+        <p className="text-sm text-white/75">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
   }
@@ -111,16 +110,19 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   });
 
   return (
-    <section ref={ref} className="max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial decorated-card">
+    <section
+      ref={ref}
+      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-white/20 p-6 shadow-celestial decorated-card backdrop-blur-[22px]"
+    >
       <span className="card-corner card-corner-top-left" aria-hidden="true" />
       <span className="card-corner card-corner-top-right" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <OrnamentLine variant="panel" />
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
-        <h2 className="text-xl font-semibold text-celestial-textMain">{concept.title}</h2>
+        <h2 className="text-xl font-semibold text-white">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-[10px] bg-celestial-gold px-2 py-0.5 text-xs font-medium text-celestial-base">
+          <span className="rounded-[10px] border border-white/35 bg-white/15 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
             お気に入り
           </span>
         )}
@@ -132,7 +134,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           type="button"
           onClick={() => onRequestDelete(concept)}
           disabled={deleting}
-          className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md border border-red-400/35 bg-red-500/15 px-3 py-1.5 text-sm text-red-100 backdrop-blur-md hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {deleting ? "削除中..." : "削除"}
         </button>
@@ -140,45 +142,44 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-celestial-textMain">
+      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-white/[0.88]">
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">定義</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">自分の解釈</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">自分の解釈</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
         {contextDefinitions.length > 0 && (
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">文脈別定義</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">文脈別定義</h3>
             <div className="space-y-3">
               {contextDefinitions.map((ctxDef) => (
-                <div key={ctxDef.id} className="rounded-lg border border-celestial-border bg-celestial-panel/50 p-3">
-                  <h4 className="mb-1 text-sm font-medium text-celestial-softGold">{ctxDef.context.trim() || "文脈未指定"}</h4>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-celestial-textMain">{ctxDef.definition.trim() || "定義未入力"}</p>
+                <div key={ctxDef.id} className="rounded-lg border border-white/18 bg-white/8 p-3 backdrop-blur-sm">
+                  <h4 className="mb-1 text-sm font-medium text-white/85">{ctxDef.context.trim() || "文脈未指定"}</h4>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-white/[0.88]">{ctxDef.definition.trim() || "定義未入力"}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-celestial-textSub">メモ</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">メモ</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>
         </div>
       </article>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-celestial-textSub">分野タグ</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">分野タグ</h3>
         <div className="flex flex-wrap gap-1">
           {concept.domainTags.length === 0 ? (
-            <span className="text-sm text-celestial-textSub">なし</span>
+            <span className="text-sm text-white/65">なし</span>
           ) : (
             concept.domainTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border px-2 py-0.5 text-xs"
-                style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
+                className="rounded-md border border-white/28 bg-white/12 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm"
               >
                 #{tag}
               </span>
@@ -188,17 +189,17 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-celestial-textSub">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">
           研究テーマタグ
         </h3>
         <div className="flex flex-wrap gap-1">
           {concept.researchTags.length === 0 ? (
-            <span className="text-sm text-celestial-textSub">なし</span>
+            <span className="text-sm text-white/65">なし</span>
           ) : (
             concept.researchTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-celestial-softGold px-2 py-0.5 text-xs text-celestial-base"
+                className="rounded-md border border-white/25 bg-white/12 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm"
               >
                 #{tag}
               </span>
@@ -208,9 +209,9 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">関連概念</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">関連概念</h3>
         {concept.relatedIds.length === 0 ? (
-          <p className="text-sm text-nordic-textSecondary">関連概念なし</p>
+          <p className="text-sm text-white/65">関連概念なし</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {concept.relatedIds.map((relatedId) => {
@@ -228,7 +229,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-nordic-card-border bg-nordic-cardAction px-2 py-1 text-xs text-celestial-textMain hover:bg-nordic-cardActionHover"
+                    className="rounded-md border border-white/28 bg-white/12 px-2 py-1 text-xs text-white/90 backdrop-blur-sm hover:bg-white/18"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -241,7 +242,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      <div className="rounded-lg bg-nordic-section p-3 text-xs text-celestial-textSub">
+      <div className="rounded-lg border border-white/15 bg-white/8 p-3 text-xs text-white/70 backdrop-blur-sm">
         <p>
           出典: {concept.source.book || "未入力"} / p.{concept.source.page || "-"} /{" "}
           {concept.source.author || "著者未入力"}

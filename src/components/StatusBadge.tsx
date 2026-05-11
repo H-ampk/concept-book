@@ -8,10 +8,10 @@ const labelMap: Record<ConceptStatus, string> = {
 };
 
 const colorMap: Record<ConceptStatus, string> = {
-  active: "border border-celestial-gold/35 bg-celestial-gold/15 text-celestial-textMain",
-  researching: "border border-celestial-emerald/35 bg-celestial-emerald/12 text-celestial-softGold",
-  unclear: "border border-celestial-gold/25 bg-celestial-gold/10 text-celestial-softGold",
-  archived: "border border-celestial-border/80 bg-celestial-deepBlue/80 text-celestial-textSub"
+  active: "border border-emerald-100/45 bg-white/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+  researching: "border border-white/28 bg-white/10 text-white/90",
+  unclear: "border border-white/22 bg-white/8 text-white/82",
+  archived: "border border-white/18 bg-black/15 text-white/72"
 };
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
 };
 
 export const StatusBadge = ({ status }: Props) => (
-  <span className={`hud-terminal-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[status]}`}>
+  <span className={`hud-terminal-badge inline-flex rounded-[10px] px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${colorMap[status]}`}>
     {labelMap[status]}
   </span>
 );

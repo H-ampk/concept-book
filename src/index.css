@@ -6,45 +6,69 @@
   font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text-primary);
   background-color: var(--bg-main);
-  /* Nordic Deep Glass Lab — 灰白・深緑〜青緑・強ガラス（静かな研究室） */
-  --bg-main: #f1f4f3;
-  --bg-main-alt: #edf1ef;
-  --bg-panel: rgba(255, 255, 255, 0.42);
-  --bg-card: #f3f5f2;
-  --bg-input: rgba(255, 255, 255, 0.52);
-  --overlay-bg: rgba(31, 47, 44, 0.36);
+  /* Nordic Deep Green Glass Laboratory — 曇り空の灰白・渋い青緑・強ガラス・白文字 */
+  --bg-main: #e6eae9;
+  --bg-main-alt: #dde3e1;
+  --bg-muted: #d3d8d7;
+  --bg-panel: rgba(230, 234, 233, 0.78);
+  --bg-card: #496d66;
+  --bg-input: rgba(255, 255, 255, 0.14);
+  --overlay-bg: rgba(24, 40, 38, 0.45);
+
+  --header-gradient: linear-gradient(135deg, rgba(73, 109, 102, 0.92), rgba(47, 87, 80, 0.88));
+
+  --card-face: linear-gradient(135deg, rgba(73, 109, 102, 0.94), rgba(47, 87, 80, 0.92));
+  --card-face-hover: linear-gradient(135deg, rgba(82, 124, 116, 0.96), rgba(50, 94, 86, 0.94));
+  --card-face-selected: linear-gradient(135deg, rgba(90, 135, 126, 0.98), rgba(47, 87, 80, 0.96));
+  --detail-panel-face: linear-gradient(135deg, rgba(73, 109, 102, 0.88), rgba(47, 87, 80, 0.84));
 
   --text-primary: #1f2f2c;
   --text-secondary: #526963;
   --text-muted: #7b8f89;
   --text-disabled: #9db0aa;
 
-  /* 互換名：旧スロット名を維持しつつ深緑〜青緑アクセントへ */
-  --green-neon: #5f8f87;
-  --green-acid: #6b9b92;
-  --green-emerald: #4d7c73;
-  --green-deep: #e7ecea;
-  --green-border: rgba(77, 124, 115, 0.24);
-  --green-border-strong: rgba(77, 124, 115, 0.38);
-  --green-glow: rgba(47, 95, 87, 0.12);
-  --green-glow-strong: rgba(47, 95, 87, 0.2);
+  --text-on-card: #ffffff;
+  --text-on-card-sub: rgba(255, 255, 255, 0.88);
+  --text-on-card-muted: rgba(255, 255, 255, 0.72);
 
-  /* ガラスボタン用のフォールバック */
-  --orange-action: #4d7c73;
-  --orange-action-hover: #5f8f87;
-  --orange-action-active: #2f5f57;
-  --orange-action-text: #1f2f2c;
-  --orange-action-glow: rgba(47, 95, 87, 0.18);
+  --accent: #6b8f87;
+  --accent-sub: #8fb6ad;
+  --accent-strong: #2f5750;
+  --accent-mint: rgba(186, 255, 241, 0.58);
+  --accent-glow: rgba(143, 182, 173, 0.36);
 
-  --glass-bg: rgba(255, 255, 255, 0.42);
-  --glass-bg-hover: rgba(255, 255, 255, 0.58);
-  --glass-border: rgba(255, 255, 255, 0.72);
-  --glass-blur: blur(22px) saturate(165%);
+  /* 互換名（旧参照を維持） */
+  --green-neon: #8fb6ad;
+  --green-acid: #6b8f87;
+  --green-emerald: #496d66;
+  --green-deep: rgba(186, 255, 241, 0.35);
+  --green-border: rgba(73, 109, 102, 0.28);
+  --green-border-strong: rgba(73, 109, 102, 0.42);
+  --green-glow: rgba(143, 182, 173, 0.22);
+  --green-glow-strong: rgba(143, 182, 173, 0.36);
+
+  --orange-action: #496d66;
+  --orange-action-hover: #5a8279;
+  --orange-action-active: #2f5750;
+  --orange-action-text: #ffffff;
+  --orange-action-glow: rgba(143, 182, 173, 0.32);
+
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-bg-hover: rgba(255, 255, 255, 0.18);
+  --glass-bg-active: rgba(255, 255, 255, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.34);
+  --glass-border-strong: rgba(255, 255, 255, 0.48);
+  --glass-blur: blur(24px) saturate(180%);
   --glass-shadow:
-    0 18px 48px rgba(47, 95, 87, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    inset 0 -1px 0 rgba(77, 124, 115, 0.08);
-  --glass-shadow-hover: 0 22px 56px rgba(47, 95, 87, 0.2);
-  --glass-shadow-active: 0 10px 28px rgba(47, 95, 87, 0.16);
+    0 12px 36px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+  --glass-shadow-hover:
+    0 16px 46px rgba(0, 0, 0, 0.24), 0 0 24px rgba(143, 182, 173, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  --glass-shadow-active:
+    0 8px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.46);
+
+  --filter-panel-bg: rgba(230, 234, 233, 0.58);
 
   --danger-red: #e11d48;
   --danger-glow: rgba(225, 29, 72, 0.18);
@@ -66,15 +90,19 @@
   0%,
   100% {
     box-shadow:
-      0 0 14px rgba(47, 95, 87, 0.14),
-      0 10px 26px rgba(31, 47, 44, 0.06),
-      inset 0 0 10px rgba(77, 124, 115, 0.08);
+      inset 3px 0 0 0 rgba(186, 255, 241, 0.55),
+      0 0 0 1px rgba(186, 255, 241, 0.32),
+      0 0 20px rgba(143, 182, 173, 0.28),
+      0 18px 44px rgba(31, 63, 58, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
   50% {
     box-shadow:
-      0 0 26px rgba(47, 95, 87, 0.22),
-      0 12px 30px rgba(31, 47, 44, 0.08),
-      inset 0 0 16px rgba(77, 124, 115, 0.12);
+      inset 3px 0 0 0 rgba(186, 255, 241, 0.72),
+      0 0 0 1px rgba(186, 255, 241, 0.48),
+      0 0 32px rgba(143, 182, 173, 0.38),
+      0 22px 52px rgba(31, 63, 58, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
   }
 }
 
@@ -95,17 +123,17 @@
   0%,
   100% {
     box-shadow:
-      0 22px 52px rgba(47, 95, 87, 0.1),
-      0 0 24px rgba(77, 124, 115, 0.12),
-      inset 0 0 34px rgba(255, 255, 255, 0.65),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      0 14px 40px rgba(31, 63, 58, 0.14),
+      0 0 20px rgba(143, 182, 173, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   }
   50% {
     box-shadow:
-      0 24px 56px rgba(47, 95, 87, 0.14),
-      0 0 32px rgba(77, 124, 115, 0.18),
-      inset 0 0 36px rgba(255, 255, 255, 0.75),
-      inset 0 1px 0 rgba(255, 255, 255, 1);
+      0 18px 48px rgba(31, 63, 58, 0.18),
+      0 0 28px rgba(143, 182, 173, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.62),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -129,6 +157,59 @@ body {
   color: var(--text-primary);
 }
 
+/* ─── アプリヘッダー：渋い青緑〜深緑の全面ガラス ─── */
+.app-header-shell.app-header {
+  background: var(--header-gradient);
+  backdrop-filter: blur(22px) saturate(175%);
+  -webkit-backdrop-filter: blur(22px) saturate(175%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+  color: #ffffff;
+}
+
+.app-header-shell.app-header .ritual-title {
+  color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 0 28px rgba(186, 255, 241, 0.18);
+}
+
+.app-header-shell.app-header .ritual-subtitle {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.app-header-shell.app-header .header-nav-button {
+  color: #ffffff;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.app-header-shell.app-header .header-nav-button:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+.app-header-shell.app-header .header-nav-button:active {
+  background: var(--glass-bg-active);
+  box-shadow: var(--glass-shadow-active);
+}
+
+.app-header-shell.app-header .header-nav-button:focus-visible {
+  outline: 2px solid rgba(186, 255, 241, 0.55);
+  outline-offset: 2px;
+}
+
+.app-header-shell.app-header .header-nav-button.header-nav-button--active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(186, 255, 241, 0.48);
+  box-shadow:
+    0 0 26px rgba(143, 182, 173, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+}
+
 .header-insignia {
   position: relative;
   display: inline-block;
@@ -137,7 +218,7 @@ body {
 
 .ritual-title {
   letter-spacing: 0.09em;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 24px rgba(47, 95, 87, 0.12);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65), 0 0 18px rgba(143, 182, 173, 0.14);
 }
 
 .ritual-subtitle {
@@ -192,18 +273,12 @@ body {
   min-width: 64px;
   min-height: 38px;
   padding: 0.42rem 0.82rem;
-  border: 1px solid var(--glass-border);
   border-radius: 12px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  color: var(--text-primary);
   font-size: 0.9rem;
   line-height: 1.1;
   font-weight: 600;
   white-space: nowrap;
   writing-mode: horizontal-tb;
-  box-shadow: var(--glass-shadow);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -213,20 +288,11 @@ body {
 }
 
 .header-nav-button:hover {
-  background: var(--glass-bg-hover);
-  border-color: rgba(95, 143, 135, 0.46);
-  box-shadow: var(--glass-shadow-hover);
   transform: translateY(-1px);
 }
 
 .header-nav-button:active {
   transform: translateY(0);
-  box-shadow: var(--glass-shadow-active);
-}
-
-.header-nav-button:focus-visible {
-  outline: 2px solid rgba(95, 143, 135, 0.42);
-  outline-offset: 2px;
 }
 
 .header-nav-button-group {
@@ -244,14 +310,30 @@ body {
   overflow: visible;
 }
 
+.lab-dropdown-panel--portal {
+  background: linear-gradient(165deg, rgba(52, 82, 76, 0.97), rgba(36, 66, 60, 0.98)) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  color: #ffffff;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.lab-dropdown-item {
+  color: rgba(255, 255, 255, 0.92);
+}
+
 .lab-dropdown-item:hover {
-  background-color: rgba(237, 241, 239, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(77, 124, 115, 0.25);
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(186, 255, 241, 0.22);
 }
 
 .lab-dropdown-item:focus-visible {
-  background-color: rgba(237, 241, 239, 0.55);
-  outline: 2px solid rgba(47, 95, 87, 0.35);
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: 2px solid rgba(186, 255, 241, 0.45);
   outline-offset: -2px;
 }
 
@@ -445,12 +527,25 @@ body {
 }
 
 .ritual-altar {
-  background: var(--glass-bg);
+  background: var(--filter-panel-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(255, 255, 255, 0.42);
   color: var(--text-primary);
   animation: panelBreath 6.5s ease-in-out infinite;
+  box-shadow: var(--glass-shadow);
+}
+
+/* 詳細パネル：概念カードよりわずかに透明な青緑ガラス + 白系文字 */
+.concept-detail-panel.decorated-card {
+  background: var(--detail-panel-face);
+  color: var(--text-on-card-sub);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 18px 42px rgba(31, 63, 58, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.concept-detail-panel.decorated-card .border-celestial-border {
+  border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
 /* ─── HUD フレーム：フィルターパネル（強） ─── */
@@ -461,8 +556,8 @@ body {
   left: 18px;
   width: 76px;
   height: 22px;
-  border-top: 1px solid rgba(77, 124, 115, 0.44);
-  border-left: 1px solid rgba(77, 124, 115, 0.44);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
   pointer-events: none;
   z-index: 0;
   opacity: 0.82;
@@ -476,8 +571,8 @@ body {
   right: 18px;
   width: 76px;
   height: 22px;
-  border-right: 1px solid rgba(77, 124, 115, 0.34);
-  border-bottom: 1px solid rgba(77, 124, 115, 0.34);
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
   pointer-events: none;
   z-index: 0;
   opacity: 0.72;
@@ -513,6 +608,16 @@ body {
   z-index: 0;
   opacity: 0.62;
   border-radius: 0 0 2px 0;
+}
+
+.concept-detail-panel.decorated-card:not(.ritual-altar)::before {
+  border-top-color: rgba(255, 255, 255, 0.32);
+  border-left-color: rgba(255, 255, 255, 0.32);
+}
+
+.concept-detail-panel.decorated-card:not(.ritual-altar)::after {
+  border-right-color: rgba(255, 255, 255, 0.24);
+  border-bottom-color: rgba(255, 255, 255, 0.24);
 }
 
 @keyframes hudRotateSlow {
@@ -729,6 +834,16 @@ body {
   );
 }
 
+.concept-detail-panel .hud-detail-heading::after {
+  opacity: 0.55;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.42),
+    rgba(255, 255, 255, 0.12),
+    transparent 85%
+  );
+}
+
 /* 状態バッジ：小型端末ラベル */
 .hud-terminal-badge {
   box-shadow:
@@ -800,21 +915,25 @@ body {
 
 .concept-card {
   position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background-image: var(--card-face);
+  backdrop-filter: blur(20px) saturate(165%);
+  -webkit-backdrop-filter: blur(20px) saturate(165%);
+  color: var(--text-on-card-sub);
+  box-shadow: 0 18px 42px rgba(31, 63, 58, 0.24);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
     transform 180ms ease,
-    background-color 180ms ease;
-  box-shadow:
-    inset 0 0 6px rgba(77, 124, 115, 0.06),
-    0 8px 22px rgba(47, 95, 87, 0.08);
+    background 220ms ease,
+    filter 180ms ease;
 }
 
 .concept-card:hover {
-  border-color: var(--green-border-strong);
-  box-shadow:
-    0 0 18px rgba(47, 95, 87, 0.14),
-    0 8px 24px rgba(31, 47, 44, 0.06);
+  border-color: rgba(255, 255, 255, 0.38);
+  background-image: var(--card-face-hover);
+  box-shadow: 0 24px 56px rgba(31, 63, 58, 0.32);
   transform: translateY(-1px);
 }
 
@@ -827,9 +946,9 @@ body {
   height: 1px;
   background: linear-gradient(
     90deg,
-    rgba(77, 124, 115, 0),
-    rgba(77, 124, 115, 0.28),
-    rgba(77, 124, 115, 0)
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0)
   );
 }
 
@@ -841,24 +960,39 @@ body {
   bottom: 10px;
   width: 28px;
   height: 11px;
-  border-right: 1px solid rgba(77, 124, 115, 0.22);
-  border-bottom: 1px solid rgba(77, 124, 115, 0.16);
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
   pointer-events: none;
   z-index: 3;
-  opacity: 0.5;
+  opacity: 0.55;
   border-radius: 0 0 3px 0;
 }
 
+.concept-card h3 {
+  color: var(--text-on-card);
+}
+
+.concept-card .concept-card-main-button {
+  color: inherit;
+}
+
 .concept-card-selected {
-  border-color: var(--green-border-strong);
+  border-color: rgba(186, 255, 241, 0.45);
+  background-image: var(--card-face-selected);
+  box-shadow:
+    inset 3px 0 0 0 rgba(186, 255, 241, 0.65),
+    0 0 0 1px rgba(186, 255, 241, 0.38),
+    0 24px 60px rgba(31, 63, 58, 0.34);
   animation: emeraldPulse 4.2s ease-in-out infinite;
 }
 
 .concept-card-selected:hover {
   animation: none;
+  border-color: rgba(186, 255, 241, 0.55);
   box-shadow:
-    0 0 18px rgba(47, 95, 87, 0.18),
-    0 8px 24px rgba(31, 47, 44, 0.06);
+    inset 3px 0 0 0 rgba(186, 255, 241, 0.72),
+    0 0 0 1px rgba(186, 255, 241, 0.42),
+    0 24px 56px rgba(31, 63, 58, 0.32);
   transform: translateY(-1px);
 }
 
@@ -875,8 +1009,39 @@ body {
   filter: none;
 }
 
+/* 概念カード上のタグ・補助ボタン：白ガラス */
+.concept-card .tag-chip,
+.concept-card .filter-button {
+  color: var(--text-on-card) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.concept-card .tag-chip:hover,
+.concept-card .filter-button:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 20px rgba(143, 182, 173, 0.22);
+}
+
+.concept-card .hud-terminal-badge {
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-on-card) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
 .bg-celestial-deepBlue {
-  background-image: linear-gradient(180deg, #edf1ef 0%, #e7ecea 100%);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+  background-color: rgba(47, 87, 80, 0.22);
 }
 
 .border-celestial-border {
@@ -893,11 +1058,11 @@ body {
     radial-gradient(circle at bottom right, rgba(107, 155, 146, 0.14), transparent 22%);
 }
 
-/* 主要アクション：Nordic Deep Glass Lab */
+/* 主要アクション：渋い青緑ガラス + 白文字 */
 .action-button {
-  background: var(--glass-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgba(73, 109, 102, 0.55), rgba(47, 87, 80, 0.52));
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.34);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-shadow);
@@ -912,8 +1077,8 @@ body {
 }
 
 .action-button:hover:not(:disabled) {
-  background: var(--glass-bg-hover);
-  border-color: rgba(95, 143, 135, 0.46);
+  background: linear-gradient(135deg, rgba(82, 124, 116, 0.62), rgba(50, 94, 86, 0.58));
+  border-color: var(--glass-border-strong);
   box-shadow: var(--glass-shadow-hover);
   transform: translateY(-1px);
   filter: none;
@@ -930,22 +1095,22 @@ body {
 }
 
 .action-button:focus-visible {
-  outline: 2px solid rgba(95, 143, 135, 0.42);
+  outline: 2px solid rgba(186, 255, 241, 0.55);
   outline-offset: 2px;
 }
 
 button.bg-celestial-gold {
-  background: var(--glass-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgba(73, 109, 102, 0.72), rgba(47, 87, 80, 0.78));
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.38);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-shadow);
 }
 
 button.bg-celestial-gold:hover {
-  background: var(--glass-bg-hover);
-  border-color: rgba(95, 143, 135, 0.46);
+  background: linear-gradient(135deg, rgba(90, 130, 120, 0.82), rgba(52, 92, 84, 0.85));
+  border-color: rgba(186, 255, 241, 0.42);
   box-shadow: var(--glass-shadow-hover);
 }
 
@@ -980,16 +1145,16 @@ button {
 .tag-chip:hover,
 .filter-button:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 0 18px rgba(47, 95, 87, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 0 22px rgba(143, 182, 173, 0.28);
   transform: translateY(-1px);
 }
 
 .filter-button:active,
 .tag-chip:active {
   box-shadow:
-    inset 0 2px 5px rgba(31, 47, 44, 0.06),
-    0 0 10px rgba(47, 95, 87, 0.1);
+    inset 0 2px 5px rgba(0, 0, 0, 0.12),
+    0 0 14px rgba(143, 182, 173, 0.2);
 }
 
 input,
@@ -1015,10 +1180,10 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: rgba(95, 143, 135, 0.46);
+  border-color: rgba(186, 255, 241, 0.45);
   box-shadow:
-    0 0 0 2px rgba(95, 143, 135, 0.28),
-    0 12px 32px rgba(47, 95, 87, 0.12);
+    0 0 0 2px rgba(186, 255, 241, 0.35),
+    0 12px 32px rgba(31, 63, 58, 0.18);
 }
 
 input::placeholder,
@@ -1204,24 +1369,26 @@ textarea::placeholder {
   .concept-card {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(255, 255, 255, 0.72) !important;
+    background-image: var(--card-face) !important;
     box-shadow:
-      inset 0 0 4px rgba(77, 124, 115, 0.06),
-      0 4px 14px rgba(47, 95, 87, 0.08) !important;
+      0 12px 28px rgba(31, 63, 58, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .concept-card:hover {
+    background-image: var(--card-face-hover) !important;
     box-shadow:
-      0 0 12px rgba(47, 95, 87, 0.12),
-      0 6px 18px rgba(31, 47, 44, 0.05) !important;
+      0 16px 36px rgba(31, 63, 58, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.24);
   }
 
   .concept-card-selected {
     animation: none !important;
+    background-image: var(--card-face-selected) !important;
     box-shadow:
-      0 0 14px rgba(47, 95, 87, 0.14),
-      0 6px 18px rgba(31, 47, 44, 0.06),
-      inset 0 0 8px rgba(77, 124, 115, 0.08);
+      inset 3px 0 0 0 rgba(186, 255, 241, 0.55),
+      0 0 0 1px rgba(186, 255, 241, 0.32),
+      0 14px 32px rgba(31, 63, 58, 0.28);
   }
 
   .moon-emblem {
