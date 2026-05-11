@@ -277,7 +277,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
               </div>
               <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 p-4 backdrop-blur-sm">
                 <p className="text-xs text-celestial-textSub">正解</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-400/95">{summary.correctCount} 件</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums text-sky-600">{summary.correctCount} 件</p>
               </div>
               <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 p-4 backdrop-blur-sm">
                 <p className="text-xs text-celestial-textSub">不正解</p>
@@ -476,7 +476,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                         <dt className="text-celestial-textSub">正誤</dt>
                         <dd className="mt-0.5">
                           {log.correct ? (
-                            <span className="text-emerald-400/95">正解</span>
+                            <span className="text-sky-600">正解</span>
                           ) : (
                             <span className="text-rose-400/90">不正解</span>
                           )}
@@ -562,7 +562,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                         </td>
                         <td className="px-4 py-3">
                           {log.correct ? (
-                            <span className="text-emerald-400/95">
+                            <span className="text-sky-600">
                               正解<span className="sr-only">。正しい回答です。</span>
                             </span>
                           ) : (

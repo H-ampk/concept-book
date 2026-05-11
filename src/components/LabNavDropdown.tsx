@@ -150,12 +150,12 @@ export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
       id={menuId}
       role="menu"
       aria-labelledby={`${menuId}-trigger`}
-      className="lab-dropdown-panel lab-dropdown-panel--portal scrollbar-none fixed z-[45] max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border border-celestial-border py-2 shadow-[0_20px_48px_rgba(0,0,0,0.55),0_0_0_1px_rgba(77,255,154,0.2),0_0_32px_rgba(77,255,154,0.12)] backdrop-blur-md"
+      className="lab-dropdown-panel lab-dropdown-panel--portal scrollbar-none fixed z-[45] max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border border-celestial-border py-2 shadow-[0_20px_48px_rgba(56,189,248,0.14),0_0_0_1px_rgba(125,211,252,0.35),0_0_32px_rgba(125,211,252,0.12)] backdrop-blur-md"
       style={{
         top: menuPos.top,
         left: menuPos.left,
         width: menuPos.width,
-        backgroundColor: "rgba(4, 10, 8, 0.96)"
+        backgroundColor: "rgba(255, 255, 255, 0.88)"
       }}
       onKeyDown={handleMenuKeyDown}
     >
@@ -164,7 +164,7 @@ export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
           key={item.route}
           type="button"
           role="menuitem"
-          className="lab-dropdown-item flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(4,10,8,0.98)]"
+          className="lab-dropdown-item flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
           onClick={() => {
             onNavigate(item.route);
             setOpen(false);

@@ -194,7 +194,7 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
               {filteredDecks.map((d) => (
                 <li
                   key={d.id}
-                  className="rounded-2xl border border-celestial-border bg-celestial-deepBlue/25 p-4 shadow-[inset_0_0_0_1px_rgba(77,255,154,0.06)] backdrop-blur-sm"
+                  className="rounded-2xl border border-celestial-border bg-celestial-deepBlue/25 p-4 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.1)] backdrop-blur-sm"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1 space-y-2">
@@ -204,7 +204,7 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
                       ) : null}
                       <div className="flex flex-wrap items-center gap-2">
                         {d.deckKey ? (
-                          <code className="rounded-md border border-emerald-500/35 bg-emerald-950/40 px-2 py-0.5 font-mono text-[11px] text-emerald-200/95">
+                          <code className="rounded-md border border-sky-400/40 bg-sky-100/90 px-2 py-0.5 font-mono text-[11px] text-sky-900/90">
                             {d.deckKey}
                           </code>
                         ) : null}

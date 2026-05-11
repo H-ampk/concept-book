@@ -373,7 +373,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                       return (
                         <li
                           key={qd.id}
-                          className="rounded-2xl border border-celestial-border bg-celestial-deepBlue/25 p-4 shadow-[inset_0_0_0_1px_rgba(77,255,154,0.06)]"
+                          className="rounded-2xl border border-celestial-border bg-celestial-deepBlue/25 p-4 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.1)]"
                         >
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1 space-y-2">
@@ -383,7 +383,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                               ) : null}
                               <div className="flex flex-wrap items-center gap-2">
                                 {qd.deckKey ? (
-                                  <code className="rounded-md border border-emerald-500/35 bg-emerald-950/40 px-2 py-0.5 font-mono text-[11px] text-emerald-200/95">
+                                  <code className="rounded-md border border-sky-400/40 bg-sky-100/90 px-2 py-0.5 font-mono text-[11px] text-sky-900/90">
                                     {qd.deckKey}
                                   </code>
                                 ) : null}
@@ -538,10 +538,10 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
               ) : null}
 
               <div
-                className={`rounded-2xl border p-5 shadow-[inset_0_0_0_1px_rgba(77,255,154,0.08)] ${
+                className={`rounded-2xl border p-5 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.1)] ${
                   answered
                     ? isCorrect
-                      ? "border-celestial-gold/55 bg-[rgba(77,255,154,0.06)] shadow-[0_0_28px_rgba(77,255,154,0.12)]"
+                      ? "border-celestial-gold/55 bg-[rgba(56,189,248,0.08)] shadow-[0_0_28px_rgba(56,189,248,0.14)]"
                       : "border-celestial-border bg-celestial-deepBlue/20"
                     : "border-celestial-border bg-celestial-deepBlue/25"
                 }`}
