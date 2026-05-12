@@ -7,6 +7,9 @@ import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
 
+const decorUrl = (path: string): string =>
+  `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+
 type Props = {
   concept?: Concept;
   conceptMap: Map<string, Concept>;
@@ -98,9 +101,16 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         <span className="card-corner card-corner-top-right" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-        <div className="study-empty-quiet" aria-hidden />
+        <img
+          src={decorUrl("decorations/cup.png")}
+          alt=""
+          aria-hidden="true"
+          className="study-empty-image"
+          width={220}
+          height={220}
+        />
         <p className="max-w-sm text-sm leading-relaxed text-nordic-textSecondary">
-          左側の一覧から概念を選ぶと、定義・メモ・関連がこの紙面に表示されます。
+          左の一覧から概念を選ぶと、定義・メモ・関連がこの紙面に現れます。
         </p>
       </section>
     );

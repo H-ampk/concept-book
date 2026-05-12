@@ -82,7 +82,6 @@ const buildTagSections = (
 
 const DecorativeBackground = () => (
   <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
-    <div className="hud-global-ring" aria-hidden="true" />
     <div className="absolute inset-0 bg-gradient-radial from-nordic-bgAlt via-nordic-bg to-nordic-muted opacity-90"></div>
     <div className="star-field absolute inset-0 opacity-20"></div>
     <div className="astral-chart absolute inset-0"></div>
