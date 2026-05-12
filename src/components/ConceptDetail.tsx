@@ -63,18 +63,18 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">添付メディア</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-            <li key={ref.id} className="rounded-lg border border-white/20 bg-white/10 p-2 backdrop-blur-sm">
-            {ref.caption && <p className="mb-1 text-xs text-white/75">{ref.caption}</p>}
-            <p className="mb-1 text-xs text-white/65">{ref.fileName}</p>
+            <li key={ref.id} className="rounded-lg border border-nordic-border bg-white/60 p-2 backdrop-blur-sm shadow-sm">
+            {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
+            <p className="mb-1 text-xs text-nordic-textMuted">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
               <img src={urls[ref.id]} alt={ref.caption ?? ref.fileName} className="max-h-64 w-full rounded object-contain" />
             ) : ref.kind === "video" && urls[ref.id] ? (
               <video src={urls[ref.id]} controls className="max-h-72 w-full rounded bg-black" playsInline />
             ) : (
-              <p className="text-xs text-white/70">読み込み中…</p>
+              <p className="text-xs text-nordic-textMuted">読み込み中…</p>
             )}
           </li>
         ))}
@@ -93,12 +93,12 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 }, ref) => {
   if (!concept) {
     return (
-      <section className="concept-detail-panel rounded-2xl border border-white/20 p-6 shadow-celestial decorated-card backdrop-blur-[22px]">
+      <section className="concept-detail-panel rounded-2xl border border-nordic-border p-6 shadow-celestial decorated-card backdrop-blur-[22px]">
         <span className="card-corner card-corner-top-left" aria-hidden="true" />
         <span className="card-corner card-corner-top-right" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-        <p className="text-sm text-white/75">左側の概念を選択すると詳細が表示されます。</p>
+        <p className="text-sm text-nordic-textSecondary">左側の概念を選択すると詳細が表示されます。</p>
       </section>
     );
   }
@@ -112,7 +112,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   return (
     <section
       ref={ref}
-      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-white/20 p-6 shadow-celestial decorated-card backdrop-blur-[22px]"
+      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border p-6 shadow-celestial decorated-card backdrop-blur-[22px]"
     >
       <span className="card-corner card-corner-top-left" aria-hidden="true" />
       <span className="card-corner card-corner-top-right" aria-hidden="true" />
@@ -120,9 +120,9 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <OrnamentLine variant="panel" />
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
-        <h2 className="text-xl font-semibold text-white">{concept.title}</h2>
+        <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-[10px] border border-white/35 bg-white/15 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+          <span className="rounded-[10px] border border-nordic-border bg-[#eef5f8]/90 px-2 py-0.5 text-xs font-medium text-nordic-textPrimary backdrop-blur-sm">
             お気に入り
           </span>
         )}
@@ -134,7 +134,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           type="button"
           onClick={() => onRequestDelete(concept)}
           disabled={deleting}
-          className="rounded-md border border-red-400/35 bg-red-500/15 px-3 py-1.5 text-sm text-red-100 backdrop-blur-md hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 shadow-sm hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {deleting ? "削除中..." : "削除"}
         </button>
@@ -142,44 +142,44 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-white/[0.88]">
+      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textPrimary">
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">定義</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
         </div>
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">自分の解釈</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">自分の解釈</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
         </div>
         {contextDefinitions.length > 0 && (
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">文脈別定義</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">文脈別定義</h3>
             <div className="space-y-3">
               {contextDefinitions.map((ctxDef) => (
-                <div key={ctxDef.id} className="rounded-lg border border-white/18 bg-white/8 p-3 backdrop-blur-sm">
-                  <h4 className="mb-1 text-sm font-medium text-white/85">{ctxDef.context.trim() || "文脈未指定"}</h4>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-white/[0.88]">{ctxDef.definition.trim() || "定義未入力"}</p>
+                <div key={ctxDef.id} className="rounded-lg border border-nordic-border bg-white/55 p-3 backdrop-blur-sm">
+                  <h4 className="mb-1 text-sm font-medium text-nordic-textPrimary">{ctxDef.context.trim() || "文脈未指定"}</h4>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-nordic-textSecondary">{ctxDef.definition.trim() || "定義未入力"}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/72">メモ</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">メモ</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>
         </div>
       </article>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">分野タグ</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">分野タグ</h3>
         <div className="flex flex-wrap gap-1">
           {concept.domainTags.length === 0 ? (
-            <span className="text-sm text-white/65">なし</span>
+            <span className="text-sm text-nordic-textMuted">なし</span>
           ) : (
             concept.domainTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-white/28 bg-white/12 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm"
+                className="rounded-md border border-nordic-border bg-white/70 px-2 py-0.5 text-xs text-nordic-textPrimary backdrop-blur-sm"
               >
                 #{tag}
               </span>
@@ -189,17 +189,17 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
           研究テーマタグ
         </h3>
         <div className="flex flex-wrap gap-1">
           {concept.researchTags.length === 0 ? (
-            <span className="text-sm text-white/65">なし</span>
+            <span className="text-sm text-nordic-textMuted">なし</span>
           ) : (
             concept.researchTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-white/25 bg-white/12 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm"
+                className="rounded-md border border-nordic-border bg-white/70 px-2 py-0.5 text-xs text-nordic-textPrimary backdrop-blur-sm"
               >
                 #{tag}
               </span>
@@ -209,9 +209,9 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-white/72">関連概念</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">関連概念</h3>
         {concept.relatedIds.length === 0 ? (
-          <p className="text-sm text-white/65">関連概念なし</p>
+          <p className="text-sm text-nordic-textMuted">関連概念なし</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {concept.relatedIds.map((relatedId) => {
@@ -229,7 +229,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-white/28 bg-white/12 px-2 py-1 text-xs text-white/90 backdrop-blur-sm hover:bg-white/18"
+                    className="rounded-md border border-nordic-border bg-white/65 px-2 py-1 text-xs text-nordic-textPrimary backdrop-blur-sm hover:bg-white/85"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -242,7 +242,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      <div className="rounded-lg border border-white/15 bg-white/8 p-3 text-xs text-white/70 backdrop-blur-sm">
+      <div className="rounded-lg border border-nordic-border bg-white/50 p-3 text-xs text-nordic-textSecondary backdrop-blur-sm">
         <p>
           出典: {concept.source.book || "未入力"} / p.{concept.source.page || "-"} /{" "}
           {concept.source.author || "著者未入力"}

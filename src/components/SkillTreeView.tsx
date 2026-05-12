@@ -428,7 +428,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="rgba(56,189,248,0.42)"
+                stroke="rgba(117, 165, 188, 0.42)"
                 strokeWidth={isSelectedRelated ? 1.5 : 0.8}
                 strokeDasharray="4,6"
                 opacity={isSelectedRelated ? 0.55 : 0.14}
@@ -439,9 +439,9 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
           {layoutData.nodes.map((node) => {
             const color = getDomainTagColor(node.domainTag, domainColorMap);
             const isSelected = selectedId === node.id;
-            const cardFill = node.isRoot ? "#e7ecea" : isSelected ? "#edf1ef" : "rgba(255,255,255,0.88)";
-            const borderColor = node.isRoot ? "#4d7c73" : isSelected ? "#2f5f57" : "rgba(77,124,115,0.45)";
-            const textColor = "#1e293b";
+            const cardFill = node.isRoot ? "#f2f7f9" : isSelected ? "#d8e8ee" : "rgba(255,255,255,0.9)";
+            const borderColor = node.isRoot ? "#7a9dad" : isSelected ? "#537b8e" : "rgba(92,126,145,0.38)";
+            const textColor = "#1f2d34";
             const labelLines = normalizeLabelLines(node.title);
             const x = node.x + offset.x - node.width / 2;
             const y = node.y + offset.y - node.height / 2;
@@ -461,7 +461,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                   fill={cardFill}
                   stroke={borderColor}
                   strokeWidth={node.isRoot || isSelected ? 2 : 1}
-                  filter="drop-shadow(0 4px 12px rgba(47, 95, 87, 0.14))"
+                  filter="drop-shadow(0 4px 12px rgba(73, 101, 114, 0.12))"
                 />
                 <rect
                   x={x + 8}

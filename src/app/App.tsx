@@ -83,8 +83,8 @@ const buildTagSections = (
 const DecorativeBackground = () => (
   <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
     <div className="hud-global-ring" aria-hidden="true" />
-    <div className="absolute inset-0 bg-gradient-radial from-nordic-bgAlt via-nordic-bg to-nordic-muted opacity-[0.97]"></div>
-    <div className="star-field absolute inset-0 opacity-45"></div>
+    <div className="absolute inset-0 bg-gradient-radial from-nordic-bgAlt via-nordic-bg to-nordic-muted opacity-80"></div>
+    <div className="star-field absolute inset-0 opacity-30"></div>
     <div className="astral-chart absolute inset-0"></div>
     <div className="cathedral-frame cathedral-frame-left"></div>
     <div className="cathedral-frame cathedral-frame-right"></div>
@@ -334,7 +334,7 @@ export const App = () => {
           )
         ) : (
           <div className="space-y-4">
-            <section className="relative z-10 rounded-3xl border border-white/40 p-6 shadow-celestial backdrop-blur-[24px] saturate-[180%] decorated-card ritual-altar">
+            <section className="relative z-10 rounded-3xl border border-nordic-border p-6 shadow-celestial backdrop-blur-[26px] saturate-[165%] decorated-card ritual-altar">
               <span className="card-corner card-corner-top-left" aria-hidden="true" />
               <span className="card-corner card-corner-top-right" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
@@ -342,14 +342,14 @@ export const App = () => {
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <div className="hud-search-wrap min-w-0">
                   <input
-                    className="w-full rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-sm text-white shadow-[0_12px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.1)] backdrop-blur-[24px] saturate-[180%] placeholder:text-white/55"
+                    className="w-full rounded-xl border border-white/55 bg-white/75 px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_8px_24px_rgba(80,111,126,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-[26px] saturate-[165%] placeholder:text-nordic-textMuted/70"
                     placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </div>
                 <button
-                  className="rounded-xl border border-white/35 bg-white/12 px-4 py-3 text-sm text-white/88 shadow-[0_12px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(255,255,255,0.1)] backdrop-blur-[24px] saturate-[180%] hover:border-white/48 hover:bg-white/18"
+                  className="rounded-xl border border-white/55 bg-white/65 px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_8px_24px_rgba(80,111,126,0.1),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-[26px] saturate-[165%] hover:border-nordic-border hover:bg-white/85"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -364,14 +364,14 @@ export const App = () => {
                 </button>
               </div>
               <div className="hud-mode-strip mt-4 flex flex-wrap items-center gap-3">
-                <span className="text-sm font-medium text-celestial-softGold">表示:</span>
+                <span className="text-sm font-medium text-nordic-textSecondary">表示:</span>
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("list")}
-                  className={`rounded-lg border border-white/30 px-3 py-1.5 text-sm text-celestial-softGold shadow-[0_8px_22px_rgba(31,63,58,0.1),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[24px] hover:border-white/45 hover:bg-white/18 ${
+                  className={`rounded-lg border border-nordic-border px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_6px_18px_rgba(73,101,114,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-[22px] hover:bg-white/80 ${
                     conceptMainTab === "list"
-                      ? "border-white/45 bg-white/22 text-[#1f2f2c]"
-                      : "bg-white/12"
+                      ? "border-[rgba(82,125,144,0.35)] bg-white/90 text-nordic-textPrimary"
+                      : "bg-white/55"
                   }`}
                 >
                   一覧表示
@@ -379,10 +379,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("graph")}
-                  className={`rounded-lg border border-white/30 px-3 py-1.5 text-sm text-celestial-softGold shadow-[0_8px_22px_rgba(31,63,58,0.1),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[24px] hover:border-white/45 hover:bg-white/18 ${
+                  className={`rounded-lg border border-nordic-border px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_6px_18px_rgba(73,101,114,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-[22px] hover:bg-white/80 ${
                     conceptMainTab === "graph"
-                      ? "border-white/45 bg-white/22 text-[#1f2f2c]"
-                      : "bg-white/12"
+                      ? "border-[rgba(82,125,144,0.35)] bg-white/90 text-nordic-textPrimary"
+                      : "bg-white/55"
                   }`}
                 >
                   グラフ表示
@@ -390,10 +390,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("tree")}
-                  className={`rounded-lg border border-white/30 px-3 py-1.5 text-sm text-celestial-softGold shadow-[0_8px_22px_rgba(31,63,58,0.1),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-[24px] hover:border-white/45 hover:bg-white/18 ${
+                  className={`rounded-lg border border-nordic-border px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_6px_18px_rgba(73,101,114,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-[22px] hover:bg-white/80 ${
                     conceptMainTab === "tree"
-                      ? "border-white/45 bg-white/22 text-[#1f2f2c]"
-                      : "bg-white/12"
+                      ? "border-[rgba(82,125,144,0.35)] bg-white/90 text-nordic-textPrimary"
+                      : "bg-white/55"
                   }`}
                 >
                   ツリー表示
@@ -401,7 +401,7 @@ export const App = () => {
               </div>
               {conceptMainTab === "list" && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-celestial-softGold">表示モード:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">表示モード:</span>
                   {([
                     ["all", "全体"],
                     ["domain", "分野別"],
@@ -413,8 +413,8 @@ export const App = () => {
                       onClick={() => setListViewMode(mode)}
                       className={`rounded-md px-2.5 py-1 text-xs ${
                         listViewMode === mode
-                      ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]"
-                          : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
+                      ? "border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_8px_24px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]"
+                          : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/80"
                       }`}
                     >
                       {label}
@@ -424,7 +424,7 @@ export const App = () => {
               )}
               <div className="hud-filter-stack mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-celestial-softGold">分野タグ:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">分野タグ:</span>
                   {!isFieldTagsExpanded && (
                     <>
                       {selectedDomainTags.length > 0 ? (
@@ -439,7 +439,7 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                            className="rounded-[10px] px-2.5 py-1 text-xs bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]"
+                            className="rounded-[10px] border border-[rgba(82,125,144,0.32)] bg-celestial-gold px-2.5 py-1 text-xs text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]"
                           >
                             {tag}
                           </button>
@@ -457,7 +457,7 @@ export const App = () => {
                   <button
                     type="button"
                     onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
-                    className="rounded-[10px] border border-white/35 bg-white/12 px-2.5 py-1 text-xs text-celestial-softGold backdrop-blur-[24px] hover:border-white/48 hover:bg-white/18"
+                    className="rounded-[10px] border border-nordic-border bg-white/60 px-2.5 py-1 text-xs text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
                   >
                     {isFieldTagsExpanded ? "畳む" : "展開"}
                   </button>
@@ -480,8 +480,8 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                            className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                        active ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
+                        className={`rounded-[10px] px-2.5 py-1 text-xs ${
+                        active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
                             }`}
                           >
                             {tag}
@@ -493,7 +493,7 @@ export const App = () => {
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-celestial-softGold">研究テーマタグ:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">研究テーマタグ:</span>
                   {allResearchTags.length === 0 ? (
                     <span className="text-xs text-celestial-textSub">未登録</span>
                   ) : (
@@ -511,7 +511,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                      active ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
+                      active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
                           }`}
                         >
                           {tag}
@@ -522,7 +522,7 @@ export const App = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-celestial-softGold">状態:</span>
+                  <span className="text-xs font-medium text-nordic-textSecondary">状態:</span>
                   {conceptStatusList.map((status) => {
                     const active = selectedStatuses.includes(status);
                     return (
@@ -537,7 +537,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                          active ? "bg-celestial-gold text-white shadow-[0_8px_24px_rgba(31,63,58,0.22),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-white/35 bg-white/12 text-celestial-softGold backdrop-blur-[24px]"
+                          active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
                         }`}
                       >
                         {statusLabelMap[status]}
@@ -698,7 +698,7 @@ export const App = () => {
             <span>{feedback}</span>
             <button
               type="button"
-              className="rounded px-1 py-0.5 text-xs text-celestial-softGold hover:bg-black/25"
+              className="rounded px-1 py-0.5 text-xs text-nordic-textSecondary hover:bg-white/50"
               onClick={() => setFeedback(null)}
             >
               閉じる

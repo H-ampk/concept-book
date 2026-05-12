@@ -390,7 +390,7 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
                     return (
                       <article
                         key={row.conceptKey}
-                        className="rounded-2xl border border-celestial-border/70 bg-nordic-navy/40 p-4 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.1)] backdrop-blur-sm"
+                        className="rounded-2xl border border-celestial-border/70 bg-nordic-navy/40 p-4 shadow-[inset_0_0_0_1px_rgba(117,165,188,0.12)] backdrop-blur-sm"
                       >
                         <h3 className="text-base font-semibold text-celestial-softGold">
                           {formatConceptGraphNodeLabel(row.conceptKey, titleById)}

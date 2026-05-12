@@ -153,7 +153,7 @@ export const ConceptList = ({
 
   if (concepts.length === 0) {
     return (
-      <div className="rounded-xl border border-white/25 bg-[rgba(47,87,80,0.35)] p-4 text-sm text-white/80 shadow-celestial backdrop-blur-md">
+      <div className="rounded-xl border border-nordic-border bg-white/70 p-4 text-sm text-nordic-textSecondary shadow-celestial backdrop-blur-md">
         条件に一致する概念がありません。
       </div>
     );

@@ -100,7 +100,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
           graphData={graphData}
           nodeRelSize={6}
           linkWidth={0.8}
-          linkColor={() => "rgba(56,189,248,0.38)"}
+          linkColor={() => "rgba(117, 165, 188, 0.38)"}
           cooldownTicks={120}
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
           nodeCanvasObject={(nodeObject, context, globalScale) => {
@@ -117,14 +117,14 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             if (node.favorite || isSelected) {
               context.beginPath();
               context.arc(node.x, node.y, radius + 1.8, 0, Math.PI * 2, false);
-              context.strokeStyle = isSelected ? "#2f5f57" : "#5f8f87";
+              context.strokeStyle = isSelected ? "#446878" : "#7a9dad";
               context.lineWidth = isSelected ? 2.2 : 1.4;
               context.stroke();
             }
 
             const fontSize = Math.max(10, 12 / globalScale);
             context.font = `${fontSize}px sans-serif`;
-            context.fillStyle = "#1e293b";
+            context.fillStyle = "#1f2d34";
             context.textAlign = "center";
             context.textBaseline = "top";
             context.fillText(node.title, node.x, node.y + radius + 2);

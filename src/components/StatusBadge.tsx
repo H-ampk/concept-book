@@ -7,11 +7,12 @@ const labelMap: Record<ConceptStatus, string> = {
   archived: "保管"
 };
 
+/** 淡い氷色ガラス（濃色選択カード上は index.css で上書き） */
 const colorMap: Record<ConceptStatus, string> = {
-  active: "border border-emerald-100/45 bg-white/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
-  researching: "border border-white/28 bg-white/10 text-white/90",
-  unclear: "border border-white/22 bg-white/8 text-white/82",
-  archived: "border border-white/18 bg-black/15 text-white/72"
+  active: "border border-[rgba(92,126,145,0.28)] bg-white/80 text-nordic-textPrimary",
+  researching: "border border-[rgba(92,126,145,0.24)] bg-[#eef5f8]/90 text-nordic-textPrimary",
+  unclear: "border border-[rgba(92,126,145,0.2)] bg-white/65 text-nordic-textSecondary",
+  archived: "border border-[rgba(92,126,145,0.16)] bg-slate-100/75 text-nordic-textMuted"
 };
 
 type Props = {
@@ -19,7 +20,9 @@ type Props = {
 };
 
 export const StatusBadge = ({ status }: Props) => (
-  <span className={`hud-terminal-badge inline-flex rounded-[10px] px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${colorMap[status]}`}>
+  <span
+    className={`hud-terminal-badge inline-flex rounded-[10px] px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${colorMap[status]}`}
+  >
     {labelMap[status]}
   </span>
 );
