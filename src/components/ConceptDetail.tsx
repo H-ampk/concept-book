@@ -66,7 +66,7 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
       <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-            <li key={ref.id} className="rounded-lg border border-[rgba(110,140,155,0.26)] bg-[rgba(255,255,255,0.88)] p-2 shadow-[0_8px_20px_rgba(70,95,110,0.06)]">
+            <li key={ref.id} className="rounded-lg border border-nordic-border bg-nordic-card p-2 shadow-card">
             {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
             <p className="mb-1 text-xs text-nordic-textMuted">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
@@ -93,12 +93,15 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 }, ref) => {
   if (!concept) {
     return (
-      <section className="concept-detail-panel rounded-2xl border border-[rgba(110,140,155,0.26)] p-6 shadow-[0_10px_28px_rgba(70,95,110,0.08)] decorated-card">
+      <section className="concept-detail-panel concept-detail-empty max-w-[min(100%,760px)] rounded-2xl border border-nordic-border p-8 shadow-card decorated-card">
         <span className="card-corner card-corner-top-left" aria-hidden="true" />
         <span className="card-corner card-corner-top-right" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-        <p className="text-sm text-nordic-textSecondary">左側の概念を選択すると詳細が表示されます。</p>
+        <div className="study-empty-quiet" aria-hidden />
+        <p className="max-w-sm text-sm leading-relaxed text-nordic-textSecondary">
+          左側の一覧から概念を選ぶと、定義・メモ・関連がこの紙面に表示されます。
+        </p>
       </section>
     );
   }
@@ -112,7 +115,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   return (
     <section
       ref={ref}
-      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-[rgba(110,140,155,0.26)] p-6 shadow-[0_10px_28px_rgba(70,95,110,0.08)] decorated-card"
+      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border p-6 shadow-card decorated-card"
     >
       <span className="card-corner card-corner-top-left" aria-hidden="true" />
       <span className="card-corner card-corner-top-right" aria-hidden="true" />
@@ -122,7 +125,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-[10px] border border-[rgba(110,140,155,0.26)] bg-[#eef5f8] px-2 py-0.5 text-xs font-medium text-nordic-textPrimary">
+          <span className="rounded-[10px] border border-nordic-border bg-nordic-cardAction px-2 py-0.5 text-xs font-medium text-nordic-textPrimary">
             お気に入り
           </span>
         )}
@@ -160,7 +163,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">文脈別定義</h3>
             <div className="space-y-3">
               {contextDefinitions.map((ctxDef) => (
-                <div key={ctxDef.id} className="rounded-lg border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.9)] p-3 shadow-[0_8px_20px_rgba(70,95,110,0.06)]">
+                <div key={ctxDef.id} className="rounded-lg border border-nordic-border bg-nordic-card p-3 shadow-card">
                   <h4 className="mb-1 text-sm font-medium text-nordic-textPrimary">
                     {ctxDef.context.trim() || <span className="concept-detail-muted">文脈未指定</span>}
                   </h4>
@@ -189,7 +192,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             concept.domainTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.88)] px-2 py-0.5 text-xs text-nordic-textPrimary"
+                className="rounded-md border border-nordic-border bg-nordic-card px-2 py-0.5 text-xs text-nordic-textPrimary"
               >
                 #{tag}
               </span>
@@ -209,7 +212,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             concept.researchTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.88)] px-2 py-0.5 text-xs text-nordic-textPrimary"
+                className="rounded-md border border-nordic-border bg-nordic-card px-2 py-0.5 text-xs text-nordic-textPrimary"
               >
                 #{tag}
               </span>
@@ -239,7 +242,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.88)] px-2 py-1 text-xs text-nordic-textPrimary hover:bg-white"
+                    className="rounded-md border border-nordic-border bg-nordic-card px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-cardHover"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -252,7 +255,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      <div className="rounded-lg border border-[rgba(110,140,155,0.24)] bg-[rgba(248,251,252,0.95)] p-3 text-xs text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.06)]">
+      <div className="rounded-lg border border-nordic-border bg-nordic-muted/80 p-3 text-xs text-nordic-textSecondary shadow-card">
         <p>
           出典: {concept.source.book || <span className="concept-detail-muted">未入力</span>} / p.
           {concept.source.page || "-"} / {concept.source.author || <span className="concept-detail-muted">著者未入力</span>}
