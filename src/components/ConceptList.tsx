@@ -66,6 +66,7 @@ function ConceptListItem({
     <Wrapper
       ref={outerRef}
       style={style}
+      data-selected={selected ? "true" : undefined}
       {...(virtualRowIndex !== undefined ? { "data-index": virtualRowIndex } : {})}
       {...(as === "div" ? { role: "listitem" as const } : {})}
       className={cardClassName(selected)}

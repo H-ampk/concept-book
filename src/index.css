@@ -24,6 +24,8 @@
   --card-face: linear-gradient(180deg, #fffdf8 0%, #fcf8f1 52%, #f8f1e7 100%);
   --card-face-hover: linear-gradient(180deg, #fffef9 0%, #faf4ea 100%);
   --card-face-selected: linear-gradient(145deg, #5e7e93 0%, #516f82 100%);
+  /* 選択中カード hover：青灰を維持しつつわずかに明るく */
+  --card-face-selected-hover: linear-gradient(145deg, #6d8fa3 0%, #5f7f94 100%);
   --detail-panel-face: linear-gradient(180deg, #fffdf8 0%, #faf6ef 100%);
 
   --text-primary: #24313a;
@@ -986,7 +988,7 @@ body {
     filter 180ms ease;
 }
 
-.concept-card:hover {
+.concept-card:not(.concept-card-selected):hover {
   border-color: var(--border-mid);
   background-image: var(--card-face-hover);
   box-shadow: var(--glass-shadow-hover), inset 3px 0 0 0 rgba(91, 115, 133, 0.14);
@@ -1049,12 +1051,18 @@ body {
 
 .concept-card-selected:hover {
   animation: none;
+  background-image: var(--card-face-selected-hover);
+  color: var(--text-on-card-sub);
   border-color: rgba(255, 253, 248, 0.38);
   box-shadow:
     inset 3px 0 0 0 rgba(255, 253, 248, 0.32),
     0 0 0 1px rgba(210, 218, 224, 0.22),
-    0 8px 22px rgba(48, 58, 66, 0.14);
+    0 10px 26px rgba(48, 58, 66, 0.16);
   transform: translateY(-1px);
+}
+
+.concept-card-selected:hover h3 {
+  color: var(--text-on-card);
 }
 
 .concept-card-main-button {
@@ -1444,11 +1452,19 @@ textarea::placeholder {
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  .concept-card:hover {
+  .concept-card:not(.concept-card-selected):hover {
     background-image: var(--card-face-hover) !important;
     box-shadow:
       0 16px 36px rgba(45, 62, 72, 0.26),
       inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  }
+
+  .concept-card-selected:hover {
+    background-image: var(--card-face-selected-hover) !important;
+    box-shadow:
+      inset 3px 0 0 0 rgba(255, 253, 248, 0.3),
+      0 0 0 1px rgba(210, 218, 224, 0.24),
+      0 16px 34px rgba(45, 62, 72, 0.22) !important;
   }
 
   .concept-card-selected {
