@@ -11,15 +11,15 @@ module.exports = {
           bg: "#F8FBFC",
           bgAlt: "#F2F7F9",
           muted: "#EEF5F8",
-          section: "rgba(92, 126, 145, 0.08)",
+          section: "rgba(110, 140, 155, 0.07)",
           surface: "rgba(255, 255, 255, 0.78)",
           card: "#FFFFFF",
           cardHover: "#F2F7F9",
-          cardBorder: "rgba(92, 126, 145, 0.2)",
+          cardBorder: "rgba(110, 140, 155, 0.22)",
           cardAction: "rgba(90, 131, 151, 0.12)",
           cardActionHover: "rgba(90, 131, 151, 0.18)",
           gold: "#9EBFCC",
-          border: "rgba(92, 126, 145, 0.2)",
+          border: "rgba(110, 140, 155, 0.22)",
           textPrimary: "#1F2D34",
           textSecondary: "#5E737D",
           textMuted: "#7D919A",
@@ -37,15 +37,15 @@ module.exports = {
         celestial: {
           base: "#F8FBFC",
           deepBlue: "#EEF5F8",
-          panel: "rgba(255, 255, 255, 0.72)",
+          panel: "rgba(255, 255, 255, 0.88)",
           panelHover: "rgba(255, 255, 255, 0.88)",
           gold: "#5A8397",
           softGold: "#5E737D",
           textMain: "#1F2D34",
           textSub: "rgba(94, 115, 125, 0.92)",
-          border: "rgba(92, 126, 145, 0.2)",
+          border: "rgba(110, 140, 155, 0.22)",
           shadow:
-            "0 8px 24px rgba(80, 111, 126, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -1px 0 rgba(92, 126, 145, 0.06)",
+            "0 10px 28px rgba(70, 95, 110, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35)",
           emerald: "#446878",
           danger: "#FF5F6D",
           onCard: "#F7FBFD",
@@ -61,11 +61,11 @@ module.exports = {
         }
       },
       boxShadow: {
-        quiet: "0 10px 30px rgba(73, 101, 114, 0.1)",
-        card: "0 10px 30px rgba(73, 101, 114, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85)",
+        quiet: "0 10px 28px rgba(70, 95, 110, 0.08)",
+        card: "0 10px 28px rgba(70, 95, 110, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
         celestial:
-          "0 8px 24px rgba(80, 111, 126, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(92, 126, 145, 0.05)",
-        mystic: "0 8px 22px rgba(80, 111, 126, 0.12), inset 0 0 14px rgba(158, 191, 204, 0.12)"
+          "0 10px 28px rgba(70, 95, 110, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88), inset 0 0 0 1px rgba(255, 255, 255, 0.35)",
+        mystic: "0 8px 22px rgba(70, 95, 110, 0.08), inset 0 0 12px rgba(158, 191, 204, 0.1)"
       },
       borderRadius: {
         "3xl": "14px"

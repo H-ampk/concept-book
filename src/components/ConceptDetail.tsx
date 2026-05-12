@@ -66,7 +66,7 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
       <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-            <li key={ref.id} className="rounded-lg border border-nordic-border bg-white/60 p-2 backdrop-blur-sm shadow-sm">
+            <li key={ref.id} className="rounded-lg border border-[rgba(110,140,155,0.26)] bg-[rgba(255,255,255,0.88)] p-2 shadow-[0_8px_20px_rgba(70,95,110,0.06)]">
             {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
             <p className="mb-1 text-xs text-nordic-textMuted">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
@@ -93,7 +93,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 }, ref) => {
   if (!concept) {
     return (
-      <section className="concept-detail-panel rounded-2xl border border-nordic-border p-6 shadow-celestial decorated-card backdrop-blur-[22px]">
+      <section className="concept-detail-panel rounded-2xl border border-[rgba(110,140,155,0.26)] p-6 shadow-[0_10px_28px_rgba(70,95,110,0.08)] decorated-card">
         <span className="card-corner card-corner-top-left" aria-hidden="true" />
         <span className="card-corner card-corner-top-right" aria-hidden="true" />
         <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
@@ -112,7 +112,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   return (
     <section
       ref={ref}
-      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border p-6 shadow-celestial decorated-card backdrop-blur-[22px]"
+      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-[rgba(110,140,155,0.26)] p-6 shadow-[0_10px_28px_rgba(70,95,110,0.08)] decorated-card"
     >
       <span className="card-corner card-corner-top-left" aria-hidden="true" />
       <span className="card-corner card-corner-top-right" aria-hidden="true" />
@@ -122,7 +122,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-[10px] border border-nordic-border bg-[#eef5f8]/90 px-2 py-0.5 text-xs font-medium text-nordic-textPrimary backdrop-blur-sm">
+          <span className="rounded-[10px] border border-[rgba(110,140,155,0.26)] bg-[#eef5f8] px-2 py-0.5 text-xs font-medium text-nordic-textPrimary">
             お気に入り
           </span>
         )}
@@ -145,20 +145,28 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textPrimary">
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">定義</h3>
-          <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.definition || "未入力"}</p>
+          <p className="whitespace-pre-wrap break-words text-base leading-7">
+            {concept.definition || <span className="concept-detail-muted">未入力</span>}
+          </p>
         </div>
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">自分の解釈</h3>
-          <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.myInterpretation || "未入力"}</p>
+          <p className="whitespace-pre-wrap break-words text-base leading-7">
+            {concept.myInterpretation || <span className="concept-detail-muted">未入力</span>}
+          </p>
         </div>
         {contextDefinitions.length > 0 && (
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">文脈別定義</h3>
             <div className="space-y-3">
               {contextDefinitions.map((ctxDef) => (
-                <div key={ctxDef.id} className="rounded-lg border border-nordic-border bg-white/55 p-3 backdrop-blur-sm">
-                  <h4 className="mb-1 text-sm font-medium text-nordic-textPrimary">{ctxDef.context.trim() || "文脈未指定"}</h4>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-nordic-textSecondary">{ctxDef.definition.trim() || "定義未入力"}</p>
+                <div key={ctxDef.id} className="rounded-lg border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.9)] p-3 shadow-[0_8px_20px_rgba(70,95,110,0.06)]">
+                  <h4 className="mb-1 text-sm font-medium text-nordic-textPrimary">
+                    {ctxDef.context.trim() || <span className="concept-detail-muted">文脈未指定</span>}
+                  </h4>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-nordic-textSecondary">
+                    {ctxDef.definition.trim() || <span className="concept-detail-muted">定義未入力</span>}
+                  </p>
                 </div>
               ))}
             </div>
@@ -166,7 +174,9 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">メモ</h3>
-          <p className="whitespace-pre-wrap break-words text-base leading-7">{concept.notes || "未入力"}</p>
+          <p className="whitespace-pre-wrap break-words text-base leading-7">
+            {concept.notes || <span className="concept-detail-muted">未入力</span>}
+          </p>
         </div>
       </article>
 
@@ -179,7 +189,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             concept.domainTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-nordic-border bg-white/70 px-2 py-0.5 text-xs text-nordic-textPrimary backdrop-blur-sm"
+                className="rounded-md border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.88)] px-2 py-0.5 text-xs text-nordic-textPrimary"
               >
                 #{tag}
               </span>
@@ -199,7 +209,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             concept.researchTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-nordic-border bg-white/70 px-2 py-0.5 text-xs text-nordic-textPrimary backdrop-blur-sm"
+                className="rounded-md border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.88)] px-2 py-0.5 text-xs text-nordic-textPrimary"
               >
                 #{tag}
               </span>
@@ -229,7 +239,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-nordic-border bg-white/65 px-2 py-1 text-xs text-nordic-textPrimary backdrop-blur-sm hover:bg-white/85"
+                    className="rounded-md border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.88)] px-2 py-1 text-xs text-nordic-textPrimary hover:bg-white"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -242,10 +252,10 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      <div className="rounded-lg border border-nordic-border bg-white/50 p-3 text-xs text-nordic-textSecondary backdrop-blur-sm">
+      <div className="rounded-lg border border-[rgba(110,140,155,0.24)] bg-[rgba(248,251,252,0.95)] p-3 text-xs text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.06)]">
         <p>
-          出典: {concept.source.book || "未入力"} / p.{concept.source.page || "-"} /{" "}
-          {concept.source.author || "著者未入力"}
+          出典: {concept.source.book || <span className="concept-detail-muted">未入力</span>} / p.
+          {concept.source.page || "-"} / {concept.source.author || <span className="concept-detail-muted">著者未入力</span>}
         </p>
         <p>作成: {shortDateTime(concept.createdAt)}</p>
         <p>更新: {shortDateTime(concept.updatedAt)}</p>

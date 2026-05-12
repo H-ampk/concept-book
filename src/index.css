@@ -10,21 +10,25 @@
   --bg-main: #f8fbfc;
   --bg-main-alt: #f2f7f9;
   --bg-muted: #eef5f8;
-  --bg-panel: rgba(255, 255, 255, 0.72);
+  --surface-bg: rgba(255, 255, 255, 0.82);
+  --panel-bg-opaque: rgba(248, 251, 252, 0.88);
+  --bg-panel: var(--surface-bg);
   --bg-card: #ffffff;
-  --bg-input: rgba(255, 255, 255, 0.78);
+  --bg-input: var(--surface-bg);
   --overlay-bg: rgba(45, 62, 72, 0.35);
 
   --header-gradient: linear-gradient(135deg, rgba(79, 115, 131, 0.94), rgba(68, 104, 120, 0.92));
 
-  --card-face: linear-gradient(165deg, rgba(255, 255, 255, 0.96), rgba(238, 245, 248, 0.9));
-  --card-face-hover: linear-gradient(165deg, rgba(255, 255, 255, 0.99), rgba(232, 242, 247, 0.95));
+  --card-face: linear-gradient(165deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 252, 0.94));
+  --card-face-hover: linear-gradient(165deg, #ffffff, rgba(242, 247, 249, 0.97));
   --card-face-selected: linear-gradient(145deg, rgba(83, 123, 142, 0.98), rgba(68, 104, 120, 0.96));
-  --detail-panel-face: linear-gradient(165deg, rgba(255, 255, 255, 0.82), rgba(242, 247, 249, 0.76));
+  --detail-panel-face: linear-gradient(165deg, var(--surface-bg), rgba(248, 251, 252, 0.92));
 
   --text-primary: #1f2d34;
   --text-secondary: #5e737d;
   --text-muted: #7d919a;
+  /* プレースホルダー・「未入力」等：青黒ベースでコントラスト確保 */
+  --text-soft: rgba(31, 45, 52, 0.66);
   --text-disabled: rgba(125, 145, 154, 0.62);
 
   --text-on-card: #f7fbfd;
@@ -38,8 +42,9 @@
   --accent-glow: rgba(117, 165, 188, 0.32);
 
   --focus-ring: rgba(117, 165, 188, 0.35);
-  --border-soft: rgba(92, 126, 145, 0.2);
-  --border-mid: rgba(82, 125, 144, 0.28);
+  --border-ice: rgba(110, 140, 155, 0.26);
+  --border-soft: rgba(110, 140, 155, 0.22);
+  --border-mid: rgba(110, 140, 155, 0.3);
   --selected-card-border: rgba(210, 231, 239, 0.35);
 
   /* 互換名（旧クラス・旧参照向け：青灰系に寄せたトークン） */
@@ -47,8 +52,8 @@
   --green-acid: #7d9dad;
   --green-emerald: #5a8397;
   --green-deep: rgba(210, 231, 239, 0.4);
-  --green-border: rgba(92, 126, 145, 0.2);
-  --green-border-strong: rgba(82, 125, 144, 0.32);
+  --green-border: rgba(110, 140, 155, 0.22);
+  --green-border-strong: rgba(110, 140, 155, 0.32);
   --green-glow: rgba(117, 165, 188, 0.2);
   --green-glow-strong: rgba(117, 165, 188, 0.32);
 
@@ -58,19 +63,21 @@
   --orange-action-text: #f7fbfd;
   --orange-action-glow: rgba(117, 165, 188, 0.28);
 
-  --glass-bg: rgba(255, 255, 255, 0.58);
-  --glass-bg-hover: rgba(255, 255, 255, 0.72);
-  --glass-bg-active: rgba(255, 255, 255, 0.78);
-  --glass-border: rgba(92, 126, 145, 0.22);
-  --glass-border-strong: rgba(82, 125, 144, 0.32);
-  --glass-blur: blur(22px) saturate(165%);
-  --glass-shadow: 0 8px 24px rgba(80, 111, 126, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    inset 0 -1px 0 rgba(92, 126, 145, 0.05);
-  --glass-shadow-hover: 0 12px 32px rgba(73, 101, 114, 0.14), 0 0 20px rgba(117, 165, 188, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --glass-shadow-active: 0 6px 18px rgba(73, 101, 114, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --glass-bg: var(--surface-bg);
+  --glass-bg-hover: rgba(255, 255, 255, 0.92);
+  --glass-bg-active: #ffffff;
+  --glass-border: var(--border-soft);
+  --glass-border-strong: var(--border-mid);
+  /* パネル・カードはブラーなし。ドロップダウン等のオーバーレイのみ強めの blur を別変数で使用 */
+  --glass-blur: none;
+  --overlay-menu-blur: blur(18px) saturate(175%);
+  --elevation-shadow: 0 10px 28px rgba(70, 95, 110, 0.08);
+  --glass-shadow: var(--elevation-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  --glass-shadow-hover: 0 12px 32px rgba(70, 95, 110, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  --glass-shadow-active: 0 6px 16px rgba(70, 95, 110, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88);
 
-  --filter-panel-bg: rgba(255, 255, 255, 0.52);
+  --filter-panel-bg: var(--panel-bg-opaque);
 
   --danger-red: #e11d48;
   --danger-glow: rgba(225, 29, 72, 0.18);
@@ -125,17 +132,13 @@
   0%,
   100% {
     box-shadow:
-      0 12px 32px rgba(73, 101, 114, 0.08),
-      0 0 16px rgba(117, 165, 188, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      inset 0 -1px 0 rgba(92, 126, 145, 0.04);
+      var(--elevation-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
   }
   50% {
     box-shadow:
-      0 14px 38px rgba(73, 101, 114, 0.1),
-      0 0 22px rgba(117, 165, 188, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.82),
-      inset 0 -1px 0 rgba(92, 126, 145, 0.06);
+      0 12px 30px rgba(70, 95, 110, 0.09),
+      inset 0 1px 0 rgba(255, 255, 255, 0.98);
   }
 }
 
@@ -162,8 +165,8 @@ body {
 /* ─── アプリヘッダー：くすみブルー〜青灰のガラス ─── */
 .app-header-shell.app-header {
   background: var(--header-gradient);
-  backdrop-filter: blur(22px) saturate(175%);
-  -webkit-backdrop-filter: blur(22px) saturate(175%);
+  backdrop-filter: blur(2px) saturate(160%);
+  -webkit-backdrop-filter: blur(2px) saturate(160%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
   color: #ffffff;
@@ -182,8 +185,8 @@ body {
   color: #ffffff;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: blur(2px) saturate(165%);
+  -webkit-backdrop-filter: blur(2px) saturate(165%);
   box-shadow: var(--glass-shadow);
 }
 
@@ -320,8 +323,8 @@ body {
     0 20px 48px rgba(0, 0, 0, 0.35),
     0 0 0 1px rgba(255, 255, 255, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: var(--overlay-menu-blur);
+  -webkit-backdrop-filter: var(--overlay-menu-blur);
 }
 
 .lab-dropdown-item {
@@ -504,10 +507,8 @@ body {
 }
 
 .bg-celestial-panel {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--surface-bg);
+  border: 1px solid var(--border-ice);
   box-shadow: var(--glass-shadow);
 }
 
@@ -515,10 +516,8 @@ body {
   position: relative;
   z-index: 1;
   overflow: visible;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--surface-bg);
+  border: 1px solid var(--border-ice);
   color: var(--text-primary);
   box-shadow: var(--glass-shadow);
 }
@@ -530,20 +529,23 @@ body {
 
 .ritual-altar {
   background: var(--filter-panel-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border-ice);
   color: var(--text-primary);
   animation: panelBreath 6.5s ease-in-out infinite;
   box-shadow: var(--glass-shadow);
 }
 
-/* 詳細パネル：白〜薄氷のガラス + 本文色 */
+/* 詳細パネル：ブラーなしの白面 + 細枠 */
 .concept-detail-panel.decorated-card {
   background: var(--detail-panel-face);
   color: var(--text-secondary);
-  border-color: var(--border-soft);
-  box-shadow: 0 10px 30px rgba(73, 101, 114, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  border-color: var(--border-ice);
+  box-shadow: var(--elevation-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.concept-detail-panel .text-placeholder-ice,
+.concept-detail-panel .concept-detail-muted {
+  color: var(--text-soft);
 }
 
 .concept-detail-panel.decorated-card .border-celestial-border {
@@ -918,12 +920,10 @@ body {
 .concept-card {
   position: relative;
   border-radius: 14px;
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border-ice);
   background-image: var(--card-face);
-  backdrop-filter: blur(22px) saturate(155%);
-  -webkit-backdrop-filter: blur(22px) saturate(155%);
   color: var(--text-primary);
-  box-shadow: 0 10px 30px rgba(73, 101, 114, 0.1);
+  box-shadow: var(--elevation-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -935,7 +935,7 @@ body {
 .concept-card:hover {
   border-color: var(--border-mid);
   background-image: var(--card-face-hover);
-  box-shadow: 0 12px 34px rgba(73, 101, 114, 0.12);
+  box-shadow: var(--glass-shadow-hover);
   transform: translateY(-1px);
 }
 
@@ -1020,7 +1020,7 @@ body {
 .concept-card:not(.concept-card-selected) .tag-chip,
 .concept-card:not(.concept-card-selected) .filter-button {
   color: var(--text-primary) !important;
-  border-color: rgba(92, 126, 145, 0.22) !important;
+  border-color: rgba(110, 140, 155, 0.22) !important;
   background: rgba(255, 255, 255, 0.62) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.88),
@@ -1031,7 +1031,7 @@ body {
 .concept-card:not(.concept-card-selected) .tag-chip:hover,
 .concept-card:not(.concept-card-selected) .filter-button:hover {
   background: rgba(255, 255, 255, 0.78) !important;
-  border-color: rgba(82, 125, 144, 0.28) !important;
+  border-color: rgba(110, 140, 155, 0.28) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     0 0 18px rgba(117, 165, 188, 0.16);
@@ -1060,7 +1060,7 @@ body {
 
 .concept-card:not(.concept-card-selected) .hud-terminal-badge,
 .concept-detail-panel .hud-terminal-badge {
-  border-color: rgba(92, 126, 145, 0.22) !important;
+  border-color: rgba(110, 140, 155, 0.22) !important;
   background: rgba(255, 255, 255, 0.55) !important;
   color: var(--text-primary) !important;
   box-shadow:
@@ -1101,8 +1101,6 @@ body {
   background: linear-gradient(135deg, rgba(90, 131, 151, 0.88), rgba(68, 104, 120, 0.9));
   color: #f7fbfd;
   border: 1px solid rgba(255, 255, 255, 0.38);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-shadow);
   font-weight: 600;
   border-radius: 12px;
@@ -1141,8 +1139,6 @@ button.bg-celestial-gold {
   background: linear-gradient(135deg, rgba(90, 131, 151, 0.75), rgba(68, 104, 120, 0.82));
   color: #f7fbfd;
   border: 1px solid rgba(255, 255, 255, 0.38);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-shadow);
 }
 
@@ -1199,11 +1195,8 @@ input,
 textarea,
 select {
   border-radius: 12px;
-  border: 1px solid var(--glass-border);
-  border-color: var(--green-border);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-ice);
+  background: var(--surface-bg);
   color: var(--text-primary);
   transition:
     border-color 180ms ease,
@@ -1224,7 +1217,7 @@ select:focus {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(94, 115, 125, 0.72);
+  color: var(--text-soft);
 }
 
 /* ─── 常時アンビエントHUD：超薄スキャンライン + 右中段の円環HUD ─── */

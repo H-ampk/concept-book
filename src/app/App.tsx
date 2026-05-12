@@ -334,7 +334,7 @@ export const App = () => {
           )
         ) : (
           <div className="space-y-4">
-            <section className="relative z-10 rounded-3xl border border-nordic-border p-6 shadow-celestial backdrop-blur-[26px] saturate-[165%] decorated-card ritual-altar">
+            <section className="relative z-10 rounded-3xl border border-[rgba(110,140,155,0.26)] bg-[rgba(248,251,252,0.92)] p-6 shadow-[0_10px_28px_rgba(70,95,110,0.08)] decorated-card ritual-altar">
               <span className="card-corner card-corner-top-left" aria-hidden="true" />
               <span className="card-corner card-corner-top-right" aria-hidden="true" />
               <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
@@ -342,14 +342,14 @@ export const App = () => {
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <div className="hud-search-wrap min-w-0">
                   <input
-                    className="w-full rounded-xl border border-white/55 bg-white/75 px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_8px_24px_rgba(80,111,126,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-[26px] saturate-[165%] placeholder:text-nordic-textMuted/70"
+                    className="w-full rounded-xl border border-[rgba(110,140,155,0.28)] bg-[rgba(255,255,255,0.9)] px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_10px_28px_rgba(70,95,110,0.08)] placeholder:text-[rgba(31,45,52,0.62)]"
                     placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </div>
                 <button
-                  className="rounded-xl border border-white/55 bg-white/65 px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_8px_24px_rgba(80,111,126,0.1),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-[26px] saturate-[165%] hover:border-nordic-border hover:bg-white/85"
+                  className="rounded-xl border border-[rgba(110,140,155,0.28)] bg-[rgba(255,255,255,0.85)] px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_10px_28px_rgba(70,95,110,0.08)] hover:border-[rgba(110,140,155,0.36)] hover:bg-white"
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
@@ -368,10 +368,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("list")}
-                  className={`rounded-lg border border-nordic-border px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_6px_18px_rgba(73,101,114,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-[22px] hover:bg-white/80 ${
+                  className={`rounded-lg border border-[rgba(110,140,155,0.24)] px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white ${
                     conceptMainTab === "list"
-                      ? "border-[rgba(82,125,144,0.35)] bg-white/90 text-nordic-textPrimary"
-                      : "bg-white/55"
+                      ? "border-[rgba(110,140,155,0.32)] bg-white text-nordic-textPrimary"
+                      : "bg-[rgba(255,255,255,0.72)]"
                   }`}
                 >
                   一覧表示
@@ -379,10 +379,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("graph")}
-                  className={`rounded-lg border border-nordic-border px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_6px_18px_rgba(73,101,114,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-[22px] hover:bg-white/80 ${
+                  className={`rounded-lg border border-[rgba(110,140,155,0.24)] px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white ${
                     conceptMainTab === "graph"
-                      ? "border-[rgba(82,125,144,0.35)] bg-white/90 text-nordic-textPrimary"
-                      : "bg-white/55"
+                      ? "border-[rgba(110,140,155,0.32)] bg-white text-nordic-textPrimary"
+                      : "bg-[rgba(255,255,255,0.72)]"
                   }`}
                 >
                   グラフ表示
@@ -390,10 +390,10 @@ export const App = () => {
                 <button
                   type="button"
                   onClick={() => setConceptMainTab("tree")}
-                  className={`rounded-lg border border-nordic-border px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_6px_18px_rgba(73,101,114,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-[22px] hover:bg-white/80 ${
+                  className={`rounded-lg border border-[rgba(110,140,155,0.24)] px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white ${
                     conceptMainTab === "tree"
-                      ? "border-[rgba(82,125,144,0.35)] bg-white/90 text-nordic-textPrimary"
-                      : "bg-white/55"
+                      ? "border-[rgba(110,140,155,0.32)] bg-white text-nordic-textPrimary"
+                      : "bg-[rgba(255,255,255,0.72)]"
                   }`}
                 >
                   ツリー表示
@@ -414,7 +414,7 @@ export const App = () => {
                       className={`rounded-md px-2.5 py-1 text-xs ${
                         listViewMode === mode
                       ? "border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_8px_24px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]"
-                          : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/80"
+                          : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.78)] text-nordic-textSecondary hover:bg-white"
                       }`}
                     >
                       {label}
@@ -457,7 +457,7 @@ export const App = () => {
                   <button
                     type="button"
                     onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
-                    className="rounded-[10px] border border-nordic-border bg-white/60 px-2.5 py-1 text-xs text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
+                    className="rounded-[10px] border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] px-2.5 py-1 text-xs text-nordic-textSecondary hover:bg-white"
                   >
                     {isFieldTagsExpanded ? "畳む" : "展開"}
                   </button>
@@ -481,7 +481,7 @@ export const App = () => {
                               )
                             }
                         className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                        active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
+                        active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] text-nordic-textSecondary hover:bg-white"
                             }`}
                           >
                             {tag}
@@ -511,7 +511,7 @@ export const App = () => {
                             )
                           }
                           className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                      active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
+                      active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] text-nordic-textSecondary hover:bg-white"
                           }`}
                         >
                           {tag}
@@ -537,7 +537,7 @@ export const App = () => {
                           )
                         }
                         className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                          active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-nordic-border bg-white/60 text-nordic-textSecondary backdrop-blur-[22px] hover:bg-white/85"
+                          active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] text-nordic-textSecondary hover:bg-white"
                         }`}
                       >
                         {statusLabelMap[status]}

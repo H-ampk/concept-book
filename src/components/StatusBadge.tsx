@@ -21,7 +21,7 @@ type Props = {
 
 export const StatusBadge = ({ status }: Props) => (
   <span
-    className={`hud-terminal-badge inline-flex rounded-[10px] px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${colorMap[status]}`}
+    className={`hud-terminal-badge inline-flex rounded-[10px] px-2 py-0.5 text-xs font-medium ${colorMap[status]}`}
   >
     {labelMap[status]}
   </span>
