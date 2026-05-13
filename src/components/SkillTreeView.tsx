@@ -3,6 +3,8 @@ import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
 import { OrnamentLine } from "./common/OrnamentLine";
 
+const TREE_NODE_PAGE = 250;
+
 type Props = {
   concepts: Concept[];
   domainColorMap: Record<string, string>;
@@ -214,17 +216,37 @@ const computeTreeLayout = (
 
 export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const layoutData = useMemo<LayoutData>(() => {
-    if (concepts.length === 0) return { nodes: [], mainEdges: [], extraEdges: [], rootId: "" };
+  const [treeNodeLimit, setTreeNodeLimit] = useState(TREE_NODE_PAGE);
 
-    const graph = buildGraph(concepts);
+  useEffect(() => {
+    setTreeNodeLimit((lim) => {
+      if (concepts.length === 0) {
+        return TREE_NODE_PAGE;
+      }
+      const capped = Math.min(lim, concepts.length);
+      if (capped === 0) {
+        return Math.min(TREE_NODE_PAGE, concepts.length);
+      }
+      return capped;
+    });
+  }, [concepts]);
+
+  const conceptsWindow = useMemo(
+    () => concepts.slice(0, Math.min(treeNodeLimit, concepts.length)),
+    [concepts, treeNodeLimit]
+  );
+
+  const layoutData = useMemo<LayoutData>(() => {
+    if (conceptsWindow.length === 0) return { nodes: [], mainEdges: [], extraEdges: [], rootId: "" };
+
+    const graph = buildGraph(conceptsWindow);
     const degrees = computeDegree(graph);
     const root = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
     const { tree, mainEdges, extraEdges } = buildBFSTree(graph, root);
-    const data = computeTreeLayout(tree, concepts, root, 900, 640);
+    const data = computeTreeLayout(tree, conceptsWindow, root, 900, 640);
 
     return { ...data, mainEdges, extraEdges };
-  }, [concepts]);
+  }, [conceptsWindow]);
 
   const navigationData = useMemo(() => {
     if (layoutData.rootId === "") {
@@ -236,11 +258,11 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         nodesByDepth: new Map<number, string[]>(),
       };
     }
-    const graph = buildGraph(concepts);
+    const graph = buildGraph(conceptsWindow);
     const root = layoutData.rootId;
     const { tree } = buildBFSTree(graph, root);
     return buildNavigationData(tree, root);
-  }, [concepts, layoutData.rootId]);
+  }, [conceptsWindow, layoutData.rootId]);
 
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -252,6 +274,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
   };
 
   const nodeById = new Map(layoutData.nodes.map((node) => [node.id, node]));
+  const canShowMoreTree = concepts.length > conceptsWindow.length;
 
   const handleBackgroundPointerDown = (event: React.PointerEvent<SVGRectElement>) => {
     if (event.button !== 0) return;
@@ -365,11 +388,23 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
       <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <OrnamentLine variant="panel" />
-      <header className="mb-2 flex items-center justify-between">
+      <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-celestial-textMain">スキルツリー</h3>
-        <p className="text-xs text-celestial-textSub">
-          ノード {layoutData.nodes.length} / 主エッジ {layoutData.mainEdges.length} / 追加エッジ {layoutData.extraEdges.length}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs text-celestial-textSub">
+            ノード {layoutData.nodes.length} / 主エッジ {layoutData.mainEdges.length} / 追加エッジ {layoutData.extraEdges.length}
+            {concepts.length > layoutData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""}
+          </p>
+          {canShowMoreTree && (
+            <button
+              type="button"
+              className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+              onClick={() => setTreeNodeLimit((n) => Math.min(n + TREE_NODE_PAGE, concepts.length))}
+            >
+              さらに表示（+{TREE_NODE_PAGE}）
+            </button>
+          )}
+        </div>
       </header>
 
       <div

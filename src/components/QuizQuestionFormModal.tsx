@@ -172,6 +172,8 @@ export const QuizQuestionFormModal = ({
     return m;
   }, [choices, concepts]);
 
+  const conceptById = useMemo(() => new Map(concepts.map((c) => [c.id, c])), [concepts]);
+
   const conceptSearchNeedle = useMemo(
     () => normalizeConceptSearchNeedle(conceptSearchQuery),
     [conceptSearchQuery]
@@ -190,13 +192,13 @@ export const QuizQuestionFormModal = ({
     }
     const matched = matchedConcepts;
     if (conceptId.trim()) {
-      const sel = concepts.find((c) => c.id === conceptId.trim());
+      const sel = conceptById.get(conceptId.trim());
       if (sel && !matched.some((c) => c.id === sel.id)) {
         return [sel, ...matched];
       }
     }
     return matched;
-  }, [concepts, conceptSearchNeedle, matchedConcepts, conceptId]);
+  }, [concepts, conceptSearchNeedle, matchedConcepts, conceptId, conceptById]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

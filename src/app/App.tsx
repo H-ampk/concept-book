@@ -16,6 +16,7 @@ import {
 import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
+import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
@@ -102,6 +103,7 @@ export const App = () => {
   const {
     concepts,
     visibleConcepts,
+    debouncedSearchQuery,
     allDomainTags,
     allResearchTags,
     loading,
@@ -134,6 +136,7 @@ export const App = () => {
   const [listViewMode, setListViewMode] = useState<ListViewMode>("all");
   const [domainColorMap, setDomainColorMap] = useState<Record<string, string>>({});
   const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
+  const [listDisplayLimit, setListDisplayLimit] = useState(100);
   const appShellStyle = useMemo(
     () =>
       ({
@@ -149,17 +152,35 @@ export const App = () => {
     setDomainColorMap(loadDomainColorMap());
   }, []);
 
-  const conceptMap = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
+  useEffect(() => {
+    setListDisplayLimit(100);
+  }, [
+    debouncedSearchQuery,
+    selectedDomainTags,
+    selectedResearchTags,
+    selectedStatuses,
+    onlyFavorite,
+    listViewMode
+  ]);
+
+  const conceptMap = useMemo(() => buildConceptByIdMap(concepts), [concepts]);
+  const conceptTitleIndex = useMemo(() => buildConceptByTitleMap(concepts), [concepts]);
   const selectedConcept = selectedId ? conceptMap.get(selectedId) : undefined;
+
+  const listSourceConcepts = useMemo(
+    () => visibleConcepts.slice(0, listDisplayLimit),
+    [visibleConcepts, listDisplayLimit]
+  );
+
   const groupedSections = useMemo(() => {
     if (listViewMode === "all") {
-      return [{ key: "all", label: "全体", concepts: visibleConcepts }];
+      return [{ key: "all", label: "全体", concepts: listSourceConcepts }];
     }
     if (listViewMode === "domain") {
-      return buildTagSections(visibleConcepts, "domain");
+      return buildTagSections(listSourceConcepts, "domain");
     }
-    return buildTagSections(visibleConcepts, "research");
-  }, [listViewMode, visibleConcepts]);
+    return buildTagSections(listSourceConcepts, "research");
+  }, [listViewMode, listSourceConcepts]);
 
   const openCreate = () => {
     setEditingConcept(undefined);
@@ -616,6 +637,22 @@ export const App = () => {
                     onToggleFavorite={(concept) => void toggleFavorite(concept)}
                     cardRefs={cardRefs}
                   />
+                  {visibleConcepts.length > listDisplayLimit && (
+                    <div className="mt-3 flex flex-col items-center gap-2 px-1">
+                      <p className="text-xs text-nordic-textSecondary">
+                        表示中 {Math.min(listDisplayLimit, visibleConcepts.length)} / {visibleConcepts.length} 件
+                      </p>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-[rgba(110,140,155,0.28)] bg-[rgba(255,255,255,0.85)] px-4 py-2 text-sm text-nordic-textPrimary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white"
+                        onClick={() =>
+                          setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))
+                        }
+                      >
+                        さらに表示（+100件）
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className={`${mobileDetail ? "block" : "hidden"} lg:block max-h-screen overflow-y-auto scrollbar-none`}>
@@ -652,6 +689,7 @@ export const App = () => {
         mode={editingConcept ? "edit" : "create"}
         baseConcept={editingConcept}
         allConcepts={concepts}
+        conceptTitleIndex={conceptTitleIndex}
         onClose={() => setModalOpen(false)}
         onSubmit={handleSubmit}
         reloadConcepts={reload}

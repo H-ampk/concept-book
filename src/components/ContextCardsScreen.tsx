@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ContextCardFormModal } from "./ContextCardFormModal";
 import { useContextCards } from "../features/contextCards/useContextCards";
 import { useConcepts } from "../features/concepts/useConcepts";
+import type { Concept } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 
 const domainLabel = (domain: string) => (domain === "all" ? "すべて" : domain);
@@ -140,10 +141,21 @@ const ContextCardDetail = ({
   card?: ContextCard;
   onBack: () => void;
   onEdit: (card: ContextCard) => void;
-  concepts: any[];
+  concepts: Concept[];
   onNavigateToConcept: (id: string) => void;
   onViewRelatedConcepts: () => void;
 }) => {
+  const conceptByTrimmedTitle = useMemo(() => {
+    const m = new Map<string, Concept>();
+    for (const c of concepts) {
+      const k = c.title.trim();
+      if (!m.has(k)) {
+        m.set(k, c);
+      }
+    }
+    return m;
+  }, [concepts]);
+
   if (!card) {
     return (
       <section className="rounded-3xl border border-celestial-border bg-celestial-panel p-6 shadow-celestial backdrop-blur-sm">
@@ -218,7 +230,7 @@ const ContextCardDetail = ({
             <div className="flex flex-wrap gap-2">
               {card.keyConcepts.split(",").map((keyConcept, index) => {
                 const trimmed = keyConcept.trim();
-                const matchedConcept = concepts.find((concept) => concept.title.trim() === trimmed);
+                const matchedConcept = trimmed ? conceptByTrimmedTitle.get(trimmed) : undefined;
                 return (
                   <button
                     key={index}

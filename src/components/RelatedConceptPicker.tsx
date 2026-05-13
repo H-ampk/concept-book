@@ -1,8 +1,12 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Concept } from "../types/concept";
 import { suggestRelatedConcepts } from "../features/concepts/suggestRelatedConcepts";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { parseBulkRelatedConceptTitles } from "../utils/bulkRelatedConcepts";
 import { includesNormalized } from "../utils/search";
+
+const RELATED_TITLE_SEARCH_MAX = 20;
+const RELATED_SUGGESTIONS_UI_MAX = 20;
 
 type Props = {
   allConcepts: Concept[];
@@ -43,6 +47,8 @@ export const RelatedConceptPicker = ({
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const ignoredSuggestionIds = dismissedIds;
 
+  const debouncedSearchQuery = useDebouncedValue(query, 200);
+
   const bulkTitlesPreview = useMemo(() => parseBulkRelatedConceptTitles(bulkInput), [bulkInput]);
   const bulkAddDisabled =
     !onBulkAddTitles || bulkSubmitting || bulkTitlesPreview.length === 0;
@@ -62,14 +68,19 @@ export const RelatedConceptPicker = ({
     [selectedIds, conceptMap]
   );
 
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
   const searchCandidates = useMemo(() => {
-    const selectedSet = new Set(selectedIds);
+    const q = debouncedSearchQuery.trim();
+    if (!q) {
+      return [];
+    }
     return allConcepts
       .filter((concept) => concept.id !== currentConceptId)
-      .filter((concept) => !selectedSet.has(concept.id))
-      .filter((concept) => candidateMatches(concept, query))
-      .slice(0, 8);
-  }, [allConcepts, currentConceptId, query, selectedIds]);
+      .filter((concept) => !selectedIdSet.has(concept.id))
+      .filter((concept) => candidateMatches(concept, debouncedSearchQuery))
+      .slice(0, RELATED_TITLE_SEARCH_MAX);
+  }, [allConcepts, currentConceptId, debouncedSearchQuery, selectedIdSet]);
 
   const allNodes = useMemo(
     () =>
@@ -103,19 +114,30 @@ export const RelatedConceptPicker = ({
     return suggestions.filter((candidate) => !dismissedSet.has(candidate.id));
   }, [ignoredSuggestionIds, suggestions]);
 
-  const addRelated = (conceptId: string) => {
-    if (selectedIds.includes(conceptId)) {
-      return;
-    }
-    onChange([...selectedIds, conceptId]);
-    setDismissedIds((prev) => prev.filter((id) => id !== conceptId));
-    setQuery("");
-    setOpen(true);
-  };
+  const suggestedCandidatesDisplayed = useMemo(
+    () => suggestedCandidates.slice(0, RELATED_SUGGESTIONS_UI_MAX),
+    [suggestedCandidates]
+  );
 
-  const removeRelated = (conceptId: string) => {
-    onChange(selectedIds.filter((id) => id !== conceptId));
-  };
+  const addRelated = useCallback(
+    (conceptId: string) => {
+      if (selectedIdSet.has(conceptId)) {
+        return;
+      }
+      onChange([...selectedIds, conceptId]);
+      setDismissedIds((prev) => prev.filter((id) => id !== conceptId));
+      setQuery("");
+      setOpen(true);
+    },
+    [onChange, selectedIdSet, selectedIds]
+  );
+
+  const removeRelated = useCallback(
+    (conceptId: string) => {
+      onChange(selectedIds.filter((id) => id !== conceptId));
+    },
+    [onChange, selectedIds]
+  );
 
   const dismissSuggestion = (conceptId: string) => {
     if (dismissedIds.includes(conceptId)) {
@@ -202,13 +224,17 @@ export const RelatedConceptPicker = ({
 
       <div className="mb-2 rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue p-3">
         <p className="text-sm font-medium text-celestial-softGold">
-          関連概念候補 ({suggestedCandidates.length}件)
+          関連概念候補（
+          {suggestedCandidates.length > RELATED_SUGGESTIONS_UI_MAX
+            ? `${RELATED_SUGGESTIONS_UI_MAX}件表示 / 全${suggestedCandidates.length}件`
+            : `${suggestedCandidates.length}件`}
+          ）
         </p>
         {suggestedCandidates.length === 0 ? (
           <p className="mt-1 text-xs text-celestial-textSub">候補が見つかりません</p>
         ) : (
           <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto scrollbar-none pr-1">
-            {suggestedCandidates.map((candidate) => (
+            {suggestedCandidatesDisplayed.map((candidate) => (
               <li
                 key={candidate.id}
                 className="rounded-2xl border border-celestial-gold/30 bg-celestial-panel px-2.5 py-2 hover:bg-celestial-gold/10 transition-colors"

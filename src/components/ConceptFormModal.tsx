@@ -5,10 +5,8 @@ import {
   type Concept,
   type ConceptInput
 } from "../types/concept";
-import {
-  createConceptInputFromTitle,
-  findConceptByExactTitle
-} from "../utils/bulkRelatedConcepts";
+import { createConceptInputFromTitle } from "../utils/bulkRelatedConcepts";
+import { getConceptByTitleExact } from "../utils/conceptLookupMaps";
 import type { ConceptMediaRef } from "../types/media";
 import { getStorage } from "../storage";
 import { RelatedConceptPicker } from "./RelatedConceptPicker";
@@ -20,6 +18,8 @@ type Props = {
   mode: "create" | "edit";
   baseConcept?: Concept;
   allConcepts: Concept[];
+  /** title 完全一致参照（先頭出現のみ）。一括追加で使用 */
+  conceptTitleIndex: Map<string, Concept>;
   onClose: () => void;
   /** 保存した概念を返す（新規作成時は addMedia 用）。編集時は更新後の概念。 */
   onSubmit: (payload: ConceptInput) => Promise<Concept | undefined>;
@@ -45,6 +45,7 @@ export const ConceptFormModal = ({
   mode,
   baseConcept,
   allConcepts,
+  conceptTitleIndex,
   onClose,
   onSubmit,
   reloadConcepts
@@ -241,7 +242,7 @@ export const ConceptFormModal = ({
     const newLinkIds: string[] = [];
     const provisionalSeen = new Set(form.relatedIds);
 
-    let conceptsSnapshot = [...allConcepts];
+    const titleLookup = new Map(conceptTitleIndex);
 
     for (const title of titles) {
       if (title === selfTitle) {
@@ -249,7 +250,7 @@ export const ConceptFormModal = ({
         continue;
       }
 
-      const match = findConceptByExactTitle(conceptsSnapshot, title);
+      const match = getConceptByTitleExact(titleLookup, title);
       if (match && currentId && match.id === currentId) {
         skippedSelf += 1;
         continue;
@@ -262,7 +263,7 @@ export const ConceptFormModal = ({
         const created = await storage.createConcept(createConceptInputFromTitle(title));
         createdConceptCount += 1;
         targetId = created.id;
-        conceptsSnapshot = [...conceptsSnapshot, created];
+        titleLookup.set(created.title, created);
       }
 
       if (!targetId) {

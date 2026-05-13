@@ -4,6 +4,8 @@ import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
 import { OrnamentLine } from "./common/OrnamentLine";
 
+const GRAPH_NODE_PAGE = 200;
+
 type GraphNode = {
   id: string;
   title: string;
@@ -26,6 +28,25 @@ type Props = {
 export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 700, height: 520 });
+  const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
+
+  useEffect(() => {
+    setGraphNodeLimit((lim) => {
+      if (concepts.length === 0) {
+        return GRAPH_NODE_PAGE;
+      }
+      const capped = Math.min(lim, concepts.length);
+      if (capped === 0) {
+        return Math.min(GRAPH_NODE_PAGE, concepts.length);
+      }
+      return capped;
+    });
+  }, [concepts]);
+
+  const conceptsWindow = useMemo(
+    () => concepts.slice(0, Math.min(graphNodeLimit, concepts.length)),
+    [concepts, graphNodeLimit]
+  );
 
   useEffect(() => {
     const root = frameRef.current;
@@ -46,8 +67,8 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   }, []);
 
   const graphData = useMemo(() => {
-    const idSet = new Set(concepts.map((concept) => concept.id));
-    const nodes: GraphNode[] = concepts.map((concept) => ({
+    const idSet = new Set(conceptsWindow.map((concept) => concept.id));
+    const nodes: GraphNode[] = conceptsWindow.map((concept) => ({
       id: concept.id,
       title: concept.title,
       domainTag: concept.domainTags[0] ?? "",
@@ -56,7 +77,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
 
     const edgeKeys = new Set<string>();
     const links: GraphLink[] = [];
-    concepts.forEach((concept) => {
+    conceptsWindow.forEach((concept) => {
       concept.relatedIds.forEach((relatedId) => {
         if (!idSet.has(relatedId)) {
           return;
@@ -77,7 +98,9 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     });
 
     return { nodes, links };
-  }, [concepts]);
+  }, [conceptsWindow]);
+
+  const canShowMoreGraph = concepts.length > conceptsWindow.length;
 
   return (
     <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial decorated-card">
@@ -86,11 +109,23 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
       <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
       <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <OrnamentLine variant="panel" />
-      <header className="mb-2 flex items-center justify-between">
+      <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-celestial-textMain">概念グラフ</h3>
-        <p className="text-xs text-celestial-textSub">
-          ノード {graphData.nodes.length} / エッジ {graphData.links.length}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs text-celestial-textSub">
+            ノード {graphData.nodes.length} / エッジ {graphData.links.length}
+            {concepts.length > graphData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""}
+          </p>
+          {canShowMoreGraph && (
+            <button
+              type="button"
+              className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+              onClick={() => setGraphNodeLimit((n) => Math.min(n + GRAPH_NODE_PAGE, concepts.length))}
+            >
+              さらに表示（+{GRAPH_NODE_PAGE}）
+            </button>
+          )}
+        </div>
       </header>
 
       <div ref={frameRef} className="w-full overflow-x-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface">

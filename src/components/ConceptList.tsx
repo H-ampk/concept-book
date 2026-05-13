@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMatchMedia } from "../hooks/useMatchMedia";
 import { StatusBadge } from "./StatusBadge";
@@ -166,6 +166,8 @@ function ConceptListItem({
   );
 }
 
+const MemoConceptListItem = React.memo(ConceptListItem);
+
 export const ConceptList = ({
   concepts,
   selectedId,
@@ -178,6 +180,12 @@ export const ConceptList = ({
 }: Props) => {
   const isMobile = useMatchMedia("(max-width: 768px)");
   const parentRef = useRef<HTMLDivElement>(null);
+
+  const idToIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    concepts.forEach((c, i) => m.set(c.id, i));
+    return m;
+  }, [concepts]);
 
   const rowVirtualizer = useVirtualizer({
     count: concepts.length,
@@ -193,11 +201,11 @@ export const ConceptList = ({
     if (!isMobile || concepts.length === 0 || !selectedId) {
       return;
     }
-    const idx = concepts.findIndex((c) => c.id === selectedId);
-    if (idx >= 0) {
+    const idx = idToIndex.get(selectedId);
+    if (idx !== undefined && idx >= 0) {
       rowVirtualizer.scrollToIndex(idx, { align: "center" });
     }
-  }, [selectedId, isMobile, rowVirtualizer]);
+  }, [selectedId, isMobile, rowVirtualizer, idToIndex]);
 
   if (concepts.length === 0) {
     return (
@@ -211,7 +219,7 @@ export const ConceptList = ({
     return (
       <ul className="space-y-3">
         {concepts.map((concept) => (
-          <ConceptListItem
+          <MemoConceptListItem
             key={concept.id}
             as="li"
             concept={concept}
@@ -251,7 +259,7 @@ export const ConceptList = ({
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const concept = concepts[virtualRow.index];
           return (
-            <ConceptListItem
+            <MemoConceptListItem
               key={concept.id}
               as="div"
               virtualRowIndex={virtualRow.index}

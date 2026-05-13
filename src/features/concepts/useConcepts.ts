@@ -60,7 +60,7 @@ export const useConcepts = () => {
     [reload]
   );
 
-  const debouncedSearchQuery = useDebouncedValue(query, 250);
+  const debouncedSearchQuery = useDebouncedValue(query, 200);
 
   const visibleConcepts = useMemo(
     () =>
@@ -87,6 +87,7 @@ export const useConcepts = () => {
   return {
     concepts,
     visibleConcepts,
+    debouncedSearchQuery,
     allDomainTags: tagGroups.domainTags,
     allResearchTags: tagGroups.researchTags,
     loading,
