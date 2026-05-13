@@ -1,5 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { conceptStatusList, createEmptyConceptInput, type Concept, type ConceptInput } from "../types/concept";
+import {
+  conceptStatusList,
+  createEmptyConceptInput,
+  type Concept,
+  type ConceptInput
+} from "../types/concept";
+import {
+  createConceptInputFromTitle,
+  findConceptByExactTitle
+} from "../utils/bulkRelatedConcepts";
 import type { ConceptMediaRef } from "../types/media";
 import { getStorage } from "../storage";
 import { RelatedConceptPicker } from "./RelatedConceptPicker";
@@ -214,6 +223,92 @@ export const ConceptFormModal = ({
     } catch (e) {
       setError(e instanceof Error ? e.message : "キャプション更新に失敗しました。");
     }
+  };
+
+  const handleAddBulkRelatedConcepts = async (titles: string[]): Promise<{ message: string }> => {
+    if (titles.length === 0) {
+      return { message: "追加する項目がありませんでした。" };
+    }
+
+    const selfTitle = form.title;
+    const currentId = baseConcept?.id;
+
+    let linked = 0;
+    let createdConceptCount = 0;
+    let skippedDuplicate = 0;
+    let skippedSelf = 0;
+
+    const newLinkIds: string[] = [];
+    const provisionalSeen = new Set(form.relatedIds);
+
+    let conceptsSnapshot = [...allConcepts];
+
+    for (const title of titles) {
+      if (title === selfTitle) {
+        skippedSelf += 1;
+        continue;
+      }
+
+      const match = findConceptByExactTitle(conceptsSnapshot, title);
+      if (match && currentId && match.id === currentId) {
+        skippedSelf += 1;
+        continue;
+      }
+
+      let targetId: string | undefined;
+      if (match) {
+        targetId = match.id;
+      } else {
+        const created = await storage.createConcept(createConceptInputFromTitle(title));
+        createdConceptCount += 1;
+        targetId = created.id;
+        conceptsSnapshot = [...conceptsSnapshot, created];
+      }
+
+      if (!targetId) {
+        continue;
+      }
+      if (provisionalSeen.has(targetId)) {
+        skippedDuplicate += 1;
+        continue;
+      }
+
+      newLinkIds.push(targetId);
+      provisionalSeen.add(targetId);
+      linked += 1;
+    }
+
+    setForm((prev) => {
+      const merged = [...prev.relatedIds];
+      const seen = new Set(merged);
+      for (const id of newLinkIds) {
+        if (seen.has(id)) {
+          continue;
+        }
+        merged.push(id);
+        seen.add(id);
+      }
+      return { ...prev, relatedIds: merged };
+    });
+    await reloadConcepts?.();
+
+    const sentences: string[] = [];
+    if (linked > 0) {
+      sentences.push(`${linked}件の関連概念を追加しました`);
+    }
+    if (createdConceptCount > 0) {
+      sentences.push(`新規概念を${createdConceptCount}件作成しました`);
+    }
+    if (skippedDuplicate > 0) {
+      sentences.push(`${skippedDuplicate}件は既に関連付け済みのためスキップしました`);
+    }
+    if (skippedSelf > 0) {
+      sentences.push(`${skippedSelf}件は自身の概念のためスキップしました`);
+    }
+    if (sentences.length === 0) {
+      return { message: "追加する項目がありませんでした。" };
+    }
+    return { message: sentences.join(" ") };
   };
 
   const reorderMedia = async (index: number, delta: number) => {
@@ -455,6 +550,7 @@ export const ConceptFormModal = ({
             inputDefinition={form.definition}
             inputTags={tagsState}
             onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
+            onBulkAddTitles={handleAddBulkRelatedConcepts}
           />
 
           <div className="md:col-span-2 rounded-lg border border-celestial-gold/25 bg-celestial-deepBlue p-3">

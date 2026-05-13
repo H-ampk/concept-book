@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Concept } from "../types/concept";
 import { suggestRelatedConcepts } from "../features/concepts/suggestRelatedConcepts";
+import { parseBulkRelatedConceptTitles } from "../utils/bulkRelatedConcepts";
 import { includesNormalized } from "../utils/search";
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
   inputDefinition: string;
   inputTags: string[];
   onChange: (nextIds: string[]) => void;
+  /** 一括追加（IndexedDB への新規作成などは親で実施） */
+  onBulkAddTitles?: (titles: string[]) => Promise<{ message: string }>;
 };
 
 const candidateMatches = (concept: Concept, query: string): boolean => {
@@ -29,12 +32,20 @@ export const RelatedConceptPicker = ({
   inputTitle,
   inputDefinition,
   inputTags,
-  onChange
+  onChange,
+  onBulkAddTitles
 }: Props) => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [bulkInput, setBulkInput] = useState("");
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const ignoredSuggestionIds = dismissedIds;
+
+  const bulkTitlesPreview = useMemo(() => parseBulkRelatedConceptTitles(bulkInput), [bulkInput]);
+  const bulkAddDisabled =
+    !onBulkAddTitles || bulkSubmitting || bulkTitlesPreview.length === 0;
 
   const conceptMap = useMemo(
     () => new Map(allConcepts.map((concept) => [concept.id, concept])),
@@ -92,10 +103,6 @@ export const RelatedConceptPicker = ({
     return suggestions.filter((candidate) => !dismissedSet.has(candidate.id));
   }, [ignoredSuggestionIds, suggestions]);
 
-  useEffect(() => {
-    // Removed debug logging
-  }, [allNodes, ignoredSuggestionIds.length, inputDefinition, inputTags, inputTitle, selectedIds.length, suggestions]);
-
   const addRelated = (conceptId: string) => {
     if (selectedIds.includes(conceptId)) {
       return;
@@ -115,6 +122,23 @@ export const RelatedConceptPicker = ({
       return;
     }
     setDismissedIds((prev) => [...prev, conceptId]);
+  };
+
+  const handleBulkAdd = async () => {
+    if (!onBulkAddTitles || bulkTitlesPreview.length === 0) {
+      return;
+    }
+    setBulkSubmitting(true);
+    setBulkMessage(null);
+    try {
+      const { message } = await onBulkAddTitles(bulkTitlesPreview);
+      setBulkInput("");
+      setBulkMessage(message);
+    } catch (e) {
+      setBulkMessage(e instanceof Error ? e.message : "一括追加に失敗しました。");
+    } finally {
+      setBulkSubmitting(false);
+    }
   };
 
   return (
@@ -147,6 +171,34 @@ export const RelatedConceptPicker = ({
         )}
         </div>
       </div>
+
+      {onBulkAddTitles && (
+        <div className="mb-2 rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue p-3">
+          <span className="mb-1 block text-sm font-medium text-celestial-softGold">関連概念をまとめて追加</span>
+          <textarea
+            className="min-h-20 w-full rounded-xl border border-celestial-gold/30 bg-celestial-panel px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub"
+            value={bulkInput}
+            disabled={bulkSubmitting}
+            onChange={(e) => {
+              setBulkInput(e.target.value);
+              setBulkMessage(null);
+            }}
+            placeholder={"例: 論理実証主義, ウィーン学団, 検証原則\nコンマ・読点・改行で区切って入力"}
+            rows={4}
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={bulkAddDisabled}
+              className="rounded border border-celestial-gold/50 px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/15 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => void handleBulkAdd()}
+            >
+              {bulkSubmitting ? "追加中…" : "まとめて追加"}
+            </button>
+          </div>
+          {bulkMessage && <p className="mt-2 text-xs text-celestial-textSub">{bulkMessage}</p>}
+        </div>
+      )}
 
       <div className="mb-2 rounded-2xl border border-celestial-gold/30 bg-celestial-deepBlue p-3">
         <p className="text-sm font-medium text-celestial-softGold">
