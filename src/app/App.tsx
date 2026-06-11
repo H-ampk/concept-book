@@ -37,6 +37,7 @@ const statusLabelMap: Record<ConceptStatus, string> = {
   active: "稼働中",
   researching: "調査中",
   unclear: "未整理",
+  draft: "下書き",
   archived: "保管"
 };
 

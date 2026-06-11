@@ -61,6 +61,7 @@
   --status-active: #6c8aa0;
   --status-research: #c79a3d;
   --status-unorganized: #b2b0aa;
+  --status-draft: #a8a6b8;
   --status-archive: #9aa3a8;
 
   /* 互換名（Tailwind / 旧クラス向け） */
@@ -898,6 +899,10 @@ body {
 
 .study-status-badge[data-status="unclear"] .study-status-dot {
   background: var(--status-unorganized);
+}
+
+.study-status-badge[data-status="draft"] .study-status-dot {
+  background: var(--status-draft);
 }
 
 .study-status-badge[data-status="archived"] .study-status-dot {

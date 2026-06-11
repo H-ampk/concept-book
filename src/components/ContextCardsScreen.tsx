@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ContextCardFormModal } from "./ContextCardFormModal";
 import { useContextCards } from "../features/contextCards/useContextCards";
 import { useConcepts } from "../features/concepts/useConcepts";
+import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
+import { syncImportantTermsToConcepts } from "../utils/syncImportantTermsToConcepts";
+
+const storage = getStorage();
 
 const domainLabel = (domain: string) => (domain === "all" ? "すべて" : domain);
 
@@ -323,13 +327,22 @@ const RelatedConceptsScreen = ({
 
 export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcept: (id: string) => void }) => {
   const { contextCards, loading, domains, create, update } = useContextCards();
-  const { concepts } = useConcepts();
+  const { concepts, reload: reloadConcepts } = useConcepts();
   const [activeScreen, setActiveScreen] = useState<"selection" | "list" | "detail" | "relatedConcepts">("selection");
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingContext, setEditingContext] = useState<ContextCard | undefined>(undefined);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [conceptToast, setConceptToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!conceptToast) {
+      return;
+    }
+    const timer = window.setTimeout(() => setConceptToast(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [conceptToast]);
 
   const filteredCards = useMemo(
     () =>
@@ -361,21 +374,37 @@ export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcep
   };
 
   const handleSubmit = async (payload: ContextCardInput) => {
-    if (editingContext) {
-      const updated = await update(editingContext.id, payload);
-      if (updated) {
-        setSelectedId(updated.id);
-        setActiveScreen("detail");
-        setFeedback("文脈カードを更新しました。");
-        return updated;
+    const isEdit = Boolean(editingContext);
+    let savedCard: ContextCard | undefined;
+
+    if (isEdit && editingContext) {
+      savedCard = await update(editingContext.id, payload);
+      if (!savedCard) {
+        return undefined;
       }
-      return undefined;
+    } else {
+      savedCard = await create(payload);
     }
-    const created = await create(payload);
-    setSelectedId(created.id);
+
+    setSelectedId(savedCard.id);
     setActiveScreen("detail");
-    setFeedback("文脈カードを作成しました。");
-    return created;
+    setFeedback(isEdit ? "文脈カードを更新しました。" : "文脈カードを作成しました。");
+
+    try {
+      const { createdCount } = await syncImportantTermsToConcepts(
+        savedCard,
+        concepts,
+        (input) => storage.createConcept(input)
+      );
+      if (createdCount > 0) {
+        await reloadConcepts();
+        setConceptToast(`${createdCount}件の概念を自動生成しました`);
+      }
+    } catch (error) {
+      console.error("重要概念からの概念自動生成に失敗しました:", error);
+    }
+
+    return savedCard;
   };
 
   const handleCloseModal = () => {
@@ -454,6 +483,15 @@ export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcep
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
       />
+
+      {conceptToast && (
+        <div
+          className="fixed bottom-4 right-4 z-40 rounded-md border border-celestial-border bg-nordic-primary px-3 py-2 text-sm text-nordic-textPrimary shadow-quiet"
+          role="status"
+        >
+          {conceptToast}
+        </div>
+      )}
     </div>
   );
 };
