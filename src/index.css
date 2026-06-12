@@ -1202,6 +1202,21 @@ body {
   outline-offset: 2px;
 }
 
+.quiz-result-illustration {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0 16px;
+}
+
+.quiz-result-illustration img {
+  width: min(160px, 45vw);
+  max-width: 180px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
 button.bg-celestial-gold {
   background: linear-gradient(135deg, #5e7e93 0%, #516f82 100%);
   color: var(--text-on-dark);

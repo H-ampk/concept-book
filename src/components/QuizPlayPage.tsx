@@ -9,6 +9,11 @@ import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
 
+const QUIZ_RESULT_IMAGE = {
+  correct: { src: "/decorations/inu.png", alt: "正解時の犬イラスト" },
+  wrong: { src: "/decorations/tanuki.png", alt: "不正解時の狸イラスト" }
+} as const;
+
 const resolveAttemptConceptId = (
   question: QuizQuestion,
   correctChoice: QuizChoice
@@ -646,49 +651,58 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
               ) : (
                 <div className="space-y-4 rounded-2xl border border-celestial-border/60 bg-nordic-navy/35 p-4 backdrop-blur-sm">
                   <p
-                    className={`text-sm font-semibold ${isCorrect ? "text-celestial-gold" : "text-celestial-danger"}`}
+                    className={`text-center text-sm font-semibold ${isCorrect ? "text-celestial-gold" : "text-celestial-danger"}`}
                     role="status"
                   >
-                    {isCorrect ? "正解です" : "不正解です"}
+                    {isCorrect ? "正解" : "不正解"}
                   </p>
-                  <ul className="space-y-2 text-xs text-celestial-textSub sm:text-sm">
-                    <li>
-                      あなたの解答: <span className="text-celestial-textMain">{selectedChoice?.text ?? "—"}</span>
-                      {selectedChoice?.linkedConceptId ? (
-                        <span className="ml-2">
-                          {conceptLabel(selectedChoice) ? (
-                            <button
-                              type="button"
-                              onClick={() => onNavigateToConcept(selectedChoice.linkedConceptId!)}
-                              className="rounded border border-celestial-gold/40 px-2 py-0.5 text-celestial-softGold hover:bg-celestial-gold/10"
-                            >
-                              Concept: {conceptLabel(selectedChoice)}
-                            </button>
-                          ) : (
-                            <span className="text-celestial-textSub">（リンク先 Concept なし）</span>
-                          )}
-                        </span>
-                      ) : null}
-                    </li>
-                    <li>
-                      正解: <span className="text-celestial-textMain">{correctChoice?.text ?? "—"}</span>
-                      {correctChoice?.linkedConceptId ? (
-                        <span className="ml-2">
-                          {conceptLabel(correctChoice) ? (
-                            <button
-                              type="button"
-                              onClick={() => onNavigateToConcept(correctChoice.linkedConceptId!)}
-                              className="rounded border border-celestial-gold/40 px-2 py-0.5 text-celestial-softGold hover:bg-celestial-gold/10"
-                            >
-                              Concept: {conceptLabel(correctChoice)}
-                            </button>
-                          ) : (
-                            <span className="text-celestial-textSub">（リンク先 Concept なし）</span>
-                          )}
-                        </span>
-                      ) : null}
-                    </li>
-                  </ul>
+                  <div className="quiz-result-illustration">
+                    <img
+                      src={isCorrect ? QUIZ_RESULT_IMAGE.correct.src : QUIZ_RESULT_IMAGE.wrong.src}
+                      alt={isCorrect ? QUIZ_RESULT_IMAGE.correct.alt : QUIZ_RESULT_IMAGE.wrong.alt}
+                    />
+                  </div>
+                  {!isCorrect ? (
+                    <ul className="space-y-2 text-xs text-celestial-textSub sm:text-sm">
+                      <li>
+                        あなたの解答:{" "}
+                        <span className="text-celestial-textMain">{selectedChoice?.text ?? "—"}</span>
+                        {selectedChoice?.linkedConceptId ? (
+                          <span className="ml-2">
+                            {conceptLabel(selectedChoice) ? (
+                              <button
+                                type="button"
+                                onClick={() => onNavigateToConcept(selectedChoice.linkedConceptId!)}
+                                className="rounded border border-celestial-gold/40 px-2 py-0.5 text-celestial-softGold hover:bg-celestial-gold/10"
+                              >
+                                Concept: {conceptLabel(selectedChoice)}
+                              </button>
+                            ) : (
+                              <span className="text-celestial-textSub">（リンク先 Concept なし）</span>
+                            )}
+                          </span>
+                        ) : null}
+                      </li>
+                      <li>
+                        正解: <span className="text-celestial-textMain">{correctChoice?.text ?? "—"}</span>
+                        {correctChoice?.linkedConceptId ? (
+                          <span className="ml-2">
+                            {conceptLabel(correctChoice) ? (
+                              <button
+                                type="button"
+                                onClick={() => onNavigateToConcept(correctChoice.linkedConceptId!)}
+                                className="rounded border border-celestial-gold/40 px-2 py-0.5 text-celestial-softGold hover:bg-celestial-gold/10"
+                              >
+                                Concept: {conceptLabel(correctChoice)}
+                              </button>
+                            ) : (
+                              <span className="text-celestial-textSub">（リンク先 Concept なし）</span>
+                            )}
+                          </span>
+                        ) : null}
+                      </li>
+                    </ul>
+                  ) : null}
                   {current.explanation ? (
                     <div className="rounded-lg border border-celestial-border/50 bg-celestial-panel/40 p-3 text-sm leading-relaxed text-celestial-textMain">
                       <p className="mb-1 text-xs font-medium text-celestial-softGold">解説</p>
