@@ -9,10 +9,28 @@ import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
 
+const assetUrl = (path: string): string =>
+  `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+
 const QUIZ_RESULT_IMAGE = {
-  correct: { src: "/decorations/inu.png", alt: "正解時の犬イラスト" },
-  wrong: { src: "/decorations/tanuki.png", alt: "不正解時の狸イラスト" }
+  correct: { src: assetUrl("decorations/inu.png"), alt: "正解時の犬イラスト" },
+  wrong: { src: assetUrl("decorations/tanuki.png"), alt: "不正解時の狸イラスト" }
 } as const;
+
+const resolveResultExplanationText = (
+  question: QuizQuestion,
+  correctChoice: QuizChoice | null | undefined,
+  isCorrectAnswer: boolean
+): string => {
+  const fromQuestion = question.explanation?.trim();
+  if (fromQuestion) {
+    return fromQuestion;
+  }
+  if (isCorrectAnswer) {
+    return correctChoice?.text?.trim() ?? "";
+  }
+  return "";
+};
 
 /** 出題対象概念 ID（QuizQuestion.conceptId / promptConceptId）のみを返す */
 const resolvePromptConceptId = (question: QuizQuestion): string | undefined =>
@@ -653,6 +671,12 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                     <img
                       src={isCorrect ? QUIZ_RESULT_IMAGE.correct.src : QUIZ_RESULT_IMAGE.wrong.src}
                       alt={isCorrect ? QUIZ_RESULT_IMAGE.correct.alt : QUIZ_RESULT_IMAGE.wrong.alt}
+                      onError={() => {
+                        console.warn(
+                          "Quiz result image failed to load:",
+                          isCorrect ? QUIZ_RESULT_IMAGE.correct.src : QUIZ_RESULT_IMAGE.wrong.src
+                        );
+                      }}
                     />
                   </div>
                   {!isCorrect ? (
@@ -696,12 +720,22 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                       </li>
                     </ul>
                   ) : null}
-                  {current.explanation ? (
-                    <div className="rounded-lg border border-celestial-border/50 bg-celestial-panel/40 p-3 text-sm leading-relaxed text-celestial-textMain">
-                      <p className="mb-1 text-xs font-medium text-celestial-softGold">解説</p>
-                      {current.explanation}
-                    </div>
-                  ) : null}
+                  {(() => {
+                    const explanationText = resolveResultExplanationText(
+                      current,
+                      correctChoice,
+                      Boolean(isCorrect)
+                    );
+                    if (!explanationText) {
+                      return null;
+                    }
+                    return (
+                      <div className="quiz-result-explanation rounded-lg border border-celestial-border/50 bg-celestial-panel/40 p-3 text-sm leading-relaxed text-celestial-textMain">
+                        <p className="mb-1 text-xs font-medium text-celestial-softGold">解説</p>
+                        <p>{explanationText}</p>
+                      </div>
+                    );
+                  })()}
                   <button type="button" onClick={goNext} className="action-button rounded-lg px-5 py-2 text-sm">
                     {index + 1 >= deck.length ? "結果を見る" : "次の問題へ"}
                   </button>
