@@ -152,6 +152,8 @@ export interface QuizAttemptLog {
   id: string;
   /** 同一「学習開始」から結果までを束ねる ID */
   sessionId?: string;
+  /** 集計対象の概念 ID（出題概念） */
+  conceptId?: string;
   questionId: string;
   /** 回答時点の問題文スナップショット */
   questionPromptSnapshot: string;

@@ -312,6 +312,7 @@ const normalizeQuizAttemptLog = (raw: StoredQuizAttemptLog): QuizAttemptLog => {
       : QUIZ_ATTEMPT_LOG_SCHEMA_VERSION;
 
   const sid = raw.sessionId?.toString().trim();
+  const cid = raw.conceptId?.toString().trim();
   const qcid = raw.questionConceptId?.toString().trim();
   const selLink = raw.selectedLinkedConceptId?.toString().trim();
   const corrLink = raw.correctLinkedConceptId?.toString().trim();
@@ -321,6 +322,7 @@ const normalizeQuizAttemptLog = (raw: StoredQuizAttemptLog): QuizAttemptLog => {
   return {
     id: raw.id?.toString() ?? "",
     ...(sid ? { sessionId: sid } : {}),
+    ...(cid ? { conceptId: cid } : {}),
     questionId: raw.questionId?.toString() ?? "",
     questionPromptSnapshot: raw.questionPromptSnapshot?.toString() ?? "",
     ...(qcid ? { questionConceptId: qcid } : {}),

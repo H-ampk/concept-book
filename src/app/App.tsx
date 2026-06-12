@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 
@@ -15,10 +15,13 @@ import {
 } from "../components/ConceptGroupSections";
 import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
+import { getStorage } from "../storage";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
+import type { QuizAttemptLog } from "../types/quiz";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
 import type { ConceptSaveOptions } from "../utils/promoteDraftConceptIfDefined";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
+import { buildConceptQuizStatsDisplayMap } from "../utils/quiz/getConceptQuizStats";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
@@ -44,6 +47,8 @@ const statusLabelMap: Record<ConceptStatus, string> = {
 
 const assetUrl = (path: string): string =>
   `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+
+const storage = getStorage();
 
 const buildTagSections = (
   concepts: Concept[],
@@ -139,6 +144,7 @@ export const App = () => {
   const [domainColorMap, setDomainColorMap] = useState<Record<string, string>>({});
   const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
+  const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
   const appShellStyle = useMemo(
     () =>
       ({
@@ -153,6 +159,21 @@ export const App = () => {
   useEffect(() => {
     setDomainColorMap(loadDomainColorMap());
   }, []);
+
+  const reloadQuizAttemptLogs = useCallback(async () => {
+    const logs = await storage.getQuizAttemptLogs();
+    setQuizAttemptLogs(logs);
+  }, []);
+
+  useEffect(() => {
+    void reloadQuizAttemptLogs();
+  }, [reloadQuizAttemptLogs]);
+
+  useEffect(() => {
+    if (screen === "concepts") {
+      void reloadQuizAttemptLogs();
+    }
+  }, [screen, reloadQuizAttemptLogs]);
 
   useEffect(() => {
     setListDisplayLimit(100);
@@ -183,6 +204,11 @@ export const App = () => {
     }
     return buildTagSections(listSourceConcepts, "research");
   }, [listViewMode, listSourceConcepts]);
+
+  const conceptQuizStatsText = useMemo(
+    () => buildConceptQuizStatsDisplayMap(quizAttemptLogs),
+    [quizAttemptLogs]
+  );
 
   const openCreate = () => {
     setEditingConcept(undefined);
@@ -634,6 +660,7 @@ export const App = () => {
                     sections={groupedSections}
                     selectedId={selectedId}
                     domainColorMap={domainColorMap}
+                    conceptQuizStatsText={conceptQuizStatsText}
                     onSelect={handleSelect}
                     onEdit={openEdit}
                     onToggleFavorite={(concept) => void toggleFavorite(concept)}

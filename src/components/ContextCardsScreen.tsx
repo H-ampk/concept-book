@@ -5,7 +5,10 @@ import { useConcepts } from "../features/concepts/useConcepts";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
-import { syncImportantTermsToConcepts } from "../utils/syncImportantTermsToConcepts";
+import {
+  formatSyncImportantTermsToast,
+  syncImportantTermsToConcepts
+} from "../utils/syncImportantTermsToConcepts";
 
 const storage = getStorage();
 
@@ -391,14 +394,20 @@ export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcep
     setFeedback(isEdit ? "文脈カードを更新しました。" : "文脈カードを作成しました。");
 
     try {
-      const { createdCount } = await syncImportantTermsToConcepts(
+      const { createdCount, updatedCount } = await syncImportantTermsToConcepts(
         savedCard,
         concepts,
-        (input) => storage.createConcept(input)
+        {
+          createConcept: (input) => storage.createConcept(input),
+          updateConcept: (id, updates) => storage.updateConcept(id, updates)
+        }
       );
-      if (createdCount > 0) {
+      if (createdCount > 0 || updatedCount > 0) {
         await reloadConcepts();
-        setConceptToast(`${createdCount}件の概念を自動生成しました`);
+        const toastMessage = formatSyncImportantTermsToast(createdCount, updatedCount);
+        if (toastMessage) {
+          setConceptToast(toastMessage);
+        }
       }
     } catch (error) {
       console.error("重要概念からの概念自動生成に失敗しました:", error);

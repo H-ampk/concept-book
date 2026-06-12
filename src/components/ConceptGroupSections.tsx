@@ -15,6 +15,7 @@ type Props = {
   sections: ConceptGroupSection[];
   selectedId?: string;
   domainColorMap: Record<string, string>;
+  conceptQuizStatsText?: Map<string, string>;
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
@@ -26,6 +27,7 @@ export const ConceptGroupSections = ({
   sections,
   selectedId,
   domainColorMap,
+  conceptQuizStatsText,
   onSelect,
   onEdit,
   onToggleFavorite,
@@ -61,6 +63,7 @@ export const ConceptGroupSections = ({
         concepts={sections[0]?.concepts ?? []}
         selectedId={selectedId}
         domainColorMap={domainColorMap}
+        conceptQuizStatsText={conceptQuizStatsText}
         onSelect={onSelect}
         onEdit={onEdit}
         onToggleFavorite={onToggleFavorite}
@@ -100,6 +103,7 @@ export const ConceptGroupSections = ({
                   concepts={section.concepts}
                   selectedId={selectedId}
                   domainColorMap={domainColorMap}
+                  conceptQuizStatsText={conceptQuizStatsText}
                   onSelect={onSelect}
                   onEdit={onEdit}
                   onToggleFavorite={onToggleFavorite}

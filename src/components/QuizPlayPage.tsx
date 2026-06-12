@@ -12,6 +12,15 @@ import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
 
+const resolveAttemptConceptId = (
+  question: QuizQuestion,
+  correctChoice: QuizChoice
+): string | undefined =>
+  question.conceptId?.trim() ||
+  correctChoice.sourceConceptId?.trim() ||
+  correctChoice.linkedConceptId?.trim() ||
+  undefined;
+
 const isPlayableQuestion = (q: QuizQuestion): boolean => {
   if (!q.prompt?.trim()) {
     return false;
@@ -254,6 +263,10 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     };
     if (sessionIdRef.current) {
       log.sessionId = sessionIdRef.current;
+    }
+    const attemptConceptId = resolveAttemptConceptId(current, corr);
+    if (attemptConceptId) {
+      log.conceptId = attemptConceptId;
     }
     if (current.conceptId) {
       log.questionConceptId = current.conceptId;

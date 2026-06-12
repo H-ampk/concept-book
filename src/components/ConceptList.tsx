@@ -6,7 +6,7 @@ import type { Concept } from "../types/concept";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 
 const LIST_GAP_PX = 12;
-const MOBILE_ESTIMATE_PX = 140;
+const MOBILE_ESTIMATE_PX = 158;
 const OVERSCAN = 8;
 
 export type ConceptListLayout = "full" | "grouped";
@@ -15,6 +15,7 @@ type Props = {
   concepts: Concept[];
   selectedId?: string;
   domainColorMap: Record<string, string>;
+  conceptQuizStatsText?: Map<string, string>;
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
@@ -32,6 +33,7 @@ function ConceptListItem({
   concept,
   selectedId,
   domainColorMap,
+  conceptQuizStatsText,
   onSelect,
   onEdit,
   onToggleFavorite,
@@ -43,6 +45,7 @@ function ConceptListItem({
   concept: Concept;
   selectedId?: string;
   domainColorMap: Record<string, string>;
+  conceptQuizStatsText?: Map<string, string>;
   onSelect: (id: string) => void;
   onEdit: (concept: Concept) => void;
   onToggleFavorite: (concept: Concept) => void;
@@ -61,6 +64,10 @@ function ConceptListItem({
     ? "line-clamp-2 text-sm leading-relaxed text-white/[0.82]"
     : "line-clamp-2 text-sm leading-relaxed text-nordic-textSecondary";
   const defMutedClass = selected ? "text-white/70" : "text-nordic-textMuted";
+  const learningStatusClass = selected
+    ? "mt-1 text-xs text-white/65"
+    : "mt-1 text-xs text-nordic-textMuted";
+  const learningStatusText = conceptQuizStatsText?.get(concept.id) ?? "未学習";
 
   return (
     <Wrapper
@@ -108,6 +115,9 @@ function ConceptListItem({
           ) : (
             <span className={defMutedClass}>定義未入力</span>
           )}
+        </p>
+        <p className={learningStatusClass} aria-label="クイズ学習状況">
+          {learningStatusText}
         </p>
         <div className="mt-2 flex flex-wrap gap-1">
           {concept.domainTags.slice(0, 2).map((tag) => (
@@ -172,6 +182,7 @@ export const ConceptList = ({
   concepts,
   selectedId,
   domainColorMap,
+  conceptQuizStatsText,
   onSelect,
   onEdit,
   onToggleFavorite,
@@ -225,6 +236,7 @@ export const ConceptList = ({
             concept={concept}
             selectedId={selectedId}
             domainColorMap={domainColorMap}
+            conceptQuizStatsText={conceptQuizStatsText}
             onSelect={onSelect}
             onEdit={onEdit}
             onToggleFavorite={onToggleFavorite}
