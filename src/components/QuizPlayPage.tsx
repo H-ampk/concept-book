@@ -4,10 +4,7 @@ import type { Concept } from "../types/concept";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion } from "../types/quiz";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION } from "../types/quiz";
 import { shortDateTime } from "../utils/date";
-import {
-  collectMaskConceptNames,
-  getQuizChoiceDisplayText
-} from "../utils/quizChoiceDisplay";
+import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -119,6 +116,11 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     void load();
   }, [load]);
 
+  const conceptById = useMemo(
+    () => new Map(concepts.map((concept) => [concept.id, concept])),
+    [concepts]
+  );
+
   const titleById = useMemo(() => {
     const m = new Map<string, string>();
     concepts.forEach((c) => m.set(c.id, c.title || "無題"));
@@ -141,10 +143,9 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     [current]
   );
 
-  const maskNames = useMemo(
-    () => (current ? collectMaskConceptNames(current, concepts) : []),
-    [current, concepts]
-  );
+  const promptConcept = current?.conceptId
+    ? conceptById.get(current.conceptId)
+    : undefined;
 
   useEffect(() => {
     if (phase !== "play" || !current) {
@@ -605,7 +606,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                         disabled={answered}
                         onClick={() => !answered && setSelectedChoiceId(c.id)}
                         className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50 disabled:cursor-default ${borderCls}`}
-                        title={linkedTitle ? `Concept: ${linkedTitle}` : undefined}
+                        title={answered && linkedTitle ? `Concept: ${linkedTitle}` : undefined}
                       >
                         <span
                           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
@@ -616,9 +617,14 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                           {isSel ? "●" : ""}
                         </span>
                         <span className="min-w-0 flex-1 leading-relaxed">
-                          {getQuizChoiceDisplayText(c, maskNames, { revealOriginal: answered })}
+                          {getQuizChoiceDisplayText({
+                            choice: c,
+                            promptConcept,
+                            allConcepts: concepts,
+                            revealAnswer: answered
+                          })}
                         </span>
-                        {linkedTitle && !answered ? (
+                        {linkedTitle && answered ? (
                           <span className="shrink-0 text-[10px] text-celestial-textSub" title={linkedTitle}>
                             ◈
                           </span>
