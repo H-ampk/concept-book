@@ -14,14 +14,9 @@ const QUIZ_RESULT_IMAGE = {
   wrong: { src: "/decorations/tanuki.png", alt: "不正解時の狸イラスト" }
 } as const;
 
-const resolveAttemptConceptId = (
-  question: QuizQuestion,
-  correctChoice: QuizChoice
-): string | undefined =>
-  question.conceptId?.trim() ||
-  correctChoice.sourceConceptId?.trim() ||
-  correctChoice.linkedConceptId?.trim() ||
-  undefined;
+/** 出題対象概念 ID（QuizQuestion.conceptId / promptConceptId）のみを返す */
+const resolvePromptConceptId = (question: QuizQuestion): string | undefined =>
+  question.conceptId?.trim() || undefined;
 
 const isPlayableQuestion = (q: QuizQuestion): boolean => {
   if (!q.prompt?.trim()) {
@@ -270,12 +265,10 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     if (sessionIdRef.current) {
       log.sessionId = sessionIdRef.current;
     }
-    const attemptConceptId = resolveAttemptConceptId(current, corr);
-    if (attemptConceptId) {
-      log.conceptId = attemptConceptId;
-    }
-    if (current.conceptId) {
-      log.questionConceptId = current.conceptId;
+    const promptConceptId = resolvePromptConceptId(current);
+    if (promptConceptId) {
+      log.conceptId = promptConceptId;
+      log.questionConceptId = promptConceptId;
     }
     if (sel.linkedConceptId) {
       log.selectedLinkedConceptId = sel.linkedConceptId;

@@ -6,7 +6,7 @@ import type { Concept } from "../types/concept";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 
 const LIST_GAP_PX = 12;
-const MOBILE_ESTIMATE_PX = 158;
+const MOBILE_ESTIMATE_PX = 178;
 const OVERSCAN = 8;
 
 export type ConceptListLayout = "full" | "grouped";
@@ -65,8 +65,8 @@ function ConceptListItem({
     : "line-clamp-2 text-sm leading-relaxed text-nordic-textSecondary";
   const defMutedClass = selected ? "text-white/70" : "text-nordic-textMuted";
   const learningStatusClass = selected
-    ? "mt-1 text-xs text-white/65"
-    : "mt-1 text-xs text-nordic-textMuted";
+    ? "mt-1 text-xs text-white/75"
+    : "mt-1 text-xs text-nordic-textSecondary";
   const learningStatusText = conceptQuizStatsText?.get(concept.id) ?? "未学習";
 
   return (
@@ -278,6 +278,7 @@ export const ConceptList = ({
               concept={concept}
               selectedId={selectedId}
               domainColorMap={domainColorMap}
+              conceptQuizStatsText={conceptQuizStatsText}
               onSelect={onSelect}
               onEdit={onEdit}
               onToggleFavorite={onToggleFavorite}
