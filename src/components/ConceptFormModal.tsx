@@ -22,7 +22,10 @@ type Props = {
   conceptTitleIndex: Map<string, Concept>;
   onClose: () => void;
   /** 保存した概念を返す（新規作成時は addMedia 用）。編集時は更新後の概念。 */
-  onSubmit: (payload: ConceptInput) => Promise<Concept | undefined>;
+  onSubmit: (
+    payload: ConceptInput,
+    options?: { statusExplicitlySet?: boolean }
+  ) => Promise<Concept | undefined>;
   /** メディア追加・削除後に一覧を再読込 */
   reloadConcepts?: () => Promise<void>;
 };
@@ -55,6 +58,7 @@ export const ConceptFormModal = ({
   const [researchTagInput, setResearchTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusTouched, setStatusTouched] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const previewRevokeRef = useRef<string[]>([]);
@@ -95,6 +99,7 @@ export const ConceptFormModal = ({
       prev.forEach((p) => URL.revokeObjectURL(p.objectUrl));
       return [];
     });
+    setStatusTouched(false);
     if (mode === "edit" && baseConcept) {
       setForm({
         title: baseConcept.title,
@@ -374,7 +379,7 @@ export const ConceptFormModal = ({
     setSubmitting(true);
     setError(null);
     try {
-      const saved = await onSubmit(payload);
+      const saved = await onSubmit(payload, { statusExplicitlySet: statusTouched });
       if (saved?.id && pendingMedia.length > 0) {
         for (const p of pendingMedia) {
           await storage.addMedia({
@@ -533,7 +538,10 @@ export const ConceptFormModal = ({
             <select
               className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
               value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as Concept["status"] }))}
+              onChange={(e) => {
+                setStatusTouched(true);
+                setForm((prev) => ({ ...prev, status: e.target.value as Concept["status"] }));
+              }}
             >
               {conceptStatusList.map((status) => (
                 <option key={status} value={status}>

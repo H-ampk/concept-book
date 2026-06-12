@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { getStorage } from "../../storage";
 import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
+import {
+  applyDraftPromotionOnUpdate,
+  promoteDraftConceptIfDefined,
+  type ConceptSaveOptions
+} from "../../utils/promoteDraftConceptIfDefined";
 import { collectTagGroups, filterConcepts } from "./conceptFilters";
 
 const storage = getStorage();
@@ -29,19 +34,24 @@ export const useConcepts = () => {
     void reload();
   }, [reload]);
 
-  const create = useCallback(async (input: ConceptInput) => {
-    const created = await storage.createConcept(input);
+  const create = useCallback(async (input: ConceptInput, options?: ConceptSaveOptions) => {
+    const normalized = promoteDraftConceptIfDefined(input, options);
+    const created = await storage.createConcept(normalized);
     await reload();
     return created;
   }, [reload]);
 
   const update = useCallback(
-    async (id: string, updates: Partial<ConceptInput>) => {
-      const updated = await storage.updateConcept(id, updates);
+    async (id: string, updates: Partial<ConceptInput>, options?: ConceptSaveOptions) => {
+      const existing = concepts.find((concept) => concept.id === id);
+      const normalized = existing
+        ? applyDraftPromotionOnUpdate(existing, updates, options)
+        : updates;
+      const updated = await storage.updateConcept(id, normalized);
       await reload();
       return updated;
     },
-    [reload]
+    [concepts, reload]
   );
 
   const remove = useCallback(

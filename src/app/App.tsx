@@ -17,6 +17,7 @@ import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
+import type { ConceptSaveOptions } from "../utils/promoteDraftConceptIfDefined";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
@@ -193,13 +194,13 @@ export const App = () => {
     setModalOpen(true);
   };
 
-  const handleSubmit = async (payload: ConceptInput) => {
+  const handleSubmit = async (payload: ConceptInput, options?: ConceptSaveOptions) => {
     if (editingConcept) {
-      const updated = await update(editingConcept.id, payload);
+      const updated = await update(editingConcept.id, payload, options);
       setSelectedId(editingConcept.id);
       return updated ?? undefined;
     }
-    return await create(payload);
+    return await create(payload, options);
   };
 
   const handleSelect = (id: string) => {
