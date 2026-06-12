@@ -75,10 +75,23 @@ const contextCardArraySchema = z.array(contextCardSchema);
 /** ZIP / JSON バックアップ用。quizDecks は optional。quizAttemptLogs は別フェーズ */
 export const quizVisibilitySchema = z.enum(["private", "public"]);
 
+const quizChoiceSourceStrategySchema = z.enum([
+  "correct",
+  "same-context",
+  "related-context",
+  "same-domain",
+  "random",
+  "manual"
+]);
+
 export const quizChoiceSchema = z.object({
   id: z.string().min(1),
   text: z.string(),
-  linkedConceptId: z.string().min(1).optional()
+  displayText: z.string().optional(),
+  linkedConceptId: z.string().min(1).optional(),
+  sourceConceptId: z.string().min(1).optional(),
+  contextDefinitionId: z.string().min(1).optional(),
+  sourceStrategy: quizChoiceSourceStrategySchema.optional()
 });
 
 export const quizQuestionSchema = z.object({
@@ -96,6 +109,13 @@ export const quizQuestionSchema = z.object({
 });
 
 /** バックアップ JSON 内の QuizDeck 検証用（正規化後の最終形） */
+const quizDeckGenerationSummarySchema = z.object({
+  targetConceptCount: z.number(),
+  generatedQuestionCount: z.number(),
+  warningCount: z.number(),
+  failedCount: z.number()
+});
+
 export const quizDeckSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -106,7 +126,10 @@ export const quizDeckSchema = z.object({
   visibility: quizVisibilitySchema,
   schemaVersion: z.number(),
   createdAt: z.string().min(1),
-  updatedAt: z.string().min(1)
+  updatedAt: z.string().min(1),
+  sourceType: z.enum(["manual", "domain-tag"]).optional(),
+  sourceDomainTag: z.string().optional(),
+  generationSummary: quizDeckGenerationSummarySchema.optional()
 });
 
 const dedupeDeckStringsPreserveOrder = (items: string[]): string[] => {
@@ -195,6 +218,20 @@ const normalizeQuizDeckItem = (item: unknown): QuizDeck | null => {
     candidate.domainTags = domainTags;
   }
 
+  const sourceTypeResult = z.enum(["manual", "domain-tag"]).safeParse(raw.sourceType);
+  if (sourceTypeResult.success) {
+    candidate.sourceType = sourceTypeResult.data;
+  }
+  const sourceDomainTag =
+    typeof raw.sourceDomainTag === "string" ? raw.sourceDomainTag.trim() : "";
+  if (sourceDomainTag) {
+    candidate.sourceDomainTag = sourceDomainTag;
+  }
+  const summaryResult = quizDeckGenerationSummarySchema.safeParse(raw.generationSummary);
+  if (summaryResult.success) {
+    candidate.generationSummary = summaryResult.data;
+  }
+
   const parsed = quizDeckSchema.safeParse(candidate);
   return parsed.success ? parsed.data : null;
 };
@@ -235,6 +272,23 @@ const normalizeQuizChoiceEntry = (entry: unknown): QuizChoice | null => {
   const choice: QuizChoice = { id, text };
   if (lidRaw) {
     choice.linkedConceptId = lidRaw;
+  }
+  const displayText = typeof o.displayText === "string" ? o.displayText.trim() : "";
+  if (displayText) {
+    choice.displayText = displayText;
+  }
+  const sourceConceptId = typeof o.sourceConceptId === "string" ? o.sourceConceptId.trim() : "";
+  if (sourceConceptId) {
+    choice.sourceConceptId = sourceConceptId;
+  }
+  const contextDefinitionId =
+    typeof o.contextDefinitionId === "string" ? o.contextDefinitionId.trim() : "";
+  if (contextDefinitionId) {
+    choice.contextDefinitionId = contextDefinitionId;
+  }
+  const strategyResult = quizChoiceSourceStrategySchema.safeParse(o.sourceStrategy);
+  if (strategyResult.success) {
+    choice.sourceStrategy = strategyResult.data;
   }
   return choice;
 };

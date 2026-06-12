@@ -5,6 +5,7 @@ import type { QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
 import { shortDateTime } from "../utils/date";
 import { OrnamentLine } from "./common/OrnamentLine";
 import { QuizDeckFormModal } from "./QuizDeckFormModal";
+import { QuizSetFromDomainTagModal } from "./QuizSetFromDomainTagModal";
 
 const storage = getStorage();
 
@@ -24,6 +25,7 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
   const [deckModalOpen, setDeckModalOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<QuizDeck | null>(null);
+  const [domainTagGeneratorOpen, setDomainTagGeneratorOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -136,6 +138,13 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
             >
               新規クイズ集を作成
             </button>
+            <button
+              type="button"
+              onClick={() => setDomainTagGeneratorOpen(true)}
+              className="rounded-lg border border-celestial-gold/40 px-4 py-2.5 text-sm text-celestial-softGold hover:bg-celestial-gold/10 sm:order-none"
+            >
+              分野タグからクイズ集を生成
+            </button>
 
             <label className="block min-w-[160px] flex-1">
               <span className="mb-1 block text-xs text-celestial-softGold">識別ID（deckKey）で絞り込み</span>
@@ -219,6 +228,12 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
                         </span>
                         <span className="text-xs text-celestial-textSub">問題 {d.questionIds.length} 問</span>
                         <span className="text-xs text-celestial-textSub">更新 {shortDateTime(d.updatedAt)}</span>
+                        {d.sourceType === "domain-tag" && d.generationSummary ? (
+                          <span className="text-xs text-celestial-textSub">
+                            自動生成 {d.generationSummary.generatedQuestionCount}/
+                            {d.generationSummary.targetConceptCount}
+                          </span>
+                        ) : null}
                       </div>
                       {(d.domainTags?.length ?? 0) > 0 ? (
                         <div className="flex flex-wrap gap-1.5">
@@ -267,6 +282,13 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
           setEditingDeck(null);
         }}
         onReload={load}
+      />
+
+      <QuizSetFromDomainTagModal
+        open={domainTagGeneratorOpen}
+        concepts={concepts}
+        onClose={() => setDomainTagGeneratorOpen(false)}
+        onSaved={() => void load()}
       />
     </div>
   );

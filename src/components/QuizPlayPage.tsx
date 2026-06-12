@@ -4,6 +4,10 @@ import type { Concept } from "../types/concept";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion } from "../types/quiz";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION } from "../types/quiz";
 import { shortDateTime } from "../utils/date";
+import {
+  collectMaskConceptNames,
+  getQuizChoiceDisplayText
+} from "../utils/quizChoiceDisplay";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -126,6 +130,11 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
   const visibleChoices = useMemo(
     () => (current ? current.choices.filter((c) => c.text.trim().length > 0) : []),
     [current]
+  );
+
+  const maskNames = useMemo(
+    () => (current ? collectMaskConceptNames(current, concepts) : []),
+    [current, concepts]
   );
 
   useEffect(() => {
@@ -593,7 +602,9 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                         >
                           {isSel ? "●" : ""}
                         </span>
-                        <span className="min-w-0 flex-1 leading-relaxed">{c.text}</span>
+                        <span className="min-w-0 flex-1 leading-relaxed">
+                          {getQuizChoiceDisplayText(c, maskNames, { revealOriginal: answered })}
+                        </span>
                         {linkedTitle && !answered ? (
                           <span className="shrink-0 text-[10px] text-celestial-textSub" title={linkedTitle}>
                             ◈

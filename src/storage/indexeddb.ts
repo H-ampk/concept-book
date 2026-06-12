@@ -124,6 +124,29 @@ const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
         if (lidRaw) {
           choice.linkedConceptId = lidRaw;
         }
+        const displayText = item.displayText?.toString().trim();
+        if (displayText) {
+          choice.displayText = displayText;
+        }
+        const sourceConceptId = item.sourceConceptId?.toString().trim();
+        if (sourceConceptId) {
+          choice.sourceConceptId = sourceConceptId;
+        }
+        const contextDefinitionId = item.contextDefinitionId?.toString().trim();
+        if (contextDefinitionId) {
+          choice.contextDefinitionId = contextDefinitionId;
+        }
+        const sourceStrategy = item.sourceStrategy?.toString().trim();
+        if (
+          sourceStrategy === "correct" ||
+          sourceStrategy === "same-context" ||
+          sourceStrategy === "related-context" ||
+          sourceStrategy === "same-domain" ||
+          sourceStrategy === "random" ||
+          sourceStrategy === "manual"
+        ) {
+          choice.sourceStrategy = sourceStrategy;
+        }
         return choice;
       })
     : [];
@@ -221,6 +244,30 @@ const normalizeQuizDeck = (raw: StoredQuizDeck): QuizDeck => {
   }
   if (tags) {
     deck.domainTags = tags;
+  }
+
+  const sourceType = raw.sourceType?.toString().trim();
+  if (sourceType === "manual" || sourceType === "domain-tag") {
+    deck.sourceType = sourceType;
+  }
+  const sourceDomainTag = raw.sourceDomainTag?.toString().trim();
+  if (sourceDomainTag) {
+    deck.sourceDomainTag = sourceDomainTag;
+  }
+  const summaryRaw = raw.generationSummary as QuizDeck["generationSummary"] | undefined;
+  if (
+    summaryRaw &&
+    typeof summaryRaw.targetConceptCount === "number" &&
+    typeof summaryRaw.generatedQuestionCount === "number" &&
+    typeof summaryRaw.warningCount === "number" &&
+    typeof summaryRaw.failedCount === "number"
+  ) {
+    deck.generationSummary = {
+      targetConceptCount: summaryRaw.targetConceptCount,
+      generatedQuestionCount: summaryRaw.generatedQuestionCount,
+      warningCount: summaryRaw.warningCount,
+      failedCount: summaryRaw.failedCount
+    };
   }
 
   return deck;

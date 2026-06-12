@@ -30,11 +30,38 @@
 /** private: 非公開（自分用）。public: 共有・公開用エクスポートの対象にできるクイズ。 */
 export type QuizVisibility = "private" | "public";
 
+export type QuizChoiceSourceStrategy =
+  | "correct"
+  | "same-context"
+  | "related-context"
+  | "same-domain"
+  | "random"
+  | "manual";
+
+export type QuizGenerationQuality = "high" | "medium" | "low" | "failed";
+
+export type QuizDeckSourceType = "manual" | "domain-tag";
+
+export type QuizDeckGenerationSummary = {
+  targetConceptCount: number;
+  generatedQuestionCount: number;
+  warningCount: number;
+  failedCount: number;
+};
+
 export interface QuizChoice {
   id: string;
+  /** 元の文脈別定義本文（マスク前） */
   text: string;
+  /** 表示用テキスト（概念名マスク済み）。未設定時は表示時に算出 */
+  displayText?: string;
   /** 選択肢テキストと Concept タイトルが一意に一致したときに付与 */
   linkedConceptId?: string;
+  /** 選択肢の元となった Concept ID */
+  sourceConceptId?: string;
+  /** 選択肢の元となった文脈別定義 ID */
+  contextDefinitionId?: string;
+  sourceStrategy?: QuizChoiceSourceStrategy;
 }
 
 export interface QuizQuestion {
@@ -109,6 +136,12 @@ export interface QuizDeck {
   schemaVersion: number;
   createdAt: string;
   updatedAt: string;
+  /** 自動生成クイズ集の場合の生成元種別 */
+  sourceType?: QuizDeckSourceType;
+  /** sourceType が domain-tag のときの対象分野タグ */
+  sourceDomainTag?: string;
+  /** 分野タグからの自動生成サマリー */
+  generationSummary?: QuizDeckGenerationSummary;
 }
 
 /** QuizDeck の schemaVersion 初期値・マイグレーション用 */

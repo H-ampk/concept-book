@@ -1,12 +1,39 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Concept } from "../types/concept";
-import type { QuizChoice, QuizQuestion, QuizVisibility } from "../types/quiz";
+import type { ContextCard } from "../types/contextCard";
+import type {
+  QuizChoice,
+  QuizGenerationQuality,
+  QuizQuestion,
+  QuizVisibility
+} from "../types/quiz";
 import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
-import { getStorage } from "../storage";
+import { getContextStorage, getStorage } from "../storage";
 import { nowIso } from "../utils/date";
+import {
+  generateQuizChoicesFromContextCards,
+  replenishDistractorChoices
+} from "../utils/generateQuizChoicesFromContextCards";
 import { applyAutoLinkedConceptIdsToChoices, resolveChoiceConceptLink } from "../utils/quizConceptLink";
 
 const storage = getStorage();
+const contextStorage = getContextStorage();
+
+const qualityLabelMap: Record<QuizGenerationQuality, string> = {
+  high: "高",
+  medium: "中",
+  low: "低",
+  failed: "不足"
+};
+
+const sourceStrategyLabelMap: Record<NonNullable<QuizChoice["sourceStrategy"]>, string> = {
+  correct: "正答",
+  "same-context": "関連概念",
+  "related-context": "関連文脈カード",
+  "same-domain": "同分野",
+  random: "ランダム",
+  manual: "手動"
+};
 
 const createQuizQuestionId = (): string =>
   `quiz_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -97,6 +124,10 @@ export const QuizQuestionFormModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conceptSearchQuery, setConceptSearchQuery] = useState("");
+  const [contextCards, setContextCards] = useState<ContextCard[]>([]);
+  const [selectedContextDefId, setSelectedContextDefId] = useState("");
+  const [generationQuality, setGenerationQuality] = useState<QuizGenerationQuality | null>(null);
+  const [generationWarnings, setGenerationWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -137,7 +168,41 @@ export const QuizQuestionFormModal = ({
       setSortOrderInput("");
     }
     setConceptSearchQuery("");
+    setSelectedContextDefId("");
+    setGenerationQuality(null);
+    setGenerationWarnings([]);
   }, [open, mode, question]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    void contextStorage.getAllContextCards().then(setContextCards);
+  }, [open]);
+
+  const conceptById = useMemo(() => new Map(concepts.map((c) => [c.id, c])), [concepts]);
+
+  const selectedConcept = useMemo(
+    () => (conceptId.trim() ? conceptById.get(conceptId.trim()) : undefined),
+    [conceptById, conceptId]
+  );
+
+  const availableContextDefinitions = useMemo(
+    () =>
+      (selectedConcept?.contextDefinitions ?? []).filter(
+        (item) => item.definition.trim().length > 0
+      ),
+    [selectedConcept]
+  );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    if (!availableContextDefinitions.some((item) => item.id === selectedContextDefId)) {
+      setSelectedContextDefId(availableContextDefinitions[0]?.id ?? "");
+    }
+  }, [open, availableContextDefinitions, selectedContextDefId]);
 
   const addChoice = () => {
     const id = createChoiceId();
@@ -164,6 +229,107 @@ export const QuizQuestionFormModal = ({
     setChoices((prev) => prev.map((c) => (c.id === id ? { ...c, text } : c)));
   };
 
+  const updateChoiceDisplayText = (id: string, displayText: string) => {
+    setChoices((prev) => prev.map((c) => (c.id === id ? { ...c, displayText } : c)));
+  };
+
+  const applyGeneratedChoices = (
+    result: ReturnType<typeof generateQuizChoicesFromContextCards>
+  ) => {
+    setPrompt(result.prompt);
+    setChoices(
+      result.choices.map((choice) => ({
+        id: choice.id,
+        text: choice.text,
+        displayText: choice.displayText,
+        sourceConceptId: choice.conceptId,
+        contextDefinitionId: choice.contextDefinitionId,
+        sourceStrategy: choice.sourceStrategy
+      }))
+    );
+    setCorrectChoiceId(result.correctChoiceId);
+    setGenerationQuality(result.quality);
+    setGenerationWarnings(result.warnings);
+  };
+
+  const handleGenerateFromContext = () => {
+    if (!selectedConcept || !selectedContextDefId) {
+      setError("出題対象の Concept と文脈別定義を選んでください。");
+      return;
+    }
+    const contextDefinition = selectedConcept.contextDefinitions?.find(
+      (item) => item.id === selectedContextDefId
+    );
+    if (!contextDefinition) {
+      setError("文脈別定義が見つかりません。");
+      return;
+    }
+    const result = generateQuizChoicesFromContextCards({
+      targetConcept: selectedConcept,
+      targetContextDefinition: contextDefinition,
+      allConcepts: concepts,
+      allContextCards: contextCards
+    });
+    if (result.quality === "failed" && result.choices.length === 0) {
+      setError(result.warnings[0] ?? "選択肢を生成できませんでした。");
+      setGenerationQuality(result.quality);
+      setGenerationWarnings(result.warnings);
+      return;
+    }
+    setError(null);
+    applyGeneratedChoices(result);
+  };
+
+  const handleReplenishChoices = (strategy: "same-domain" | "random") => {
+    if (!selectedConcept || !selectedContextDefId) {
+      return;
+    }
+    const contextDefinition = selectedConcept.contextDefinitions?.find(
+      (item) => item.id === selectedContextDefId
+    );
+    if (!contextDefinition) {
+      return;
+    }
+    const correct = choices.find((choice) => choice.id === correctChoiceId);
+    const distractors = choices.filter((choice) => choice.id !== correctChoiceId);
+    const generated = replenishDistractorChoices({
+      targetConcept: selectedConcept,
+      targetContextDefinition: contextDefinition,
+      allConcepts: concepts,
+      allContextCards: contextCards,
+      existingChoices: choices.map((choice) => ({
+        id: choice.id,
+        conceptId: choice.sourceConceptId ?? "",
+        contextDefinitionId: choice.contextDefinitionId ?? "",
+        text: choice.text,
+        displayText: choice.displayText ?? choice.text,
+        isCorrect: choice.id === correctChoiceId,
+        sourceStrategy: choice.sourceStrategy ?? "manual"
+      })),
+      strategy
+    });
+    const nextDistractors =
+      generated.length > 0
+        ? generated.map((choice) => ({
+            id: choice.id,
+            text: choice.text,
+            displayText: choice.displayText,
+            sourceConceptId: choice.conceptId,
+            contextDefinitionId: choice.contextDefinitionId,
+            sourceStrategy: choice.sourceStrategy
+          }))
+        : distractors;
+    if (correct) {
+      setChoices([correct, ...nextDistractors.slice(0, 3)]);
+    }
+    setGenerationWarnings((prev) => [
+      ...prev,
+      strategy === "same-domain"
+        ? "同じ分野タグの文脈別定義から誤答候補を補充しました。"
+        : "ランダムな文脈別定義から誤答候補を補充しました。"
+    ]);
+  };
+
   const choiceLinkById = useMemo(() => {
     const m = new Map<string, ReturnType<typeof resolveChoiceConceptLink>>();
     choices.forEach((c) => {
@@ -171,8 +337,6 @@ export const QuizQuestionFormModal = ({
     });
     return m;
   }, [choices, concepts]);
-
-  const conceptById = useMemo(() => new Map(concepts.map((c) => [c.id, c])), [concepts]);
 
   const conceptSearchNeedle = useMemo(
     () => normalizeConceptSearchNeedle(conceptSearchQuery),
@@ -204,7 +368,24 @@ export const QuizQuestionFormModal = ({
     e.preventDefault();
     const trimmedPrompt = prompt.trim();
     const cleanedChoices = choices
-      .map((c) => ({ id: c.id, text: c.text.trim() }))
+      .map((c) => {
+        const text = c.text.trim();
+        const displayText = c.displayText?.trim();
+        const choice: QuizChoice = { id: c.id, text };
+        if (displayText) {
+          choice.displayText = displayText;
+        }
+        if (c.sourceConceptId) {
+          choice.sourceConceptId = c.sourceConceptId;
+        }
+        if (c.contextDefinitionId) {
+          choice.contextDefinitionId = c.contextDefinitionId;
+        }
+        if (c.sourceStrategy) {
+          choice.sourceStrategy = c.sourceStrategy;
+        }
+        return choice;
+      })
       .filter((c) => c.text.length > 0);
 
     if (!trimmedPrompt) {
@@ -352,6 +533,72 @@ export const QuizQuestionFormModal = ({
             ) : null}
           </div>
 
+          {selectedConcept ? (
+            <section className="rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-4">
+              <h3 className="text-sm font-medium text-celestial-textMain">文脈別定義から選択肢を生成</h3>
+              <p className="mt-1 text-xs text-celestial-textSub">
+                概念の文脈別定義本文を選択肢として使い、表示時に概念名を「（＿＿）」へ置換します。
+              </p>
+              {availableContextDefinitions.length > 0 ? (
+                <div className="mt-3 space-y-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-celestial-textMain">出題する文脈別定義</span>
+                    <select
+                      className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
+                      value={selectedContextDefId}
+                      onChange={(e) => setSelectedContextDefId(e.target.value)}
+                    >
+                      {availableContextDefinitions.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.context.trim() || "文脈名未設定"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="action-button rounded-md px-3 py-1.5 text-xs"
+                      onClick={handleGenerateFromContext}
+                    >
+                      文脈別定義から生成
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-celestial-border px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+                      onClick={() => handleReplenishChoices("same-domain")}
+                    >
+                      同じタグから補充
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-celestial-border px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+                      onClick={() => handleReplenishChoices("random")}
+                    >
+                      ランダム補充
+                    </button>
+                  </div>
+                  {generationQuality ? (
+                    <p className="text-xs text-celestial-textSub">
+                      生成品質: <span className="text-celestial-textMain">{qualityLabelMap[generationQuality]}</span>
+                    </p>
+                  ) : null}
+                  {generationWarnings.length > 0 ? (
+                    <ul className="space-y-1 text-xs text-amber-200/90">
+                      {generationWarnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-celestial-textSub">
+                  この Concept には本文のある文脈別定義がありません。概念編集画面で追加してください。
+                </p>
+              )}
+            </section>
+          ) : null}
+
           <label className="block">
             <span className="mb-1 block text-sm text-celestial-textMain">問題文 *</span>
             <textarea
@@ -379,14 +626,35 @@ export const QuizQuestionFormModal = ({
                           onChange={() => setCorrectChoiceId(c.id)}
                           aria-label="この選択肢を正解にする"
                         />
-                        <input
-                          type="text"
-                          className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
-                          value={c.text}
-                          onChange={(e) => updateChoiceText(c.id, e.target.value)}
-                          placeholder="選択肢の本文（Concept タイトルと一致で自動リンク）"
-                          aria-label="選択肢の本文"
-                        />
+                        {c.displayText !== undefined ? (
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <input
+                              type="text"
+                              className="w-full rounded border border-celestial-border bg-celestial-deepBlue px-2 py-1 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
+                              value={c.displayText}
+                              onChange={(e) => updateChoiceDisplayText(c.id, e.target.value)}
+                              placeholder="表示用テキスト（概念名マスク済み）"
+                              aria-label="選択肢の表示用テキスト"
+                            />
+                            <p className="text-[11px] text-celestial-textSub">
+                              原文: {c.text}
+                              {c.sourceStrategy ? (
+                                <span className="ml-2">
+                                  由来: {sourceStrategyLabelMap[c.sourceStrategy]}
+                                </span>
+                              ) : null}
+                            </p>
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
+                            value={c.text}
+                            onChange={(e) => updateChoiceText(c.id, e.target.value)}
+                            placeholder="選択肢の本文（Concept タイトルと一致で自動リンク）"
+                            aria-label="選択肢の本文"
+                          />
+                        )}
                       </label>
                       <div className="pl-7 text-xs">
                         {link.state === "linked" ? (
