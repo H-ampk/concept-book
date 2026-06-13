@@ -17,8 +17,6 @@ type Props = {
   domainColorMap: Record<string, string>;
   conceptQuizStatsText?: Map<string, string>;
   onSelect: (id: string) => void;
-  onEdit: (concept: Concept) => void;
-  onToggleFavorite: (concept: Concept) => void;
   cardRefs: React.RefObject<Map<string, HTMLElement>>;
 };
 
@@ -29,8 +27,6 @@ export const ConceptGroupSections = ({
   domainColorMap,
   conceptQuizStatsText,
   onSelect,
-  onEdit,
-  onToggleFavorite,
   cardRefs
 }: Props) => {
   const initialOpenState = useMemo(
@@ -65,8 +61,6 @@ export const ConceptGroupSections = ({
         domainColorMap={domainColorMap}
         conceptQuizStatsText={conceptQuizStatsText}
         onSelect={onSelect}
-        onEdit={onEdit}
-        onToggleFavorite={onToggleFavorite}
         cardRefs={cardRefs}
         listLayout="full"
       />
@@ -75,38 +69,34 @@ export const ConceptGroupSections = ({
 
   if (sections.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-nordic-border bg-nordic-surface p-4 text-sm text-nordic-textSecondary">
-        条件に一致する概念がありません。
-      </div>
+      <p className="concept-index-empty">条件に一致する概念がありません。</p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="concept-index-groups">
       {sections.map((section) => {
         const open = openMap[section.key] ?? true;
         return (
-          <section key={section.key} className="rounded-xl border border-nordic-border bg-nordic-section shadow-quiet">
+          <section key={section.key} className="concept-index-group">
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-nordic-bg"
+              className="concept-index-group-toggle"
               onClick={() => handleToggle(section.key)}
             >
-              <span className="text-sm font-semibold text-nordic-textPrimary">{section.label}</span>
-              <span className="text-xs text-nordic-textSecondary">
+              <span className="concept-index-group-label">{section.label}</span>
+              <span className="concept-index-group-count">
                 {section.concepts.length}件 / {open ? "閉じる" : "開く"}
               </span>
             </button>
             {open && (
-              <div className="border-t border-nordic-border p-2">
+              <div className="concept-index-group-body">
                 <ConceptList
                   concepts={section.concepts}
                   selectedId={selectedId}
                   domainColorMap={domainColorMap}
                   conceptQuizStatsText={conceptQuizStatsText}
                   onSelect={onSelect}
-                  onEdit={onEdit}
-                  onToggleFavorite={onToggleFavorite}
                   cardRefs={cardRefs}
                   listLayout="grouped"
                 />

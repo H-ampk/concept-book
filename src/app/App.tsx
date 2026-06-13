@@ -210,6 +210,10 @@ export const App = () => {
     [quizAttemptLogs]
   );
 
+  const selectedConceptQuizStatsText = selectedConcept
+    ? conceptQuizStatsText.get(selectedConcept.id) ?? "未学習"
+    : undefined;
+
   const openCreate = () => {
     setEditingConcept(undefined);
     setModalOpen(true);
@@ -218,6 +222,12 @@ export const App = () => {
   const openEdit = (concept: Concept) => {
     setEditingConcept(concept);
     setModalOpen(true);
+  };
+
+  const conceptDetailActions = {
+    onEdit: openEdit,
+    onToggleFavorite: (concept: Concept) => void toggleFavorite(concept),
+    conceptQuizStatsText: selectedConceptQuizStatsText
   };
 
   const handleSubmit = async (payload: ConceptInput, options?: ConceptSaveOptions) => {
@@ -397,11 +407,11 @@ export const App = () => {
                   />
                 </div>
                 <button
-                  className="rounded-xl border border-[rgba(110,140,155,0.28)] bg-[rgba(255,255,255,0.85)] px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_10px_28px_rgba(70,95,110,0.08)] hover:border-[rgba(110,140,155,0.36)] hover:bg-white"
+                  className={`index-filter-toggle${onlyFavorite ? " index-filter-toggle--active" : ""}`}
                   type="button"
                   onClick={() => setOnlyFavorite((prev) => !prev)}
                 >
-                  {onlyFavorite ? "お気に入りのみ: ON" : "お気に入りのみ: OFF"}
+                  {onlyFavorite ? "お気に入りのみ" : "すべて"}
                 </button>
                 <button
                   type="button"
@@ -411,45 +421,26 @@ export const App = () => {
                   概念を追加
                 </button>
               </div>
-              <div className="hud-mode-strip mt-4 flex flex-wrap items-center gap-3">
-                <span className="text-sm font-medium text-nordic-textSecondary">表示:</span>
-                <button
-                  type="button"
-                  onClick={() => setConceptMainTab("list")}
-                  className={`rounded-lg border border-[rgba(110,140,155,0.24)] px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white ${
-                    conceptMainTab === "list"
-                      ? "border-[rgba(110,140,155,0.32)] bg-white text-nordic-textPrimary"
-                      : "bg-[rgba(255,255,255,0.72)]"
-                  }`}
-                >
-                  一覧表示
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConceptMainTab("graph")}
-                  className={`rounded-lg border border-[rgba(110,140,155,0.24)] px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white ${
-                    conceptMainTab === "graph"
-                      ? "border-[rgba(110,140,155,0.32)] bg-white text-nordic-textPrimary"
-                      : "bg-[rgba(255,255,255,0.72)]"
-                  }`}
-                >
-                  グラフ表示
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConceptMainTab("tree")}
-                  className={`rounded-lg border border-[rgba(110,140,155,0.24)] px-3 py-1.5 text-sm text-nordic-textSecondary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white ${
-                    conceptMainTab === "tree"
-                      ? "border-[rgba(110,140,155,0.32)] bg-white text-nordic-textPrimary"
-                      : "bg-[rgba(255,255,255,0.72)]"
-                  }`}
-                >
-                  ツリー表示
-                </button>
+              <div className="hud-mode-strip mt-4 flex flex-wrap items-center gap-1">
+                <span className="index-filter-label">表示:</span>
+                {([
+                  ["list", "一覧表示"],
+                  ["graph", "グラフ表示"],
+                  ["tree", "ツリー表示"]
+                ] as const).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setConceptMainTab(tab)}
+                    className={`index-filter-tab${conceptMainTab === tab ? " index-filter-tab--active" : ""}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               {conceptMainTab === "list" && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">表示モード:</span>
+                <div className="mt-2 flex flex-wrap items-center gap-1">
+                  <span className="index-filter-label">表示モード:</span>
                   {([
                     ["all", "全体"],
                     ["domain", "分野別"],
@@ -459,11 +450,7 @@ export const App = () => {
                       key={mode}
                       type="button"
                       onClick={() => setListViewMode(mode)}
-                      className={`rounded-md px-2.5 py-1 text-xs ${
-                        listViewMode === mode
-                      ? "border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_8px_24px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]"
-                          : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.78)] text-nordic-textSecondary hover:bg-white"
-                      }`}
+                      className={`index-filter-tab index-filter-tab--compact${listViewMode === mode ? " index-filter-tab--active" : ""}`}
                     >
                       {label}
                     </button>
@@ -471,8 +458,8 @@ export const App = () => {
                 </div>
               )}
               <div className="hud-filter-stack mt-3 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">分野タグ:</span>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="index-filter-label">分野タグ:</span>
                   {!isFieldTagsExpanded && (
                     <>
                       {selectedDomainTags.length > 0 ? (
@@ -487,16 +474,16 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                            className="rounded-[10px] border border-[rgba(82,125,144,0.32)] bg-celestial-gold px-2.5 py-1 text-xs text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]"
+                            className="index-filter-chip index-filter-chip--active"
                           >
                             {tag}
                           </button>
                         ))
                       ) : (
-                        <span className="text-xs text-celestial-textSub">全体</span>
+                        <span className="index-filter-hint">全体</span>
                       )}
                       {allDomainTags.length > selectedDomainTags.length && (
-                        <span className="text-xs text-celestial-textSub">
+                        <span className="index-filter-hint">
                           ほか {allDomainTags.length - selectedDomainTags.length} 件
                         </span>
                       )}
@@ -505,15 +492,15 @@ export const App = () => {
                   <button
                     type="button"
                     onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
-                    className="rounded-[10px] border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] px-2.5 py-1 text-xs text-nordic-textSecondary hover:bg-white"
+                    className="index-filter-chip"
                   >
                     {isFieldTagsExpanded ? "畳む" : "展開"}
                   </button>
                 </div>
                 {isFieldTagsExpanded && (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1">
                     {allDomainTags.length === 0 ? (
-                      <span className="text-xs text-celestial-textSub">未登録</span>
+                      <span className="index-filter-hint">未登録</span>
                     ) : (
                       allDomainTags.map((tag) => {
                         const active = selectedDomainTags.includes(tag);
@@ -528,9 +515,7 @@ export const App = () => {
                                   : [...prev, tag]
                               )
                             }
-                        className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                        active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] text-nordic-textSecondary hover:bg-white"
-                            }`}
+                            className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
                           >
                             {tag}
                           </button>
@@ -540,10 +525,10 @@ export const App = () => {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">研究テーマタグ:</span>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="index-filter-label">研究テーマタグ:</span>
                   {allResearchTags.length === 0 ? (
-                    <span className="text-xs text-celestial-textSub">未登録</span>
+                    <span className="index-filter-hint">未登録</span>
                   ) : (
                     allResearchTags.map((tag) => {
                       const active = selectedResearchTags.includes(tag);
@@ -558,9 +543,7 @@ export const App = () => {
                                 : [...prev, tag]
                             )
                           }
-                          className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                      active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] text-nordic-textSecondary hover:bg-white"
-                          }`}
+                          className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
                         >
                           {tag}
                         </button>
@@ -569,8 +552,8 @@ export const App = () => {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-nordic-textSecondary">状態:</span>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="index-filter-label">状態:</span>
                   {conceptStatusList.map((status) => {
                     const active = selectedStatuses.includes(status);
                     return (
@@ -584,9 +567,7 @@ export const App = () => {
                               : [...prev, status]
                           )
                         }
-                        className={`rounded-[10px] px-2.5 py-1 text-xs ${
-                          active ? "border border-[rgba(82,125,144,0.32)] bg-celestial-gold text-celestial-onCard shadow-[0_6px_18px_rgba(73,101,114,0.12),inset_0_1px_0_rgba(255,255,255,0.35)]" : "border border-[rgba(110,140,155,0.24)] bg-[rgba(255,255,255,0.8)] text-nordic-textSecondary hover:bg-white"
-                        }`}
+                        className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
                       >
                         {statusLabelMap[status]}
                       </button>
@@ -617,6 +598,7 @@ export const App = () => {
                         concept={selectedConcept}
                         conceptMap={conceptMap}
                         domainColorMap={domainColorMap}
+                        {...conceptDetailActions}
                         onRequestDelete={handleRequestDelete}
                         deleting={deleting}
                         onSelectRelated={(id) => {
@@ -640,6 +622,7 @@ export const App = () => {
                         concept={selectedConcept}
                         conceptMap={conceptMap}
                         domainColorMap={domainColorMap}
+                        {...conceptDetailActions}
                         onRequestDelete={handleRequestDelete}
                         deleting={deleting}
                         onSelectRelated={(id) => {
@@ -662,8 +645,6 @@ export const App = () => {
                     domainColorMap={domainColorMap}
                     conceptQuizStatsText={conceptQuizStatsText}
                     onSelect={handleSelect}
-                    onEdit={openEdit}
-                    onToggleFavorite={(concept) => void toggleFavorite(concept)}
                     cardRefs={cardRefs}
                   />
                   {visibleConcepts.length > listDisplayLimit && (
@@ -699,6 +680,7 @@ export const App = () => {
                     concept={selectedConcept}
                     conceptMap={conceptMap}
                     domainColorMap={domainColorMap}
+                    {...conceptDetailActions}
                     onRequestDelete={handleRequestDelete}
                     deleting={deleting}
                     onSelectRelated={(id) => {

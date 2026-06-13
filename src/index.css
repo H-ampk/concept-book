@@ -978,154 +978,271 @@ body {
   filter: drop-shadow(0 0 8px rgba(100, 134, 150, 0.42));
 }
 
-.concept-card {
+/* 概念索引リスト */
+.concept-index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.concept-index-empty {
+  margin: 0;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.concept-index-item {
   position: relative;
-  border-radius: 14px;
-  border: 1px solid var(--border-soft);
-  background-image: var(--card-face);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-card), inset 3px 0 0 0 var(--card-accent-line);
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease,
-    background 220ms ease,
-    filter 180ms ease;
+  border-bottom: 1px solid rgba(128, 109, 86, 0.1);
 }
 
-.concept-card:not(.concept-card-selected):hover {
-  border-color: var(--border-mid);
-  background-image: var(--card-face-hover);
-  box-shadow: var(--glass-shadow-hover), inset 3px 0 0 0 rgba(91, 115, 133, 0.14);
-  transform: translateY(-1px);
-}
-
-.concept-card::before {
-  content: "";
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  top: 0.65rem;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 253, 248, 0),
-    rgba(128, 109, 86, 0.1),
-    rgba(255, 253, 248, 0)
-  );
-}
-
-/* 一覧カード：控えめな HUD 角（右下のみ） */
-.concept-card::after {
-  content: "";
-  position: absolute;
-  right: 11px;
-  bottom: 10px;
-  width: 28px;
-  height: 11px;
-  border-right: 1px solid rgba(128, 109, 86, 0.12);
-  border-bottom: 1px solid rgba(128, 109, 86, 0.09);
-  pointer-events: none;
-  z-index: 3;
-  opacity: 0.38;
-  border-radius: 0 0 3px 0;
-}
-
-.concept-card h3 {
-  color: var(--text-primary);
-}
-
-.concept-card .concept-card-main-button {
-  color: inherit;
-}
-
-.concept-card-selected {
-  border-color: var(--selected-card-border);
-  background-image: var(--card-face-selected);
-  color: var(--text-on-card-sub);
-  box-shadow:
-    inset 3px 0 0 0 rgba(255, 253, 248, 0.22),
-    0 0 0 1px rgba(200, 210, 218, 0.18),
-    0 8px 22px rgba(48, 58, 66, 0.12);
-  animation: studyCardPulse 4.2s ease-in-out infinite;
-}
-
-.concept-card-selected h3 {
-  color: var(--text-on-card);
-}
-
-.concept-card-selected:hover {
-  animation: none;
-  background-image: var(--card-face-selected-hover);
-  color: var(--text-on-card-sub);
-  border-color: rgba(255, 253, 248, 0.38);
-  box-shadow:
-    inset 3px 0 0 0 rgba(255, 253, 248, 0.32),
-    0 0 0 1px rgba(210, 218, 224, 0.22),
-    0 10px 26px rgba(48, 58, 66, 0.16);
-  transform: translateY(-1px);
-}
-
-.concept-card-selected:hover h3 {
-  color: var(--text-on-card);
-}
-
-.concept-card-main-button {
+.concept-index-item-button {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.75rem 0.65rem 0.85rem;
   border: 0;
   background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
   box-shadow: none !important;
 }
 
-.concept-card-main-button:hover,
-.concept-card-main-button:focus-visible,
-.concept-card-main-button:active {
-  box-shadow: none !important;
+.concept-index-item-button:hover {
+  background: rgba(91, 115, 133, 0.03);
   filter: none;
 }
 
-/* 通常カード：タグ・補助ボタンは紙面に馴染む薄い面 */
-.concept-card:not(.concept-card-selected) .tag-chip,
-.concept-card:not(.concept-card-selected) .filter-button {
+.concept-index-item-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.concept-index-item-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.concept-index-item-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.concept-index-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.concept-index-tag {
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  border: none;
+  box-shadow: none;
+}
+
+.concept-index-tag--muted {
+  color: var(--text-secondary);
+  background: rgba(128, 109, 86, 0.06);
+}
+
+.concept-index-learning {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.concept-index-item-selected {
+  background: rgba(91, 115, 133, 0.05);
+}
+
+.concept-index-item-selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  width: 2px;
+  border-radius: 1px;
+  background: rgba(91, 115, 133, 0.42);
+}
+
+.concept-index-item-selected .concept-index-item-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.concept-index-item-selected .concept-index-item-button:hover {
+  background: rgba(91, 115, 133, 0.06);
+}
+
+.concept-index-item .study-status-badge {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  padding: 0;
+  font-size: 0.6875rem;
+}
+
+.concept-index-item-selected .study-status-badge {
   color: var(--text-primary) !important;
-  border-color: rgba(128, 109, 86, 0.18) !important;
-  background: rgba(255, 253, 248, 0.78) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 253, 248, 0.95),
-    inset 0 -1px 0 rgba(128, 109, 86, 0.04),
-    0 6px 16px rgba(88, 76, 62, 0.06);
 }
 
-.concept-card:not(.concept-card-selected) .tag-chip:hover,
-.concept-card:not(.concept-card-selected) .filter-button:hover {
-  background: rgba(255, 253, 248, 0.92) !important;
-  border-color: rgba(128, 109, 86, 0.24) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 253, 248, 1),
-    0 0 14px rgba(88, 76, 62, 0.07);
+.concept-index-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-/* 選択中カード：チップは半透明白 */
-.concept-card-selected .tag-chip,
-.concept-card-selected .filter-button {
-  color: var(--text-on-card) !important;
-  border-color: rgba(255, 255, 255, 0.28) !important;
-  background: rgba(255, 255, 255, 0.16) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
-    0 6px 18px rgba(0, 0, 0, 0.12);
+.concept-index-group {
+  border-top: 1px solid rgba(128, 109, 86, 0.12);
 }
 
-.concept-card-selected .tag-chip:hover,
-.concept-card-selected .filter-button:hover {
-  background: rgba(255, 255, 255, 0.24) !important;
-  border-color: rgba(255, 255, 255, 0.38) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.52),
-    0 0 16px rgba(48, 58, 66, 0.12);
+.concept-index-group-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none !important;
 }
 
-.concept-card:not(.concept-card-selected) .study-status-badge,
+.concept-index-group-toggle:hover {
+  color: var(--text-primary);
+  filter: none;
+}
+
+.concept-index-group-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.concept-index-group-count {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.concept-index-group-body {
+  padding-bottom: 0.25rem;
+}
+
+/* 上部フィルタ：テキスト主体 */
+.index-filter-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-right: 0.25rem;
+}
+
+.index-filter-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.index-filter-tab,
+.index-filter-chip,
+.index-filter-toggle {
+  border: 0;
+  background: transparent;
+  box-shadow: none !important;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.index-filter-tab:hover,
+.index-filter-chip:hover,
+.index-filter-toggle:hover {
+  color: var(--text-primary);
+  filter: none;
+  background: rgba(91, 115, 133, 0.04);
+}
+
+.index-filter-tab {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+}
+
+.index-filter-tab--compact {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.index-filter-tab--active {
+  color: var(--text-primary);
+  font-weight: 500;
+  background: rgba(91, 115, 133, 0.06);
+  border-bottom-color: rgba(91, 115, 133, 0.42);
+}
+
+.index-filter-chip {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+.index-filter-chip--active {
+  color: var(--text-primary);
+  font-weight: 500;
+  background: rgba(91, 115, 133, 0.08);
+  text-decoration: underline;
+  text-decoration-color: rgba(91, 115, 133, 0.35);
+  text-underline-offset: 3px;
+}
+
+.index-filter-toggle {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: 1px solid rgba(110, 140, 155, 0.2);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.index-filter-toggle--active {
+  color: var(--text-primary);
+  font-weight: 500;
+  background: rgba(91, 115, 133, 0.08);
+  border-color: rgba(91, 115, 133, 0.28);
+}
+
+.detail-action-button {
+  border: 0;
+  background: transparent;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-decoration-color: rgba(128, 109, 86, 0.25);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+.detail-action-button:hover {
+  color: var(--text-primary);
+  filter: none;
+  background: rgba(91, 115, 133, 0.04);
+}
+
 .concept-detail-panel .study-status-badge {
   border-color: var(--border-soft) !important;
   background: var(--paper-bg) !important;
@@ -1133,16 +1250,6 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-.concept-card-selected .study-status-badge {
-  border-color: rgba(255, 253, 248, 0.28) !important;
-  background: rgba(255, 253, 248, 0.14) !important;
-  color: var(--text-on-card) !important;
-  box-shadow: none;
-}
-
-.concept-card-selected .study-status-dot {
-  box-shadow: 0 0 0 1px rgba(255, 253, 248, 0.35);
-}
 
 .bg-celestial-deepBlue {
   background-image: linear-gradient(180deg, rgba(255, 253, 248, 0.95), rgba(248, 241, 231, 0.5));
@@ -1463,39 +1570,6 @@ textarea::placeholder {
     filter: drop-shadow(0 0 3px rgba(100, 134, 150, 0.1)) !important;
   }
 
-  .concept-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background-image: var(--card-face) !important;
-    box-shadow:
-      0 12px 28px rgba(45, 62, 72, 0.22),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  .concept-card:not(.concept-card-selected):hover {
-    background-image: var(--card-face-hover) !important;
-    box-shadow:
-      0 16px 36px rgba(45, 62, 72, 0.26),
-      inset 0 1px 0 rgba(255, 255, 255, 0.24);
-  }
-
-  .concept-card-selected:hover {
-    background-image: var(--card-face-selected-hover) !important;
-    box-shadow:
-      inset 3px 0 0 0 rgba(255, 253, 248, 0.3),
-      0 0 0 1px rgba(210, 218, 224, 0.24),
-      0 16px 34px rgba(45, 62, 72, 0.22) !important;
-  }
-
-  .concept-card-selected {
-    animation: none !important;
-    background-image: var(--card-face-selected) !important;
-    box-shadow:
-      inset 3px 0 0 0 rgba(210, 231, 239, 0.55),
-      0 0 0 1px rgba(210, 231, 239, 0.32),
-      0 14px 32px rgba(45, 62, 72, 0.28);
-  }
-
   .moon-emblem {
     opacity: 0.1;
   }
@@ -1561,7 +1635,7 @@ textarea::placeholder {
     max-height: min(42vh, 380px);
   }
 
-  .concept-list-scroll .concept-card {
+  .concept-list-scroll .concept-index-item {
     contain: layout paint;
   }
 }

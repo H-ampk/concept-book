@@ -14,7 +14,10 @@ type Props = {
   concept?: Concept;
   conceptMap: Map<string, Concept>;
   domainColorMap: Record<string, string>;
+  conceptQuizStatsText?: string;
   onSelectRelated: (id: string) => void;
+  onEdit?: (concept: Concept) => void;
+  onToggleFavorite?: (concept: Concept) => void;
   onRequestDelete: (concept: Concept) => void;
   deleting: boolean;
 };
@@ -90,7 +93,10 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   concept,
   conceptMap,
   domainColorMap: _domainColorMap,
+  conceptQuizStatsText,
   onSelectRelated,
+  onEdit,
+  onToggleFavorite,
   onRequestDelete,
   deleting
 }, ref) => {
@@ -142,7 +148,27 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         <StatusBadge status={concept.status} />
       </header>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(concept)}
+              className="detail-action-button"
+            >
+              編集
+            </button>
+          )}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={() => onToggleFavorite(concept)}
+              className="detail-action-button"
+            >
+              {concept.favorite ? "お気に入り解除" : "お気に入り"}
+            </button>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => onRequestDelete(concept)}
@@ -152,6 +178,13 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           {deleting ? "削除中..." : "削除"}
         </button>
       </div>
+
+      {conceptQuizStatsText && (
+        <div>
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">学習状況</h3>
+          <p className="text-sm text-nordic-textSecondary">{conceptQuizStatsText}</p>
+        </div>
+      )}
 
       <ConceptMediaGallery concept={concept} />
 
