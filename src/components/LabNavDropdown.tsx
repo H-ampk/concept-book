@@ -181,7 +181,7 @@ export const LabNavDropdown = ({ screen, isLabActive, onNavigate }: Props) => {
       <button
         ref={buttonRef}
         type="button"
-        className={`header-nav-button rounded-md ${isLabActive ? "header-nav-button--active" : ""}`}
+        className={`header-nav-button${isLabActive ? " header-nav-button--active" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}

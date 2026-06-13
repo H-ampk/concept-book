@@ -306,8 +306,8 @@ export const App = () => {
           </div>
           <nav className="header-nav-button-group shrink-0">
             <button
-              className={`header-nav-button rounded-md ${
-                screen === "concepts" ? "header-nav-button--active" : ""
+              className={`header-nav-button${
+                screen === "concepts" ? " header-nav-button--active" : ""
               }`}
               onClick={() => setScreen("concepts")}
               type="button"
@@ -315,8 +315,8 @@ export const App = () => {
               概念
             </button>
             <button
-              className={`header-nav-button rounded-md ${
-                screen === "contexts" ? "header-nav-button--active" : ""
+              className={`header-nav-button${
+                screen === "contexts" ? " header-nav-button--active" : ""
               }`}
               onClick={() => setScreen("contexts")}
               type="button"
@@ -329,8 +329,8 @@ export const App = () => {
               onNavigate={(route) => setScreen(route)}
             />
             <button
-              className={`header-nav-button rounded-md ${
-                screen === "settings" ? "header-nav-button--active" : ""
+              className={`header-nav-button${
+                screen === "settings" ? " header-nav-button--active" : ""
               }`}
               onClick={() => setScreen("settings")}
               type="button"
@@ -392,15 +392,11 @@ export const App = () => {
           )
         ) : (
           <div className="space-y-4">
-            <section className="relative z-10 rounded-3xl border border-[rgba(110,140,155,0.26)] bg-[rgba(248,251,252,0.92)] p-6 shadow-[0_10px_28px_rgba(70,95,110,0.08)] decorated-card ritual-altar">
-              <span className="card-corner card-corner-top-left" aria-hidden="true" />
-              <span className="card-corner card-corner-top-right" aria-hidden="true" />
-              <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-              <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+            <section className="relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] p-5 ritual-altar">
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <div className="hud-search-wrap min-w-0">
                   <input
-                    className="w-full rounded-xl border border-[rgba(110,140,155,0.28)] bg-[rgba(255,255,255,0.9)] px-4 py-3 text-sm text-nordic-textPrimary shadow-[0_10px_28px_rgba(70,95,110,0.08)] placeholder:text-[rgba(31,45,52,0.62)]"
+                    className="search-input"
                     placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -415,7 +411,7 @@ export const App = () => {
                 </button>
                 <button
                   type="button"
-                  className="action-button rounded-lg px-4 py-3 text-sm"
+                  className="action-button px-4 py-3 text-sm"
                   onClick={openCreate}
                 >
                   概念を追加
@@ -654,7 +650,7 @@ export const App = () => {
                       </p>
                       <button
                         type="button"
-                        className="rounded-lg border border-[rgba(110,140,155,0.28)] bg-[rgba(255,255,255,0.85)] px-4 py-2 text-sm text-nordic-textPrimary shadow-[0_8px_20px_rgba(70,95,110,0.07)] hover:bg-white"
+                        className="index-text-button"
                         onClick={() =>
                           setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))
                         }
@@ -668,7 +664,7 @@ export const App = () => {
                 <div className={`${mobileDetail ? "block" : "hidden"} lg:block max-h-screen overflow-y-auto scrollbar-none`}>
                   <div className="mb-2 block lg:hidden">
                     <button
-                      className="rounded-md border border-nordic-border bg-nordic-surface px-3 py-1.5 text-sm text-nordic-textPrimary"
+                      className="index-text-button"
                       type="button"
                       onClick={() => setMobileDetail(false)}
                     >
@@ -746,7 +742,7 @@ export const App = () => {
             <span>{feedback}</span>
             <button
               type="button"
-              className="rounded px-1 py-0.5 text-xs text-nordic-textSecondary hover:bg-white/50"
+              className="index-text-button text-xs"
               onClick={() => setFeedback(null)}
             >
               閉じる

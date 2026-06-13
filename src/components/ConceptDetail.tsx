@@ -72,7 +72,7 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
       <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">添付メディア</h3>
       <ul className="space-y-3">
         {sorted.map((ref) => (
-            <li key={ref.id} className="rounded-lg border border-nordic-border bg-nordic-card p-2 shadow-card">
+            <li key={ref.id} className="detail-media-item">
             {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
             <p className="mb-1 text-xs text-nordic-textMuted">{ref.fileName}</p>
             {ref.kind === "image" && urls[ref.id] ? (
@@ -102,11 +102,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 }, ref) => {
   if (!concept) {
     return (
-      <section className="concept-detail-panel concept-detail-empty max-w-[min(100%,760px)] rounded-2xl border border-nordic-border p-8 shadow-card decorated-card">
-        <span className="card-corner card-corner-top-left" aria-hidden="true" />
-        <span className="card-corner card-corner-top-right" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
+      <section className="concept-detail-panel concept-detail-empty max-w-[min(100%,760px)] rounded-xl border border-nordic-border p-8">
         <img
           src={decorUrl("decorations/cup.png")}
           alt=""
@@ -131,19 +127,13 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   return (
     <section
       ref={ref}
-      className="concept-detail-panel max-w-[min(100%,760px)] space-y-4 rounded-2xl border border-nordic-border p-6 shadow-card decorated-card"
+      className="concept-detail-panel max-w-[min(100%,760px)] space-y-5 rounded-xl border border-nordic-border p-6"
     >
-      <span className="card-corner card-corner-top-left" aria-hidden="true" />
-      <span className="card-corner card-corner-top-right" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
       <OrnamentLine variant="panel" />
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold text-nordic-textPrimary">{concept.title}</h2>
         {concept.favorite && (
-          <span className="rounded-[10px] border border-nordic-border bg-nordic-cardAction px-2 py-0.5 text-xs font-medium text-nordic-textPrimary">
-            お気に入り
-          </span>
+          <span className="text-xs text-nordic-textSecondary">お気に入り</span>
         )}
         <StatusBadge status={concept.status} />
       </header>
@@ -173,7 +163,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           type="button"
           onClick={() => onRequestDelete(concept)}
           disabled={deleting}
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 shadow-sm hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="detail-delete-button"
         >
           {deleting ? "削除中..." : "削除"}
         </button>
@@ -206,7 +196,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">文脈別定義</h3>
             <div className="space-y-3">
               {contextDefinitions.map((ctxDef) => (
-                <div key={ctxDef.id} className="rounded-lg border border-nordic-border bg-nordic-card p-3 shadow-card">
+                <div key={ctxDef.id} className="detail-context-block">
                   <h4 className="mb-1 text-sm font-medium text-nordic-textPrimary">
                     {ctxDef.context.trim() || <span className="concept-detail-muted">文脈未指定</span>}
                   </h4>
@@ -233,11 +223,8 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             <span className="text-sm text-nordic-textMuted">なし</span>
           ) : (
             concept.domainTags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-md border border-nordic-border bg-nordic-card px-2 py-0.5 text-xs text-nordic-textPrimary"
-              >
-                #{tag}
+              <span key={tag} className="detail-inline-tag">
+                {tag}
               </span>
             ))
           )}
@@ -253,11 +240,8 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             <span className="text-sm text-nordic-textMuted">なし</span>
           ) : (
             concept.researchTags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-md border border-nordic-border bg-nordic-card px-2 py-0.5 text-xs text-nordic-textPrimary"
-              >
-                #{tag}
+              <span key={tag} className="detail-inline-tag">
+                {tag}
               </span>
             ))
           )}
@@ -276,7 +260,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
                 return (
                   <li
                     key={relatedId}
-                    className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
+                    className="text-xs text-amber-800"
                   >
                     不明なID: {relatedId}
                   </li>
@@ -285,7 +269,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               return (
                 <li key={relatedId}>
                   <button
-                    className="rounded-md border border-nordic-border bg-nordic-card px-2 py-1 text-xs text-nordic-textPrimary hover:bg-nordic-cardHover"
+                    className="detail-related-link"
                     onClick={() => onSelectRelated(relatedId)}
                     type="button"
                   >
@@ -298,7 +282,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      <div className="rounded-lg border border-nordic-border bg-nordic-muted/80 p-3 text-xs text-nordic-textSecondary shadow-card">
+      <div className="detail-meta-block">
         <p>
           出典: {concept.source.book || <span className="concept-detail-muted">未入力</span>} / p.
           {concept.source.page || "-"} / {concept.source.author || <span className="concept-detail-muted">著者未入力</span>}
