@@ -61,7 +61,7 @@ export const createEmptyConceptInput = (): ConceptInput => ({
     author: null
   },
   notes: "",
-  status: "active",
+  status: "draft",
   favorite: false,
   contextDefinitions: []
 });

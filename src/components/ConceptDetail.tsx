@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import type { Concept } from "../types/concept";
 import { getStorage } from "../storage";
 import { shortDateTime } from "../utils/date";
+import { getDisplayStatus } from "../utils/conceptStatus";
 import { StatusBadge } from "./StatusBadge";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -135,7 +136,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         {concept.favorite && (
           <span className="text-xs text-nordic-textSecondary">お気に入り</span>
         )}
-        <StatusBadge status={concept.status} />
+        <StatusBadge status={getDisplayStatus(concept)} />
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

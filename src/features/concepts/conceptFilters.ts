@@ -1,4 +1,5 @@
 import { conceptStatusList, type Concept, type ConceptStatus } from "../../types/concept";
+import { getDisplayStatus } from "../../utils/conceptStatus";
 import { includesNormalized } from "../../utils/search";
 
 const fullText = (concept: Concept): string =>
@@ -28,7 +29,8 @@ export const filterConcepts = (
       selectedResearchTags.length === 0 ||
       selectedResearchTags.every((tag) => concept.researchTags.includes(tag));
     const byStatus =
-      selectedStatuses.length === 0 || selectedStatuses.includes(concept.status);
+      selectedStatuses.length === 0 ||
+      selectedStatuses.includes(getDisplayStatus(concept));
     const byFavorite = !onlyFavorite || concept.favorite;
     return byQuery && byDomainTags && byResearchTags && byStatus && byFavorite;
   });

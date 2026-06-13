@@ -6,6 +6,7 @@ import type {
   QuizQuestion
 } from "../types/quiz";
 import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 import { generateQuizChoicesFromConceptGeneral } from "./generateQuizChoicesFromConceptGeneral";
 import { generateQuizChoicesFromContextCards } from "./generateQuizChoicesFromContextCards";
@@ -71,7 +72,7 @@ export function selectConceptsForDomainTag(
     if (!concept.domainTags.some((domainTag) => domainTag.trim() === tag)) {
       return false;
     }
-    if (!includeDraftConcepts && concept.status !== "active") {
+    if (!includeDraftConcepts && deriveConceptStatus(concept.definition) !== "active") {
       return false;
     }
     if (!hasContextDefinitions(concept) && !hasGeneralDefinition(concept)) {

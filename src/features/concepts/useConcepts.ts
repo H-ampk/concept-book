@@ -3,10 +3,10 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { getStorage } from "../../storage";
 import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
 import {
-  applyDraftPromotionOnUpdate,
-  promoteDraftConceptIfDefined,
+  applyDerivedStatusOnUpdate,
+  applyDerivedStatusToInput,
   type ConceptSaveOptions
-} from "../../utils/promoteDraftConceptIfDefined";
+} from "../../utils/conceptStatus";
 import { collectTagGroups, filterConcepts } from "./conceptFilters";
 
 const storage = getStorage();
@@ -35,7 +35,7 @@ export const useConcepts = () => {
   }, [reload]);
 
   const create = useCallback(async (input: ConceptInput, options?: ConceptSaveOptions) => {
-    const normalized = promoteDraftConceptIfDefined(input, options);
+    const normalized = applyDerivedStatusToInput(input, options);
     const created = await storage.createConcept(normalized);
     await reload();
     return created;
@@ -45,7 +45,7 @@ export const useConcepts = () => {
     async (id: string, updates: Partial<ConceptInput>, options?: ConceptSaveOptions) => {
       const existing = concepts.find((concept) => concept.id === id);
       const normalized = existing
-        ? applyDraftPromotionOnUpdate(existing, updates, options)
+        ? applyDerivedStatusOnUpdate(existing, updates, options)
         : updates;
       const updated = await storage.updateConcept(id, normalized);
       await reload();

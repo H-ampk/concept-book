@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMatchMedia } from "../hooks/useMatchMedia";
 import { StatusBadge } from "./StatusBadge";
 import type { Concept } from "../types/concept";
+import { getDisplayStatus } from "../utils/conceptStatus";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
 
 const LIST_GAP_PX = 0;
@@ -70,7 +71,7 @@ function ConceptListItem({
       >
         <div className="concept-index-item-title-row">
           <h3 className="concept-index-item-title">{concept.title}</h3>
-          <StatusBadge status={concept.status} />
+          <StatusBadge status={getDisplayStatus(concept)} />
         </div>
         {hasMeta && (
           <div className="concept-index-item-meta">

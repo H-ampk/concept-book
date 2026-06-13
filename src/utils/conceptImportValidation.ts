@@ -4,6 +4,7 @@ import type { ContextCard } from "../types/contextCard";
 import type { ConceptMediaRef } from "../types/media";
 import type { QuizChoice, QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
@@ -471,7 +472,7 @@ const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => 
       author: raw.source?.author ?? null
     },
     notes: raw.notes ?? "",
-    status: raw.status ?? "active",
+    status: raw.status ?? deriveConceptStatus(raw.definition ?? ""),
     favorite: raw.favorite ?? false,
     createdAt: raw.createdAt ?? nowIso(),
     updatedAt: raw.updatedAt ?? nowIso(),

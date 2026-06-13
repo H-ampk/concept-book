@@ -1,3 +1,4 @@
+import { deriveConceptStatus } from "../utils/conceptStatus";
 import { buildConceptBookZip, parseConceptBookZip } from "../utils/conceptBookZip";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 import { normalizeMediaRefs } from "../utils/conceptImportValidation";
@@ -85,7 +86,7 @@ const sanitizeConcept = (
       author: concept.source?.author ?? null
     },
     notes: concept.notes ?? "",
-    status: concept.status ?? "active",
+    status: concept.status ?? deriveConceptStatus(concept.definition ?? ""),
     favorite: Boolean(concept.favorite),
     createdAt: concept.createdAt ?? nowIso(),
     updatedAt: concept.updatedAt ?? nowIso(),

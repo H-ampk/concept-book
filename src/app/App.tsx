@@ -19,7 +19,7 @@ import { getStorage } from "../storage";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
 import type { QuizAttemptLog } from "../types/quiz";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
-import type { ConceptSaveOptions } from "../utils/promoteDraftConceptIfDefined";
+import type { ConceptSaveOptions } from "../utils/conceptStatus";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import { buildConceptQuizStatsDisplayMap } from "../utils/quiz/getConceptQuizStats";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
