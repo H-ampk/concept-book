@@ -5,6 +5,7 @@ import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
 import {
   applyDerivedStatusOnUpdate,
   applyDerivedStatusToInput,
+  normalizeConceptStatuses,
   type ConceptSaveOptions
 } from "../../utils/conceptStatus";
 import { collectTagGroups, filterConcepts } from "./conceptFilters";
@@ -24,7 +25,23 @@ export const useConcepts = () => {
     setLoading(true);
     try {
       const all = await storage.getAllConcepts();
-      setConcepts(all);
+      const { concepts: normalized, changedCount, changedIds } =
+        normalizeConceptStatuses(all);
+
+      if (changedCount > 0) {
+        await Promise.all(
+          changedIds.map((id) => {
+            const concept = normalized.find((c) => c.id === id);
+            if (!concept) {
+              return Promise.resolve();
+            }
+            return storage.updateConcept(id, { status: concept.status });
+          })
+        );
+        console.info(`[ConceptBook] normalized concept statuses: ${changedCount}`);
+      }
+
+      setConcepts(normalized);
     } finally {
       setLoading(false);
     }
