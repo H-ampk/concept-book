@@ -42,6 +42,13 @@ export type QuizGenerationQuality = "high" | "medium" | "low" | "failed";
 
 export type QuizDeckSourceType = "manual" | "domain-tag";
 
+/** 分野タグからの自動生成・再同期時に使う出題条件 */
+export type QuizDeckGenerationFilters = {
+  targetDomainTag: string;
+  includeDraftConcepts?: boolean;
+  generationMode?: "context-definition" | "concept-general" | "auto";
+};
+
 export type QuizDeckGenerationSummary = {
   targetConceptCount: number;
   generatedQuestionCount: number;
@@ -142,6 +149,10 @@ export interface QuizDeck {
   sourceDomainTag?: string;
   /** 分野タグからの自動生成サマリー */
   generationSummary?: QuizDeckGenerationSummary;
+  /** 再同期に使う生成条件（sourceType: domain-tag 作成時に保存） */
+  generationFilters?: QuizDeckGenerationFilters;
+  /** 最後に未反映概念を追加した日時 */
+  lastSyncedAt?: string;
 }
 
 /** QuizDeck の schemaVersion 初期値・マイグレーション用 */

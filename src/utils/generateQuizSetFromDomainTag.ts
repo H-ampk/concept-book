@@ -145,7 +145,7 @@ function generateFromConceptGeneral(
   };
 }
 
-function generateForConcept(
+export function generateForConcept(
   concept: Concept,
   generationMode: QuizSetGenerationMode,
   allConcepts: Concept[],

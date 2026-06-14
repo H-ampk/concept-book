@@ -5,7 +5,9 @@ import type { QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
 import { shortDateTime } from "../utils/date";
 import { OrnamentLine } from "./common/OrnamentLine";
 import { QuizDeckFormModal } from "./QuizDeckFormModal";
+import { QuizDeckSyncModal } from "./QuizDeckSyncModal";
 import { QuizSetFromDomainTagModal } from "./QuizSetFromDomainTagModal";
+import { previewQuizDeckSync, resolveDeckGenerationFilters } from "../utils/syncQuizDeckFromFilters";
 
 const storage = getStorage();
 
@@ -26,6 +28,7 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
   const [deckModalOpen, setDeckModalOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<QuizDeck | null>(null);
   const [domainTagGeneratorOpen, setDomainTagGeneratorOpen] = useState(false);
+  const [syncDeck, setSyncDeck] = useState<QuizDeck | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -234,6 +237,16 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
                             {d.generationSummary.targetConceptCount}
                           </span>
                         ) : null}
+                        {resolveDeckGenerationFilters(d) ? (
+                          <span className="text-xs text-celestial-softGold">
+                            未反映{" "}
+                            {
+                              previewQuizDeckSync({ deck: d, allConcepts: concepts, allQuestions: questions })
+                                .addableConceptCount
+                            }{" "}
+                            概念
+                          </span>
+                        ) : null}
                       </div>
                       {(d.domainTags?.length ?? 0) > 0 ? (
                         <div className="flex flex-wrap gap-1.5">
@@ -249,6 +262,15 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
                       ) : null}
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2">
+                      {resolveDeckGenerationFilters(d) ? (
+                        <button
+                          type="button"
+                          onClick={() => setSyncDeck(d)}
+                          className="rounded-lg border border-celestial-gold/40 px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50"
+                        >
+                          クイズ集を更新
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => openEditDeck(d)}
@@ -289,6 +311,15 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
         concepts={concepts}
         onClose={() => setDomainTagGeneratorOpen(false)}
         onSaved={() => void load()}
+      />
+
+      <QuizDeckSyncModal
+        open={syncDeck !== null}
+        deck={syncDeck}
+        concepts={concepts}
+        allQuestions={questions}
+        onClose={() => setSyncDeck(null)}
+        onSynced={() => void load()}
       />
     </div>
   );

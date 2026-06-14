@@ -3,6 +3,16 @@ import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion } from "../types/quiz";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION } from "../types/quiz";
+import {
+  buildQuizSession,
+  buildQuestionQuizStatsMap,
+  getPlayablePoolFromDeck,
+  isPlayableQuestion,
+  type SessionQuestion,
+  type WrongAnswerRecord
+} from "../utils/quiz/buildQuizSession";
+import { resolveQuestionConceptId } from "../utils/quiz/resolveQuestionConceptId";
+import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
 import { OrnamentLine } from "./common/OrnamentLine";
@@ -32,28 +42,6 @@ const resolveResultExplanationText = (
   return "";
 };
 
-/** 出題対象概念 ID（QuizQuestion.conceptId / promptConceptId）のみを返す */
-const resolvePromptConceptId = (question: QuizQuestion): string | undefined =>
-  question.conceptId?.trim() || undefined;
-
-const isPlayableQuestion = (q: QuizQuestion): boolean => {
-  if (!q.prompt?.trim()) {
-    return false;
-  }
-  const withText = q.choices.filter((c) => c.text.trim().length > 0);
-  if (withText.length < 2) {
-    return false;
-  }
-  if (!q.correctChoiceId || !q.choices.some((c) => c.id === q.correctChoiceId)) {
-    return false;
-  }
-  const correct = q.choices.find((c) => c.id === q.correctChoiceId);
-  if (!correct || !correct.text.trim()) {
-    return false;
-  }
-  return true;
-};
-
 const matchesConceptFilter = (q: QuizQuestion, conceptId: string): boolean => {
   if (!conceptId) {
     return true;
@@ -74,20 +62,8 @@ const sortDeck = (items: QuizQuestion[]): QuizQuestion[] =>
     return b.updatedAt.localeCompare(a.updatedAt);
   });
 
-/** questionIds の順で解決し、存在しない ID はスキップ、isPlayableQuestion を満たすものだけ返す */
-const buildOrderedPlayableQuestions = (deck: QuizDeck, allQuestions: QuizQuestion[]): QuizQuestion[] => {
-  const byId = new Map(allQuestions.map((q) => [q.id, q]));
-  const out: QuizQuestion[] = [];
-  for (const id of deck.questionIds) {
-    const q = byId.get(id);
-    if (q && isPlayableQuestion(q)) {
-      out.push(q);
-    }
-  }
-  return out;
-};
-
 type Phase = "setup" | "play" | "results";
+type PlayAgainMode = "all" | "remaining";
 
 type Props = {
   onBack: () => void;
@@ -99,32 +75,40 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [quizDecks, setQuizDecks] = useState<QuizDeck[]>([]);
+  const [attemptLogs, setAttemptLogs] = useState<QuizAttemptLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [conceptFilter, setConceptFilter] = useState("");
   const [phase, setPhase] = useState<Phase>("setup");
-  const [deck, setDeck] = useState<QuizQuestion[]>([]);
+  const [session, setSession] = useState<SessionQuestion[]>([]);
   const [index, setIndex] = useState(0);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const [wrongAnswers, setWrongAnswers] = useState<WrongAnswerRecord[]>([]);
   /** クイズ集モードのときセット。自由学習では null */
   const [sessionDeckId, setSessionDeckId] = useState<string | null>(null);
   const [sessionDeckTitle, setSessionDeckTitle] = useState<string | null>(null);
   const [deckPlayError, setDeckPlayError] = useState<string | null>(null);
+  /** 同一クイズ集内で直前セッションに出題した問題 ID */
+  const [lastSessionQuestionIds, setLastSessionQuestionIds] = useState<string[]>([]);
+  /** クイズ集の全問題プール（再出題用） */
+  const sessionPoolRef = useRef<QuizQuestion[]>([]);
   const sessionIdRef = useRef<string | null>(null);
   const questionTimingRef = useRef<{ startedAtIso: string; startMs: number } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, q, d] = await Promise.all([
+      const [c, q, d, logs] = await Promise.all([
         storage.getAllConcepts(),
         storage.getQuizQuestions(),
-        storage.getQuizDecks()
+        storage.getQuizDecks(),
+        storage.getQuizAttemptLogs()
       ]);
       setConcepts(c);
       setQuestions(q);
       setQuizDecks(d);
+      setAttemptLogs(logs);
     } finally {
       setLoading(false);
     }
@@ -145,28 +129,41 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     return m;
   }, [concepts]);
 
+  const questionStatsMap = useMemo(
+    () => buildQuestionQuizStatsMap(attemptLogs),
+    [attemptLogs]
+  );
+
+  const buildSessionItems = useCallback(
+    (pool: QuizQuestion[], excludeQuestionIds?: Set<string>) =>
+      buildQuizSession(pool, {
+        excludeQuestionIds,
+        questionStatsMap
+      }),
+    [questionStatsMap]
+  );
+
   const playableFiltered = useMemo(() => {
     return sortDeck(
       questions.filter(isPlayableQuestion).filter((q) => matchesConceptFilter(q, conceptFilter))
     );
   }, [questions, conceptFilter]);
 
-  const current = deck[index];
-  const selectedChoice = current?.choices.find((c) => c.id === selectedChoiceId) ?? null;
-  const correctChoice = current?.choices.find((c) => c.id === current.correctChoiceId) ?? null;
-  const isCorrect = answered && selectedChoiceId === current?.correctChoiceId;
+  const current = session[index];
+  const currentQuestion = current?.question;
+  const selectedChoice = current?.shuffledChoices.find((c) => c.id === selectedChoiceId) ?? null;
+  const correctChoice =
+    current?.shuffledChoices.find((c) => c.id === currentQuestion?.correctChoiceId) ?? null;
+  const isCorrect = answered && selectedChoiceId === currentQuestion?.correctChoiceId;
 
-  const visibleChoices = useMemo(
-    () => (current ? current.choices.filter((c) => c.text.trim().length > 0) : []),
-    [current]
-  );
+  const visibleChoices = current?.shuffledChoices ?? [];
 
-  const promptConcept = current?.conceptId
-    ? conceptById.get(current.conceptId)
+  const promptConcept = currentQuestion?.conceptId
+    ? conceptById.get(currentQuestion.conceptId)
     : undefined;
 
   useEffect(() => {
-    if (phase !== "play" || !current) {
+    if (phase !== "play" || !currentQuestion) {
       questionTimingRef.current = null;
       return;
     }
@@ -175,7 +172,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
       startedAtIso: new Date(ms).toISOString(),
       startMs: ms
     };
-  }, [phase, index, current?.id]);
+  }, [phase, index, currentQuestion?.id]);
 
   const onChoicesKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (answered || visibleChoices.length === 0) {
@@ -194,22 +191,32 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     }
   };
 
-  const startPlay = () => {
+  const beginSession = (items: SessionQuestion[]) => {
     sessionIdRef.current = `session_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
-    setSessionDeckId(null);
-    setSessionDeckTitle(null);
-    setDeck(playableFiltered);
+    setSession(items);
+    setLastSessionQuestionIds(items.map((s) => s.question.id));
     setIndex(0);
     setSelectedChoiceId(null);
     setAnswered(false);
     setCorrectCount(0);
+    setWrongAnswers([]);
     setPhase("play");
   };
 
-  const startPlayFromQuizDeck = (d: QuizDeck, opts?: { emptyToSetup?: boolean }) => {
+  const startPlay = () => {
+    setSessionDeckId(null);
+    setSessionDeckTitle(null);
+    sessionPoolRef.current = playableFiltered;
+    beginSession(buildSessionItems(playableFiltered));
+  };
+
+  const startPlayFromQuizDeck = (
+    d: QuizDeck,
+    opts?: { emptyToSetup?: boolean; playAgainMode?: PlayAgainMode }
+  ) => {
     setDeckPlayError(null);
-    const playable = buildOrderedPlayableQuestions(d, questions);
-    if (playable.length === 0) {
+    const pool = getPlayablePoolFromDeck(d, questions);
+    if (pool.length === 0) {
       const msg = `「${d.title}」には出題可能な問題がありません。問題が未登録・未完成の参照のみの可能性があります。クイズ作成で整えてください。`;
       if (opts?.emptyToSetup) {
         window.alert(msg);
@@ -219,40 +226,82 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
       }
       return;
     }
-    sessionIdRef.current = `session_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+
+    sessionPoolRef.current = pool;
+    const excludeIds =
+      opts?.playAgainMode === "remaining"
+        ? new Set(lastSessionQuestionIds)
+        : new Set<string>();
+    const items = buildSessionItems(pool, excludeIds);
+
+    if (items.length === 0 && opts?.playAgainMode === "remaining") {
+      window.alert("残りの未出題問題がありません。全体からランダムに出題します。");
+      setSessionDeckId(d.id);
+      setSessionDeckTitle(d.title);
+      beginSession(buildSessionItems(pool));
+      return;
+    }
+
     setSessionDeckId(d.id);
     setSessionDeckTitle(d.title);
-    setDeck(playable);
-    setIndex(0);
-    setSelectedChoiceId(null);
-    setAnswered(false);
-    setCorrectCount(0);
-    setPhase("play");
+    beginSession(items);
   };
 
-  const playAgain = async () => {
+  const playAgain = async (mode: PlayAgainMode = "all") => {
+    const freshLogs = await storage.getQuizAttemptLogs();
+    setAttemptLogs(freshLogs);
+    const freshStatsMap = buildQuestionQuizStatsMap(freshLogs);
+    const buildWithFreshStats = (pool: QuizQuestion[], excludeQuestionIds?: Set<string>) =>
+      buildQuizSession(pool, {
+        excludeQuestionIds,
+        questionStatsMap: freshStatsMap
+      });
+
     if (sessionDeckId) {
       let d: QuizDeck | undefined = quizDecks.find((x) => x.id === sessionDeckId);
       if (!d) {
         d = (await storage.getQuizDeck(sessionDeckId)) ?? undefined;
       }
       if (d) {
-        startPlayFromQuizDeck(d, { emptyToSetup: true });
+        const pool = getPlayablePoolFromDeck(d, questions);
+        sessionPoolRef.current = pool;
+        const excludeIds =
+          mode === "remaining" ? new Set(lastSessionQuestionIds) : new Set<string>();
+        const items = buildWithFreshStats(pool, excludeIds);
+        if (items.length === 0 && mode === "remaining") {
+          window.alert("残りの未出題問題がありません。全体からランダムに出題します。");
+          beginSession(buildWithFreshStats(pool));
+          return;
+        }
+        beginSession(items);
         return;
       }
       window.alert("クイズ集が見つかりません。");
       restart();
       return;
     }
-    startPlay();
+
+    if (mode === "remaining") {
+      const exclude = new Set(lastSessionQuestionIds);
+      const remaining = sessionPoolRef.current.filter((q) => !exclude.has(q.id));
+      if (remaining.length === 0) {
+        window.alert("残りの未出題問題がありません。全体からランダムに出題します。");
+        beginSession(buildWithFreshStats(sessionPoolRef.current));
+        return;
+      }
+      beginSession(buildWithFreshStats(remaining));
+      return;
+    }
+
+    beginSession(buildWithFreshStats(sessionPoolRef.current.length > 0 ? sessionPoolRef.current : playableFiltered));
   };
 
   const submitAnswer = () => {
-    if (!selectedChoiceId || !current) {
+    if (!selectedChoiceId || !currentQuestion || !current) {
       return;
     }
-    const sel = current.choices.find((c) => c.id === selectedChoiceId);
-    const corr = current.choices.find((c) => c.id === current.correctChoiceId);
+    const sel = current.shuffledChoices.find((c) => c.id === selectedChoiceId);
+    const corr = current.shuffledChoices.find((c) => c.id === currentQuestion.correctChoiceId);
     if (!sel || !corr) {
       return;
     }
@@ -266,15 +315,17 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
       timeMs = 0;
     }
 
+    const isAnswerCorrect = sel.id === corr.id;
+
     const log: QuizAttemptLog = {
       id: `qlog_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
-      questionId: current.id,
-      questionPromptSnapshot: current.prompt,
+      questionId: currentQuestion.id,
+      questionPromptSnapshot: currentQuestion.prompt,
       selectedChoiceId: sel.id,
       selectedChoiceTextSnapshot: sel.text,
       correctChoiceId: corr.id,
       correctChoiceTextSnapshot: corr.text,
-      correct: sel.id === corr.id,
+      correct: isAnswerCorrect,
       startedAt: startedAtIso,
       answeredAt: answeredAtIso,
       timeMs,
@@ -283,7 +334,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     if (sessionIdRef.current) {
       log.sessionId = sessionIdRef.current;
     }
-    const promptConceptId = resolvePromptConceptId(current);
+    const promptConceptId = resolveQuestionConceptId(currentQuestion);
     if (promptConceptId) {
       log.conceptId = promptConceptId;
       log.questionConceptId = promptConceptId;
@@ -305,18 +356,30 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     void storage.saveQuizAttemptLog(log).catch((err) => {
       console.warn("[QuizPlayPage] QuizAttemptLog の保存に失敗しました。", err);
     });
+    setAttemptLogs((prev) => [...prev, log]);
 
     setAnswered(true);
-    if (selectedChoiceId === current.correctChoiceId) {
+    if (isAnswerCorrect) {
       setCorrectCount((n) => n + 1);
+    } else {
+      setWrongAnswers((prev) => [
+        ...prev,
+        {
+          question: currentQuestion,
+          selectedChoiceId: sel.id,
+          selectedText: sel.text,
+          correctText: corr.text,
+          selectionReasons: current.selectionReasons
+        }
+      ]);
     }
   };
 
   const goNext = () => {
-    if (!current) {
+    if (!currentQuestion) {
       return;
     }
-    if (index + 1 >= deck.length) {
+    if (index + 1 >= session.length) {
       setPhase("results");
       return;
     }
@@ -330,12 +393,15 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     setSessionDeckId(null);
     setSessionDeckTitle(null);
     setDeckPlayError(null);
+    setLastSessionQuestionIds([]);
+    sessionPoolRef.current = [];
     setPhase("setup");
-    setDeck([]);
+    setSession([]);
     setIndex(0);
     setSelectedChoiceId(null);
     setAnswered(false);
     setCorrectCount(0);
+    setWrongAnswers([]);
   };
 
   const conceptLabel = (choice: QuizChoice | null): string | null => {
@@ -344,6 +410,14 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     }
     return titleById.get(choice.linkedConceptId) ?? null;
   };
+
+  const remainingPoolCount = useMemo(() => {
+    if (sessionPoolRef.current.length === 0) {
+      return 0;
+    }
+    const exclude = new Set(lastSessionQuestionIds);
+    return sessionPoolRef.current.filter((q) => !exclude.has(q.id)).length;
+  }, [lastSessionQuestionIds, phase]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-1 sm:px-0">
@@ -364,7 +438,8 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                 クイズで学習
               </h1>
               <p className="mt-1 text-sm text-celestial-textSub">
-                作成した問いで概念理解を確認します。選択肢が Concept にリンクしている場合、回答後に関連を表示します。
+                問題プールから学習状況に応じて最大 {QUIZ_SESSION_SIZE}{" "}
+                問を出題します（未学習・誤答・復習対象を優先）。選択肢が Concept にリンクしている場合、回答後に関連を表示します。
               </p>
               <OrnamentLine variant="panel" />
             </div>
@@ -384,7 +459,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
               <div className="space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/30 p-4 backdrop-blur-sm">
                 <h2 className="text-sm font-semibold text-celestial-softGold">クイズ集から始める</h2>
                 <p className="text-xs text-celestial-textSub">
-                  クイズ作成で作ったセットを選ぶと、登録順（questionIds）に出題します。存在しない問題 ID は自動でスキップします。
+                  クイズ集の問題プールから、学習状況に応じて最大 {QUIZ_SESSION_SIZE} 問を出題します。
                 </p>
                 {deckPlayError ? (
                   <p className="rounded-lg border border-amber-500/40 bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95" role="alert">
@@ -406,9 +481,10 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                 ) : (
                   <ul className="space-y-3">
                     {quizDecks.map((qd) => {
-                      const playable = buildOrderedPlayableQuestions(qd, questions);
+                      const pool = getPlayablePoolFromDeck(qd, questions);
                       const totalIds = qd.questionIds.length;
-                      const canStart = playable.length > 0;
+                      const canStart = pool.length > 0;
+                      const sessionCount = Math.min(QUIZ_SESSION_SIZE, pool.length);
                       return (
                         <li
                           key={qd.id}
@@ -436,10 +512,13 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                                   {qd.visibility === "public" ? "公開" : "非公開"}
                                 </span>
                                 <span className="text-xs text-celestial-textSub">
-                                  出題可能 <span className="font-medium text-celestial-softGold">{playable.length}</span> 問
-                                  {totalIds !== playable.length ? (
+                                  プール <span className="font-medium text-celestial-softGold">{pool.length}</span> 問
+                                  {totalIds !== pool.length ? (
                                     <span className="text-celestial-textSub"> / questionIds {totalIds}</span>
                                   ) : null}
+                                </span>
+                                <span className="text-xs text-celestial-textSub">
+                                  1回 {sessionCount} 問
                                 </span>
                                 <span className="text-xs text-celestial-textSub">更新 {shortDateTime(qd.updatedAt)}</span>
                               </div>
@@ -479,7 +558,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
               <div className="space-y-4 rounded-xl border border-celestial-border/60 bg-nordic-navy/20 p-4 backdrop-blur-sm">
                 <h2 className="text-sm font-semibold text-celestial-softGold">自由に学習する</h2>
                 <p className="text-xs text-celestial-textSub">
-                  全問題から Concept で絞り込み、従来どおり学習できます（クイズ集の順序は使いません）。
+                  全問題から Concept で絞り込み、学習状況に応じて最大 {QUIZ_SESSION_SIZE} 問出題します。
                 </p>
                 <label className="block max-w-md">
                   <span className="mb-1 block text-xs text-celestial-softGold">Concept で絞り込み</span>
@@ -497,8 +576,12 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                   </select>
                 </label>
                 <p className="text-sm text-celestial-textMain">
-                  出題対象: <span className="font-semibold text-celestial-softGold">{playableFiltered.length}</span>{" "}
-                  問
+                  出題プール: <span className="font-semibold text-celestial-softGold">{playableFiltered.length}</span>{" "}
+                  問（1回{" "}
+                  <span className="font-semibold text-celestial-softGold">
+                    {Math.min(QUIZ_SESSION_SIZE, playableFiltered.length)}
+                  </span>{" "}
+                  問）
                 </p>
                 {playableFiltered.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/25 px-4 py-8 text-center">
@@ -522,28 +605,74 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
               </div>
             </div>
           ) : phase === "results" ? (
-            <div className="space-y-4 rounded-2xl border border-celestial-border bg-celestial-deepBlue/20 p-6 text-center">
-              <p className="text-lg font-semibold text-celestial-textMain">結果</p>
+            <div className="space-y-4 rounded-2xl border border-celestial-border bg-celestial-deepBlue/20 p-6">
+              <p className="text-center text-lg font-semibold text-celestial-textMain">結果</p>
               {sessionDeckTitle ? (
-                <p className="text-sm text-celestial-softGold">
+                <p className="text-center text-sm text-celestial-softGold">
                   クイズ集「<span className="font-medium">{sessionDeckTitle}</span>」
                 </p>
               ) : null}
-              <p className="text-sm text-celestial-textSub">
-                解いた問題: <span className="text-celestial-softGold">{deck.length}</span> 問 / 正解{" "}
+              <p className="text-center text-sm text-celestial-textSub">
+                解いた問題: <span className="text-celestial-softGold">{session.length}</span> 問 / 正解{" "}
                 <span className="text-celestial-softGold">{correctCount}</span> 問
               </p>
-              <p className="text-2xl font-semibold text-celestial-gold">
-                {deck.length > 0 ? Math.round((correctCount / deck.length) * 100) : 0}%
+              <p className="text-center text-2xl font-semibold text-celestial-gold">
+                {session.length > 0 ? Math.round((correctCount / session.length) * 100) : 0}%
               </p>
-              <p className="text-xs text-celestial-textSub">正答率（画面内のみ・ログは保存されません）</p>
-              <div className="flex flex-wrap justify-center gap-2 pt-2">
+              <p className="text-center text-xs text-celestial-textSub">正答率（学習ログに記録されます）</p>
+
+              {wrongAnswers.length > 0 ? (
+                <div className="rounded-xl border border-celestial-border/60 bg-celestial-panel/40 p-4 text-left">
+                  <h3 className="mb-2 text-sm font-semibold text-celestial-softGold">
+                    間違えた問題（{wrongAnswers.length} 問）
+                  </h3>
+                  <ul className="max-h-48 space-y-3 overflow-y-auto text-sm">
+                    {wrongAnswers.map((wa) => (
+                      <li
+                        key={wa.question.id}
+                        className="rounded-lg border border-celestial-border/50 bg-celestial-deepBlue/30 p-3"
+                      >
+                        <p className="font-medium text-celestial-textMain line-clamp-2">{wa.question.prompt}</p>
+                        {(wa.selectionReasons?.length ?? 0) > 0 ? (
+                          <p className="mt-1 text-[11px] text-celestial-textSub/70">
+                            出題理由: {wa.selectionReasons!.join("・")}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-xs text-celestial-textSub">
+                          あなたの解答: <span className="text-celestial-danger">{wa.selectedText}</span>
+                        </p>
+                        <p className="text-xs text-celestial-textSub">
+                          正解: <span className="text-celestial-gold">{wa.correctText}</span>
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <div className="flex flex-col items-center gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => void playAgain()}
-                  className="rounded-lg border border-celestial-gold/45 px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+                  onClick={() => void playAgain("all")}
+                  className="action-button rounded-lg px-5 py-2.5 text-sm"
                 >
-                  もう一度解く
+                  もう {Math.min(QUIZ_SESSION_SIZE, sessionPoolRef.current.length || session.length)} 問解く（学習状況を反映）
+                </button>
+                {remainingPoolCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => void playAgain("remaining")}
+                    className="rounded-lg border border-celestial-gold/45 px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+                  >
+                    残り {Math.min(QUIZ_SESSION_SIZE, remainingPoolCount)} 問解く（未出題から）
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={restart}
+                  className="rounded-lg border border-celestial-border px-4 py-2 text-sm text-celestial-textSub hover:bg-celestial-gold/10"
+                >
+                  クイズ選択に戻る
                 </button>
                 <button
                   type="button"
@@ -554,7 +683,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                 </button>
               </div>
             </div>
-          ) : current ? (
+          ) : currentQuestion ? (
             <div className="space-y-4">
               {sessionDeckTitle ? (
                 <p className="text-sm font-medium text-celestial-softGold">
@@ -562,17 +691,23 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                 </p>
               ) : null}
               <p className="text-xs text-celestial-textSub">
-                問題 {index + 1} / {deck.length}
+                問題 {index + 1} / {session.length}
                 {sessionDeckTitle ? (
                   <span className="sr-only">
-                    。クイズ集「{sessionDeckTitle}」の {deck.length} 問中 {index + 1} 問目です。
+                    。クイズ集「{sessionDeckTitle}」の {session.length} 問中 {index + 1} 問目です。
                   </span>
                 ) : null}
               </p>
 
-              {current.conceptId ? (
+              {currentQuestion.conceptId ? (
                 <p className="text-xs text-celestial-softGold">
-                  問いの関連 Concept: {titleById.get(current.conceptId) ?? "（不明）"}
+                  問いの関連 Concept: {titleById.get(currentQuestion.conceptId) ?? "（不明）"}
+                </p>
+              ) : null}
+
+              {(current?.selectionReasons.length ?? 0) > 0 ? (
+                <p className="text-[11px] leading-relaxed text-celestial-textSub/70">
+                  出題理由: {current!.selectionReasons.join("・")}
                 </p>
               ) : null}
 
@@ -586,7 +721,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                 }`}
               >
                 <p className="text-base font-medium leading-relaxed text-celestial-textMain sm:text-lg">
-                  {current.prompt}
+                  {currentQuestion.prompt}
                 </p>
               </div>
 
@@ -600,7 +735,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                 {visibleChoices.map((c) => {
                     const linkedTitle = c.linkedConceptId ? titleById.get(c.linkedConceptId) : undefined;
                     const isSel = selectedChoiceId === c.id;
-                    const isCorr = c.id === current.correctChoiceId;
+                    const isCorr = c.id === currentQuestion.correctChoiceId;
                     let borderCls = "border-celestial-border/80 hover:border-celestial-gold/35";
                     if (answered) {
                       if (isCorr) {
@@ -722,7 +857,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                   ) : null}
                   {(() => {
                     const explanationText = resolveResultExplanationText(
-                      current,
+                      currentQuestion,
                       correctChoice,
                       Boolean(isCorrect)
                     );
@@ -737,7 +872,7 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                     );
                   })()}
                   <button type="button" onClick={goNext} className="action-button rounded-lg px-5 py-2 text-sm">
-                    {index + 1 >= deck.length ? "結果を見る" : "次の問題へ"}
+                    {index + 1 >= session.length ? "結果を見る" : "次の問題へ"}
                   </button>
                 </div>
               )}

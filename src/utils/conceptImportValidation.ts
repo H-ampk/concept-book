@@ -117,6 +117,12 @@ const quizDeckGenerationSummarySchema = z.object({
   failedCount: z.number()
 });
 
+const quizDeckGenerationFiltersSchema = z.object({
+  targetDomainTag: z.string().min(1),
+  includeDraftConcepts: z.boolean().optional(),
+  generationMode: z.enum(["context-definition", "concept-general", "auto"]).optional()
+});
+
 export const quizDeckSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -130,7 +136,9 @@ export const quizDeckSchema = z.object({
   updatedAt: z.string().min(1),
   sourceType: z.enum(["manual", "domain-tag"]).optional(),
   sourceDomainTag: z.string().optional(),
-  generationSummary: quizDeckGenerationSummarySchema.optional()
+  generationSummary: quizDeckGenerationSummarySchema.optional(),
+  generationFilters: quizDeckGenerationFiltersSchema.optional(),
+  lastSyncedAt: z.string().optional()
 });
 
 const dedupeDeckStringsPreserveOrder = (items: string[]): string[] => {
@@ -231,6 +239,17 @@ const normalizeQuizDeckItem = (item: unknown): QuizDeck | null => {
   const summaryResult = quizDeckGenerationSummarySchema.safeParse(raw.generationSummary);
   if (summaryResult.success) {
     candidate.generationSummary = summaryResult.data;
+  }
+
+  const filtersResult = quizDeckGenerationFiltersSchema.safeParse(raw.generationFilters);
+  if (filtersResult.success) {
+    candidate.generationFilters = filtersResult.data;
+  }
+
+  const lastSyncedAt =
+    typeof raw.lastSyncedAt === "string" ? raw.lastSyncedAt.trim() : "";
+  if (lastSyncedAt) {
+    candidate.lastSyncedAt = lastSyncedAt;
   }
 
   const parsed = quizDeckSchema.safeParse(candidate);

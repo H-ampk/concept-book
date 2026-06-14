@@ -271,6 +271,25 @@ const normalizeQuizDeck = (raw: StoredQuizDeck): QuizDeck => {
     };
   }
 
+  const filtersRaw = raw.generationFilters as QuizDeck["generationFilters"] | undefined;
+  if (filtersRaw && typeof filtersRaw.targetDomainTag === "string" && filtersRaw.targetDomainTag.trim()) {
+    deck.generationFilters = {
+      targetDomainTag: filtersRaw.targetDomainTag.trim(),
+      includeDraftConcepts: Boolean(filtersRaw.includeDraftConcepts),
+      generationMode:
+        filtersRaw.generationMode === "context-definition" ||
+        filtersRaw.generationMode === "concept-general" ||
+        filtersRaw.generationMode === "auto"
+          ? filtersRaw.generationMode
+          : "auto"
+    };
+  }
+
+  const lastSyncedAt = raw.lastSyncedAt?.toString().trim();
+  if (lastSyncedAt) {
+    deck.lastSyncedAt = lastSyncedAt;
+  }
+
   return deck;
 };
 

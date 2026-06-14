@@ -129,7 +129,13 @@ export const QuizSetFromDomainTagModal = ({ open, concepts, onClose, onSaved }: 
         updatedAt: now,
         sourceType: "domain-tag",
         sourceDomainTag: preview.targetDomainTag,
-        generationSummary: preview.summary
+        generationSummary: preview.summary,
+        generationFilters: {
+          targetDomainTag: preview.targetDomainTag,
+          includeDraftConcepts,
+          generationMode
+        },
+        lastSyncedAt: now
       };
       await storage.saveQuizDeck(deck);
       onSaved();
