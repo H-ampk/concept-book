@@ -7,6 +7,7 @@ import {
 } from "../types/concept";
 import { createConceptInputFromTitle } from "../utils/bulkRelatedConcepts";
 import { getConceptByTitleExact } from "../utils/conceptLookupMaps";
+import { normalizeConceptTitle } from "../utils/normalizeConceptTitle";
 import type { ConceptMediaRef } from "../types/media";
 import { getStorage } from "../storage";
 import { RelatedConceptPicker } from "./RelatedConceptPicker";
@@ -18,7 +19,7 @@ type Props = {
   mode: "create" | "edit";
   baseConcept?: Concept;
   allConcepts: Concept[];
-  /** title 完全一致参照（先頭出現のみ）。一括追加で使用 */
+  /** 正規化タイトル参照（先頭出現のみ）。一括追加で使用 */
   conceptTitleIndex: Map<string, Concept>;
   onClose: () => void;
   /** 保存した概念を返す（新規作成時は addMedia 用）。編集時は更新後の概念。 */
@@ -250,7 +251,7 @@ export const ConceptFormModal = ({
     const titleLookup = new Map(conceptTitleIndex);
 
     for (const title of titles) {
-      if (title === selfTitle) {
+      if (normalizeConceptTitle(title) === normalizeConceptTitle(selfTitle)) {
         skippedSelf += 1;
         continue;
       }
@@ -268,7 +269,7 @@ export const ConceptFormModal = ({
         const created = await storage.createConcept(createConceptInputFromTitle(title));
         createdConceptCount += 1;
         targetId = created.id;
-        titleLookup.set(created.title, created);
+        titleLookup.set(normalizeConceptTitle(created.title), created);
       }
 
       if (!targetId) {

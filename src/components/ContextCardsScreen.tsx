@@ -9,6 +9,8 @@ import {
   formatSyncImportantTermsToast,
   syncImportantTermsToConcepts
 } from "../utils/syncImportantTermsToConcepts";
+import { buildConceptByTitleMap } from "../utils/conceptLookupMaps";
+import { normalizeConceptTitle } from "../utils/normalizeConceptTitle";
 
 const storage = getStorage();
 
@@ -152,16 +154,7 @@ const ContextCardDetail = ({
   onNavigateToConcept: (id: string) => void;
   onViewRelatedConcepts: () => void;
 }) => {
-  const conceptByTrimmedTitle = useMemo(() => {
-    const m = new Map<string, Concept>();
-    for (const c of concepts) {
-      const k = c.title.trim();
-      if (!m.has(k)) {
-        m.set(k, c);
-      }
-    }
-    return m;
-  }, [concepts]);
+  const conceptByNormalizedTitle = useMemo(() => buildConceptByTitleMap(concepts), [concepts]);
 
   if (!card) {
     return (
@@ -237,7 +230,9 @@ const ContextCardDetail = ({
             <div className="flex flex-wrap gap-2">
               {card.keyConcepts.split(",").map((keyConcept, index) => {
                 const trimmed = keyConcept.trim();
-                const matchedConcept = trimmed ? conceptByTrimmedTitle.get(trimmed) : undefined;
+                const matchedConcept = trimmed
+                  ? conceptByNormalizedTitle.get(normalizeConceptTitle(trimmed))
+                  : undefined;
                 return (
                   <button
                     key={index}

@@ -5,8 +5,9 @@ import {
 } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
 import { parseBulkRelatedConceptTitles } from "./bulkRelatedConcepts";
+import { normalizeConceptTitle } from "./normalizeConceptTitle";
 
-/** keyConcepts 文字列から重要語句を抽出（trim・空除外・大文字小文字を無視した重複除外） */
+/** keyConcepts 文字列から重要語句を抽出（trim・空除外・正規化タイトルでの重複除外） */
 export function extractImportantTerms(keyConcepts: string): string[] {
   const parts = parseBulkRelatedConceptTitles(keyConcepts);
   const seen = new Set<string>();
@@ -14,7 +15,7 @@ export function extractImportantTerms(keyConcepts: string): string[] {
 
   for (const term of parts) {
     const trimmed = term.trim();
-    const normalized = trimmed.toLowerCase();
+    const normalized = normalizeConceptTitle(trimmed);
     if (!normalized || seen.has(normalized)) {
       continue;
     }
@@ -25,11 +26,11 @@ export function extractImportantTerms(keyConcepts: string): string[] {
   return out;
 }
 
-/** 既存概念タイトルの照合用キー集合（trim + 小文字化） */
+/** 既存概念タイトルの照合用キー集合（正規化タイトル） */
 export function buildExistingConceptTitleKeys(concepts: Concept[]): Set<string> {
   const keys = new Set<string>();
   for (const concept of concepts) {
-    const key = concept.title.trim().toLowerCase();
+    const key = normalizeConceptTitle(concept.title);
     if (key) {
       keys.add(key);
     }
@@ -65,12 +66,12 @@ export function mergeDomainTags(existingTags: string[], incomingTags: string[]):
 }
 
 export function findConceptsByTitle(concepts: Concept[], term: string): Concept[] {
-  const normalizedTerm = term.trim().toLowerCase();
+  const normalizedTerm = normalizeConceptTitle(term);
   if (!normalizedTerm) {
     return [];
   }
   return concepts.filter(
-    (concept) => concept.title.trim().toLowerCase() === normalizedTerm
+    (concept) => normalizeConceptTitle(concept.title) === normalizedTerm
   );
 }
 
@@ -117,7 +118,7 @@ export function computeConceptSyncPlan(
     const matchedConcepts = findConceptsByTitle(existingConcepts, term);
 
     if (matchedConcepts.length === 0) {
-      const key = term.toLowerCase();
+      const key = normalizeConceptTitle(term);
       if (pendingCreateKeys.has(key)) {
         continue;
       }

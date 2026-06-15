@@ -3,6 +3,7 @@ import type { ContextCard } from "../types/contextCard";
 import type { QuizChoiceSourceStrategy, QuizGenerationQuality } from "../types/quiz";
 import { parseBulkRelatedConceptTitles } from "./bulkRelatedConcepts";
 import { buildConceptByTitleMap } from "./conceptLookupMaps";
+import { normalizeConceptTitle } from "./normalizeConceptTitle";
 import { maskConceptNameInText } from "./maskConceptNameInText";
 
 export type ContextDefinitionCard = {
@@ -132,14 +133,14 @@ function collectDistractorCandidates(
     const keyTerms = parseBulkRelatedConceptTitles(contextCard.keyConcepts);
     const referencesTarget =
       contextCard.linkedConcepts.includes(targetConcept.id) ||
-      keyTerms.some((term) => term === targetTitle);
+      keyTerms.some((term) => normalizeConceptTitle(term) === normalizeConceptTitle(targetTitle));
     if (!referencesTarget) {
       continue;
     }
 
     const linkedIds = new Set(contextCard.linkedConcepts);
     for (const term of keyTerms) {
-      const matched = conceptByTitle.get(term);
+      const matched = conceptByTitle.get(normalizeConceptTitle(term));
       if (matched) {
         linkedIds.add(matched.id);
       }

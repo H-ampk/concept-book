@@ -1,12 +1,9 @@
 import type { Concept } from "../types/concept";
 import type { QuizChoice, QuizQuestion } from "../types/quiz";
+import { normalizeConceptTitle } from "./normalizeConceptTitle";
 
-/** Concept タイトル比較用: trim → NFKC → 英字小文字化 */
-export const normalizeTitleForQuizMatch = (value: string): string =>
-  value
-    .trim()
-    .normalize("NFKC")
-    .toLowerCase();
+/** @deprecated 概念名照合は normalizeConceptTitle を直接使用してください */
+export const normalizeTitleForQuizMatch = normalizeConceptTitle;
 
 export type ChoiceConceptLinkState = "linked" | "none" | "ambiguous";
 
@@ -27,11 +24,11 @@ export const resolveChoiceConceptLink = (
   if (!choiceTextTrimmed) {
     return { state: "none" };
   }
-  const key = normalizeTitleForQuizMatch(choiceTextTrimmed);
+  const key = normalizeConceptTitle(choiceTextTrimmed);
   if (!key) {
     return { state: "none" };
   }
-  const matches = concepts.filter((c) => normalizeTitleForQuizMatch(c.title || "") === key);
+  const matches = concepts.filter((c) => normalizeConceptTitle(c.title || "") === key);
   if (matches.length === 0) {
     return { state: "none" };
   }
