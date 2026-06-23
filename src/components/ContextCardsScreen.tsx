@@ -145,7 +145,8 @@ const ContextCardDetail = ({
   onEdit,
   concepts,
   onNavigateToConcept,
-  onViewRelatedConcepts
+  onViewRelatedConcepts,
+  onCreateQuiz
 }: {
   card?: ContextCard;
   onBack: () => void;
@@ -153,6 +154,7 @@ const ContextCardDetail = ({
   concepts: Concept[];
   onNavigateToConcept: (id: string) => void;
   onViewRelatedConcepts: () => void;
+  onCreateQuiz?: (card: ContextCard) => void;
 }) => {
   const conceptByNormalizedTitle = useMemo(() => buildConceptByTitleMap(concepts), [concepts]);
 
@@ -200,6 +202,15 @@ const ContextCardDetail = ({
           >
             編集
           </button>
+          {onCreateQuiz ? (
+            <button
+              type="button"
+              className="rounded-2xl border border-celestial-gold/40 px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+              onClick={() => onCreateQuiz(card)}
+            >
+              この文脈カードからクイズ作成
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -323,7 +334,13 @@ const RelatedConceptsScreen = ({
   );
 };
 
-export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcept: (id: string) => void }) => {
+export const ContextCardsScreen = ({
+  onNavigateToConcept,
+  onCreateQuizFromContextCard
+}: {
+  onNavigateToConcept: (id: string) => void;
+  onCreateQuizFromContextCard?: (contextCardId: string) => void;
+}) => {
   const { contextCards, loading, domains, create, update } = useContextCards();
   const { concepts, reload: reloadConcepts } = useConcepts();
   const [activeScreen, setActiveScreen] = useState<"selection" | "list" | "detail" | "relatedConcepts">("selection");
@@ -477,7 +494,19 @@ export const ContextCardsScreen = ({ onNavigateToConcept }: { onNavigateToConcep
           onBack={() => setActiveScreen("detail")}
         />
       ) : (
-        <ContextCardDetail card={selectedCard} onBack={handleBackToList} onEdit={openEdit} concepts={concepts} onNavigateToConcept={onNavigateToConcept} onViewRelatedConcepts={() => setActiveScreen("relatedConcepts")} />
+        <ContextCardDetail
+          card={selectedCard}
+          onBack={handleBackToList}
+          onEdit={openEdit}
+          concepts={concepts}
+          onNavigateToConcept={onNavigateToConcept}
+          onViewRelatedConcepts={() => setActiveScreen("relatedConcepts")}
+          onCreateQuiz={
+            onCreateQuizFromContextCard
+              ? (card) => onCreateQuizFromContextCard(card.id)
+              : undefined
+          }
+        />
       )}
 
       <ContextCardFormModal

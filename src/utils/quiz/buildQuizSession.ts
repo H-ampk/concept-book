@@ -111,3 +111,4 @@ export function buildQuizSession(pool: QuizQuestion[], opts?: BuildQuizSessionOp
 }
 
 export { buildQuestionQuizStatsMap, isPlayableQuestion };
+export { filterQuizPool, matchesQuizSessionFilter } from "./filterQuizPool";

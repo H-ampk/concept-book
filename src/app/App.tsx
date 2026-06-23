@@ -18,6 +18,7 @@ import { useConcepts } from "../features/concepts/useConcepts";
 import { getStorage } from "../storage";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
 import type { QuizAttemptLog } from "../types/quiz";
+import { buildContextualCardSourceId } from "../utils/quizQuestionSource";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
 import type { ConceptSaveOptions } from "../utils/conceptStatus";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
@@ -30,6 +31,7 @@ import { ConceptGraphAnalysisPage } from "../components/ConceptGraphAnalysisPage
 import { ResearchReportPage } from "../components/ResearchReportPage";
 import { QuizAnalysisDashboardPage } from "../components/QuizAnalysisDashboardPage";
 import { QuizBuilderPage } from "../components/QuizBuilderPage";
+import type { QuizCreateInitialState } from "../components/QuizCreateModal";
 import { QuizLearningLogsPage } from "../components/QuizLearningLogsPage";
 import { QuizPlayPage } from "../components/QuizPlayPage";
 import { type LabRoute, isLabRoute } from "../constants/labRoutes";
@@ -145,6 +147,9 @@ export const App = () => {
   const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
   const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
+  const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
+    null
+  );
   const appShellStyle = useMemo(
     () =>
       ({
@@ -224,10 +229,21 @@ export const App = () => {
     setModalOpen(true);
   };
 
+  const openQuizCreate = (state?: QuizCreateInitialState) => {
+    setQuizCreateInitialState(state ?? null);
+    setScreen("quiz-builder");
+  };
+
   const conceptDetailActions = {
     onEdit: openEdit,
     onToggleFavorite: (concept: Concept) => void toggleFavorite(concept),
-    conceptQuizStatsText: selectedConceptQuizStatsText
+    conceptQuizStatsText: selectedConceptQuizStatsText,
+    onCreateQuizFromContextualCard: (conceptId: string, contextDefinitionId: string) => {
+      openQuizCreate({
+        sourceType: "contextualConceptCard",
+        selectedContextualCardId: buildContextualCardSourceId(conceptId, contextDefinitionId)
+      });
+    }
   };
 
   const handleSubmit = async (payload: ConceptInput, options?: ConceptSaveOptions) => {
@@ -350,14 +366,26 @@ export const App = () => {
             onChangeDomainColor={handleChangeDomainColor}
           />
         ) : screen === "contexts" ? (
-          <ContextCardsScreen onNavigateToConcept={(id) => {
-            setScreen("concepts");
-            setSelectedId(id);
-            setMobileDetail(true);
-          }} />
+          <ContextCardsScreen
+            onNavigateToConcept={(id) => {
+              setScreen("concepts");
+              setSelectedId(id);
+              setMobileDetail(true);
+            }}
+            onCreateQuizFromContextCard={(contextCardId) => {
+              openQuizCreate({
+                sourceType: "contextCard",
+                selectedContextCardId: contextCardId
+              });
+            }}
+          />
         ) : isLabRoute(screen) ? (
           screen === "quiz-builder" ? (
-            <QuizBuilderPage onBack={() => setScreen("concepts")} />
+            <QuizBuilderPage
+              onBack={() => setScreen("concepts")}
+              initialCreateState={quizCreateInitialState}
+              onInitialCreateStateConsumed={() => setQuizCreateInitialState(null)}
+            />
           ) : screen === "quiz-play" ? (
             <QuizPlayPage
               onBack={() => setScreen("concepts")}

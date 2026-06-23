@@ -19,6 +19,7 @@ type Props = {
   onSelectRelated: (id: string) => void;
   onEdit?: (concept: Concept) => void;
   onToggleFavorite?: (concept: Concept) => void;
+  onCreateQuizFromContextualCard?: (conceptId: string, contextDefinitionId: string) => void;
   onRequestDelete: (concept: Concept) => void;
   deleting: boolean;
 };
@@ -98,6 +99,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   onSelectRelated,
   onEdit,
   onToggleFavorite,
+  onCreateQuizFromContextualCard,
   onRequestDelete,
   deleting
 }, ref) => {
@@ -198,9 +200,20 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             <div className="space-y-3">
               {contextDefinitions.map((ctxDef) => (
                 <div key={ctxDef.id} className="detail-context-block">
-                  <h4 className="mb-1 text-sm font-medium text-nordic-textPrimary">
-                    {ctxDef.context.trim() || <span className="concept-detail-muted">文脈未指定</span>}
-                  </h4>
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-sm font-medium text-nordic-textPrimary">
+                      {ctxDef.context.trim() || <span className="concept-detail-muted">文脈未指定</span>}
+                    </h4>
+                    {onCreateQuizFromContextualCard && ctxDef.definition.trim() ? (
+                      <button
+                        type="button"
+                        className="rounded-lg border border-nordic-border px-2.5 py-1 text-xs text-nordic-textSecondary hover:border-nordic-accent/50 hover:text-nordic-accent"
+                        onClick={() => onCreateQuizFromContextualCard(concept.id, ctxDef.id)}
+                      >
+                        この文脈別カードからクイズ作成
+                      </button>
+                    ) : null}
+                  </div>
                   <p className="whitespace-pre-wrap break-words text-sm leading-6 text-nordic-textSecondary">
                     {ctxDef.definition.trim() || <span className="concept-detail-muted">定義未入力</span>}
                   </p>

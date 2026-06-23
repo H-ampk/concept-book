@@ -6,7 +6,7 @@ import { shortDateTime } from "../utils/date";
 import { OrnamentLine } from "./common/OrnamentLine";
 import { QuizDeckFormModal } from "./QuizDeckFormModal";
 import { QuizDeckSyncModal } from "./QuizDeckSyncModal";
-import { QuizSetFromDomainTagModal } from "./QuizSetFromDomainTagModal";
+import { QuizCreateModal, type QuizCreateInitialState } from "./QuizCreateModal";
 import { previewQuizDeckSync, resolveDeckGenerationFilters } from "../utils/syncQuizDeckFromFilters";
 
 const storage = getStorage();
@@ -15,9 +15,15 @@ type VisibilityFilter = "all" | QuizVisibility;
 
 type Props = {
   onBack: () => void;
+  initialCreateState?: QuizCreateInitialState | null;
+  onInitialCreateStateConsumed?: () => void;
 };
 
-export const QuizBuilderPage = ({ onBack }: Props) => {
+export const QuizBuilderPage = ({
+  onBack,
+  initialCreateState,
+  onInitialCreateStateConsumed
+}: Props) => {
   const [decks, setDecks] = useState<QuizDeck[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
@@ -28,6 +34,7 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
   const [deckModalOpen, setDeckModalOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<QuizDeck | null>(null);
   const [domainTagGeneratorOpen, setDomainTagGeneratorOpen] = useState(false);
+  const [pendingCreateState, setPendingCreateState] = useState<QuizCreateInitialState | null>(null);
   const [syncDeck, setSyncDeck] = useState<QuizDeck | null>(null);
 
   const load = useCallback(async () => {
@@ -75,9 +82,21 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }, [decks, deckKeyFilter, tagFilter, visibilityFilter]);
 
+  useEffect(() => {
+    if (initialCreateState) {
+      setPendingCreateState(initialCreateState);
+      setDomainTagGeneratorOpen(true);
+      onInitialCreateStateConsumed?.();
+    }
+  }, [initialCreateState, onInitialCreateStateConsumed]);
+
   const openCreateDeck = () => {
     setEditingDeck(null);
     setDeckModalOpen(true);
+  };
+
+  const openCreateQuiz = () => {
+    setDomainTagGeneratorOpen(true);
   };
 
   const openEditDeck = (d: QuizDeck) => {
@@ -143,10 +162,10 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
             </button>
             <button
               type="button"
-              onClick={() => setDomainTagGeneratorOpen(true)}
+              onClick={openCreateQuiz}
               className="rounded-lg border border-celestial-gold/40 px-4 py-2.5 text-sm text-celestial-softGold hover:bg-celestial-gold/10 sm:order-none"
             >
-              分野タグからクイズ集を生成
+              クイズを作成
             </button>
 
             <label className="block min-w-[160px] flex-1">
@@ -306,10 +325,15 @@ export const QuizBuilderPage = ({ onBack }: Props) => {
         onReload={load}
       />
 
-      <QuizSetFromDomainTagModal
+      <QuizCreateModal
         open={domainTagGeneratorOpen}
         concepts={concepts}
-        onClose={() => setDomainTagGeneratorOpen(false)}
+        allQuestions={questions}
+        initialState={pendingCreateState}
+        onClose={() => {
+          setDomainTagGeneratorOpen(false);
+          setPendingCreateState(null);
+        }}
         onSaved={() => void load()}
       />
 

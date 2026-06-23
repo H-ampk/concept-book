@@ -42,6 +42,28 @@ export type QuizGenerationQuality = "high" | "medium" | "low" | "failed";
 
 export type QuizDeckSourceType = "manual" | "domain-tag";
 
+/** クイズ作成フローで選ぶ作成元 */
+export type QuizCreateSourceType = "contextualConceptCard" | "contextCard";
+
+/** クイズ問題の出典種別 */
+export type QuizQuestionSourceType = "contextualConceptCard" | "contextCard";
+
+/** クイズ問題の出典情報（既存データとの互換のため optional） */
+export type QuizQuestionSource = {
+  type: QuizQuestionSourceType;
+  sourceId: string;
+  sourceTitle: string;
+  fieldName?: string;
+};
+
+/** 出題時のフィルタ（source がない古い問題は分野別・全体出題では従来通り対象） */
+export type QuizSessionFilter = {
+  fieldTag?: string;
+  contextCardId?: string;
+  contextualCardId?: string;
+  sourceType?: QuizQuestionSourceType;
+};
+
 /** 分野タグからの自動生成・再同期時に使う出題条件 */
 export type QuizDeckGenerationFilters = {
   targetDomainTag: string;
@@ -75,6 +97,8 @@ export interface QuizQuestion {
   id: string;
   /** 問い全体の関連 Concept（任意） */
   conceptId?: string;
+  /** 作成元の出典情報（古いデータには無い場合あり） */
+  source?: QuizQuestionSource;
   prompt: string;
   choices: QuizChoice[];
   correctChoiceId: string;

@@ -8,7 +8,7 @@ import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaCo
 import type { Concept, ConceptInput, ContextDefinition } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
-import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
+import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource, QuizVisibility } from "../types/quiz";
 import {
   QUIZ_ATTEMPT_LOG_SCHEMA_VERSION,
   QUIZ_DECK_SCHEMA_VERSION,
@@ -114,6 +114,29 @@ type StoredQuizQuestion = Partial<QuizQuestion> & {
 const isQuizVisibility = (v: unknown): v is QuizVisibility =>
   v === "private" || v === "public";
 
+const isQuizQuestionSourceType = (v: unknown): v is QuizQuestionSource["type"] =>
+  v === "contextualConceptCard" || v === "contextCard";
+
+const normalizeQuizQuestionSource = (raw: unknown): QuizQuestionSource | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const item = raw as Partial<QuizQuestionSource>;
+  const type = item.type;
+  const sourceId = item.sourceId?.toString().trim();
+  const sourceTitle = item.sourceTitle?.toString().trim();
+  if (!isQuizQuestionSourceType(type) || !sourceId || !sourceTitle) {
+    return undefined;
+  }
+  const fieldName = item.fieldName?.toString().trim();
+  return {
+    type,
+    sourceId,
+    sourceTitle,
+    ...(fieldName ? { fieldName } : {})
+  };
+};
+
 const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
   const choices: QuizChoice[] = Array.isArray(raw.choices)
     ? raw.choices.map((c, index) => {
@@ -159,10 +182,12 @@ const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
       : QUIZ_QUESTION_SCHEMA_VERSION;
 
   const cidRaw = raw.conceptId?.toString().trim();
+  const source = normalizeQuizQuestionSource((raw as { source?: unknown }).source);
 
   return {
     id: raw.id?.toString() ?? "",
     ...(cidRaw ? { conceptId: cidRaw } : {}),
+    ...(source ? { source } : {}),
     prompt: raw.prompt?.toString() ?? "",
     choices,
     correctChoiceId: raw.correctChoiceId?.toString() ?? "",
