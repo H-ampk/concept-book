@@ -7,6 +7,10 @@ import {
 } from "../types/concept";
 import { createConceptInputFromTitle } from "../utils/bulkRelatedConcepts";
 import { getConceptByTitleExact } from "../utils/conceptLookupMaps";
+import {
+  addContextDefinitionsFromFieldTags,
+  hasAddableContextDefinitionsFromFieldTags,
+} from "../utils/addContextDefinitionsFromFieldTags";
 import { normalizeConceptTitle } from "../utils/normalizeConceptTitle";
 import type { ConceptMediaRef } from "../types/media";
 import { getStorage } from "../storage";
@@ -59,6 +63,7 @@ export const ConceptFormModal = ({
   const [researchTagInput, setResearchTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contextDefFeedback, setContextDefFeedback] = useState<string | null>(null);
   const [statusTouched, setStatusTouched] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
@@ -90,6 +95,11 @@ export const ConceptFormModal = ({
   const tagsState = useMemo(
     () => [...splitCsv(domainTagInput), ...splitCsv(researchTagInput)],
     [domainTagInput, researchTagInput]
+  );
+
+  const canAddContextDefsFromFieldTags = useMemo(
+    () => hasAddableContextDefinitionsFromFieldTags(domainTagInput, form.contextDefinitions ?? []),
+    [domainTagInput, form.contextDefinitions]
   );
 
   useEffect(() => {
@@ -125,6 +135,7 @@ export const ConceptFormModal = ({
       setResearchTagInput("");
     }
     setError(null);
+    setContextDefFeedback(null);
   }, [open, mode, baseConcept]);
 
   useEffect(() => {
@@ -318,6 +329,29 @@ export const ConceptFormModal = ({
     return { message: sentences.join(" ") };
   };
 
+  const handleAddContextDefinitionsFromFieldTags = () => {
+    try {
+      const result = addContextDefinitionsFromFieldTags(
+        domainTagInput,
+        form.contextDefinitions ?? []
+      );
+
+      if (result.kind === "added") {
+        setForm((prev) => ({
+          ...prev,
+          contextDefinitions: [
+            ...(prev.contextDefinitions ?? []),
+            ...result.newDefinitions,
+          ],
+        }));
+      }
+
+      setContextDefFeedback(result.message);
+    } catch {
+      setContextDefFeedback("文脈別定義の追加に失敗しました。");
+    }
+  };
+
   const reorderMedia = async (index: number, delta: number) => {
     if (mode === "edit" && baseConcept?.id) {
       const list = [...(form.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -445,26 +479,39 @@ export const ConceptFormModal = ({
           </label>
 
           <div className="md:col-span-2">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium text-celestial-textMain">文脈別定義</span>
-              <button
-                type="button"
-                className="action-button rounded-md px-2 py-1 text-xs"
-                onClick={() => setForm((prev) => ({
-                  ...prev,
-                  contextDefinitions: [
-                    ...(prev.contextDefinitions ?? []),
-                    {
-                      id: crypto.randomUUID(),
-                      context: "",
-                      definition: "",
-                    },
-                  ],
-                }))}
-              >
-                ＋ 文脈別定義を追加
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-celestial-gold/40 px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!canAddContextDefsFromFieldTags}
+                  onClick={handleAddContextDefinitionsFromFieldTags}
+                >
+                  分野タグから文脈別定義を追加
+                </button>
+                <button
+                  type="button"
+                  className="action-button rounded-md px-2 py-1 text-xs"
+                  onClick={() => setForm((prev) => ({
+                    ...prev,
+                    contextDefinitions: [
+                      ...(prev.contextDefinitions ?? []),
+                      {
+                        id: crypto.randomUUID(),
+                        context: "",
+                        definition: "",
+                      },
+                    ],
+                  }))}
+                >
+                  ＋ 文脈別定義を追加
+                </button>
+              </div>
             </div>
+            {contextDefFeedback && (
+              <p className="mb-2 text-xs text-celestial-softGold">{contextDefFeedback}</p>
+            )}
             {(form.contextDefinitions ?? []).length > 0 && (
               <div className="space-y-3">
                 {(form.contextDefinitions ?? []).map((ctxDef, index) => (
