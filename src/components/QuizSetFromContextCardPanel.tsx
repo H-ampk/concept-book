@@ -155,7 +155,7 @@ export const QuizSetFromContextCardPanel = ({
         <div>
           <h2 className="text-lg font-semibold text-celestial-textMain">文脈カードからクイズを作成</h2>
           <p className="mt-1 text-sm text-celestial-textSub">
-            文脈カードの本文と重要語句から、穴埋めクイズを作成します。
+            文脈カードに登録された重要語句から、クイズを作成します。
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
@@ -259,12 +259,13 @@ export const QuizSetFromContextCardPanel = ({
           <h3 className="text-sm font-semibold text-celestial-textMain">生成プレビュー</h3>
           <div className="grid gap-1 text-sm text-celestial-textSub">
             <p>
-              作成予定：<span className="font-semibold text-celestial-softGold">{preview.questions.length}問</span>
+              作成予定：<span className="font-semibold text-celestial-softGold">{preview.plannedTermCount}問</span>
+              <span className="ml-1 text-xs text-celestial-textSub">（重要語句の数）</span>
             </p>
             <p>対象：{preview.contextCardTitle}</p>
             <p>作成元：文脈カード</p>
             {preview.usedTerms.length > 0 ? (
-              <p className="line-clamp-2">使用語句：{preview.usedTerms.join("、")}</p>
+              <p className="line-clamp-2">重要語句：{preview.usedTerms.join("、")}</p>
             ) : null}
           </div>
 

@@ -104,6 +104,9 @@ export function collectMaskConceptNames(
   return Array.from(names);
 }
 
+/** マスクの既定置換トークン（maskConceptNameInText の既定値と一致させる） */
+const MASK_TOKEN = "（＿＿）";
+
 export function getQuizChoiceDisplayText({
   choice,
   promptConcept,
@@ -122,5 +125,13 @@ export function getQuizChoiceDisplayText({
     baseText
   );
 
-  return maskConceptNameInText(baseText, namesToMask);
+  const masked = maskConceptNameInText(baseText, namesToMask);
+
+  // 選択肢が用語そのもの（＝正解になり得る語句）の場合、全体がマスクされて
+  // 空欄だけになると回答不能になる。全体が消えるときは元の語句を表示する。
+  if (masked.split(MASK_TOKEN).join("").trim().length === 0) {
+    return baseText;
+  }
+
+  return masked;
 }
