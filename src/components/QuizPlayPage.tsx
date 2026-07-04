@@ -15,6 +15,8 @@ import { resolveQuestionConceptId } from "../utils/quiz/resolveQuestionConceptId
 import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
+import { resolveQuizTermDefinition } from "../utils/resolveQuizTermDefinition";
+import { AnswerReviewPanel } from "./AnswerReviewPanel";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -67,11 +69,10 @@ type PlayAgainMode = "all" | "remaining";
 
 type Props = {
   onBack: () => void;
-  onNavigateToConcept: (conceptId: string) => void;
   onGoToQuizBuilder: () => void;
 };
 
-export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }: Props) => {
+export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [quizDecks, setQuizDecks] = useState<QuizDeck[]>([]);
@@ -402,13 +403,6 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
     setAnswered(false);
     setCorrectCount(0);
     setWrongAnswers([]);
-  };
-
-  const conceptLabel = (choice: QuizChoice | null): string | null => {
-    if (!choice?.linkedConceptId) {
-      return null;
-    }
-    return titleById.get(choice.linkedConceptId) ?? null;
   };
 
   const remainingPoolCount = useMemo(() => {
@@ -815,45 +809,24 @@ export const QuizPlayPage = ({ onBack, onNavigateToConcept, onGoToQuizBuilder }:
                     />
                   </div>
                   {!isCorrect ? (
-                    <ul className="space-y-2 text-xs text-celestial-textSub sm:text-sm">
-                      <li>
-                        あなたの解答:{" "}
-                        <span className="text-celestial-textMain">{selectedChoice?.text ?? "—"}</span>
-                        {selectedChoice?.linkedConceptId ? (
-                          <span className="ml-2">
-                            {conceptLabel(selectedChoice) ? (
-                              <button
-                                type="button"
-                                onClick={() => onNavigateToConcept(selectedChoice.linkedConceptId!)}
-                                className="rounded border border-celestial-gold/40 px-2 py-0.5 text-celestial-softGold hover:bg-celestial-gold/10"
-                              >
-                                Concept: {conceptLabel(selectedChoice)}
-                              </button>
-                            ) : (
-                              <span className="text-celestial-textSub">（リンク先 Concept なし）</span>
-                            )}
-                          </span>
-                        ) : null}
-                      </li>
-                      <li>
-                        正解: <span className="text-celestial-textMain">{correctChoice?.text ?? "—"}</span>
-                        {correctChoice?.linkedConceptId ? (
-                          <span className="ml-2">
-                            {conceptLabel(correctChoice) ? (
-                              <button
-                                type="button"
-                                onClick={() => onNavigateToConcept(correctChoice.linkedConceptId!)}
-                                className="rounded border border-celestial-gold/40 px-2 py-0.5 text-celestial-softGold hover:bg-celestial-gold/10"
-                              >
-                                Concept: {conceptLabel(correctChoice)}
-                              </button>
-                            ) : (
-                              <span className="text-celestial-textSub">（リンク先 Concept なし）</span>
-                            )}
-                          </span>
-                        ) : null}
-                      </li>
-                    </ul>
+                    <AnswerReviewPanel
+                      selected={resolveQuizTermDefinition(
+                        {
+                          text: selectedChoice?.text ?? "",
+                          linkedConceptId: selectedChoice?.linkedConceptId
+                        },
+                        concepts,
+                        currentQuestion.source
+                      )}
+                      correct={resolveQuizTermDefinition(
+                        {
+                          text: correctChoice?.text ?? "",
+                          linkedConceptId: correctChoice?.linkedConceptId
+                        },
+                        concepts,
+                        currentQuestion.source
+                      )}
+                    />
                   ) : null}
                   {(() => {
                     const explanationText = resolveResultExplanationText(

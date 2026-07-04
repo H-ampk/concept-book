@@ -389,11 +389,6 @@ export const App = () => {
           ) : screen === "quiz-play" ? (
             <QuizPlayPage
               onBack={() => setScreen("concepts")}
-              onNavigateToConcept={(id) => {
-                setScreen("concepts");
-                setSelectedId(id);
-                setMobileDetail(true);
-              }}
               onGoToQuizBuilder={() => setScreen("quiz-builder")}
             />
           ) : screen === "analysis-dashboard" ? (
