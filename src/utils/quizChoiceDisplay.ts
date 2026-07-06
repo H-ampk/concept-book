@@ -1,6 +1,7 @@
 import type { Concept } from "../types/concept";
 import type { QuizChoice, QuizQuestion } from "../types/quiz";
 import { maskConceptNameInText } from "./maskConceptNameInText";
+import { normalizeConceptTitle } from "./normalizeConceptTitle";
 
 export type GetQuizChoiceDisplayTextParams = {
   choice: QuizChoice;
@@ -113,11 +114,25 @@ export function getQuizChoiceDisplayText({
   allConcepts,
   revealAnswer = false
 }: GetQuizChoiceDisplayTextParams): string {
+  // 文脈別定義選択肢（旧形式）: displayText（マスク済み）を優先
+  if (choice.displayText?.trim()) {
+    return choice.displayText.trim();
+  }
+
+  // 概念名のみの選択肢: マスクせずそのまま表示
+  if (choice.linkedConceptId) {
+    const linked = allConcepts.find((concept) => concept.id === choice.linkedConceptId);
+    if (linked && normalizeConceptTitle(linked.title) === normalizeConceptTitle(choice.text)) {
+      return choice.text;
+    }
+  }
+
+  // 旧形式フォールバック
   if (revealAnswer) {
     return choice.text;
   }
 
-  const baseText = choice.displayText?.trim() || choice.text;
+  const baseText = choice.text;
   const namesToMask = collectMaskNamesForChoice(
     choice,
     promptConcept,
@@ -127,8 +142,6 @@ export function getQuizChoiceDisplayText({
 
   const masked = maskConceptNameInText(baseText, namesToMask);
 
-  // 選択肢が用語そのもの（＝正解になり得る語句）の場合、全体がマスクされて
-  // 空欄だけになると回答不能になる。全体が消えるときは元の語句を表示する。
   if (masked.split(MASK_TOKEN).join("").trim().length === 0) {
     return baseText;
   }

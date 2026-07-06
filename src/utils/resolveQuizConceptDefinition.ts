@@ -11,7 +11,7 @@ export type QuizConceptDefinition = {
   status: QuizConceptDefinitionStatus;
 };
 
-type ChoiceConceptRef = Pick<QuizChoice, "linkedConceptId" | "sourceConceptId"> & {
+type ChoiceConceptRef = Pick<QuizChoice, "linkedConceptId" | "sourceConceptId" | "text"> & {
   /** 選択肢に保存されている由来概念名（将来拡張用） */
   sourceConceptName?: string;
 };
@@ -38,7 +38,7 @@ export function findConceptForQuizChoice(
     }
   }
 
-  const nameCandidates = [choice.sourceConceptName, fallbackConceptName].filter(
+  const nameCandidates = [choice.text, choice.sourceConceptName, fallbackConceptName].filter(
     (name): name is string => Boolean(name?.trim())
   );
   for (const name of nameCandidates) {

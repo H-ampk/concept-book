@@ -16,6 +16,7 @@ import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
 import { resolveQuizConceptDefinition } from "../utils/resolveQuizConceptDefinition";
+import { resolveQuizContextDefinition } from "../utils/resolveQuizContextDefinition";
 import { AnswerReviewPanel, type AnswerReviewItem } from "./AnswerReviewPanel";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -39,6 +40,10 @@ const resolveResultExplanationText = (
     return fromQuestion;
   }
   if (isCorrectAnswer) {
+    // 文脈別定義選択肢は AnswerReviewPanel で表示するため、長文解説は出さない
+    if (correctChoice?.displayText?.trim() || correctChoice?.contextDefinitionId) {
+      return "";
+    }
     return correctChoice?.text?.trim() ?? "";
   }
   return "";
@@ -124,12 +129,6 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     [concepts]
   );
 
-  const titleById = useMemo(() => {
-    const m = new Map<string, string>();
-    concepts.forEach((c) => m.set(c.id, c.title || "無題"));
-    return m;
-  }, [concepts]);
-
   const questionStatsMap = useMemo(
     () => buildQuestionQuizStatsMap(attemptLogs),
     [attemptLogs]
@@ -165,20 +164,24 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
 
   const buildAnswerReviewItem = (choice: QuizChoice | null): AnswerReviewItem => {
     if (!choice) {
-      return { displayText: "—", conceptDefinitionStatus: "no-concept" };
+      return {
+        contextDefinitionText: "—",
+        contextDefinitionStatus: "no-concept",
+        conceptDefinitionStatus: "no-concept"
+      };
     }
-    const displayText = getQuizChoiceDisplayText({
+    const fallbackName = choice.text.trim();
+    const contextDef = resolveQuizContextDefinition(
       choice,
-      promptConcept,
-      allConcepts: concepts,
-      revealAnswer: false
-    });
-    const sourceConceptId = choice.linkedConceptId ?? choice.sourceConceptId;
-    const fallbackName = sourceConceptId ? conceptById.get(sourceConceptId)?.title : undefined;
+      concepts,
+      fallbackName,
+      currentQuestion?.source
+    );
     const conceptDef = resolveQuizConceptDefinition(choice, concepts, fallbackName);
     return {
-      displayText,
-      conceptName: conceptDef.conceptName !== "—" ? conceptDef.conceptName : undefined,
+      conceptName: contextDef.conceptName !== "—" ? contextDef.conceptName : fallbackName || undefined,
+      contextDefinitionText: contextDef.definition ?? "—",
+      contextDefinitionStatus: contextDef.status,
       conceptDefinition: conceptDef.definition,
       conceptDefinitionStatus: conceptDef.status
     };
@@ -742,7 +745,6 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 onKeyDown={onChoicesKeyDown}
               >
                 {visibleChoices.map((c) => {
-                    const linkedTitle = c.linkedConceptId ? titleById.get(c.linkedConceptId) : undefined;
                     const isSel = selectedChoiceId === c.id;
                     const isCorr = c.id === currentQuestion.correctChoiceId;
                     let borderCls = "border-celestial-border/80 hover:border-celestial-gold/35";
@@ -766,7 +768,6 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                         disabled={answered}
                         onClick={() => !answered && setSelectedChoiceId(c.id)}
                         className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50 disabled:cursor-default ${borderCls}`}
-                        title={answered && linkedTitle ? `Concept: ${linkedTitle}` : undefined}
                       >
                         <span
                           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
@@ -784,11 +785,6 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                             revealAnswer: answered
                           })}
                         </span>
-                        {linkedTitle && answered ? (
-                          <span className="shrink-0 text-[10px] text-celestial-textSub" title={linkedTitle}>
-                            ◈
-                          </span>
-                        ) : null}
                       </button>
                     );
                   })}
@@ -823,9 +819,9 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                       }}
                     />
                   </div>
-                  {!isCorrect ? (
+                  {answered ? (
                     <AnswerReviewPanel
-                      selected={buildAnswerReviewItem(selectedChoice)}
+                      selected={isCorrect ? undefined : buildAnswerReviewItem(selectedChoice)}
                       correct={buildAnswerReviewItem(correctChoice)}
                     />
                   ) : null}

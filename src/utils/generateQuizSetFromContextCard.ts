@@ -117,26 +117,24 @@ function buildContextCardSource(card: ContextCard): QuizQuestionSource {
   };
 }
 
-/** 文脈別定義本文から、由来概念名を （＿＿） でマスクした表示テキストを作る */
-function buildMaskedChoiceText(definition: string, conceptTitle: string): string {
+/** 文脈別定義本文から、対象概念名を （＿＿） でマスクした問題文を作る */
+function buildMaskedPromptText(definition: string, conceptTitle: string): string {
   return maskConceptNameInText(definition.trim(), [conceptTitle]);
 }
 
-function buildChoiceFromCandidate(
-  candidate: Pick<ContextCardCandidate, "concept" | "contextDefinition">,
+/** 概念名のみの選択肢を作る */
+function buildWordChoiceFromConcept(
+  concept: Concept,
+  contextDefinition: ContextDefinition | undefined,
   isCorrect: boolean,
   strategy: QuizChoiceSourceStrategy
 ): QuizChoice {
-  const maskedText = buildMaskedChoiceText(
-    candidate.contextDefinition.definition,
-    candidate.concept.title
-  );
   return {
     id: createChoiceId(),
-    text: maskedText,
-    linkedConceptId: candidate.concept.id,
-    sourceConceptId: candidate.concept.id,
-    contextDefinitionId: candidate.contextDefinition.id,
+    text: concept.title,
+    linkedConceptId: concept.id,
+    sourceConceptId: concept.id,
+    ...(contextDefinition ? { contextDefinitionId: contextDefinition.id } : {}),
     sourceStrategy: isCorrect ? "correct" : strategy
   };
 }
@@ -194,33 +192,39 @@ function buildQuestionForCandidate(
   }
 
   const usedConceptIds = new Set<string>([target.concept.id]);
-  const usedTexts = new Set<string>();
+  const usedTerms = new Set<string>();
 
-  const correctChoice = buildChoiceFromCandidate(target, true, "correct");
-  usedTexts.add(normalizeConceptTitle(correctChoice.text));
+  const correctChoice = buildWordChoiceFromConcept(
+    target.concept,
+    target.contextDefinition,
+    true,
+    "correct"
+  );
+  usedTerms.add(normalizeConceptTitle(correctChoice.text));
 
   const distractorChoices: QuizChoice[] = [];
 
   const addDistractor = (
     concept: Concept,
-    contextDefinition: ContextDefinition,
+    contextDefinition: ContextDefinition | undefined,
     strategy: QuizChoiceSourceStrategy
   ): boolean => {
     if (usedConceptIds.has(concept.id)) {
       return false;
     }
-    const choice = buildChoiceFromCandidate({ concept, contextDefinition }, false, strategy);
-    const key = normalizeConceptTitle(choice.text);
-    if (!key || usedTexts.has(key)) {
+    const key = normalizeConceptTitle(concept.title);
+    if (!key || usedTerms.has(key)) {
       return false;
     }
     usedConceptIds.add(concept.id);
-    usedTexts.add(key);
-    distractorChoices.push(choice);
+    usedTerms.add(key);
+    distractorChoices.push(
+      buildWordChoiceFromConcept(concept, contextDefinition, false, strategy)
+    );
     return true;
   };
 
-  // 同じ文脈カード内の他の重要語句
+  // 同じ文脈カード内の他の重要語句（文脈別定義ありを優先）
   for (const candidate of shuffleArray(cardCandidates)) {
     if (distractorChoices.length >= DISTRACTOR_COUNT) {
       break;
@@ -263,7 +267,10 @@ function buildQuestionForCandidate(
     id: createQuizQuestionId(),
     conceptId: target.concept.id,
     source,
-    prompt: `「${target.concept.title}」を説明している選択肢はどれ。`,
+    prompt: buildMaskedPromptText(
+      target.contextDefinition.definition,
+      target.concept.title
+    ),
     choices,
     correctChoiceId: correctChoice.id,
     visibility: "private",
@@ -289,8 +296,8 @@ function buildQuestionForCandidate(
 
 /**
  * 文脈カードの重要語句のうち「概念があり、その文脈別定義がある」語句だけを、
- * 「用語を見て、それを説明する文脈別定義を選ぶ」形式のクイズにする。
- * 通常定義は使わない。文脈別定義がない語句は出題対象から除外する。
+ * 「文脈別定義を読んで対応する概念名を選ぶ」形式のクイズにする。
+ * 問題文＝マスク済み文脈別定義、選択肢＝概念名のみ。
  */
 export function generateQuizSetFromContextCard(input: {
   contextCard: ContextCard;
