@@ -362,7 +362,12 @@ const deleteQuizAttemptLogsByQuestionIdsInStore = async (
   const all = (await requestToPromise(logStore.getAll())) as StoredQuizAttemptLog[];
   await Promise.all(
     all
-      .filter((log) => idSet.has(log.questionId?.toString() ?? ""))
+      .filter(
+        (log): log is StoredQuizAttemptLog & { id: string } =>
+          typeof log.id === "string" &&
+          log.id.length > 0 &&
+          idSet.has(log.questionId?.toString() ?? "")
+      )
       .map((log) => requestToPromise(logStore.delete(log.id)))
   );
 };
@@ -378,7 +383,12 @@ const deleteQuizAttemptLogsByDeckIdInStore = async (
   const all = (await requestToPromise(logStore.getAll())) as StoredQuizAttemptLog[];
   await Promise.all(
     all
-      .filter((log) => log.deckId?.toString().trim() === trimmed)
+      .filter(
+        (log): log is StoredQuizAttemptLog & { id: string } =>
+          typeof log.id === "string" &&
+          log.id.length > 0 &&
+          log.deckId?.toString().trim() === trimmed
+      )
       .map((log) => requestToPromise(logStore.delete(log.id)))
   );
 };
