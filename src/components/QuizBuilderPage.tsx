@@ -7,6 +7,7 @@ import { OrnamentLine } from "./common/OrnamentLine";
 import { QuizDeckFormModal } from "./QuizDeckFormModal";
 import { QuizDeckSyncModal } from "./QuizDeckSyncModal";
 import { QuizCreateModal, type QuizCreateInitialState } from "./QuizCreateModal";
+import { QuizDataPanel } from "./QuizDataPanel";
 import { previewQuizDeckSync, resolveDeckGenerationFilters } from "../utils/syncQuizDeckFromFilters";
 import { buildQuizDataSummary } from "../utils/quiz/quizDataCleanup";
 
@@ -260,44 +261,12 @@ export const QuizBuilderPage = ({
             </label>
           </div>
 
-          <div className="rounded-xl border border-celestial-border/60 bg-celestial-deepBlue/20 p-4">
-            <p className="text-xs font-medium text-celestial-softGold">クイズデータ</p>
-            <div className="mt-2 grid gap-1 text-sm text-celestial-textSub sm:grid-cols-2">
-              <p>クイズ集: {quizDataSummary.deckCount}</p>
-              <p>問題: {quizDataSummary.questionCount}</p>
-              <p>出題プール対象: {quizDataSummary.referencedQuestionCount}</p>
-              <p>
-                孤児問題:{" "}
-                <span
-                  className={
-                    quizDataSummary.orphanQuestionCount > 0
-                      ? "font-semibold text-amber-200"
-                      : undefined
-                  }
-                >
-                  {quizDataSummary.orphanQuestionCount}
-                </span>
-              </p>
-              <p className="sm:col-span-2">回答履歴: {quizDataSummary.attemptLogCount}</p>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void handleDeleteOrphans()}
-                disabled={quizDataSummary.orphanQuestionCount === 0}
-                className="rounded-lg border border-celestial-gold/40 px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                孤児問題を削除
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDeleteAllQuizData()}
-                className="rounded-lg border border-celestial-danger/50 px-3 py-1.5 text-xs text-celestial-danger hover:bg-celestial-danger/10"
-              >
-                クイズデータを完全削除
-              </button>
-            </div>
-          </div>
+          <QuizDataPanel
+            summary={quizDataSummary}
+            loading={loading}
+            onDeleteOrphans={() => void handleDeleteOrphans()}
+            onDeleteAll={() => void handleDeleteAllQuizData()}
+          />
 
           {loading ? (
             <p className="text-sm text-celestial-textSub">読み込み中…</p>
