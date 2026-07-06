@@ -15,8 +15,7 @@ import { resolveQuestionConceptId } from "../utils/quiz/resolveQuestionConceptId
 import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
-import { resolveQuizTermDefinition } from "../utils/resolveQuizTermDefinition";
-import { AnswerReviewPanel } from "./AnswerReviewPanel";
+import { AnswerReviewPanel, type AnswerReviewItem } from "./AnswerReviewPanel";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -162,6 +161,21 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const promptConcept = currentQuestion?.conceptId
     ? conceptById.get(currentQuestion.conceptId)
     : undefined;
+
+  const buildAnswerReviewItem = (choice: QuizChoice | null): AnswerReviewItem => {
+    if (!choice) {
+      return { displayText: "—" };
+    }
+    const displayText = getQuizChoiceDisplayText({
+      choice,
+      promptConcept,
+      allConcepts: concepts,
+      revealAnswer: false
+    });
+    const sourceConceptId = choice.linkedConceptId ?? choice.sourceConceptId;
+    const conceptName = sourceConceptId ? conceptById.get(sourceConceptId)?.title : undefined;
+    return { displayText, conceptName };
+  };
 
   useEffect(() => {
     if (phase !== "play" || !currentQuestion) {
@@ -693,12 +707,6 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 ) : null}
               </p>
 
-              {currentQuestion.conceptId ? (
-                <p className="text-xs text-celestial-softGold">
-                  問いの関連 Concept: {titleById.get(currentQuestion.conceptId) ?? "（不明）"}
-                </p>
-              ) : null}
-
               {(current?.selectionReasons.length ?? 0) > 0 ? (
                 <p className="text-[11px] leading-relaxed text-celestial-textSub/70">
                   出題理由: {current!.selectionReasons.join("・")}
@@ -810,22 +818,8 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                   </div>
                   {!isCorrect ? (
                     <AnswerReviewPanel
-                      selected={resolveQuizTermDefinition(
-                        {
-                          text: selectedChoice?.text ?? "",
-                          linkedConceptId: selectedChoice?.linkedConceptId
-                        },
-                        concepts,
-                        currentQuestion.source
-                      )}
-                      correct={resolveQuizTermDefinition(
-                        {
-                          text: correctChoice?.text ?? "",
-                          linkedConceptId: correctChoice?.linkedConceptId
-                        },
-                        concepts,
-                        currentQuestion.source
-                      )}
+                      selected={buildAnswerReviewItem(selectedChoice)}
+                      correct={buildAnswerReviewItem(correctChoice)}
                     />
                   ) : null}
                   {(() => {

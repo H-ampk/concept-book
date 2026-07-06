@@ -1,4 +1,4 @@
-import type { Concept } from "../types/concept";
+import type { Concept, ContextDefinition } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
 import type {
   QuizChoice,
@@ -10,7 +10,7 @@ import type {
 import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import { buildConceptByTitleMap } from "./conceptLookupMaps";
 import { nowIso } from "./date";
-import { escapeRegExp, maskConceptNameInText } from "./maskConceptNameInText";
+import { maskConceptNameInText } from "./maskConceptNameInText";
 import { normalizeConceptTitle } from "./normalizeConceptTitle";
 import {
   buildQuizQuestionDuplicateKey,
@@ -19,8 +19,8 @@ import {
 } from "./quizQuestionSource";
 import { extractImportantTerms } from "./syncImportantTermsToConcepts";
 
+/** 1問あたりの誤答選択肢数（正解を含め4択にする） */
 const DISTRACTOR_COUNT = 3;
-const MASK_REPLACEMENT = "（　　　）";
 
 const createQuizQuestionId = (): string =>
   `quiz_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -37,14 +37,23 @@ const shuffleArray = <T>(items: T[]): T[] => {
   return out;
 };
 
-/** 定義の由来（文脈別定義 / 通常定義 / 定義なし） */
-export type ContextCardDefinitionSource = "context" | "general" | "none";
+/** 除外理由 */
+export type ContextCardExclusionReason =
+  | "no-context-definition" // 文脈別定義なし
+  | "no-concept" // 概念カード未登録
+  | "insufficient-choices"; // 選択肢不足
 
-export type ContextCardTermCandidate = {
+export type ContextCardExcludedTerm = {
+  term: string;
+  reason: ContextCardExclusionReason;
+};
+
+/** 文脈別定義を持つ出題候補 */
+type ContextCardCandidate = {
   term: string;
   normalizedTerm: string;
-  /** 重要語句に対応する概念（未登録の場合は undefined） */
-  concept?: Concept;
+  concept: Concept;
+  contextDefinition: ContextDefinition;
 };
 
 export type ContextCardQuizDraft = {
@@ -52,7 +61,6 @@ export type ContextCardQuizDraft = {
   term: string;
   conceptTitle: string;
   quality: QuizGenerationQuality;
-  definitionSource: ContextCardDefinitionSource;
   warnings: string[];
 };
 
@@ -60,76 +68,43 @@ export type ContextCardQuizGenerationPreview = {
   contextCardId: string;
   contextCardTitle: string;
   fieldName?: string;
-  /** 文脈カードに登録された重要語句の数（作成予定の問題数） */
-  plannedTermCount: number;
   questions: ContextCardQuizDraft[];
   usedTerms: string[];
+  excludedTerms: ContextCardExcludedTerm[];
   emptyStateMessage?: string;
 };
 
 /**
- * 文脈カードの重要語句一覧を取得する。
- * 各語句に対応する概念があれば紐づけるが、概念が無い語句も候補に含める。
+ * 概念の文脈別定義のうち、選択中の文脈カードに対応するものを選ぶ。
+ * カードのタイトル・分野・分野タグと context 文字列が一致すればそれを優先し、
+ * 一致が無ければ最初の非空文脈別定義を使う。定義がなければ null。
  */
-export function collectContextCardTermCandidates(
-  card: ContextCard,
-  allConcepts: Concept[]
-): ContextCardTermCandidate[] {
-  const conceptByTitle = buildConceptByTitleMap(allConcepts);
-  const terms = extractImportantTerms(card.keyConcepts);
-  const seen = new Set<string>();
-  const out: ContextCardTermCandidate[] = [];
-
-  for (const term of terms) {
-    const normalizedTerm = normalizeConceptTitle(term);
-    if (!normalizedTerm || seen.has(normalizedTerm)) {
-      continue;
-    }
-    seen.add(normalizedTerm);
-    out.push({ term, normalizedTerm, concept: conceptByTitle.get(normalizedTerm) });
-  }
-
-  return out;
-}
-
-/** 概念から、問題文に使う定義を決める（文脈別定義を優先し、無ければ通常定義） */
-function resolveDefinitionForConcept(
-  concept: Concept | undefined
-): { text: string; source: ContextCardDefinitionSource } {
-  if (!concept) {
-    return { text: "", source: "none" };
-  }
-  const contextDefinition = (concept.contextDefinitions ?? []).find(
+function pickCardContextDefinition(
+  concept: Concept,
+  card: ContextCard
+): ContextDefinition | null {
+  const definitions = (concept.contextDefinitions ?? []).filter(
     (item) => item.definition.trim().length > 0
   );
-  if (contextDefinition) {
-    return { text: contextDefinition.definition.trim(), source: "context" };
+  if (definitions.length === 0) {
+    return null;
   }
-  const general = concept.definition.trim();
-  if (general) {
-    return { text: general, source: "general" };
-  }
-  return { text: "", source: "none" };
-}
 
-/** 定義文から「〜を何というか。」形式の問題文を組み立てる（正解語句はマスク） */
-function buildDefinitionPrompt(definition: string, term: string): string {
-  let text = maskConceptNameInText(definition.trim(), [term], MASK_REPLACEMENT);
-  const leadingPattern = new RegExp(
-    `^(?:${escapeRegExp(MASK_REPLACEMENT)})\\s*(?:とは|は|とは、|、)?\\s*[:：]?\\s*`,
-    "u"
+  const hints = new Set(
+    [card.title, card.domain, ...(card.domainTags ?? [])]
+      .map((hint) => (hint ? normalizeConceptTitle(hint) : ""))
+      .filter(Boolean)
   );
-  text = text.replace(leadingPattern, "").trim();
-  text = text.replace(/[。．.!！?？、]+$/u, "").trim();
-  if (!text) {
-    return `この文脈における重要語句を何というか。`;
+  if (hints.size > 0) {
+    const matched = definitions.find((item) =>
+      hints.has(normalizeConceptTitle(item.context))
+    );
+    if (matched) {
+      return matched;
+    }
   }
-  return `${text}を何というか。`;
-}
 
-/** 定義が無いときの用語確認問題の問題文 */
-function buildRecognitionPrompt(term: string): string {
-  return `この文脈で扱う重要語句「${term}」を選びなさい。`;
+  return definitions[0];
 }
 
 function buildContextCardSource(card: ContextCard): QuizQuestionSource {
@@ -142,155 +117,155 @@ function buildContextCardSource(card: ContextCard): QuizQuestionSource {
   };
 }
 
-type DistractorTerm = {
-  term: string;
-  strategy: Extract<QuizChoiceSourceStrategy, "same-context" | "same-domain" | "random">;
-};
+/** 文脈別定義本文から、由来概念名を （＿＿） でマスクした表示テキストを作る */
+function buildMaskedChoiceText(definition: string, conceptTitle: string): string {
+  return maskConceptNameInText(definition.trim(), [conceptTitle]);
+}
+
+function buildChoiceFromCandidate(
+  candidate: Pick<ContextCardCandidate, "concept" | "contextDefinition">,
+  isCorrect: boolean,
+  strategy: QuizChoiceSourceStrategy
+): QuizChoice {
+  const maskedText = buildMaskedChoiceText(
+    candidate.contextDefinition.definition,
+    candidate.concept.title
+  );
+  return {
+    id: createChoiceId(),
+    text: maskedText,
+    linkedConceptId: candidate.concept.id,
+    sourceConceptId: candidate.concept.id,
+    contextDefinitionId: candidate.contextDefinition.id,
+    sourceStrategy: isCorrect ? "correct" : strategy
+  };
+}
 
 /**
- * 誤答用の語句候補を集める。
- * 同じ文脈カードの他の重要語句を最優先し、不足時は同分野・その他の概念名で補う。
+ * 同じ分野で文脈別定義を持つ概念から、誤答補充用の候補を集める。
+ * 出題対象カード内の概念・出題対象概念は除外する。
  */
-function collectDistractorTerms(
-  targetNormalized: string,
-  sameCardTerms: string[],
+function collectSameDomainDistractors(
   card: ContextCard,
-  allConcepts: Concept[]
-): DistractorTerm[] {
-  const used = new Set<string>([targetNormalized]);
-  const out: DistractorTerm[] = [];
-
-  const add = (raw: string, strategy: DistractorTerm["strategy"]) => {
-    const term = raw.trim();
-    const normalized = normalizeConceptTitle(term);
-    if (!normalized || used.has(normalized)) {
-      return;
-    }
-    used.add(normalized);
-    out.push({ term, strategy });
-  };
-
-  for (const term of sameCardTerms) {
-    add(term, "same-context");
-  }
-
+  allConcepts: Concept[],
+  excludeConceptIds: Set<string>
+): Array<{ concept: Concept; contextDefinition: ContextDefinition }> {
   const cardTags = new Set(
     (card.domainTags ?? []).map((tag) => tag.trim()).filter(Boolean)
   );
-  if (cardTags.size > 0) {
-    for (const concept of allConcepts) {
-      if ((concept.domainTags ?? []).some((tag) => cardTags.has(tag.trim()))) {
-        add(concept.title, "same-domain");
-      }
+  if (cardTags.size === 0) {
+    return [];
+  }
+
+  const out: Array<{ concept: Concept; contextDefinition: ContextDefinition }> = [];
+  for (const concept of shuffleArray(allConcepts)) {
+    if (excludeConceptIds.has(concept.id)) {
+      continue;
+    }
+    if (!(concept.domainTags ?? []).some((tag) => cardTags.has(tag.trim()))) {
+      continue;
+    }
+    const contextDefinition = pickCardContextDefinition(concept, card);
+    if (contextDefinition) {
+      out.push({ concept, contextDefinition });
     }
   }
-
-  for (const concept of shuffleArray(allConcepts)) {
-    add(concept.title, "random");
-  }
-
   return out;
 }
 
-function determineQuality(distractors: DistractorTerm[]): QuizGenerationQuality {
-  if (distractors.length === 0) {
-    return "failed";
-  }
-  if (distractors.length < DISTRACTOR_COUNT) {
-    return "low";
-  }
-  if (distractors.every((item) => item.strategy === "same-context")) {
-    return "high";
-  }
-  if (distractors.some((item) => item.strategy === "same-domain")) {
-    return "medium";
-  }
-  return "low";
-}
-
-function buildQuestionForTerm(
+function buildQuestionForCandidate(
   card: ContextCard,
-  candidate: ContextCardTermCandidate,
-  sameCardTerms: string[],
+  target: ContextCardCandidate,
+  cardCandidates: ContextCardCandidate[],
   allConcepts: Concept[],
   existingDuplicateKeys: Set<string>
-): ContextCardQuizDraft | null {
+): { draft: ContextCardQuizDraft } | { failed: ContextCardExclusionReason } | { skip: true } {
   const source = buildContextCardSource(card);
-  const answerConceptId = candidate.concept?.id;
-
   if (
     isDuplicateQuizQuestion(
       source,
-      answerConceptId,
-      candidate.normalizedTerm,
+      target.concept.id,
+      target.normalizedTerm,
       existingDuplicateKeys
     )
   ) {
-    return null;
+    // 既に同じ文脈カード×概念のクイズが存在する場合は重複作成しない（除外語句には数えない）
+    return { skip: true };
   }
 
-  const { text: definition, source: definitionSource } = resolveDefinitionForConcept(
-    candidate.concept
-  );
-  const prompt =
-    definitionSource === "none"
-      ? buildRecognitionPrompt(candidate.term)
-      : buildDefinitionPrompt(definition, candidate.term);
+  const usedConceptIds = new Set<string>([target.concept.id]);
+  const usedTexts = new Set<string>();
 
-  const distractors = collectDistractorTerms(
-    candidate.normalizedTerm,
-    sameCardTerms,
-    card,
-    allConcepts
-  ).slice(0, DISTRACTOR_COUNT);
+  const correctChoice = buildChoiceFromCandidate(target, true, "correct");
+  usedTexts.add(normalizeConceptTitle(correctChoice.text));
 
-  const conceptByTitle = buildConceptByTitleMap(allConcepts);
-  const correctChoiceId = createChoiceId();
-  const correctChoice: QuizChoice = {
-    id: correctChoiceId,
-    text: candidate.term,
-    ...(candidate.concept
-      ? { linkedConceptId: candidate.concept.id, sourceConceptId: candidate.concept.id }
-      : {}),
-    sourceStrategy: "correct"
+  const distractorChoices: QuizChoice[] = [];
+
+  const addDistractor = (
+    concept: Concept,
+    contextDefinition: ContextDefinition,
+    strategy: QuizChoiceSourceStrategy
+  ): boolean => {
+    if (usedConceptIds.has(concept.id)) {
+      return false;
+    }
+    const choice = buildChoiceFromCandidate({ concept, contextDefinition }, false, strategy);
+    const key = normalizeConceptTitle(choice.text);
+    if (!key || usedTexts.has(key)) {
+      return false;
+    }
+    usedConceptIds.add(concept.id);
+    usedTexts.add(key);
+    distractorChoices.push(choice);
+    return true;
   };
 
-  const distractorChoices: QuizChoice[] = distractors.map((item) => {
-    const linked = conceptByTitle.get(normalizeConceptTitle(item.term));
-    return {
-      id: createChoiceId(),
-      text: item.term,
-      ...(linked ? { linkedConceptId: linked.id, sourceConceptId: linked.id } : {}),
-      sourceStrategy: item.strategy
-    };
-  });
+  // 同じ文脈カード内の他の重要語句
+  for (const candidate of shuffleArray(cardCandidates)) {
+    if (distractorChoices.length >= DISTRACTOR_COUNT) {
+      break;
+    }
+    if (candidate.concept.id === target.concept.id) {
+      continue;
+    }
+    addDistractor(candidate.concept, candidate.contextDefinition, "same-context");
+  }
+
+  // 不足時のみ、同じ分野で文脈別定義を持つ概念から補充
+  if (distractorChoices.length < DISTRACTOR_COUNT) {
+    const supplements = collectSameDomainDistractors(card, allConcepts, usedConceptIds);
+    for (const supplement of supplements) {
+      if (distractorChoices.length >= DISTRACTOR_COUNT) {
+        break;
+      }
+      addDistractor(supplement.concept, supplement.contextDefinition, "same-domain");
+    }
+  }
+
+  if (distractorChoices.length < DISTRACTOR_COUNT) {
+    return { failed: "insufficient-choices" };
+  }
 
   const choices = shuffleArray([correctChoice, ...distractorChoices]);
-  const quality = determineQuality(distractors);
+  const quality: QuizGenerationQuality = distractorChoices.every(
+    (choice) => choice.sourceStrategy === "same-context"
+  )
+    ? "high"
+    : "medium";
 
   const warnings: string[] = [];
-  if (definitionSource === "none") {
-    warnings.push(
-      "定義が未登録のため、用語確認問題として作成しました。定義を追加すると、説明形式の問題になります。"
-    );
-  }
-  if (!candidate.concept) {
-    warnings.push("この重要語句に対応する概念が未登録です。概念を登録すると関連づけできます。");
-  }
-  if (distractors.length === 0) {
-    warnings.push("誤答の選択肢が不足しています。手動で追加してください。");
-  } else if (distractors.length < DISTRACTOR_COUNT) {
-    warnings.push("誤答の選択肢が少ないため、手動で追加してください。");
+  if (distractorChoices.some((choice) => choice.sourceStrategy === "same-domain")) {
+    warnings.push("同じ文脈カード内の文脈別定義が不足したため、同じ分野の概念から補充しました。");
   }
 
   const now = nowIso();
   const question: QuizQuestion = {
     id: createQuizQuestionId(),
-    ...(candidate.concept ? { conceptId: candidate.concept.id } : {}),
+    conceptId: target.concept.id,
     source,
-    prompt,
+    prompt: `「${target.concept.title}」を説明している選択肢はどれ。`,
     choices,
-    correctChoiceId,
+    correctChoiceId: correctChoice.id,
     visibility: "private",
     schemaVersion: QUIZ_QUESTION_SCHEMA_VERSION,
     createdAt: now,
@@ -298,22 +273,24 @@ function buildQuestionForTerm(
   };
 
   existingDuplicateKeys.add(
-    buildQuizQuestionDuplicateKey(source, answerConceptId, candidate.normalizedTerm)
+    buildQuizQuestionDuplicateKey(source, target.concept.id, target.normalizedTerm)
   );
 
   return {
-    question,
-    term: candidate.term,
-    conceptTitle: candidate.concept?.title ?? candidate.term,
-    quality,
-    definitionSource,
-    warnings
+    draft: {
+      question,
+      term: target.term,
+      conceptTitle: target.concept.title,
+      quality,
+      warnings
+    }
   };
 }
 
 /**
- * 文脈カードに登録された重要語句から、重要語句ごとに1問ずつクイズを生成する。
- * 本文は不要。重要語句が1つ以上あれば生成可能。
+ * 文脈カードの重要語句のうち「概念があり、その文脈別定義がある」語句だけを、
+ * 「用語を見て、それを説明する文脈別定義を選ぶ」形式のクイズにする。
+ * 通常定義は使わない。文脈別定義がない語句は出題対象から除外する。
  */
 export function generateQuizSetFromContextCard(input: {
   contextCard: ContextCard;
@@ -322,38 +299,70 @@ export function generateQuizSetFromContextCard(input: {
 }): ContextCardQuizGenerationPreview {
   const { contextCard, allConcepts, existingQuestions } = input;
   const fieldName = contextCard.domainTags[0]?.trim() || contextCard.domain?.trim();
-  const candidates = collectContextCardTermCandidates(contextCard, allConcepts);
+  const conceptByTitle = buildConceptByTitleMap(allConcepts);
+  const terms = extractImportantTerms(contextCard.keyConcepts);
+
+  const candidates: ContextCardCandidate[] = [];
+  const excludedTerms: ContextCardExcludedTerm[] = [];
+  const seen = new Set<string>();
+
+  for (const term of terms) {
+    const normalizedTerm = normalizeConceptTitle(term);
+    if (!normalizedTerm || seen.has(normalizedTerm)) {
+      continue;
+    }
+    seen.add(normalizedTerm);
+
+    const concept = conceptByTitle.get(normalizedTerm);
+    if (!concept) {
+      excludedTerms.push({ term, reason: "no-concept" });
+      continue;
+    }
+    const contextDefinition = pickCardContextDefinition(concept, contextCard);
+    if (!contextDefinition) {
+      excludedTerms.push({ term, reason: "no-context-definition" });
+      continue;
+    }
+    candidates.push({ term, normalizedTerm, concept, contextDefinition });
+  }
 
   if (candidates.length === 0) {
+    const message =
+      terms.length === 0
+        ? "この文脈カードには重要語句が登録されていません。\n重要語句を追加すると、クイズを作成できます。"
+        : "この文脈カードには、文脈別定義を持つ重要語句がありません。\n重要語句の概念に文脈別定義を追加すると、クイズを作成できます。";
     return {
       contextCardId: contextCard.id,
       contextCardTitle: contextCard.title,
       fieldName,
-      plannedTermCount: 0,
       questions: [],
       usedTerms: [],
-      emptyStateMessage:
-        "この文脈カードには重要語句が登録されていません。\n重要語句を追加すると、クイズを作成できます。"
+      excludedTerms,
+      emptyStateMessage: message
     };
   }
 
-  const sameCardTerms = candidates.map((candidate) => candidate.term);
   const existingDuplicateKeys = collectExistingDuplicateKeys(existingQuestions);
   const questions: ContextCardQuizDraft[] = [];
   const usedTerms: string[] = [];
 
-  for (const candidate of candidates) {
-    const draft = buildQuestionForTerm(
+  for (const target of candidates) {
+    const outcome = buildQuestionForCandidate(
       contextCard,
-      candidate,
-      sameCardTerms,
+      target,
+      candidates,
       allConcepts,
       existingDuplicateKeys
     );
-    if (draft) {
-      questions.push(draft);
-      usedTerms.push(candidate.term);
+    if ("skip" in outcome) {
+      continue;
     }
+    if ("failed" in outcome) {
+      excludedTerms.push({ term: target.term, reason: outcome.failed });
+      continue;
+    }
+    questions.push(outcome.draft);
+    usedTerms.push(target.term);
   }
 
   if (questions.length === 0) {
@@ -361,9 +370,9 @@ export function generateQuizSetFromContextCard(input: {
       contextCardId: contextCard.id,
       contextCardTitle: contextCard.title,
       fieldName,
-      plannedTermCount: candidates.length,
       questions: [],
       usedTerms: [],
+      excludedTerms,
       emptyStateMessage: "この文脈カードから作成できる新しいクイズはありません。"
     };
   }
@@ -372,8 +381,8 @@ export function generateQuizSetFromContextCard(input: {
     contextCardId: contextCard.id,
     contextCardTitle: contextCard.title,
     fieldName,
-    plannedTermCount: candidates.length,
     questions,
-    usedTerms
+    usedTerms,
+    excludedTerms
   };
 }

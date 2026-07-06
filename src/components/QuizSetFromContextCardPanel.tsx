@@ -7,12 +7,24 @@ import { QUIZ_DECK_SCHEMA_VERSION } from "../types/quiz";
 import { nowIso } from "../utils/date";
 import {
   generateQuizSetFromContextCard,
+  type ContextCardExclusionReason,
   type ContextCardQuizGenerationPreview
 } from "../utils/generateQuizSetFromContextCard";
-import { applyAutoLinkedConceptIdsToChoices } from "../utils/quizConceptLink";
 
 const storage = getStorage();
 const contextStorage = getContextStorage();
+
+const EXCLUSION_LABELS: Record<ContextCardExclusionReason, string> = {
+  "no-context-definition": "文脈別定義なし",
+  "no-concept": "概念カード未登録",
+  "insufficient-choices": "選択肢不足"
+};
+
+const EXCLUSION_ORDER: ContextCardExclusionReason[] = [
+  "no-context-definition",
+  "no-concept",
+  "insufficient-choices"
+];
 
 const createDeckId = (): string =>
   `deck_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -118,13 +130,10 @@ export const QuizSetFromContextCardPanel = ({
     try {
       const questionIds: string[] = [];
       for (const draft of preview.questions) {
-        const linkedChoices = applyAutoLinkedConceptIdsToChoices(
-          draft.question.choices,
-          concepts
-        );
-        const question = { ...draft.question, choices: linkedChoices };
-        await storage.saveQuizQuestion(question);
-        questionIds.push(question.id);
+        // 選択肢は文脈別定義（概念名マスク済み）と由来概念を保持したまま保存する。
+        // テキスト一致による自動リンクは行わない（定義テキストは概念名と一致しないため）。
+        await storage.saveQuizQuestion(draft.question);
+        questionIds.push(draft.question.id);
       }
 
       const now = nowIso();
@@ -259,13 +268,35 @@ export const QuizSetFromContextCardPanel = ({
           <h3 className="text-sm font-semibold text-celestial-textMain">生成プレビュー</h3>
           <div className="grid gap-1 text-sm text-celestial-textSub">
             <p>
-              作成予定：<span className="font-semibold text-celestial-softGold">{preview.plannedTermCount}問</span>
-              <span className="ml-1 text-xs text-celestial-textSub">（重要語句の数）</span>
+              作成予定：<span className="font-semibold text-celestial-softGold">{preview.questions.length}問</span>
             </p>
-            <p>対象：{preview.contextCardTitle}</p>
-            <p>作成元：文脈カード</p>
+            <p>対象：文脈別定義ありの重要語句</p>
+            <p>作成元：文脈カード（{preview.contextCardTitle}）</p>
             {preview.usedTerms.length > 0 ? (
-              <p className="line-clamp-2">重要語句：{preview.usedTerms.join("、")}</p>
+              <p className="line-clamp-2">出題語句：{preview.usedTerms.join("、")}</p>
+            ) : null}
+            {preview.excludedTerms.length > 0 ? (
+              <div className="mt-1 space-y-0.5 border-t border-celestial-border/40 pt-1">
+                <p>
+                  除外：
+                  <span className="font-semibold text-celestial-softGold">
+                    {preview.excludedTerms.length}語句
+                  </span>
+                </p>
+                {EXCLUSION_ORDER.map((reason) => {
+                  const terms = preview.excludedTerms
+                    .filter((item) => item.reason === reason)
+                    .map((item) => item.term);
+                  if (terms.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <p key={reason} className="line-clamp-2 text-xs">
+                      {EXCLUSION_LABELS[reason]}：{terms.join("、")}
+                    </p>
+                  );
+                })}
+              </div>
             ) : null}
           </div>
 
