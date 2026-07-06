@@ -15,6 +15,7 @@ import { resolveQuestionConceptId } from "../utils/quiz/resolveQuestionConceptId
 import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
+import { resolveQuizConceptDefinition } from "../utils/resolveQuizConceptDefinition";
 import { AnswerReviewPanel, type AnswerReviewItem } from "./AnswerReviewPanel";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -164,7 +165,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
 
   const buildAnswerReviewItem = (choice: QuizChoice | null): AnswerReviewItem => {
     if (!choice) {
-      return { displayText: "—" };
+      return { displayText: "—", conceptDefinitionStatus: "no-concept" };
     }
     const displayText = getQuizChoiceDisplayText({
       choice,
@@ -173,8 +174,14 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
       revealAnswer: false
     });
     const sourceConceptId = choice.linkedConceptId ?? choice.sourceConceptId;
-    const conceptName = sourceConceptId ? conceptById.get(sourceConceptId)?.title : undefined;
-    return { displayText, conceptName };
+    const fallbackName = sourceConceptId ? conceptById.get(sourceConceptId)?.title : undefined;
+    const conceptDef = resolveQuizConceptDefinition(choice, concepts, fallbackName);
+    return {
+      displayText,
+      conceptName: conceptDef.conceptName !== "—" ? conceptDef.conceptName : undefined,
+      conceptDefinition: conceptDef.definition,
+      conceptDefinitionStatus: conceptDef.status
+    };
   };
 
   useEffect(() => {
