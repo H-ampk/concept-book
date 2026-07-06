@@ -13,6 +13,7 @@ import {
 } from "../utils/quiz/buildQuizSession";
 import { resolveQuestionConceptId } from "../utils/quiz/resolveQuestionConceptId";
 import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
+import { collectReferencedQuestionIds } from "../utils/quiz/quizDataCleanup";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
 import { resolveQuizConceptDefinition } from "../utils/resolveQuizConceptDefinition";
@@ -143,11 +144,19 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     [questionStatsMap]
   );
 
+  const referencedQuestionIds = useMemo(
+    () => collectReferencedQuestionIds(quizDecks),
+    [quizDecks]
+  );
+
   const playableFiltered = useMemo(() => {
     return sortDeck(
-      questions.filter(isPlayableQuestion).filter((q) => matchesConceptFilter(q, conceptFilter))
+      questions
+        .filter(isPlayableQuestion)
+        .filter((q) => referencedQuestionIds.has(q.id))
+        .filter((q) => matchesConceptFilter(q, conceptFilter))
     );
-  }, [questions, conceptFilter]);
+  }, [questions, referencedQuestionIds, conceptFilter]);
 
   const current = session[index];
   const currentQuestion = current?.question;

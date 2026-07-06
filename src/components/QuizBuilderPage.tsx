@@ -8,6 +8,7 @@ import { QuizDeckFormModal } from "./QuizDeckFormModal";
 import { QuizDeckSyncModal } from "./QuizDeckSyncModal";
 import { QuizCreateModal, type QuizCreateInitialState } from "./QuizCreateModal";
 import { previewQuizDeckSync, resolveDeckGenerationFilters } from "../utils/syncQuizDeckFromFilters";
+import { buildQuizDataSummary } from "../utils/quiz/quizDataCleanup";
 
 const storage = getStorage();
 
@@ -35,19 +36,22 @@ export const QuizBuilderPage = ({
   const [editingDeck, setEditingDeck] = useState<QuizDeck | null>(null);
   const [domainTagGeneratorOpen, setDomainTagGeneratorOpen] = useState(false);
   const [pendingCreateState, setPendingCreateState] = useState<QuizCreateInitialState | null>(null);
+  const [attemptLogCount, setAttemptLogCount] = useState(0);
   const [syncDeck, setSyncDeck] = useState<QuizDeck | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [allDecks, allQuestions, allConcepts] = await Promise.all([
+      const [allDecks, allQuestions, allConcepts, allLogs] = await Promise.all([
         storage.getQuizDecks(),
         storage.getQuizQuestions(),
-        storage.getAllConcepts()
+        storage.getAllConcepts(),
+        storage.getQuizAttemptLogs()
       ]);
       setDecks(allDecks);
       setQuestions(allQuestions);
       setConcepts(allConcepts);
+      setAttemptLogCount(allLogs.length);
     } finally {
       setLoading(false);
     }
@@ -104,19 +108,71 @@ export const QuizBuilderPage = ({
     setDeckModalOpen(true);
   };
 
+  const quizDataSummary = useMemo(
+    () =>
+      buildQuizDataSummary({
+        decks,
+        questions,
+        attemptLogCount
+      }),
+    [decks, questions, attemptLogCount]
+  );
+
   const handleDeleteDeck = async (d: QuizDeck) => {
     if (
       !window.confirm(
-        `クイズ集「${d.title}」を削除しますか？\n\n含まれる問題データ本体は削除されません（他のクイズ集からも参照可能なままです）。`
+        `このクイズ集を削除します。\nこのクイズ集に含まれる問題と学習履歴も削除されます。\nよろしいですか？\n\nクイズ集「${d.title}」`
       )
     ) {
       return;
     }
     try {
-      await storage.deleteQuizDeck(d.id);
+      const result = await storage.deleteQuizDeckWithContents(d.id);
       await load();
+      if (result.deletedQuestionCount > 0) {
+        window.alert(`クイズ集と ${result.deletedQuestionCount} 問の問題を削除しました。`);
+      }
     } catch {
       window.alert("削除に失敗しました。");
+    }
+  };
+
+  const handleDeleteOrphans = async () => {
+    const orphanCount = quizDataSummary.orphanQuestionCount;
+    if (orphanCount === 0) {
+      window.alert("孤児問題はありません。");
+      return;
+    }
+    if (
+      !window.confirm(
+        `クイズ集に紐づいていない問題が ${orphanCount} 問あります。\nこれらと関連する回答履歴を削除します。よろしいですか？`
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await storage.deleteOrphanQuizQuestions();
+      await load();
+      window.alert(`${result.deletedQuestionCount} 問の孤児問題を削除しました。`);
+    } catch {
+      window.alert("孤児問題の削除に失敗しました。");
+    }
+  };
+
+  const handleDeleteAllQuizData = async () => {
+    if (
+      !window.confirm(
+        "すべてのクイズデータを削除しますか？\n\nクイズ集、問題、回答履歴、学習ログを削除します。\n概念カード・文脈カード・文脈別定義は削除されません。"
+      )
+    ) {
+      return;
+    }
+    try {
+      await storage.deleteAllQuizData();
+      await load();
+      window.alert("すべてのクイズデータを削除しました。");
+    } catch {
+      window.alert("クイズデータの削除に失敗しました。");
     }
   };
 
@@ -202,6 +258,45 @@ export const QuizBuilderPage = ({
                 <option value="public">公開のみ</option>
               </select>
             </label>
+          </div>
+
+          <div className="rounded-xl border border-celestial-border/60 bg-celestial-deepBlue/20 p-4">
+            <p className="text-xs font-medium text-celestial-softGold">クイズデータ</p>
+            <div className="mt-2 grid gap-1 text-sm text-celestial-textSub sm:grid-cols-2">
+              <p>クイズ集: {quizDataSummary.deckCount}</p>
+              <p>問題: {quizDataSummary.questionCount}</p>
+              <p>出題プール対象: {quizDataSummary.referencedQuestionCount}</p>
+              <p>
+                孤児問題:{" "}
+                <span
+                  className={
+                    quizDataSummary.orphanQuestionCount > 0
+                      ? "font-semibold text-amber-200"
+                      : undefined
+                  }
+                >
+                  {quizDataSummary.orphanQuestionCount}
+                </span>
+              </p>
+              <p className="sm:col-span-2">回答履歴: {quizDataSummary.attemptLogCount}</p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleDeleteOrphans()}
+                disabled={quizDataSummary.orphanQuestionCount === 0}
+                className="rounded-lg border border-celestial-gold/40 px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                孤児問題を削除
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteAllQuizData()}
+                className="rounded-lg border border-celestial-danger/50 px-3 py-1.5 text-xs text-celestial-danger hover:bg-celestial-danger/10"
+              >
+                クイズデータを完全削除
+              </button>
+            </div>
           </div>
 
           {loading ? (

@@ -93,6 +93,14 @@ export type ConceptStorage = {
   getQuizDecksByDeckKey: (deckKey: string) => Promise<QuizDeck[]>;
   saveQuizDeck: (deck: QuizDeck) => Promise<void>;
   deleteQuizDeck: (id: string) => Promise<void>;
+  /** クイズ集と、他集に属さない問題・関連ログを削除する */
+  deleteQuizDeckWithContents: (id: string) => Promise<{ deletedQuestionCount: number }>;
+  /** どのクイズ集にも参照されていない問題と関連ログを削除する */
+  deleteOrphanQuizQuestions: () => Promise<{ deletedQuestionCount: number }>;
+  /** クイズ集・問題・回答ログをすべて削除する（概念・文脈カードは残す） */
+  deleteAllQuizData: () => Promise<void>;
+  deleteQuizAttemptLogsByQuestionIds: (questionIds: string[]) => Promise<void>;
+  deleteQuizAttemptLogsByDeckId: (deckId: string) => Promise<void>;
 
   /** クイズ回答ログ（ZIP 非対象） */
   getQuizAttemptLogs: () => Promise<QuizAttemptLog[]>;

@@ -15,6 +15,10 @@ import {
   QUIZ_QUESTION_SCHEMA_VERSION
 } from "../types/quiz";
 import { stripInvalidQuizReferences } from "../utils/quizConceptLink";
+import {
+  findExclusiveQuestionIds,
+  findOrphanQuestionIds
+} from "../utils/quiz/quizDataCleanup";
 import type { ConceptStorage, ContextCardStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
@@ -344,6 +348,38 @@ const stripQuestionIdsFromAllDecks = async (
       });
       await requestToPromise(deckStore.put(updated));
     })
+  );
+};
+
+const deleteQuizAttemptLogsByQuestionIdsInStore = async (
+  logStore: IDBObjectStore,
+  questionIds: string[]
+): Promise<void> => {
+  const idSet = new Set(questionIds.map((id) => id.trim()).filter(Boolean));
+  if (idSet.size === 0) {
+    return;
+  }
+  const all = (await requestToPromise(logStore.getAll())) as StoredQuizAttemptLog[];
+  await Promise.all(
+    all
+      .filter((log) => idSet.has(log.questionId?.toString() ?? ""))
+      .map((log) => requestToPromise(logStore.delete(log.id)))
+  );
+};
+
+const deleteQuizAttemptLogsByDeckIdInStore = async (
+  logStore: IDBObjectStore,
+  deckId: string
+): Promise<void> => {
+  const trimmed = deckId.trim();
+  if (!trimmed) {
+    return;
+  }
+  const all = (await requestToPromise(logStore.getAll())) as StoredQuizAttemptLog[];
+  await Promise.all(
+    all
+      .filter((log) => log.deckId?.toString().trim() === trimmed)
+      .map((log) => requestToPromise(logStore.delete(log.id)))
   );
 };
 
@@ -689,10 +725,15 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   async deleteQuizQuestion(id: string): Promise<void> {
-    return withTransaction([STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
-      await stripQuestionIdsFromAllDecks(getStore(STORE_QUIZ_DECKS), new Set([id]));
-      await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).delete(id));
-    });
+    return withTransaction(
+      [STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS, STORE_QUIZ_ATTEMPT_LOGS],
+      "readwrite",
+      async (getStore) => {
+        await stripQuestionIdsFromAllDecks(getStore(STORE_QUIZ_DECKS), new Set([id]));
+        await deleteQuizAttemptLogsByQuestionIdsInStore(getStore(STORE_QUIZ_ATTEMPT_LOGS), [id]);
+        await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).delete(id));
+      }
+    );
   }
 
   async deleteQuizQuestionsByConceptId(conceptId: string): Promise<void> {
@@ -763,6 +804,91 @@ export class IndexedDBStorage implements ConceptStorage {
   async deleteQuizDeck(id: string): Promise<void> {
     return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
       await requestToPromise(getStore(STORE_QUIZ_DECKS).delete(id));
+    });
+  }
+
+  async deleteQuizDeckWithContents(id: string): Promise<{ deletedQuestionCount: number }> {
+    return withTransaction(
+      [STORE_QUIZ_DECKS, STORE_QUIZ_QUESTIONS, STORE_QUIZ_ATTEMPT_LOGS],
+      "readwrite",
+      async (getStore) => {
+        const deckStore = getStore(STORE_QUIZ_DECKS);
+        const questionStore = getStore(STORE_QUIZ_QUESTIONS);
+        const logStore = getStore(STORE_QUIZ_ATTEMPT_LOGS);
+
+        const row = (await requestToPromise(deckStore.get(id))) as StoredQuizDeck | undefined;
+        if (!row) {
+          return { deletedQuestionCount: 0 };
+        }
+        const deck = normalizeQuizDeck(row);
+        const allDeckRows = (await requestToPromise(deckStore.getAll())) as StoredQuizDeck[];
+        const otherDecks = allDeckRows
+          .map((item) => normalizeQuizDeck(item))
+          .filter((item) => item.id && item.id !== deck.id);
+        const exclusiveQuestionIds = findExclusiveQuestionIds(deck, otherDecks);
+
+        await deleteQuizAttemptLogsByDeckIdInStore(logStore, deck.id);
+        if (exclusiveQuestionIds.length > 0) {
+          await deleteQuizAttemptLogsByQuestionIdsInStore(logStore, exclusiveQuestionIds);
+          await Promise.all(
+            exclusiveQuestionIds.map((questionId) => requestToPromise(questionStore.delete(questionId)))
+          );
+        }
+
+        await requestToPromise(deckStore.delete(id));
+        return { deletedQuestionCount: exclusiveQuestionIds.length };
+      }
+    );
+  }
+
+  async deleteOrphanQuizQuestions(): Promise<{ deletedQuestionCount: number }> {
+    return withTransaction(
+      [STORE_QUIZ_DECKS, STORE_QUIZ_QUESTIONS, STORE_QUIZ_ATTEMPT_LOGS],
+      "readwrite",
+      async (getStore) => {
+        const deckStore = getStore(STORE_QUIZ_DECKS);
+        const questionStore = getStore(STORE_QUIZ_QUESTIONS);
+        const logStore = getStore(STORE_QUIZ_ATTEMPT_LOGS);
+
+        const deckRows = (await requestToPromise(deckStore.getAll())) as StoredQuizDeck[];
+        const decks = deckRows.map((row) => normalizeQuizDeck(row)).filter((deck) => deck.id);
+        const questionRows = (await requestToPromise(questionStore.getAll())) as StoredQuizQuestion[];
+        const questions = questionRows.map((row) => normalizeQuizQuestion(row));
+        const orphanIds = findOrphanQuestionIds(questions, decks);
+
+        if (orphanIds.length > 0) {
+          await deleteQuizAttemptLogsByQuestionIdsInStore(logStore, orphanIds);
+          await Promise.all(
+            orphanIds.map((questionId) => requestToPromise(questionStore.delete(questionId)))
+          );
+        }
+
+        return { deletedQuestionCount: orphanIds.length };
+      }
+    );
+  }
+
+  async deleteAllQuizData(): Promise<void> {
+    return withTransaction(
+      [STORE_QUIZ_DECKS, STORE_QUIZ_QUESTIONS, STORE_QUIZ_ATTEMPT_LOGS],
+      "readwrite",
+      async (getStore) => {
+        await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).clear());
+        await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).clear());
+        await requestToPromise(getStore(STORE_QUIZ_DECKS).clear());
+      }
+    );
+  }
+
+  async deleteQuizAttemptLogsByQuestionIds(questionIds: string[]): Promise<void> {
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
+      await deleteQuizAttemptLogsByQuestionIdsInStore(getStore(STORE_QUIZ_ATTEMPT_LOGS), questionIds);
+    });
+  }
+
+  async deleteQuizAttemptLogsByDeckId(deckId: string): Promise<void> {
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
+      await deleteQuizAttemptLogsByDeckIdInStore(getStore(STORE_QUIZ_ATTEMPT_LOGS), deckId);
     });
   }
 
