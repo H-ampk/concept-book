@@ -671,7 +671,7 @@ export const App = () => {
                     )}
                   </section>
                 ) : (
-                  <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+                  <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
                     <div className="min-w-0">
                       <SkillTreeView
                         concepts={visibleConcepts}

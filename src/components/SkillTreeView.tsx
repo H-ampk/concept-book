@@ -4,6 +4,13 @@ import { getDomainTagColor } from "../utils/domainColors";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const TREE_NODE_PAGE = 250;
+const CARD_WIDTH = 240;
+const CARD_HEIGHT = 64;
+const HORIZONTAL_GAP = 130;
+const VERTICAL_GAP = 80;
+const CANVAS_MARGIN_X = 48;
+const CANVAS_MARGIN_Y = 48;
+const LABEL_MAX_CHARS = 12;
 
 type Props = {
   concepts: Concept[];
@@ -22,13 +29,6 @@ type LayoutNode = {
   width: number;
   height: number;
   isRoot: boolean;
-};
-
-type LayoutData = {
-  nodes: LayoutNode[];
-  mainEdges: [string, string][];
-  extraEdges: [string, string][];
-  rootId: string;
 };
 
 // 補助関数: 無向グラフの隣接リスト構築
@@ -107,12 +107,11 @@ const buildBFSTree = (
 };
 
 const normalizeLabelLines = (title: string): string[] => {
-  const maxChars = 18;
-  if (title.length <= maxChars) return [title];
-  const first = title.slice(0, maxChars);
-  const rest = title.slice(maxChars, maxChars * 2);
-  const second = rest.length > maxChars ? `${rest.slice(0, maxChars - 3)}...` : rest;
-  return [first, second];
+  if (title.length <= LABEL_MAX_CHARS) return [title];
+  const first = title.slice(0, LABEL_MAX_CHARS);
+  const rest = title.slice(LABEL_MAX_CHARS);
+  if (rest.length <= LABEL_MAX_CHARS) return [first, rest];
+  return [first, `${rest.slice(0, LABEL_MAX_CHARS - 1)}…`];
 };
 
 // ナビゲーションデータ
@@ -153,12 +152,19 @@ const buildNavigationData = (tree: Map<string, string[]>, rootId: string): Navig
 };
 
 // 補助関数: ツリーレイアウト計算
+type LayoutData = {
+  nodes: LayoutNode[];
+  mainEdges: [string, string][];
+  extraEdges: [string, string][];
+  rootId: string;
+  canvasWidth: number;
+  canvasHeight: number;
+};
+
 const computeTreeLayout = (
   tree: Map<string, string[]>,
   concepts: Concept[],
-  rootId: string,
-  width: number,
-  height: number
+  rootId: string
 ): LayoutData => {
   const conceptMap = new Map(concepts.map((c) => [c.id, c]));
   const depths = new Map<string, number>();
@@ -180,21 +186,19 @@ const computeTreeLayout = (
     });
   }
 
-  const maxDepth = Math.max(...Array.from(depths.values()));
-  const xMargin = 80;
-  const yMargin = 40;
-  const columnWidth = (width - xMargin * 2) / Math.max(maxDepth, 1);
-  const cardWidth = 160;
-  const cardHeight = 54;
+  const maxDepth = Math.max(...Array.from(depths.values()), 0);
+  const maxLevelCount = Math.max(...Array.from(levelNodes.values()).map((ids) => ids.length), 1);
+  const columnStep = CARD_WIDTH + HORIZONTAL_GAP;
+  const rowStep = CARD_HEIGHT + VERTICAL_GAP;
+  const canvasWidth = CANVAS_MARGIN_X * 2 + (maxDepth + 1) * CARD_WIDTH + maxDepth * HORIZONTAL_GAP;
+  const canvasHeight = CANVAS_MARGIN_Y * 2 + maxLevelCount * CARD_HEIGHT + (maxLevelCount - 1) * VERTICAL_GAP;
 
   const nodes: LayoutNode[] = [];
   levelNodes.forEach((ids, depth) => {
-    const columnX = xMargin + depth * columnWidth;
-    const availableHeight = height - yMargin * 2;
-    const rowStep = Math.max(cardHeight + 18, availableHeight / Math.max(ids.length, 1));
+    const columnX = CANVAS_MARGIN_X + CARD_WIDTH / 2 + depth * columnStep;
     ids.forEach((id, index) => {
       const concept = conceptMap.get(id)!;
-      const centerY = yMargin + index * rowStep + cardHeight / 2;
+      const centerY = CANVAS_MARGIN_Y + CARD_HEIGHT / 2 + index * rowStep;
       nodes.push({
         id,
         x: columnX,
@@ -202,8 +206,8 @@ const computeTreeLayout = (
         title: concept.title,
         domainTag: concept.domainTags[0] || "",
         favorite: concept.favorite,
-        width: cardWidth,
-        height: cardHeight,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
         isRoot: id === rootId,
       });
     });
@@ -211,7 +215,7 @@ const computeTreeLayout = (
 
   const { mainEdges, extraEdges } = buildBFSTree(buildGraph(concepts), rootId);
 
-  return { nodes, mainEdges, extraEdges, rootId };
+  return { nodes, mainEdges, extraEdges, rootId, canvasWidth, canvasHeight };
 };
 
 export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
@@ -237,13 +241,15 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
   );
 
   const layoutData = useMemo<LayoutData>(() => {
-    if (conceptsWindow.length === 0) return { nodes: [], mainEdges: [], extraEdges: [], rootId: "" };
+    if (conceptsWindow.length === 0) {
+      return { nodes: [], mainEdges: [], extraEdges: [], rootId: "", canvasWidth: 900, canvasHeight: 640 };
+    }
 
     const graph = buildGraph(conceptsWindow);
     const degrees = computeDegree(graph);
     const root = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
     const { tree, mainEdges, extraEdges } = buildBFSTree(graph, root);
-    const data = computeTreeLayout(tree, conceptsWindow, root, 900, 640);
+    const data = computeTreeLayout(tree, conceptsWindow, root);
 
     return { ...data, mainEdges, extraEdges };
   }, [conceptsWindow]);
@@ -264,7 +270,6 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     return buildNavigationData(tree, root);
   }, [conceptsWindow, layoutData.rootId]);
 
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panOrigin, setPanOrigin] = useState<{ x: number; y: number } | null>(null);
   const [pointerStart, setPointerStart] = useState<{ x: number; y: number } | null>(null);
@@ -275,24 +280,32 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
 
   const nodeById = new Map(layoutData.nodes.map((node) => [node.id, node]));
   const canShowMoreTree = concepts.length > conceptsWindow.length;
+  const visibleExtraEdges = selectedId
+    ? layoutData.extraEdges.filter(([source, target]) => source === selectedId || target === selectedId)
+    : [];
 
   const handleBackgroundPointerDown = (event: React.PointerEvent<SVGRectElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
     setIsPanning(true);
     setPointerStart({ x: event.clientX, y: event.clientY });
-    setPanOrigin(offset);
+    setPanOrigin({ x: container.scrollLeft, y: container.scrollTop });
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<any>) => {
+  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement | HTMLDivElement>) => {
     if (!isPanning || !pointerStart || !panOrigin) return;
+    const container = containerRef.current;
+    if (!container) return;
     const dx = event.clientX - pointerStart.x;
     const dy = event.clientY - pointerStart.y;
-    setOffset({ x: panOrigin.x + dx, y: panOrigin.y + dy });
+    container.scrollLeft = panOrigin.x - dx;
+    container.scrollTop = panOrigin.y - dy;
   };
 
-  const handlePointerUp = (event: React.PointerEvent<any>) => {
+  const handlePointerUp = (event: React.PointerEvent<SVGSVGElement | HTMLDivElement | SVGRectElement>) => {
     if (!isPanning) return;
     setIsPanning(false);
     setPointerStart(null);
@@ -413,15 +426,21 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         onKeyDown={handleKeyDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className="w-full overflow-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface focus:outline-none focus:ring-2 focus:ring-celestial-softGold/40"
+        className="h-[min(70vh,720px)] min-h-[420px] w-full overflow-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface focus:outline-none focus:ring-2 focus:ring-celestial-softGold/40"
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
-        <svg width="900" height="640" viewBox="0 0 900 640" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <svg
+          width={layoutData.canvasWidth}
+          height={layoutData.canvasHeight}
+          viewBox={`0 0 ${layoutData.canvasWidth} ${layoutData.canvasHeight}`}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
           <rect
             x="0"
             y="0"
-            width="900"
-            height="640"
+            width={layoutData.canvasWidth}
+            height={layoutData.canvasHeight}
             fill="transparent"
             onPointerDown={handleBackgroundPointerDown}
           />
@@ -429,17 +448,16 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
             const sourceNode = nodeById.get(source);
             const targetNode = nodeById.get(target);
             if (!sourceNode || !targetNode) return null;
-            const x1 = sourceNode.x + sourceNode.width / 2 + offset.x;
-            const y1 = sourceNode.y + offset.y;
-            const x2 = targetNode.x - targetNode.width / 2 + offset.x;
-            const y2 = targetNode.y + offset.y;
+            const x1 = sourceNode.x + sourceNode.width / 2;
+            const y1 = sourceNode.y;
+            const x2 = targetNode.x - targetNode.width / 2;
+            const y2 = targetNode.y;
+            const midX = (x1 + x2) / 2;
             return (
-              <line
+              <path
                 key={`main-${index}`}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
+                d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
+                fill="none"
                 stroke="#8c6b1f"
                 strokeWidth="2"
                 opacity="0.9"
@@ -447,26 +465,24 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
             );
           })}
 
-          {layoutData.extraEdges.map(([source, target], index) => {
+          {visibleExtraEdges.map(([source, target], index) => {
             const sourceNode = nodeById.get(source);
             const targetNode = nodeById.get(target);
             if (!sourceNode || !targetNode) return null;
-            const isSelectedRelated = selectedId === source || selectedId === target;
-            const x1 = sourceNode.x + sourceNode.width / 2 + offset.x;
-            const y1 = sourceNode.y + offset.y;
-            const x2 = targetNode.x - targetNode.width / 2 + offset.x;
-            const y2 = targetNode.y + offset.y;
+            const x1 = sourceNode.x;
+            const y1 = sourceNode.y;
+            const x2 = targetNode.x;
+            const y2 = targetNode.y;
+            const midX = (x1 + x2) / 2;
             return (
-              <line
+              <path
                 key={`extra-${index}`}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="rgba(117, 165, 188, 0.42)"
-                strokeWidth={isSelectedRelated ? 1.5 : 0.8}
+                d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
+                fill="none"
+                stroke="rgba(117, 165, 188, 0.7)"
+                strokeWidth={1.5}
                 strokeDasharray="4,6"
-                opacity={isSelectedRelated ? 0.55 : 0.14}
+                opacity={0.7}
               />
             );
           })}
@@ -478,8 +494,9 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
             const borderColor = node.isRoot ? "#7a9dad" : isSelected ? "#537b8e" : "rgba(92,126,145,0.38)";
             const textColor = "#1f2d34";
             const labelLines = normalizeLabelLines(node.title);
-            const x = node.x + offset.x - node.width / 2;
-            const y = node.y + offset.y - node.height / 2;
+            const x = node.x - node.width / 2;
+            const y = node.y - node.height / 2;
+            const titleY = labelLines.length === 1 ? y + 38 : y + 30;
             return (
               <g
                 key={node.id}
@@ -499,8 +516,8 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                   filter="drop-shadow(0 4px 12px rgba(73, 101, 114, 0.12))"
                 />
                 <rect
-                  x={x + 8}
-                  y={y + 10}
+                  x={x + 12}
+                  y={y + 12}
                   width={10}
                   height={10}
                   rx="2"
@@ -509,10 +526,10 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                 {labelLines.map((line, index) => (
                   <text
                     key={index}
-                    x={node.x + offset.x}
-                    y={y + 22 + index * 14}
+                    x={node.x + 6}
+                    y={titleY + index * 16}
                     textAnchor="middle"
-                    fontSize="12"
+                    fontSize="13"
                     fill={textColor}
                     style={{ fontWeight: 500 }}
                   >
@@ -525,7 +542,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         </svg>
       </div>
       <p className="mt-2 text-xs text-celestial-textSub">
-        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。主線はツリー、点線は追加関係です。
+        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。主線はツリー、点線は選択中ノードの追加関係です。背景ドラッグまたはスクロールで移動できます。
       </p>
     </section>
   );
