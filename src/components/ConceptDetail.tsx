@@ -105,7 +105,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 }, ref) => {
   if (!concept) {
     return (
-      <section className="concept-detail-panel concept-detail-empty max-w-[min(100%,760px)] rounded-xl border border-nordic-border p-8">
+      <section className="concept-detail-panel concept-detail-empty w-full rounded-xl border border-nordic-border p-8">
         <img
           src={decorUrl("decorations/cup.png")}
           alt=""
@@ -130,7 +130,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   return (
     <section
       ref={ref}
-      className="concept-detail-panel max-w-[min(100%,760px)] space-y-5 rounded-xl border border-nordic-border p-6"
+      className="concept-detail-panel w-full space-y-5 rounded-xl border border-nordic-border p-6"
     >
       <OrnamentLine variant="panel" />
       <header className="hud-detail-heading flex flex-wrap items-center gap-2">
@@ -181,7 +181,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="mx-auto max-w-[min(100%,760px)] space-y-4 text-nordic-textPrimary">
+      <article className="w-full max-w-prose space-y-4 text-nordic-textPrimary">
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">

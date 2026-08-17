@@ -362,7 +362,9 @@ export const App = () => {
         className={
           screen === "concepts" && conceptMainTab === "graph"
             ? "relative z-10 flex min-h-0 flex-1 flex-col px-3 py-2 md:px-4"
-            : "relative z-10 mx-auto max-w-7xl px-4 py-4"
+            : screen === "concepts" && (conceptMainTab === "list" || conceptMainTab === "tree")
+              ? "relative z-10 w-full px-3 py-3 sm:px-6 md:px-8"
+              : "relative z-10 mx-auto max-w-7xl px-4 py-4"
         }
       >
         {screen === "settings" ? (
@@ -669,8 +671,8 @@ export const App = () => {
                     )}
                   </section>
                 ) : (
-                  <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
-                    <div>
+                  <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+                    <div className="min-w-0">
                       <SkillTreeView
                         concepts={visibleConcepts}
                         domainColorMap={domainColorMap}
@@ -678,7 +680,7 @@ export const App = () => {
                         onSelectConcept={handleGraphSelect}
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <ConceptDetail
                         concept={selectedConcept}
                         conceptMap={conceptMap}
@@ -696,9 +698,9 @@ export const App = () => {
               </Suspense>
               </div>
             ) : (
-              <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
+              <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
                 <div
-                  className={`${mobileDetail ? "hidden" : "block"} lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto scrollbar-none`}
+                  className={`${mobileDetail ? "hidden" : "block"} min-w-0 lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto scrollbar-none`}
                 >
                   <ConceptGroupSections
                     mode={listViewMode}
@@ -727,7 +729,7 @@ export const App = () => {
                   )}
                 </div>
 
-                <div className={`${mobileDetail ? "block" : "hidden"} lg:block max-h-screen overflow-y-auto scrollbar-none`}>
+                <div className={`${mobileDetail ? "block" : "hidden"} min-w-0 lg:block max-h-screen overflow-y-auto scrollbar-none`}>
                   <div className="mb-2 block lg:hidden">
                     <button
                       className="index-text-button"
