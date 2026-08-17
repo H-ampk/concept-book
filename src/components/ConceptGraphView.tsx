@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import ForceGraph2D from "react-force-graph-2d";
+import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const GRAPH_NODE_PAGE = 200;
+const LINK_DISTANCE = 80;
+const CHARGE_STRENGTH = -120;
 
 type GraphNode = {
   id: string;
@@ -27,6 +29,7 @@ type Props = {
 
 export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
   const [size, setSize] = useState({ width: 700, height: 520 });
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
 
@@ -100,6 +103,25 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     return { nodes, links };
   }, [conceptsWindow]);
 
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) {
+      return;
+    }
+
+    const linkForce = graph.d3Force("link");
+    if (linkForce && typeof linkForce.distance === "function") {
+      linkForce.distance(LINK_DISTANCE);
+    }
+
+    const chargeForce = graph.d3Force("charge");
+    if (chargeForce && typeof chargeForce.strength === "function") {
+      chargeForce.strength(CHARGE_STRENGTH);
+    }
+
+    graph.d3ReheatSimulation();
+  }, [graphData]);
+
   const canShowMoreGraph = concepts.length > conceptsWindow.length;
 
   return (
@@ -130,6 +152,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
 
       <div ref={frameRef} className="w-full overflow-x-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface">
         <ForceGraph2D
+          ref={graphRef}
           width={size.width}
           height={size.height}
           graphData={graphData}
