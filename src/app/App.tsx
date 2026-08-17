@@ -315,7 +315,7 @@ export const App = () => {
       <DecorativeBackground />
 
       <header className="app-header-shell app-header relative z-30 overflow-visible">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2">
+        <div className="flex w-full items-center justify-between gap-3 px-3 py-2 sm:px-6 md:px-8">
           <div className="header-insignia hud-header-cluster min-w-0">
             <h1 className="text-xl font-semibold tracking-wider ritual-title">Concept Book App</h1>
             <p className="text-xs text-celestial-softGold ritual-subtitle">Et sted for tanker</p>
