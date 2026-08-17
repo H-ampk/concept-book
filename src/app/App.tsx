@@ -698,7 +698,7 @@ export const App = () => {
               </Suspense>
               </div>
             ) : (
-              <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+              <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
                 <div
                   className={`${mobileDetail ? "hidden" : "block"} min-w-0 lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto scrollbar-none`}
                 >

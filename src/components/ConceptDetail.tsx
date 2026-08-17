@@ -181,7 +181,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
 
       <ConceptMediaGallery concept={concept} />
 
-      <article className="w-full max-w-prose space-y-4 text-nordic-textPrimary">
+      <article className="w-full max-w-4xl space-y-4 text-nordic-textPrimary">
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">定義</h3>
           <p className="whitespace-pre-wrap break-words text-base leading-7">
