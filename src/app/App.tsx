@@ -145,6 +145,7 @@ export const App = () => {
   const [listViewMode, setListViewMode] = useState<ListViewMode>("all");
   const [domainColorMap, setDomainColorMap] = useState<Record<string, string>>({});
   const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
+  const [graphFiltersOpen, setGraphFiltersOpen] = useState(false);
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
   const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
   const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
@@ -309,7 +310,7 @@ export const App = () => {
   };
 
   return (
-    <div className="app-background relative min-h-screen bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
+    <div className="app-background relative flex min-h-screen flex-col bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
       <div className="cyber-ambient" aria-hidden="true" />
       <DecorativeBackground />
 
@@ -357,7 +358,13 @@ export const App = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-4 relative z-10">
+      <main
+        className={
+          screen === "concepts" && conceptMainTab === "graph"
+            ? "relative z-10 flex min-h-0 flex-1 flex-col px-3 py-2 md:px-4"
+            : "relative z-10 mx-auto max-w-7xl px-4 py-4"
+        }
+      >
         {screen === "settings" ? (
           <SettingsPage
             onImported={reload}
@@ -414,8 +421,12 @@ export const App = () => {
             <LabPlaceholderPage route={screen} onBack={() => setScreen("concepts")} />
           )
         ) : (
-          <div className="space-y-4">
-            <section className="relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] p-5 ritual-altar">
+          <div className={conceptMainTab === "graph" ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-4"}>
+            <section
+              className={`relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] ritual-altar ${
+                conceptMainTab === "graph" ? "shrink-0 p-3" : "p-5"
+              }`}
+            >
               <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
                 <div className="hud-search-wrap min-w-0">
                   <input
@@ -456,6 +467,15 @@ export const App = () => {
                     {label}
                   </button>
                 ))}
+                {conceptMainTab === "graph" && (
+                  <button
+                    type="button"
+                    onClick={() => setGraphFiltersOpen((prev) => !prev)}
+                    className={`index-filter-tab${graphFiltersOpen ? " index-filter-tab--active" : ""}`}
+                  >
+                    {graphFiltersOpen ? "フィルタを隠す" : "フィルタ"}
+                  </button>
+                )}
               </div>
               {conceptMainTab === "list" && (
                 <div className="mt-2 flex flex-wrap items-center gap-1">
@@ -476,6 +496,7 @@ export const App = () => {
                   ))}
                 </div>
               )}
+              {(conceptMainTab !== "graph" || graphFiltersOpen) && (
               <div className="hud-filter-stack mt-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-1">
                   <span className="index-filter-label">分野タグ:</span>
@@ -594,17 +615,19 @@ export const App = () => {
                   })}
                 </div>
               </div>
+              )}
             </section>
 
             {loading ? (
               <p className="text-sm text-celestial-textSub">読み込み中...</p>
             ) : conceptMainTab === "graph" || conceptMainTab === "tree" ? (
+              <div className={conceptMainTab === "graph" ? "min-h-0 flex-1" : undefined}>
               <Suspense
                 fallback={<p className="text-sm text-celestial-textSub">表示を読み込み中...</p>}
               >
                 {conceptMainTab === "graph" ? (
-                  <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
-                    <div>
+                  <section className="relative min-h-0 flex-1">
+                    <div className="h-[calc(100dvh-11.5rem)] min-h-[360px]">
                       <ConceptGraphView
                         concepts={visibleConcepts}
                         domainColorMap={domainColorMap}
@@ -612,19 +635,38 @@ export const App = () => {
                         onSelectConcept={handleGraphSelect}
                       />
                     </div>
-                    <div>
-                      <ConceptDetail
-                        concept={selectedConcept}
-                        conceptMap={conceptMap}
-                        domainColorMap={domainColorMap}
-                        {...conceptDetailActions}
-                        onRequestDelete={handleRequestDelete}
-                        deleting={deleting}
-                        onSelectRelated={(id) => {
-                          setSelectedId(id);
-                        }}
-                      />
-                    </div>
+                    {selectedConcept && (
+                      <div className="fixed inset-0 z-40 flex justify-end">
+                        <button
+                          type="button"
+                          className="absolute inset-0 bg-nordic-navy/25"
+                          aria-label="概念詳細を閉じる"
+                          onClick={() => setSelectedId(undefined)}
+                        />
+                        <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-celestial-border bg-celestial-panel p-3 shadow-celestial">
+                          <div className="mb-2 flex justify-end">
+                            <button
+                              type="button"
+                              className="index-text-button"
+                              onClick={() => setSelectedId(undefined)}
+                            >
+                              閉じる
+                            </button>
+                          </div>
+                          <ConceptDetail
+                            concept={selectedConcept}
+                            conceptMap={conceptMap}
+                            domainColorMap={domainColorMap}
+                            {...conceptDetailActions}
+                            onRequestDelete={handleRequestDelete}
+                            deleting={deleting}
+                            onSelectRelated={(id) => {
+                              setSelectedId(id);
+                            }}
+                          />
+                        </aside>
+                      </div>
+                    )}
                   </section>
                 ) : (
                   <section className="grid gap-4 lg:grid-cols-[minmax(520px,1fr)_420px]">
@@ -652,6 +694,7 @@ export const App = () => {
                   </section>
                 )}
               </Suspense>
+              </div>
             ) : (
               <section className="grid gap-4 lg:grid-cols-[minmax(360px,420px)_1fr]">
                 <div

@@ -2,11 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
-import { OrnamentLine } from "./common/OrnamentLine";
 
 const GRAPH_NODE_PAGE = 200;
-const LINK_DISTANCE = 80;
-const CHARGE_STRENGTH = -120;
+const LINK_DISTANCE = 90;
+const CHARGE_STRENGTH = -160;
 
 type GraphNode = {
   id: string;
@@ -57,13 +56,16 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
       return;
     }
 
-    const observer = new ResizeObserver(() => {
-      const width = root.clientWidth;
-      const isMobile = width < 768;
+    const updateSize = () => {
       setSize({
-        width,
-        height: isMobile ? 420 : 520
+        width: Math.max(1, root.clientWidth),
+        height: Math.max(320, root.clientHeight)
       });
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(() => {
+      updateSize();
     });
     observer.observe(root);
     return () => observer.disconnect();
@@ -124,20 +126,41 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
 
   const canShowMoreGraph = concepts.length > conceptsWindow.length;
 
+  const handleFit = () => {
+    graphRef.current?.zoomToFit(400, 48);
+  };
+
+  const handleResetView = () => {
+    const graph = graphRef.current;
+    if (!graph) {
+      return;
+    }
+    graph.centerAt(0, 0, 300);
+    graph.zoom(1, 300);
+  };
+
   return (
-    <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial decorated-card">
-      <span className="card-corner card-corner-top-left" aria-hidden="true" />
-      <span className="card-corner card-corner-top-right" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-      <OrnamentLine variant="panel" />
-      <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-celestial-textMain">概念グラフ</h3>
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-celestial-border bg-nordic-surface">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-celestial-border px-3 py-2">
+        <p className="text-xs text-celestial-textSub">
+          ノード {graphData.nodes.length} / エッジ {graphData.links.length}
+          {concepts.length > graphData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs text-celestial-textSub">
-            ノード {graphData.nodes.length} / エッジ {graphData.links.length}
-            {concepts.length > graphData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""}
-          </p>
+          <button
+            type="button"
+            className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+            onClick={handleFit}
+          >
+            全体を収める
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+            onClick={handleResetView}
+          >
+            表示をリセット
+          </button>
           {canShowMoreGraph && (
             <button
               type="button"
@@ -150,7 +173,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
         </div>
       </header>
 
-      <div ref={frameRef} className="w-full overflow-x-auto scrollbar-none rounded-lg border border-celestial-border bg-nordic-surface">
+      <div ref={frameRef} className="min-h-0 w-full flex-1 overflow-hidden">
         <ForceGraph2D
           ref={graphRef}
           width={size.width}
@@ -189,9 +212,6 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
           }}
         />
       </div>
-      <p className="mt-2 text-xs text-celestial-textSub">
-        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。
-      </p>
     </section>
   );
 };
