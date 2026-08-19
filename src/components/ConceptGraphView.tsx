@@ -2,16 +2,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
 import { collectUndirectedConceptEdges } from "../utils/conceptRelations";
-import { getDomainTagColor } from "../utils/domainColors";
+import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 
 const GRAPH_NODE_PAGE = 200;
 const LINK_DISTANCE = 90;
 const CHARGE_STRENGTH = -160;
 
+const NODE_FILL_COLOR = "#e8eef1";
+const DOMAIN_RING_WIDTH = 2.4;
+const OUTER_RING_GAP = 1.6;
+const MAX_VISIBLE_DOMAIN_COLORS = 4;
+
 type GraphNode = {
   id: string;
   title: string;
-  domainTag: string;
+  domainTags: string[];
   favorite: boolean;
 };
 
@@ -76,7 +81,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     const nodes: GraphNode[] = conceptsWindow.map((concept) => ({
       id: concept.id,
       title: concept.title,
-      domainTag: concept.domainTags[0] ?? "",
+      domainTags: concept.domainTags,
       favorite: concept.favorite
     }));
 
@@ -169,20 +174,50 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
           nodeCanvasObject={(nodeObject, context, globalScale) => {
             const node = nodeObject as GraphNode & { x: number; y: number };
-            const color = getDomainTagColor(node.domainTag, domainColorMap);
+            const domainColors = getDomainTagColors(
+              node.domainTags,
+              domainColorMap,
+              MAX_VISIBLE_DOMAIN_COLORS
+            );
+            const ringColors =
+              domainColors.length > 0 ? domainColors : [getDomainTagColor("", domainColorMap)];
             const radius = node.favorite ? 6.8 : 5.2;
             const isSelected = selectedId === node.id;
+            const domainRadius = radius + DOMAIN_RING_WIDTH / 2;
+            const outerLineWidth = isSelected ? 2.2 : 1.4;
+            const outerRadius = domainRadius + DOMAIN_RING_WIDTH / 2 + OUTER_RING_GAP;
+            const labelOffset =
+              node.favorite || isSelected
+                ? outerRadius + outerLineWidth / 2
+                : domainRadius + DOMAIN_RING_WIDTH / 2;
 
             context.beginPath();
             context.arc(node.x, node.y, radius, 0, Math.PI * 2, false);
-            context.fillStyle = color;
+            context.fillStyle = NODE_FILL_COLOR;
             context.fill();
+
+            const displayedDomainCount = ringColors.length;
+            const segmentAngle = (Math.PI * 2) / displayedDomainCount;
+            for (let i = 0; i < displayedDomainCount; i += 1) {
+              context.beginPath();
+              context.arc(
+                node.x,
+                node.y,
+                domainRadius,
+                -Math.PI / 2 + i * segmentAngle,
+                -Math.PI / 2 + (i + 1) * segmentAngle,
+                false
+              );
+              context.strokeStyle = ringColors[i];
+              context.lineWidth = DOMAIN_RING_WIDTH;
+              context.stroke();
+            }
 
             if (node.favorite || isSelected) {
               context.beginPath();
-              context.arc(node.x, node.y, radius + 1.8, 0, Math.PI * 2, false);
+              context.arc(node.x, node.y, outerRadius, 0, Math.PI * 2, false);
               context.strokeStyle = isSelected ? "#446878" : "#7a9dad";
-              context.lineWidth = isSelected ? 2.2 : 1.4;
+              context.lineWidth = outerLineWidth;
               context.stroke();
             }
 
@@ -191,7 +226,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             context.fillStyle = "#1f2d34";
             context.textAlign = "center";
             context.textBaseline = "top";
-            context.fillText(node.title, node.x, node.y + radius + 2);
+            context.fillText(node.title, node.x, node.y + labelOffset + 2);
           }}
         />
       </div>

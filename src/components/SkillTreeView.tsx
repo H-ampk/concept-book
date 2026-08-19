@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { Concept } from "../types/concept";
-import { getDomainTagColor } from "../utils/domainColors";
+import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 import { buildUndirectedAdjacency } from "../utils/conceptRelations";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -12,6 +12,9 @@ const VERTICAL_GAP = 80;
 const CANVAS_MARGIN_X = 48;
 const CANVAS_MARGIN_Y = 48;
 const LABEL_MAX_CHARS = 12;
+const MAX_VISIBLE_DOMAIN_COLORS = 4;
+const DOMAIN_SWATCH_SIZE = 7;
+const DOMAIN_SWATCH_GAP = 2;
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 1.5;
 const ZOOM_STEP = 0.1;
@@ -30,7 +33,7 @@ type LayoutNode = {
   x: number;
   y: number;
   title: string;
-  domainTag: string;
+  domainTags: string[];
   favorite: boolean;
   width: number;
   height: number;
@@ -268,7 +271,7 @@ const computeTreeLayout = (
         x: columnX,
         y: centerY,
         title: concept.title,
-        domainTag: concept.domainTags[0] || "",
+        domainTags: concept.domainTags,
         favorite: concept.favorite,
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
@@ -697,7 +700,14 @@ export const SkillTreeView = ({
           })}
 
           {layoutData.nodes.map((node) => {
-            const color = getDomainTagColor(node.domainTag, domainColorMap);
+            const domainColors = getDomainTagColors(
+              node.domainTags,
+              domainColorMap,
+              MAX_VISIBLE_DOMAIN_COLORS
+            );
+            const swatchColors =
+              domainColors.length > 0 ? domainColors : [getDomainTagColor("", domainColorMap)];
+            const overflowCount = Math.max(0, node.domainTags.length - MAX_VISIBLE_DOMAIN_COLORS);
             const isSelected = selectedId === node.id;
             const cardFill = node.isRoot ? "#f2f7f9" : isSelected ? "#d8e8ee" : "rgba(255,255,255,0.9)";
             const borderColor = node.isRoot ? "#7a9dad" : isSelected ? "#537b8e" : "rgba(92,126,145,0.38)";
@@ -729,14 +739,31 @@ export const SkillTreeView = ({
                   strokeWidth={node.isRoot || isSelected ? 2 : 1}
                   filter="drop-shadow(0 4px 12px rgba(73, 101, 114, 0.12))"
                 />
-                <rect
-                  x={x + 12}
-                  y={y + 12}
-                  width={10}
-                  height={10}
-                  rx="2"
-                  fill={color}
-                />
+                {swatchColors.map((color, swatchIndex) => (
+                  <rect
+                    key={`${node.id}-domain-${swatchIndex}`}
+                    x={x + 12 + swatchIndex * (DOMAIN_SWATCH_SIZE + DOMAIN_SWATCH_GAP)}
+                    y={y + 10}
+                    width={DOMAIN_SWATCH_SIZE}
+                    height={DOMAIN_SWATCH_SIZE}
+                    rx="1.5"
+                    fill={color}
+                  />
+                ))}
+                {overflowCount > 0 && (
+                  <text
+                    x={
+                      x +
+                      12 +
+                      swatchColors.length * (DOMAIN_SWATCH_SIZE + DOMAIN_SWATCH_GAP)
+                    }
+                    y={y + 17}
+                    fontSize="9"
+                    fill="#5c7e91"
+                  >
+                    +{overflowCount}
+                  </text>
+                )}
                 {labelLines.map((line, index) => (
                   <text
                     key={index}

@@ -55,6 +55,16 @@ export const getFallbackDomainColor = (tag: string): string => {
 export const getDomainTagColor = (tag: string, map: Record<string, string>): string =>
   map[tag] ?? getFallbackDomainColor(tag);
 
+export const getDomainTagColors = (
+  tags: string[],
+  map: Record<string, string>,
+  limit = 4
+): string[] =>
+  [...tags]
+    .sort((a, b) => a.localeCompare(b, "ja"))
+    .slice(0, limit)
+    .map((tag) => getDomainTagColor(tag, map));
+
 export const colorToSoftTagStyle = (
   color: string
 ): { backgroundColor: string; borderColor: string; color: string } => ({
