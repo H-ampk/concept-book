@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -40,6 +41,9 @@ export default defineConfig(function (_a) {
                     maximumFileSizeToCacheInBytes: 5000000
                 }
             })
-        ]
+        ],
+        test: {
+            environment: "node"
+        }
     });
 });

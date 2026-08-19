@@ -1,4 +1,5 @@
 import type { QuizAttemptLog } from "../types/quiz";
+import { resolveConceptIdFromLog } from "./quiz/resolveConceptIdFromLog";
 
 /**
  * 学習ログ・分析画面で表示する学習元ラベル。
@@ -20,11 +21,11 @@ export const isUsableReactionTimeMs = (ms: number): boolean =>
   Number.isFinite(ms) && ms > 0;
 
 /**
- * Concept 別バケット ID。
- * correctLinkedConceptId を優先し、なければ questionConceptId。どちらも無ければ null（未分類）。
+ * Concept 別バケット ID（mastery / 正答率などの概念集計と同一ルール）。
+ * questionConceptId → conceptId。混同分析用の linkedConceptId は使わない。
  */
 export const conceptBucketIdForLog = (log: QuizAttemptLog): string | null =>
-  log.correctLinkedConceptId ?? log.questionConceptId ?? null;
+  resolveConceptIdFromLog(log);
 
 export type OverallSummary = {
   totalAttempts: number;

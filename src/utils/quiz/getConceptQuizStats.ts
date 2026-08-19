@@ -1,5 +1,8 @@
 import type { QuizAttemptLog } from "../../types/quiz";
 import { formatConceptQuizStats } from "./formatConceptQuizStats";
+import { resolveConceptIdFromLog } from "./resolveConceptIdFromLog";
+
+export { resolveConceptIdFromLog } from "./resolveConceptIdFromLog";
 
 export type ConceptQuizStats = {
   conceptId: string;
@@ -9,19 +12,6 @@ export type ConceptQuizStats = {
   accuracy: number | null;
   lastAnsweredAt: string | null;
 };
-
-/** ログが集計対象とする概念 ID（出題概念の questionConceptId を優先） */
-export function resolveConceptIdFromLog(log: QuizAttemptLog): string | null {
-  const questionConceptId = log.questionConceptId?.trim();
-  if (questionConceptId) {
-    return questionConceptId;
-  }
-  const conceptId = log.conceptId?.trim();
-  if (conceptId) {
-    return conceptId;
-  }
-  return null;
-}
 
 export function buildConceptQuizStatsMap(logs: QuizAttemptLog[]): Map<string, ConceptQuizStats> {
   const map = new Map<string, ConceptQuizStats>();

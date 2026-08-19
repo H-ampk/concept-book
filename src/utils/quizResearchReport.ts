@@ -115,7 +115,7 @@ export const generateResearchReportMarkdown = (input: ResearchReportInput): stri
   const nullBucket = conceptStats.find((c) => c.bucketId == null);
   if (nullBucket && nullBucket.attemptCount > 0) {
     lines.push(
-      `- **未分類バケット**（正解リンク Concept・問題の conceptId が特定できないログ）に該当する回答が **${nullBucket.attemptCount}** 件みられます。`
+      `- **未分類バケット**（questionConceptId も conceptId も特定できないログ）に該当する回答が **${nullBucket.attemptCount}** 件みられます。`
     );
   } else {
     lines.push(`- 未分類バケットに該当する回答は、この集計上は目立ちませんでした。`);
@@ -142,7 +142,7 @@ export const generateResearchReportMarkdown = (input: ResearchReportInput): stri
   );
   lines.push(``);
   lines.push(
-    `Concept の集計は、ダッシュボードと同様に「正解選択肢の linkedConceptId」を優先し、なければ問題の conceptId を用いています。`
+    `Concept の集計は、ダッシュボードと同様に回答時点の questionConceptId を優先し、なければ conceptId を用いています（選択肢の linkedConceptId は混同分析専用です）。`
   );
   lines.push(``);
 

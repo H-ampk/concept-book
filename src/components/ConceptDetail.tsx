@@ -5,6 +5,8 @@ import { shortDateTime } from "../utils/date";
 import { getDisplayStatus } from "../utils/conceptStatus";
 import { StatusBadge } from "./StatusBadge";
 import { OrnamentLine } from "./common/OrnamentLine";
+import type { ConceptMastery } from "../utils/mastery/types";
+import { toConceptMasteryDetailView } from "../utils/mastery/formatConceptMastery";
 
 const storage = getStorage();
 
@@ -16,6 +18,7 @@ type Props = {
   conceptMap: Map<string, Concept>;
   domainColorMap: Record<string, string>;
   conceptQuizStatsText?: string;
+  conceptMastery?: ConceptMastery;
   onSelectRelated: (id: string) => void;
   onEdit?: (concept: Concept) => void;
   onToggleFavorite?: (concept: Concept) => void;
@@ -91,11 +94,47 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
   );
 };
 
+const ConceptMasteryPanel = ({ mastery }: { mastery: ConceptMastery }) => {
+  const view = toConceptMasteryDetailView(mastery);
+
+  return (
+    <div>
+      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">理解度</h3>
+      <p className="text-sm font-medium text-nordic-textPrimary">{view.stateLabel}</p>
+      {view.showScore && (
+        <p className="mt-1 text-sm text-nordic-textSecondary">
+          {view.scoreText}
+          {view.isReferenceScore ? "（参考値）" : ""}
+        </p>
+      )}
+      <ul className="mt-2 space-y-0.5 text-sm text-nordic-textSecondary">
+        <li>信頼度: {view.confidenceLabel}</li>
+        {view.accuracyText && view.attemptText && (
+          <li>
+            正答率: {view.accuracyText}（{view.attemptText}）
+          </li>
+        )}
+        {view.lastAnsweredText && (
+          <li>
+            最終学習: {view.lastAnsweredText} / {view.freshnessLabel}
+          </li>
+        )}
+        {view.recentMarks && <li>直近: {view.recentMarks}</li>}
+        {view.avgReactionText && <li>平均回答時間: {view.avgReactionText}</li>}
+      </ul>
+      <p className="mt-2 text-xs leading-relaxed text-nordic-textMuted">
+        クイズ回答履歴から推定した習得状態です。概念の意味理解そのものを測った値ではありません。
+      </p>
+    </div>
+  );
+};
+
 export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   concept,
   conceptMap,
   domainColorMap: _domainColorMap,
   conceptQuizStatsText,
+  conceptMastery,
   onSelectRelated,
   onEdit,
   onToggleFavorite,
@@ -172,12 +211,14 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         </button>
       </div>
 
-      {conceptQuizStatsText && (
+      {conceptMastery ? (
+        <ConceptMasteryPanel mastery={conceptMastery} />
+      ) : conceptQuizStatsText ? (
         <div>
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">学習状況</h3>
           <p className="text-sm text-nordic-textSecondary">{conceptQuizStatsText}</p>
         </div>
-      )}
+      ) : null}
 
       <ConceptMediaGallery concept={concept} />
 

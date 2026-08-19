@@ -23,6 +23,7 @@ import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLoo
 import type { ConceptSaveOptions } from "../utils/conceptStatus";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import { buildConceptQuizStatsDisplayMap } from "../utils/quiz/getConceptQuizStats";
+import { getConceptMastery } from "../utils/mastery/getConceptMastery";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
@@ -220,6 +221,11 @@ export const App = () => {
     ? conceptQuizStatsText.get(selectedConcept.id) ?? "未学習"
     : undefined;
 
+  const selectedConceptMastery = useMemo(
+    () => (selectedConcept ? getConceptMastery(quizAttemptLogs, selectedConcept.id) : undefined),
+    [quizAttemptLogs, selectedConcept]
+  );
+
   const openCreate = () => {
     setEditingConcept(undefined);
     setModalOpen(true);
@@ -239,6 +245,7 @@ export const App = () => {
     onEdit: openEdit,
     onToggleFavorite: (concept: Concept) => void toggleFavorite(concept),
     conceptQuizStatsText: selectedConceptQuizStatsText,
+    conceptMastery: selectedConceptMastery,
     onCreateQuizFromContextualCard: (conceptId: string, contextDefinitionId: string) => {
       openQuizCreate({
         sourceType: "contextualConceptCard",
