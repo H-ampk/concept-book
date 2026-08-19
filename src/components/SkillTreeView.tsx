@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
 import { OrnamentLine } from "./common/OrnamentLine";
@@ -11,12 +11,17 @@ const VERTICAL_GAP = 80;
 const CANVAS_MARGIN_X = 48;
 const CANVAS_MARGIN_Y = 48;
 const LABEL_MAX_CHARS = 12;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 1.5;
+const ZOOM_STEP = 0.1;
+const ZOOM_INITIAL = 1;
 
 type Props = {
   concepts: Concept[];
   domainColorMap: Record<string, string>;
   selectedId?: string;
   onSelectConcept: (id: string) => void;
+  onClearSelection?: () => void;
 };
 
 type LayoutNode = {
@@ -106,6 +111,59 @@ const buildBFSTree = (
   return { tree, mainEdges, extraEdges };
 };
 
+const collectVisibleIds = (
+  tree: Map<string, string[]>,
+  rootId: string,
+  collapsedNodeIds: Set<string>
+): Set<string> => {
+  const visible = new Set<string>();
+  if (!rootId) return visible;
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    visible.add(node);
+    if (collapsedNodeIds.has(node)) continue;
+    (tree.get(node) ?? []).forEach((child) => {
+      if (!visible.has(child)) queue.push(child);
+    });
+  }
+  return visible;
+};
+
+const filterTreeToVisible = (
+  tree: Map<string, string[]>,
+  visibleIds: Set<string>
+): Map<string, string[]> => {
+  const filtered = new Map<string, string[]>();
+  visibleIds.forEach((id) => {
+    filtered.set(
+      id,
+      (tree.get(id) ?? []).filter((child) => visibleIds.has(child))
+    );
+  });
+  return filtered;
+};
+
+const countDescendants = (tree: Map<string, string[]>, rootId: string): Map<string, number> => {
+  const counts = new Map<string, number>();
+  const visit = (id: string): number => {
+    const children = tree.get(id) ?? [];
+    let total = 0;
+    children.forEach((child) => {
+      total += 1 + visit(child);
+    });
+    counts.set(id, total);
+    return total;
+  };
+  if (rootId) visit(rootId);
+  return counts;
+};
+
+const clampZoom = (value: number): number => {
+  const stepped = Math.round(value / ZOOM_STEP) * ZOOM_STEP;
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(stepped.toFixed(1))));
+};
+
 const normalizeLabelLines = (title: string): string[] => {
   if (title.length <= LABEL_MAX_CHARS) return [title];
   const first = title.slice(0, LABEL_MAX_CHARS);
@@ -164,7 +222,10 @@ type LayoutData = {
 const computeTreeLayout = (
   tree: Map<string, string[]>,
   concepts: Concept[],
-  rootId: string
+  rootId: string,
+  mainEdges: [string, string][],
+  extraEdges: [string, string][],
+  visibleIds: Set<string>
 ): LayoutData => {
   const conceptMap = new Map(concepts.map((c) => [c.id, c]));
   const depths = new Map<string, number>();
@@ -213,12 +274,30 @@ const computeTreeLayout = (
     });
   });
 
-  const { mainEdges, extraEdges } = buildBFSTree(buildGraph(concepts), rootId);
+  const visibleMainEdges = mainEdges.filter(
+    ([source, target]) => visibleIds.has(source) && visibleIds.has(target)
+  );
+  const visibleExtraEdges = extraEdges.filter(
+    ([source, target]) => visibleIds.has(source) && visibleIds.has(target)
+  );
 
-  return { nodes, mainEdges, extraEdges, rootId, canvasWidth, canvasHeight };
+  return {
+    nodes,
+    mainEdges: visibleMainEdges,
+    extraEdges: visibleExtraEdges,
+    rootId,
+    canvasWidth,
+    canvasHeight,
+  };
 };
 
-export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
+export const SkillTreeView = ({
+  concepts,
+  domainColorMap,
+  selectedId,
+  onSelectConcept,
+  onClearSelection,
+}: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [treeNodeLimit, setTreeNodeLimit] = useState(TREE_NODE_PAGE);
 
@@ -240,22 +319,67 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     [concepts, treeNodeLimit]
   );
 
-  const layoutData = useMemo<LayoutData>(() => {
-    if (conceptsWindow.length === 0) {
-      return { nodes: [], mainEdges: [], extraEdges: [], rootId: "", canvasWidth: 900, canvasHeight: 640 };
-    }
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
+  const [zoom, setZoom] = useState(ZOOM_INITIAL);
+  const zoomRef = useRef(ZOOM_INITIAL);
 
+  const structure = useMemo(() => {
+    if (conceptsWindow.length === 0) {
+      return {
+        tree: new Map<string, string[]>(),
+        mainEdges: [] as [string, string][],
+        extraEdges: [] as [string, string][],
+        rootId: "",
+        descendantCounts: new Map<string, number>(),
+      };
+    }
     const graph = buildGraph(conceptsWindow);
     const degrees = computeDegree(graph);
-    const root = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
-    const { tree, mainEdges, extraEdges } = buildBFSTree(graph, root);
-    const data = computeTreeLayout(tree, conceptsWindow, root);
-
-    return { ...data, mainEdges, extraEdges };
+    const rootId = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+    const { tree, mainEdges, extraEdges } = buildBFSTree(graph, rootId);
+    return {
+      tree,
+      mainEdges,
+      extraEdges,
+      rootId,
+      descendantCounts: countDescendants(tree, rootId),
+    };
   }, [conceptsWindow]);
 
+  useEffect(() => {
+    const validIds = new Set(conceptsWindow.map((concept) => concept.id));
+    setCollapsedNodeIds((prev) => {
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (validIds.has(id)) next.add(id);
+      });
+      if (next.size === prev.size && Array.from(prev).every((id) => next.has(id))) return prev;
+      return next;
+    });
+  }, [conceptsWindow]);
+
+  const visibleIds = useMemo(
+    () => collectVisibleIds(structure.tree, structure.rootId, collapsedNodeIds),
+    [structure.tree, structure.rootId, collapsedNodeIds]
+  );
+
+  const layoutData = useMemo<LayoutData>(() => {
+    if (!structure.rootId) {
+      return { nodes: [], mainEdges: [], extraEdges: [], rootId: "", canvasWidth: 900, canvasHeight: 640 };
+    }
+    const visibleTree = filterTreeToVisible(structure.tree, visibleIds);
+    return computeTreeLayout(
+      visibleTree,
+      conceptsWindow,
+      structure.rootId,
+      structure.mainEdges,
+      structure.extraEdges,
+      visibleIds
+    );
+  }, [conceptsWindow, structure, visibleIds]);
+
   const navigationData = useMemo(() => {
-    if (layoutData.rootId === "") {
+    if (!layoutData.rootId) {
       return {
         rootId: "",
         parentById: new Map<string, string>(),
@@ -264,11 +388,14 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         nodesByDepth: new Map<number, string[]>(),
       };
     }
-    const graph = buildGraph(conceptsWindow);
-    const root = layoutData.rootId;
-    const { tree } = buildBFSTree(graph, root);
-    return buildNavigationData(tree, root);
-  }, [conceptsWindow, layoutData.rootId]);
+    return buildNavigationData(filterTreeToVisible(structure.tree, visibleIds), layoutData.rootId);
+  }, [layoutData.rootId, structure.tree, visibleIds]);
+
+  useEffect(() => {
+    if (selectedId && visibleIds.size > 0 && !visibleIds.has(selectedId)) {
+      onClearSelection?.();
+    }
+  }, [selectedId, visibleIds, onClearSelection]);
 
   const [isPanning, setIsPanning] = useState(false);
   const [panOrigin, setPanOrigin] = useState<{ x: number; y: number } | null>(null);
@@ -278,13 +405,45 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     onSelectConcept(id);
   };
 
+  const toggleCollapse = (id: string) => {
+    setCollapsedNodeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const applyZoom = useCallback((nextZoom: number, origin?: { clientX: number; clientY: number }) => {
+    const container = containerRef.current;
+    const clamped = clampZoom(nextZoom);
+    const current = zoomRef.current;
+    if (clamped === current) return;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const originX = origin ? origin.clientX - rect.left : rect.width / 2;
+      const originY = origin ? origin.clientY - rect.top : rect.height / 2;
+      const logicalX = (container.scrollLeft + originX) / current;
+      const logicalY = (container.scrollTop + originY) / current;
+      zoomRef.current = clamped;
+      setZoom(clamped);
+      requestAnimationFrame(() => {
+        container.scrollLeft = logicalX * clamped - originX;
+        container.scrollTop = logicalY * clamped - originY;
+      });
+      return;
+    }
+    zoomRef.current = clamped;
+    setZoom(clamped);
+  }, []);
+
   const nodeById = new Map(layoutData.nodes.map((node) => [node.id, node]));
   const canShowMoreTree = concepts.length > conceptsWindow.length;
   const visibleExtraEdges = selectedId
     ? layoutData.extraEdges.filter(([source, target]) => source === selectedId || target === selectedId)
     : [];
 
-  const handleBackgroundPointerDown = (event: React.PointerEvent<SVGRectElement>) => {
+  const handleBackgroundPointerDown = (event: PointerEvent<SVGRectElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
     const container = containerRef.current;
@@ -295,7 +454,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement | HTMLDivElement>) => {
+  const handlePointerMove = (event: PointerEvent<SVGSVGElement | HTMLDivElement>) => {
     if (!isPanning || !pointerStart || !panOrigin) return;
     const container = containerRef.current;
     if (!container) return;
@@ -305,7 +464,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     container.scrollTop = panOrigin.y - dy;
   };
 
-  const handlePointerUp = (event: React.PointerEvent<SVGSVGElement | HTMLDivElement | SVGRectElement>) => {
+  const handlePointerUp = (event: PointerEvent<SVGSVGElement | HTMLDivElement | SVGRectElement>) => {
     if (!isPanning) return;
     setIsPanning(false);
     setPointerStart(null);
@@ -314,6 +473,19 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      const direction = event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      applyZoom(zoomRef.current + direction, { clientX: event.clientX, clientY: event.clientY });
+    };
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
+  }, [applyZoom]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentId = selectedId ?? navigationData.rootId;
@@ -366,10 +538,10 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
 
     const container = containerRef.current;
     const padding = 24;
-    const targetLeft = Math.max(0, node.x - node.width / 2 - padding);
-    const targetTop = Math.max(0, node.y - node.height / 2 - padding);
-    const targetRight = node.x + node.width / 2 + padding;
-    const targetBottom = node.y + node.height / 2 + padding;
+    const targetLeft = Math.max(0, (node.x - node.width / 2 - padding) * zoom);
+    const targetTop = Math.max(0, (node.y - node.height / 2 - padding) * zoom);
+    const targetRight = (node.x + node.width / 2 + padding) * zoom;
+    const targetBottom = (node.y + node.height / 2 + padding) * zoom;
 
     const visibleLeft = container.scrollLeft;
     const visibleTop = container.scrollTop;
@@ -392,7 +564,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
     if (scrollLeft !== visibleLeft || scrollTop !== visibleTop) {
       container.scrollTo({ left: scrollLeft, top: scrollTop, behavior: "smooth" });
     }
-  }, [selectedId, nodeById]);
+  }, [selectedId, nodeById, zoom]);
 
   return (
     <section className="rounded-2xl border border-celestial-border bg-celestial-panel p-3 shadow-celestial decorated-card">
@@ -406,7 +578,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs text-celestial-textSub">
             ノード {layoutData.nodes.length} / 主エッジ {layoutData.mainEdges.length} / 追加エッジ {layoutData.extraEdges.length}
-            {concepts.length > layoutData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""}
+            {concepts.length > conceptsWindow.length ? `（対象 ${concepts.length} 件中）` : ""}
           </p>
           {canShowMoreTree && (
             <button
@@ -420,6 +592,39 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         </div>
       </header>
 
+      <div className="relative">
+        <div className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1">
+          <div className="pointer-events-auto flex items-center gap-1 rounded-md border border-celestial-border bg-celestial-panel/95 px-1 py-0.5 shadow-sm">
+            <button
+              type="button"
+              className="rounded px-1.5 py-0.5 text-xs text-celestial-textMain hover:bg-celestial-gold/10 disabled:opacity-40"
+              aria-label="縮小"
+              disabled={zoom <= ZOOM_MIN}
+              onClick={() => applyZoom(zoom - ZOOM_STEP)}
+            >
+              −
+            </button>
+            <span className="min-w-[2.75rem] text-center text-xs tabular-nums text-celestial-textSub">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              type="button"
+              className="rounded px-1.5 py-0.5 text-xs text-celestial-textMain hover:bg-celestial-gold/10 disabled:opacity-40"
+              aria-label="拡大"
+              disabled={zoom >= ZOOM_MAX}
+              onClick={() => applyZoom(zoom + ZOOM_STEP)}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="rounded px-1.5 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+              onClick={() => applyZoom(ZOOM_INITIAL)}
+            >
+              100%
+            </button>
+          </div>
+        </div>
       <div
         ref={containerRef}
         tabIndex={0}
@@ -430,8 +635,8 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
         <svg
-          width={layoutData.canvasWidth}
-          height={layoutData.canvasHeight}
+          width={layoutData.canvasWidth * zoom}
+          height={layoutData.canvasHeight * zoom}
           viewBox={`0 0 ${layoutData.canvasWidth} ${layoutData.canvasHeight}`}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -497,6 +702,11 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
             const x = node.x - node.width / 2;
             const y = node.y - node.height / 2;
             const titleY = labelLines.length === 1 ? y + 38 : y + 30;
+            const childCount = structure.tree.get(node.id)?.length ?? 0;
+            const isCollapsed = collapsedNodeIds.has(node.id);
+            const hiddenCount = structure.descendantCounts.get(node.id) ?? 0;
+            const collapseLabel = isCollapsed ? `+ ${hiddenCount}` : "−";
+            const collapseWidth = isCollapsed ? Math.max(28, 12 + String(hiddenCount).length * 7) : 20;
             return (
               <g
                 key={node.id}
@@ -526,7 +736,7 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                 {labelLines.map((line, index) => (
                   <text
                     key={index}
-                    x={node.x + 6}
+                    x={node.x - (childCount > 0 ? 8 : -6)}
                     y={titleY + index * 16}
                     textAnchor="middle"
                     fontSize="13"
@@ -536,13 +746,44 @@ export const SkillTreeView = ({ concepts, domainColorMap, selectedId, onSelectCo
                     {line}
                   </text>
                 ))}
+                {childCount > 0 && (
+                  <g
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleCollapse(node.id);
+                    }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <rect
+                      x={x + node.width - collapseWidth - 8}
+                      y={y + node.height / 2 - 11}
+                      width={collapseWidth}
+                      height={22}
+                      rx="11"
+                      fill="#fff"
+                      stroke="rgba(92,126,145,0.45)"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={x + node.width - collapseWidth / 2 - 8}
+                      y={y + node.height / 2 + 4}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fill="#1f2d34"
+                    >
+                      {collapseLabel}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
         </svg>
       </div>
+      </div>
       <p className="mt-2 text-xs text-celestial-textSub">
-        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。主線はツリー、点線は選択中ノードの追加関係です。背景ドラッグまたはスクロールで移動できます。
+        研究テーマタグ・検索・状態・お気に入りフィルタの結果を対象に表示します。主線はツリー、点線は選択中ノードの追加関係です。背景ドラッグまたはスクロールで移動、Ctrl/Cmd + ホイールでズームできます。子ノードがあるカードの − / + N で枝を折りたたみます。
       </p>
     </section>
   );

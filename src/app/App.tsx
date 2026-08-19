@@ -678,6 +678,7 @@ export const App = () => {
                         domainColorMap={domainColorMap}
                         selectedId={selectedId}
                         onSelectConcept={handleGraphSelect}
+                        onClearSelection={() => setSelectedId(undefined)}
                       />
                     </div>
                     <div className="min-w-0">
