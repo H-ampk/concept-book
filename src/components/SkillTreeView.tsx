@@ -159,6 +159,23 @@ const countDescendants = (tree: Map<string, string[]>, rootId: string): Map<stri
   return counts;
 };
 
+const sortChildrenByDescendantCount = (
+  tree: Map<string, string[]>,
+  descendantCounts: Map<string, number>
+): Map<string, string[]> => {
+  const sorted = new Map<string, string[]>();
+  tree.forEach((children, parentId) => {
+    const withIndex = children.map((id, index) => ({ id, index }));
+    withIndex.sort((a, b) => {
+      const diff = (descendantCounts.get(b.id) ?? 0) - (descendantCounts.get(a.id) ?? 0);
+      if (diff !== 0) return diff;
+      return a.index - b.index;
+    });
+    sorted.set(parentId, withIndex.map((item) => item.id));
+  });
+  return sorted;
+};
+
 const clampZoom = (value: number): number => {
   const stepped = Math.round(value / ZOOM_STEP) * ZOOM_STEP;
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(stepped.toFixed(1))));
@@ -337,12 +354,13 @@ export const SkillTreeView = ({
     const degrees = computeDegree(graph);
     const rootId = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
     const { tree, mainEdges, extraEdges } = buildBFSTree(graph, rootId);
+    const descendantCounts = countDescendants(tree, rootId);
     return {
-      tree,
+      tree: sortChildrenByDescendantCount(tree, descendantCounts),
       mainEdges,
       extraEdges,
       rootId,
-      descendantCounts: countDescendants(tree, rootId),
+      descendantCounts,
     };
   }, [conceptsWindow]);
 
