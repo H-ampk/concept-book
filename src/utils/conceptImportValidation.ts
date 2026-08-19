@@ -6,7 +6,7 @@ import type { QuizChoice, QuizDeck, QuizQuestion, QuizVisibility } from "../type
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
-import { repairUndirectedRelatedIds } from "./conceptRelations";
+import { normalizeRelatedIdList } from "./conceptRelations";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
 
@@ -484,7 +484,7 @@ const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => 
     myInterpretation: raw.myInterpretation ?? "",
     domainTags: normalizedDomainTags,
     researchTags: raw.researchTags ?? [],
-    relatedIds: raw.relatedIds ?? [],
+    relatedIds: normalizeRelatedIdList(raw.relatedIds ?? [], { selfId: raw.id }),
     media: media.length > 0 ? media : undefined,
     source: {
       book: raw.source?.book ?? "",
@@ -553,7 +553,7 @@ export const validateConceptImportPayload = (
     };
   }
 
-  return { success: true, concepts: repairUndirectedRelatedIds(conceptsResult.data).concepts };
+  return { success: true, concepts: conceptsResult.data };
 };
 
 export type BackupImportValidationSuccess = {
@@ -576,7 +576,10 @@ export const validateBackupImportPayload = (
     const { decks, skipped: deckSkipped } = normalizeQuizDecksForBackupImport(backupResult.data.quizDecks);
     return {
       success: true,
-      concepts: repairUndirectedRelatedIds(backupResult.data.concepts).concepts,
+      concepts: backupResult.data.concepts.map((concept) => ({
+        ...concept,
+        relatedIds: normalizeRelatedIdList(concept.relatedIds, { selfId: concept.id })
+      })),
       contextCards: backupResult.data.contextCards ?? [],
       quizQuestions: questions,
       quizQuestionParseSkipped: skipped,

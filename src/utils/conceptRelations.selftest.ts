@@ -78,6 +78,47 @@ const run = () => {
   const diff = diffRelatedIds(["B", "C"], ["B", "D"]);
   assert(diff.added.join(",") === "D" && diff.removed.join(",") === "C", "update diff");
 
+  // validation 相当: universe なしでは payload 外 ID を落とさない
+  assert(
+    normalizeRelatedIdList(["imp-A", "imp-A", "imp-C", ""], { selfId: "imp-C" }).join(",") ===
+      "imp-A",
+    "import sanitize keeps out-of-payload refs, drops self/dup/empty"
+  );
+
+  // storage 相当: 既存+import 全体で repair
+  const mergeRepair = repairUndirectedRelatedIds([
+    stub("imp-A", ["imp-B"]),
+    stub("imp-B", ["imp-A"]),
+    stub("imp-C", ["imp-A"])
+  ]);
+  assert(
+    sameSet(mergeRepair.concepts.find((c) => c.id === "imp-C")!.relatedIds, ["imp-A"]) &&
+      sameSet(mergeRepair.concepts.find((c) => c.id === "imp-A")!.relatedIds, ["imp-B", "imp-C"]),
+    "merge existing reference"
+  );
+  assert(
+    sameSet(
+      repairUndirectedRelatedIds([stub("imp-C", ["really-missing"])]).concepts[0].relatedIds,
+      []
+    ),
+    "merge missing reference"
+  );
+
+  assert(
+    sameSet(
+      repairUndirectedRelatedIds([
+        stub("imp-A", ["imp-B", "imp-A", "imp-B", "missing-id"]),
+        stub("imp-B", [])
+      ]).concepts.find((c) => c.id === "imp-A")!.relatedIds,
+      ["imp-B"]
+    ) &&
+      repairUndirectedRelatedIds([
+        stub("imp-A", ["imp-B", "missing-id"]),
+        stub("imp-B", [])
+      ]).changedIds.includes("imp-A"),
+    "replace payload missing-id is persisted as removed"
+  );
+
   console.log("conceptRelations selftest: ok");
 };
 

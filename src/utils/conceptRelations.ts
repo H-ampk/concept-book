@@ -109,7 +109,7 @@ export const repairUndirectedRelatedIds = (
   }
 
   const changedIds: string[] = [];
-  const next = cleaned.map((concept) => {
+  const next = cleaned.map((concept, index) => {
     const union = neighbors.get(concept.id) ?? new Set<string>();
     const seen = new Set(concept.relatedIds);
     const appended: string[] = [];
@@ -121,7 +121,7 @@ export const repairUndirectedRelatedIds = (
     }
     appended.sort((a, b) => a.localeCompare(b));
     const relatedIds = [...concept.relatedIds, ...appended];
-    if (!relatedIdsEqual(relatedIds, concept.relatedIds)) {
+    if (!relatedIdsEqual(relatedIds, concepts[index].relatedIds)) {
       changedIds.push(concept.id);
     }
     return { ...concept, relatedIds };
