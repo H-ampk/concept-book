@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor } from "../utils/domainColors";
+import { buildUndirectedAdjacency } from "../utils/conceptRelations";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const TREE_NODE_PAGE = 250;
@@ -37,22 +38,8 @@ type LayoutNode = {
 };
 
 // 補助関数: 無向グラフの隣接リスト構築
-const buildGraph = (concepts: Concept[]): Map<string, string[]> => {
-  const graph = new Map<string, string[]>();
-  concepts.forEach((concept) => graph.set(concept.id, []));
-
-  concepts.forEach((concept) => {
-    concept.relatedIds.forEach((relatedId) => {
-      if (!graph.has(relatedId)) return;
-      const neighbors = graph.get(concept.id)!;
-      if (!neighbors.includes(relatedId)) neighbors.push(relatedId);
-      const opposite = graph.get(relatedId)!;
-      if (!opposite.includes(concept.id)) opposite.push(concept.id);
-    });
-  });
-
-  return graph;
-};
+const buildGraph = (concepts: Concept[]): Map<string, string[]> =>
+  buildUndirectedAdjacency(concepts);
 
 // 補助関数: degree 計算
 const computeDegree = (graph: Map<string, string[]>): Map<string, number> => {
@@ -77,11 +64,11 @@ const buildBFSTree = (
   tree.set(root, []);
   const mainEdges: [string, string][] = [];
 
-  const allEdges = new Set<string>();
+  const allEdges = new Map<string, [string, string]>();
   graph.forEach((neighbors, node) => {
     neighbors.forEach((neighbor) => {
-      const edgeKey = node < neighbor ? `${node}-${neighbor}` : `${neighbor}-${node}`;
-      allEdges.add(edgeKey);
+      const [left, right] = node < neighbor ? [node, neighbor] : [neighbor, node];
+      allEdges.set(`${left}::${right}`, [left, right]);
     });
   });
 
@@ -100,8 +87,7 @@ const buildBFSTree = (
   }
 
   const extraEdges: [string, string][] = [];
-  allEdges.forEach((edgeKey) => {
-    const [source, target] = edgeKey.split("-");
+  allEdges.forEach(([source, target]) => {
     const isMain = mainEdges.some(
       ([s, t]) => (s === source && t === target) || (s === target && t === source)
     );

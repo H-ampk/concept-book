@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
+import { collectUndirectedConceptEdges } from "../utils/conceptRelations";
 import { getDomainTagColor } from "../utils/domainColors";
 
 const GRAPH_NODE_PAGE = 200;
@@ -72,7 +73,6 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   }, []);
 
   const graphData = useMemo(() => {
-    const idSet = new Set(conceptsWindow.map((concept) => concept.id));
     const nodes: GraphNode[] = conceptsWindow.map((concept) => ({
       id: concept.id,
       title: concept.title,
@@ -80,27 +80,10 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
       favorite: concept.favorite
     }));
 
-    const edgeKeys = new Set<string>();
-    const links: GraphLink[] = [];
-    conceptsWindow.forEach((concept) => {
-      concept.relatedIds.forEach((relatedId) => {
-        if (!idSet.has(relatedId)) {
-          return;
-        }
-        if (relatedId === concept.id) {
-          return;
-        }
-        const key = `${concept.id}->${relatedId}`;
-        if (edgeKeys.has(key)) {
-          return;
-        }
-        edgeKeys.add(key);
-        links.push({
-          source: concept.id,
-          target: relatedId
-        });
-      });
-    });
+    const links: GraphLink[] = collectUndirectedConceptEdges(conceptsWindow).map((edge) => ({
+      source: edge.source,
+      target: edge.target
+    }));
 
     return { nodes, links };
   }, [conceptsWindow]);

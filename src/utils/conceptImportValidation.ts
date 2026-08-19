@@ -6,6 +6,7 @@ import type { QuizChoice, QuizDeck, QuizQuestion, QuizVisibility } from "../type
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
+import { repairUndirectedRelatedIds } from "./conceptRelations";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
 
@@ -552,7 +553,7 @@ export const validateConceptImportPayload = (
     };
   }
 
-  return { success: true, concepts: conceptsResult.data };
+  return { success: true, concepts: repairUndirectedRelatedIds(conceptsResult.data).concepts };
 };
 
 export type BackupImportValidationSuccess = {
@@ -575,7 +576,7 @@ export const validateBackupImportPayload = (
     const { decks, skipped: deckSkipped } = normalizeQuizDecksForBackupImport(backupResult.data.quizDecks);
     return {
       success: true,
-      concepts: backupResult.data.concepts,
+      concepts: repairUndirectedRelatedIds(backupResult.data.concepts).concepts,
       contextCards: backupResult.data.contextCards ?? [],
       quizQuestions: questions,
       quizQuestionParseSkipped: skipped,

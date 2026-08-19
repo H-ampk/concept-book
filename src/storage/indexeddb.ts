@@ -19,10 +19,17 @@ import {
   findExclusiveQuestionIds,
   findOrphanQuestionIds
 } from "../utils/quiz/quizDataCleanup";
+import {
+  diffRelatedIds,
+  normalizeRelatedIdList,
+  repairUndirectedRelatedIds,
+  withRelatedIdAdded,
+  withRelatedIdRemoved
+} from "../utils/conceptRelations";
 import type { ConceptStorage, ContextCardStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
@@ -74,15 +81,16 @@ const sanitizeConcept = (
   const researchTags = toArray(concept.researchTags).filter(Boolean);
   const normalizedDomainTags = domainTags.length > 0 ? domainTags : legacyTags;
   const mediaNorm = normalizeMediaRefs(concept.media ?? []);
+  const id = concept.id ?? createConceptId();
 
   const normalized: Concept = {
-    id: concept.id ?? createConceptId(),
+    id,
     title: concept.title ?? "",
     definition: concept.definition ?? "",
     myInterpretation: concept.myInterpretation ?? "",
     domainTags: normalizedDomainTags,
     researchTags,
-    relatedIds: toArray(concept.relatedIds).filter(Boolean),
+    relatedIds: normalizeRelatedIdList(concept.relatedIds, { selfId: id }),
     media: mediaNorm.length > 0 ? mediaNorm : undefined,
     source: {
       book: concept.source?.book ?? "",
@@ -478,6 +486,25 @@ const openDb = (): Promise<IDBDatabase> =>
         deckStore.createIndex("visibility", "visibility", { unique: false });
         deckStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
+
+      // v7: relatedIds を無向関係として一度だけ修復する
+      if (oldVersion < 7 && db.objectStoreNames.contains(STORE_CONCEPTS)) {
+        const conceptStore = request.transaction?.objectStore(STORE_CONCEPTS);
+        if (conceptStore) {
+          const getAllReq = conceptStore.getAll();
+          getAllReq.onsuccess = () => {
+            const data = (getAllReq.result ?? []) as StoredConcept[];
+            const concepts = data.map((raw) => sanitizeConcept(raw).concept);
+            const { concepts: repaired, changedIds } = repairUndirectedRelatedIds(concepts);
+            const changed = new Set(changedIds);
+            for (const concept of repaired) {
+              if (changed.has(concept.id)) {
+                conceptStore.put(concept);
+              }
+            }
+          };
+        }
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -516,21 +543,37 @@ const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> =>
     request.onerror = () => reject(request.error);
   });
 
+const persistRepairedRelatedIds = async (
+  store: IDBObjectStore,
+  concepts: Concept[]
+): Promise<Concept[]> => {
+  const { concepts: repaired, changedIds } = repairUndirectedRelatedIds(concepts);
+  if (changedIds.length === 0) {
+    return repaired;
+  }
+  const changed = new Set(changedIds);
+  await Promise.all(
+    repaired.filter((concept) => changed.has(concept.id)).map((concept) => requestToPromise(store.put(concept)))
+  );
+  return repaired;
+};
+
 export class IndexedDBStorage implements ConceptStorage {
   async getAllConcepts(): Promise<Concept[]> {
     return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
       const store = getStore(STORE_CONCEPTS);
       const data = (await requestToPromise(store.getAll())) as StoredConcept[];
-      const normalized = await Promise.all(
-        data.map(async (raw) => {
-          const { concept, migrated } = sanitizeConcept(raw);
-          if (migrated) {
-            await requestToPromise(store.put(concept));
+      const sanitized = data.map((raw) => sanitizeConcept(raw));
+      const concepts = sanitized.map((item) => item.concept);
+      const repaired = await persistRepairedRelatedIds(store, concepts);
+      await Promise.all(
+        sanitized.map(async (item, index) => {
+          if (item.migrated) {
+            await requestToPromise(store.put(repaired[index]));
           }
-          return concept;
         })
       );
-      return normalized.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      return repaired.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     });
   }
 
@@ -554,21 +597,45 @@ export class IndexedDBStorage implements ConceptStorage {
       const store = getStore(STORE_CONCEPTS);
       const now = nowIso();
       const mediaNorm = normalizeMediaRefs(input.media ?? []);
+      const newId = createConceptId();
+      const existingRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
+      const existingConcepts = existingRaw.map((raw) => sanitizeConcept(raw).concept);
+      const existingIds = new Set(existingConcepts.map((concept) => concept.id));
+      const relatedIds = normalizeRelatedIdList(input.relatedIds, {
+        selfId: newId,
+        existingIds
+      });
       const concept: Concept = {
         ...input,
-        id: createConceptId(),
+        id: newId,
         domainTags: toArray(input.domainTags)
           .map((tag) => tag.trim())
           .filter(Boolean),
         researchTags: toArray(input.researchTags)
           .map((tag) => tag.trim())
           .filter(Boolean),
-        relatedIds: toArray(input.relatedIds).map((rid) => rid.trim()).filter(Boolean),
+        relatedIds,
         media: mediaNorm.length > 0 ? mediaNorm : undefined,
         createdAt: now,
         updatedAt: now
       };
       await requestToPromise(store.add(concept));
+
+      const existingById = new Map(existingConcepts.map((item) => [item.id, item]));
+      await Promise.all(
+        relatedIds.map(async (peerId) => {
+          const peer = existingById.get(peerId);
+          if (!peer) {
+            return;
+          }
+          const nextPeer: Concept = {
+            ...peer,
+            relatedIds: withRelatedIdAdded(peer.relatedIds, newId, peer.id),
+            updatedAt: now
+          };
+          await requestToPromise(store.put(nextPeer));
+        })
+      );
       return concept;
     });
   }
@@ -608,10 +675,7 @@ export class IndexedDBStorage implements ConceptStorage {
           updates.researchTags !== undefined
             ? updates.researchTags.map((tag) => tag.trim()).filter(Boolean)
             : existing.researchTags,
-        relatedIds:
-          updates.relatedIds !== undefined
-            ? updates.relatedIds.map((relatedId) => relatedId.trim()).filter(Boolean)
-            : existing.relatedIds,
+        relatedIds: existing.relatedIds,
         media: nextMedia,
         source: {
           book: updates.source?.book ?? existing.source.book,
@@ -620,6 +684,55 @@ export class IndexedDBStorage implements ConceptStorage {
         },
         updatedAt: nowIso()
       };
+
+      if (updates.relatedIds !== undefined) {
+        const allRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
+        const allConcepts = allRaw.map((raw) => sanitizeConcept(raw).concept);
+        const existingIds = new Set(allConcepts.map((item) => item.id));
+        const newRelatedIds = normalizeRelatedIdList(updates.relatedIds, {
+          selfId: id,
+          existingIds
+        });
+        const oldRelatedIds = normalizeRelatedIdList(existing.relatedIds, {
+          selfId: id,
+          existingIds
+        });
+        const { added, removed } = diffRelatedIds(oldRelatedIds, newRelatedIds);
+        updated.relatedIds = newRelatedIds;
+
+        const peerById = new Map(allConcepts.map((item) => [item.id, item]));
+        await Promise.all(
+          added.map(async (peerId) => {
+            const peer = peerById.get(peerId);
+            if (!peer) {
+              return;
+            }
+            await requestToPromise(
+              store.put({
+                ...peer,
+                relatedIds: withRelatedIdAdded(peer.relatedIds, id, peer.id),
+                updatedAt: updated.updatedAt
+              })
+            );
+          })
+        );
+        await Promise.all(
+          removed.map(async (peerId) => {
+            const peer = peerById.get(peerId);
+            if (!peer) {
+              return;
+            }
+            await requestToPromise(
+              store.put({
+                ...peer,
+                relatedIds: withRelatedIdRemoved(peer.relatedIds, id),
+                updatedAt: updated.updatedAt
+              })
+            );
+          })
+        );
+      }
+
       await requestToPromise(store.put(updated));
       return updated;
     });
@@ -683,7 +796,7 @@ export class IndexedDBStorage implements ConceptStorage {
         touched.map(async (concept) => {
           const next: Concept = {
             ...concept,
-            relatedIds: concept.relatedIds.filter((relatedId) => relatedId !== id),
+            relatedIds: withRelatedIdRemoved(concept.relatedIds, id),
             updatedAt: nowIso()
           };
           await requestToPromise(store.put(next));
@@ -1008,6 +1121,11 @@ export class IndexedDBStorage implements ConceptStorage {
         await requestToPromise(store.put(concept));
         imported += 1;
       }
+
+      const allRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
+      const allConcepts = allRaw.map((raw) => sanitizeConcept(raw).concept);
+      await persistRepairedRelatedIds(store, allConcepts);
+
       return { imported, skipped };
     });
   }
