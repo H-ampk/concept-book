@@ -718,6 +718,7 @@ export const App = () => {
                     conceptQuizStatsText={conceptQuizStatsText}
                     onSelect={handleSelect}
                     cardRefs={cardRefs}
+                    searchQuery={debouncedSearchQuery}
                   />
                   {visibleConcepts.length > listDisplayLimit && (
                     <div className="mt-3 flex flex-col items-center gap-2 px-1">

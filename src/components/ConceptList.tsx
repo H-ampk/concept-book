@@ -3,8 +3,14 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMatchMedia } from "../hooks/useMatchMedia";
 import { StatusBadge } from "./StatusBadge";
 import type { Concept } from "../types/concept";
+import {
+  getPrimaryConceptSearchMatch,
+  getSearchSnippetText,
+  shouldShowSearchSnippet
+} from "../features/concepts/conceptSearch";
 import { getDisplayStatus } from "../utils/conceptStatus";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
+import { splitHighlightedSegments } from "../utils/search";
 
 const LIST_GAP_PX = 0;
 const MOBILE_ESTIMATE_PX = 68;
@@ -21,7 +27,22 @@ type Props = {
   cardRefs: React.RefObject<Map<string, HTMLElement>>;
   /** スマホ仮想スクロール時の縦方向の取り方（全体一覧 vs グループ内） */
   listLayout?: ConceptListLayout;
+  searchQuery?: string;
 };
+
+const HighlightedText = ({ text, query }: { text: string; query: string }) => (
+  <>
+    {splitHighlightedSegments(text, query).map((segment, index) =>
+      segment.mark ? (
+        <mark key={index} className="concept-search-mark">
+          {segment.text}
+        </mark>
+      ) : (
+        <React.Fragment key={index}>{segment.text}</React.Fragment>
+      )
+    )}
+  </>
+);
 
 const itemClassName = (selected: boolean) =>
   `concept-index-item${selected ? " concept-index-item-selected" : ""}`;
@@ -35,7 +56,8 @@ function ConceptListItem({
   outerRef,
   as = "li",
   style,
-  virtualRowIndex
+  virtualRowIndex,
+  searchQuery = ""
 }: {
   concept: Concept;
   selectedId?: string;
@@ -47,6 +69,7 @@ function ConceptListItem({
   style?: React.CSSProperties;
   /** 仮想リスト行の measure 用（@tanstack/react-virtual） */
   virtualRowIndex?: number;
+  searchQuery?: string;
 }) {
   const selected = selectedId === concept.id;
   const Wrapper = as;
@@ -54,6 +77,9 @@ function ConceptListItem({
   const domainTags = concept.domainTags.slice(0, 2);
   const researchTags = concept.researchTags.slice(0, 2);
   const hasMeta = domainTags.length > 0 || researchTags.length > 0 || learningStatusText !== "未学習";
+  const primaryMatch = getPrimaryConceptSearchMatch(concept, searchQuery);
+  const showSnippet = shouldShowSearchSnippet(primaryMatch);
+  const snippetText = primaryMatch && showSnippet ? getSearchSnippetText(primaryMatch, searchQuery) : "";
 
   return (
     <Wrapper
@@ -70,7 +96,13 @@ function ConceptListItem({
         type="button"
       >
         <div className="concept-index-item-title-row">
-          <h3 className="concept-index-item-title">{concept.title}</h3>
+          <h3 className="concept-index-item-title">
+            {searchQuery ? (
+              <HighlightedText text={concept.title} query={searchQuery} />
+            ) : (
+              concept.title
+            )}
+          </h3>
           <StatusBadge status={getDisplayStatus(concept)} />
         </div>
         {hasMeta && (
@@ -78,20 +110,39 @@ function ConceptListItem({
             {domainTags.map((tag) => (
               <span
                 key={`${concept.id}-domain-${tag}`}
-                className="concept-index-tag"
+                className={`concept-index-tag${
+                  searchQuery && primaryMatch?.type === "domainTag" && primaryMatch.text === tag
+                    ? " concept-index-tag--hit"
+                    : ""
+                }`}
                 style={colorToSoftTagStyle(getDomainTagColor(tag, domainColorMap))}
               >
                 {tag}
               </span>
             ))}
             {researchTags.map((tag) => (
-              <span key={`${concept.id}-research-${tag}`} className="concept-index-tag concept-index-tag--muted">
+              <span
+                key={`${concept.id}-research-${tag}`}
+                className={`concept-index-tag concept-index-tag--muted${
+                  searchQuery && primaryMatch?.type === "researchTag" && primaryMatch.text === tag
+                    ? " concept-index-tag--hit"
+                    : ""
+                }`}
+              >
                 {tag}
               </span>
             ))}
             <span className="concept-index-learning" aria-label="クイズ学習状況">
               {learningStatusText}
             </span>
+          </div>
+        )}
+        {showSnippet && primaryMatch && (
+          <div className="concept-index-search-hit">
+            <p className="concept-index-search-hit-label">{primaryMatch.label}</p>
+            <p className="concept-index-search-hit-text">
+              <HighlightedText text={snippetText} query={searchQuery} />
+            </p>
           </div>
         )}
       </button>
@@ -108,7 +159,8 @@ export const ConceptList = ({
   conceptQuizStatsText,
   onSelect,
   cardRefs,
-  listLayout = "full"
+  listLayout = "full",
+  searchQuery = ""
 }: Props) => {
   const isMobile = useMatchMedia("(max-width: 768px)");
   const parentRef = useRef<HTMLDivElement>(null);
@@ -125,8 +177,15 @@ export const ConceptList = ({
     estimateSize: () => MOBILE_ESTIMATE_PX,
     overscan: OVERSCAN,
     gap: LIST_GAP_PX,
-    enabled: isMobile && concepts.length > 0
+    enabled: isMobile && concepts.length > 0,
+    getItemKey: (index) => concepts[index]?.id ?? index
   });
+
+  useEffect(() => {
+    if (isMobile && concepts.length > 0) {
+      rowVirtualizer.measure();
+    }
+  }, [searchQuery, concepts, isMobile, rowVirtualizer]);
 
   /* 選択 ID が変わったときだけ追従（concepts を依存に含めると検索デバウンスのたびにスクロールが動く） */
   useEffect(() => {
@@ -157,6 +216,7 @@ export const ConceptList = ({
             domainColorMap={domainColorMap}
             conceptQuizStatsText={conceptQuizStatsText}
             onSelect={onSelect}
+            searchQuery={searchQuery}
             outerRef={(el) => {
               if (cardRefs.current) {
                 if (el) {
@@ -197,6 +257,7 @@ export const ConceptList = ({
               domainColorMap={domainColorMap}
               conceptQuizStatsText={conceptQuizStatsText}
               onSelect={onSelect}
+              searchQuery={searchQuery}
               style={{
                 position: "absolute",
                 top: 0,

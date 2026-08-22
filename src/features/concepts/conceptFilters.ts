@@ -1,16 +1,6 @@
 import { conceptStatusList, type Concept, type ConceptStatus } from "../../types/concept";
 import { getDisplayStatus } from "../../utils/conceptStatus";
-import { includesNormalized } from "../../utils/search";
-
-const fullText = (concept: Concept): string =>
-  [
-    concept.title,
-    concept.definition,
-    concept.myInterpretation,
-    concept.domainTags.join(" "),
-    concept.researchTags.join(" "),
-    concept.notes
-  ].join(" ");
+import { conceptMatchesQuery } from "./conceptSearch";
 
 export const filterConcepts = (
   concepts: Concept[],
@@ -21,7 +11,7 @@ export const filterConcepts = (
   onlyFavorite: boolean
 ): Concept[] =>
   concepts.filter((concept) => {
-    const byQuery = includesNormalized(fullText(concept), query);
+    const byQuery = conceptMatchesQuery(concept, query);
     const byDomainTags =
       selectedDomainTags.length === 0 ||
       selectedDomainTags.every((tag) => concept.domainTags.includes(tag));

@@ -18,6 +18,7 @@ type Props = {
   conceptQuizStatsText?: Map<string, string>;
   onSelect: (id: string) => void;
   cardRefs: React.RefObject<Map<string, HTMLElement>>;
+  searchQuery?: string;
 };
 
 export const ConceptGroupSections = ({
@@ -27,7 +28,8 @@ export const ConceptGroupSections = ({
   domainColorMap,
   conceptQuizStatsText,
   onSelect,
-  cardRefs
+  cardRefs,
+  searchQuery
 }: Props) => {
   const initialOpenState = useMemo(
     () =>
@@ -63,6 +65,7 @@ export const ConceptGroupSections = ({
         onSelect={onSelect}
         cardRefs={cardRefs}
         listLayout="full"
+        searchQuery={searchQuery}
       />
     );
   }
@@ -99,6 +102,7 @@ export const ConceptGroupSections = ({
                   onSelect={onSelect}
                   cardRefs={cardRefs}
                   listLayout="grouped"
+                  searchQuery={searchQuery}
                 />
               </div>
             )}
