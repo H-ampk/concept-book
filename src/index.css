@@ -1070,8 +1070,9 @@ body {
 .concept-index-tag--hit {
   font-weight: 700;
   text-decoration: underline;
+  text-decoration-color: rgba(75, 135, 170, 0.7);
   text-underline-offset: 0.12em;
-  box-shadow: inset 0 -0.55em 0 rgba(197, 174, 134, 0.42);
+  box-shadow: 0 0 0 1px rgba(94, 126, 147, 0.38);
 }
 
 .concept-index-search-hit {
@@ -1098,8 +1099,8 @@ body {
 
 .concept-search-mark {
   color: inherit;
-  background: rgba(197, 174, 134, 0.55);
-  box-shadow: inset 0 -0.08em 0 rgba(90, 74, 52, 0.35);
+  background: rgba(125, 180, 210, 0.28);
+  border-bottom: 1px solid rgba(75, 135, 170, 0.55);
   border-radius: 2px;
   padding: 0 0.08em;
   font-weight: 600;
@@ -1110,7 +1111,7 @@ body {
 }
 
 .concept-index-item-selected .concept-search-mark {
-  background: rgba(197, 174, 134, 0.7);
+  background: rgba(125, 180, 210, 0.36);
 }
 
 .concept-index-item-selected {
