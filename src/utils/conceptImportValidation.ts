@@ -7,6 +7,7 @@ import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types
 import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 import { normalizeRelatedIdList } from "./conceptRelations";
+import { extractBackupDomainColors } from "./domainColors";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
 
@@ -564,6 +565,7 @@ export type BackupImportValidationSuccess = {
   quizQuestionParseSkipped: number;
   quizDecks: QuizDeck[];
   quizDeckParseSkipped: number;
+  domainColors?: Record<string, string>;
 };
 
 export const validateBackupImportPayload = (
@@ -574,6 +576,7 @@ export const validateBackupImportPayload = (
   if (backupResult.success) {
     const { questions, skipped } = normalizeQuizQuestionsForBackupImport(backupResult.data.quizQuestions);
     const { decks, skipped: deckSkipped } = normalizeQuizDecksForBackupImport(backupResult.data.quizDecks);
+    const domainColors = extractBackupDomainColors(payload);
     return {
       success: true,
       concepts: backupResult.data.concepts.map((concept) => ({
@@ -584,7 +587,8 @@ export const validateBackupImportPayload = (
       quizQuestions: questions,
       quizQuestionParseSkipped: skipped,
       quizDecks: decks,
-      quizDeckParseSkipped: deckSkipped
+      quizDeckParseSkipped: deckSkipped,
+      ...(domainColors !== undefined ? { domainColors } : {})
     };
   }
 

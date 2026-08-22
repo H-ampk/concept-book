@@ -376,7 +376,10 @@ export const App = () => {
       >
         {screen === "settings" ? (
           <SettingsPage
-            onImported={reload}
+            onImported={async () => {
+              await reload();
+              setDomainColorMap(loadDomainColorMap());
+            }}
             domainTags={allDomainTags}
             domainColorMap={domainColorMap}
             onChangeDomainColor={handleChangeDomainColor}

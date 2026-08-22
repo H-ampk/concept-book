@@ -1383,7 +1383,7 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  async exportConceptBookPackage(): Promise<Blob> {
+  async exportConceptBookPackage(domainColors?: Record<string, string>): Promise<Blob> {
     const data = await this.exportBackupData();
     const mediaRecords: MediaRecord[] = [];
     const mediaFiles: { id: string; data: Uint8Array }[] = [];
@@ -1413,7 +1413,11 @@ export class IndexedDBStorage implements ConceptStorage {
       mediaFiles.push({ id: rec.id, data: new Uint8Array(buf) });
     }
 
-    const json = JSON.stringify(data, null, 2);
+    const json = JSON.stringify(
+      domainColors !== undefined ? { ...data, domainColors } : data,
+      null,
+      2
+    );
     const zipped = buildConceptBookZip(json, mediaFiles);
     return new Blob([new Uint8Array(zipped)], { type: "application/zip" });
   }
@@ -1432,6 +1436,7 @@ export class IndexedDBStorage implements ConceptStorage {
     skippedQuizDecks: number;
     importedMedia: number;
     missingMedia: number;
+    domainColors?: Record<string, string>;
   }> {
     const buffer = await file.arrayBuffer();
     const { conceptsText, mediaEntries } = parseConceptBookZip(buffer);
@@ -1542,7 +1547,8 @@ export class IndexedDBStorage implements ConceptStorage {
       importedQuizDecks,
       skippedQuizDecks,
       importedMedia,
-      missingMedia
+      missingMedia,
+      ...(validation.domainColors !== undefined ? { domainColors: validation.domainColors } : {})
     };
   }
 }

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { getStorage } from "../storage";
-import { getDomainTagColor } from "../utils/domainColors";
+import {
+  attachDomainColorsToBackup,
+  getDomainTagColor,
+  restoreDomainColorsFromBackup
+} from "../utils/domainColors";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -47,7 +51,10 @@ export const SettingsPage = ({
     setBusy(true);
     try {
       const data = await storage.exportBackupData();
-      downloadJson(`concept-backup-${new Date().toISOString()}.json`, data);
+      downloadJson(
+        `concept-backup-${new Date().toISOString()}.json`,
+        attachDomainColorsToBackup(data, domainColorMap)
+      );
       setMessage(
         `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）をエクスポートしました。`
       );
@@ -62,7 +69,7 @@ export const SettingsPage = ({
     setBusy(true);
     try {
       const snapshot = await storage.exportBackupData();
-      const blob = await storage.exportConceptBookPackage();
+      const blob = await storage.exportConceptBookPackage(domainColorMap);
       downloadBlob(`concept-book-export-${new Date().toISOString().slice(0, 10)}.zip`, blob);
       setMessage(
         `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件を含みます。`
@@ -82,6 +89,7 @@ export const SettingsPage = ({
     setBusy(true);
     try {
       const result = await storage.importConceptBookPackage(file, packageMode);
+      restoreDomainColorsFromBackup(result.domainColors, packageMode);
       await onImported();
       setMessage(
         `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
@@ -115,7 +123,8 @@ export const SettingsPage = ({
         quizQuestions,
         quizQuestionParseSkipped,
         quizDecks,
-        quizDeckParseSkipped
+        quizDeckParseSkipped,
+        domainColors
       } = validationResult;
       const result = await storage.importBackupData(
         {
@@ -128,6 +137,7 @@ export const SettingsPage = ({
         },
         mode
       );
+      restoreDomainColorsFromBackup(domainColors, mode);
       await onImported();
       setMessage(
         `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）`

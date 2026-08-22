@@ -63,7 +63,7 @@ export type ConceptStorage = {
   updateMediaCaption: (mediaId: string, caption: string | undefined) => Promise<void>;
   getMediaBlob: (mediaId: string) => Promise<Blob | undefined>;
   /** concepts.json + media/ を含む ZIP */
-  exportConceptBookPackage: () => Promise<Blob>;
+  exportConceptBookPackage: (domainColors?: Record<string, string>) => Promise<Blob>;
   importConceptBookPackage: (
     file: File,
     mode: "replace" | "merge"
@@ -78,6 +78,7 @@ export type ConceptStorage = {
     skippedQuizDecks: number;
     importedMedia: number;
     missingMedia: number;
+    domainColors?: Record<string, string>;
   }>;
 
   /** QuizQuestion（IndexedDB `quizQuestions`）。ZIP の concepts.json にも含める */
