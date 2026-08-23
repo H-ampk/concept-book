@@ -1,30 +1,26 @@
 /**
- * クイズ用の型（IndexedDB・ZIP・UI は未接続）
+ * クイズ用の型（IndexedDB・自分用 JSON / ZIP バックアップ・学習 UI で利用）
  *
- * --- 将来の Import / Export 方針（実装は ZIP 対応フェーズで行う）---
- *
- * ZIP ペイロード想定（concepts.json 相当の JSON ルート）:
+ * 自分用バックアップ（JSON / ZIP の concepts.json ルート）:
  *   {
  *     concepts: Concept[],
  *     contextCards: ContextCard[],
  *     quizQuestions?: QuizQuestion[],
- *     quizDecks?: QuizDeck[],           // 型は定義済み。ZIP 同梱は別フェーズ
- *     quizAttemptLogs?: QuizAttemptLog[]  // ZIP 同梱は別フェーズ（プライバシー）
+ *     quizDecks?: QuizDeck[],
+ *     quizAttemptLogs?: QuizAttemptLog[]
  *   }
  *
- * エクスポートモード案:
- * - backup（自分用バックアップ）: concepts / contextCards に加え、visibility が private / public の
- *   QuizQuestion を両方含める想定。quizAttemptLogs はオプション（含めるか UI で選択できる余地）。
+ * エクスポート:
+ * - backup（自分用）: concepts / contextCards に加え、private / public の QuizQuestion・QuizDeck と
+ *   quizAttemptLogs を含める。
  * - share（共有用）: public の QuizQuestion のみ含める想定。private の問題・quizAttemptLogs は
- *   デフォルトで除外。
+ *   デフォルトで除外（共有用 export では学習ログを扱わない）。
  *
- * インポート方針案（ZIP 対応フェーズで確定）:
- * - quizQuestions が無い古い ZIP は空配列扱い。
+ * インポート:
+ * - quizQuestions / quizDecks / quizAttemptLogs が無い古いバックアップは空配列扱い。
  * - 古いデータで visibility が欠ける場合は private 扱いに正規化する。
  * - conceptId / linkedConceptId の参照先が無い場合はインポート時に参照を外す（Question 自体は保持）。
- * - 同一 id のマージ（上書き / スキップ / 複製）はそのフェーズで決める。
- *
- * 学習ログはプライバシーが強いため、将来エクスポート対象をモードまたはチェックで選べる余地を残す。
+ * - QuizAttemptLog は履歴として immutable。同一 id は既存を優先し、重複は保存しない。
  */
 
 /** private: 非公開（自分用）。public: 共有・公開用エクスポートの対象にできるクイズ。 */
@@ -120,21 +116,13 @@ export const QUIZ_QUESTION_SCHEMA_VERSION = 1;
  * 分類は固定カテゴリーではなく、自由記述の deckKey / domainTags で行う。
  * 同一 Question を複数 Deck に含められる（questionIds は参照のみ。Question 本体は独立保存）。
  *
- * --- 将来の IndexedDB（未実装）---
- * - store 名案: `quizDecks`, keyPath: `id`
- * - index 案: `deckKey`（unique: false）, `visibility`, `updatedAt`
- * - DB_VERSION 引き上げはそのフェーズで行う
+ * IndexedDB store: `quizDecks`, keyPath: `id`
  *
- * --- 将来の ZIP Import / Export（未実装）---
- * - ルートに `quizDecks?: QuizDeck[]` を追加する想定
- * - 古い ZIP で quizDecks が無い場合は空配列扱い
- * - questionIds に存在しない QuizQuestion ID はインポート時に除去する想定
- * - questionIds が空になった Deck を保存するかスキップするかは次フェーズで決める
- * - backup: private / public の QuizDeck を両方含める想定
- * - share: visibility === public の QuizDeck のみ。public Deck に private Question が混在する場合の扱いは別途決める
- *
- * --- 将来のクイズで学習 UI（未実装）---
- * - Deck 選択 → questionIds 順に出題（未選択時は従来どおり全 Question / Concept 絞り込みでも可）
+ * 自分用 ZIP / JSON バックアップには `quizDecks?: QuizDeck[]` を含める。
+ * 古いバックアップで quizDecks が無い場合は空配列扱い。
+ * questionIds に存在しない QuizQuestion ID はインポート時に除去する。
+ * backup: private / public の QuizDeck を両方含める。
+ * share: visibility === public の QuizDeck のみ（共有用。学習ログは含めない）。
  *
  * --- 将来フィールド候補（型にはまだ含めない）---
  * - coverConceptId, shuffleMode: "fixed" | "shuffle", estimatedMinutes, source: "manual" | "auto"
@@ -182,7 +170,7 @@ export interface QuizDeck {
 /** QuizDeck の schemaVersion 初期値・マイグレーション用 */
 export const QUIZ_DECK_SCHEMA_VERSION = 1;
 
-/** クイズ1回答あたりの観測ログ（IndexedDB のみ。ZIP には今回含めない） */
+/** クイズ1回答あたりの観測ログ。自分用 JSON / ZIP バックアップ対象（共有用 export では扱わない） */
 export interface QuizAttemptLog {
   id: string;
   /** 同一「学習開始」から結果までを束ねる ID */

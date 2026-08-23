@@ -2,8 +2,18 @@ import { z } from "zod";
 import { conceptStatusList, type Concept } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
 import type { ConceptMediaRef } from "../types/media";
-import type { QuizChoice, QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
+import type {
+  QuizAttemptLog,
+  QuizChoice,
+  QuizDeck,
+  QuizQuestion,
+  QuizVisibility
+} from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import {
+  isValidImportedQuizAttemptLog,
+  normalizeQuizAttemptLog
+} from "./normalizeQuizAttemptLog";
 import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 import { normalizeRelatedIdList } from "./conceptRelations";
@@ -75,7 +85,7 @@ const contextCardSchema = z.object({
 
 const contextCardArraySchema = z.array(contextCardSchema);
 
-/** ZIP / JSON バックアップ用。quizDecks は optional。quizAttemptLogs は別フェーズ */
+/** ZIP / JSON バックアップ用。quizDecks / quizAttemptLogs は optional（旧バックアップ互換） */
 export const quizVisibilitySchema = z.enum(["private", "public"]);
 
 const quizChoiceSourceStrategySchema = z.enum([
@@ -389,6 +399,33 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
   return parsed.success ? parsed.data : null;
 };
 
+const normalizeQuizAttemptLogItem = (item: unknown): QuizAttemptLog | null => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const normalized = normalizeQuizAttemptLog(item as Partial<QuizAttemptLog>);
+  return isValidImportedQuizAttemptLog(normalized) ? normalized : null;
+};
+
+export const normalizeQuizAttemptLogsForBackupImport = (
+  input: unknown | undefined
+): { logs: QuizAttemptLog[]; skipped: number } => {
+  if (input === undefined || !Array.isArray(input)) {
+    return { logs: [], skipped: 0 };
+  }
+  const logs: QuizAttemptLog[] = [];
+  let skipped = 0;
+  for (const item of input) {
+    const log = normalizeQuizAttemptLogItem(item);
+    if (!log) {
+      skipped += 1;
+      continue;
+    }
+    logs.push(log);
+  }
+  return { logs, skipped };
+};
+
 export const normalizeQuizQuestionsForBackupImport = (
   input: unknown | undefined
 ): { questions: QuizQuestion[]; skipped: number } => {
@@ -419,6 +456,10 @@ const backupObjectSchema = z.object({
     .optional()
     .transform((v) => (Array.isArray(v) ? v : undefined)),
   quizDecks: z
+    .unknown()
+    .optional()
+    .transform((v) => (Array.isArray(v) ? v : undefined)),
+  quizAttemptLogs: z
     .unknown()
     .optional()
     .transform((v) => (Array.isArray(v) ? v : undefined))
@@ -565,6 +606,8 @@ export type BackupImportValidationSuccess = {
   quizQuestionParseSkipped: number;
   quizDecks: QuizDeck[];
   quizDeckParseSkipped: number;
+  quizAttemptLogs: QuizAttemptLog[];
+  quizAttemptLogParseSkipped: number;
   domainColors?: Record<string, string>;
 };
 
@@ -576,6 +619,9 @@ export const validateBackupImportPayload = (
   if (backupResult.success) {
     const { questions, skipped } = normalizeQuizQuestionsForBackupImport(backupResult.data.quizQuestions);
     const { decks, skipped: deckSkipped } = normalizeQuizDecksForBackupImport(backupResult.data.quizDecks);
+    const { logs, skipped: logSkipped } = normalizeQuizAttemptLogsForBackupImport(
+      backupResult.data.quizAttemptLogs
+    );
     const domainColors = extractBackupDomainColors(payload);
     return {
       success: true,
@@ -588,6 +634,8 @@ export const validateBackupImportPayload = (
       quizQuestionParseSkipped: skipped,
       quizDecks: decks,
       quizDeckParseSkipped: deckSkipped,
+      quizAttemptLogs: logs,
+      quizAttemptLogParseSkipped: logSkipped,
       ...(domainColors !== undefined ? { domainColors } : {})
     };
   }
@@ -602,7 +650,9 @@ export const validateBackupImportPayload = (
       quizQuestions: [],
       quizQuestionParseSkipped: 0,
       quizDecks: [],
-      quizDeckParseSkipped: 0
+      quizDeckParseSkipped: 0,
+      quizAttemptLogs: [],
+      quizAttemptLogParseSkipped: 0
     };
   }
   return legacyResult;

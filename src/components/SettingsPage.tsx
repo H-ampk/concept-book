@@ -56,7 +56,7 @@ export const SettingsPage = ({
         attachDomainColorsToBackup(data, domainColorMap)
       );
       setMessage(
-        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）をエクスポートしました。`
+        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）、学習ログ ${data.quizAttemptLogs.length} 件をエクスポートしました。`
       );
     } catch {
       setMessage("エクスポートに失敗しました。");
@@ -72,7 +72,7 @@ export const SettingsPage = ({
       const blob = await storage.exportConceptBookPackage(domainColorMap);
       downloadBlob(`concept-book-export-${new Date().toISOString().slice(0, 10)}.zip`, blob);
       setMessage(
-        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件を含みます。`
+        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件、学習ログ ${snapshot.quizAttemptLogs.length} 件を含みます。`
       );
     } catch (err) {
       console.error("ZIP export failed:", err);
@@ -92,7 +92,7 @@ export const SettingsPage = ({
       restoreDomainColorsFromBackup(result.domainColors, packageMode);
       await onImported();
       setMessage(
-        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
+        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
     } catch (e) {
       setMessage(
@@ -124,6 +124,8 @@ export const SettingsPage = ({
         quizQuestionParseSkipped,
         quizDecks,
         quizDeckParseSkipped,
+        quizAttemptLogs,
+        quizAttemptLogParseSkipped,
         domainColors
       } = validationResult;
       const result = await storage.importBackupData(
@@ -133,14 +135,16 @@ export const SettingsPage = ({
           quizQuestions,
           quizQuestionParseSkipped,
           quizDecks,
-          quizDeckParseSkipped
+          quizDeckParseSkipped,
+          quizAttemptLogs,
+          quizAttemptLogParseSkipped
         },
         mode
       );
       restoreDomainColorsFromBackup(domainColors, mode);
       await onImported();
       setMessage(
-        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）`
+        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}件）`
       );
     } catch (error) {
       if (error instanceof SyntaxError) {

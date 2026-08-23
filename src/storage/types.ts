@@ -32,6 +32,7 @@ export type ConceptStorage = {
     contextCards: ContextCard[];
     quizQuestions: QuizQuestion[];
     quizDecks: QuizDeck[];
+    quizAttemptLogs: QuizAttemptLog[];
   }>;
   importBackupData: (
     data: {
@@ -41,6 +42,8 @@ export type ConceptStorage = {
       quizQuestionParseSkipped: number;
       quizDecks: QuizDeck[];
       quizDeckParseSkipped: number;
+      quizAttemptLogs: QuizAttemptLog[];
+      quizAttemptLogParseSkipped: number;
     },
     mode: "replace" | "merge"
   ) => Promise<{
@@ -52,6 +55,8 @@ export type ConceptStorage = {
     skippedQuizQuestions: number;
     importedQuizDecks: number;
     skippedQuizDecks: number;
+    importedQuizAttemptLogs: number;
+    skippedQuizAttemptLogs: number;
   }>;
   /** 画像・動画を保存し、概念の media 参照を更新する */
   addMedia: (input: {
@@ -76,6 +81,8 @@ export type ConceptStorage = {
     skippedQuizQuestions: number;
     importedQuizDecks: number;
     skippedQuizDecks: number;
+    importedQuizAttemptLogs: number;
+    skippedQuizAttemptLogs: number;
     importedMedia: number;
     missingMedia: number;
     domainColors?: Record<string, string>;
@@ -88,7 +95,7 @@ export type ConceptStorage = {
   deleteQuizQuestion: (id: string) => Promise<void>;
   deleteQuizQuestionsByConceptId: (conceptId: string) => Promise<void>;
 
-  /** QuizDeck（IndexedDB `quizDecks`。ZIP は別フェーズ） */
+  /** QuizDeck（IndexedDB `quizDecks`。自分用 JSON / ZIP バックアップ対象） */
   getQuizDecks: () => Promise<QuizDeck[]>;
   getQuizDeck: (id: string) => Promise<QuizDeck | undefined>;
   getQuizDecksByDeckKey: (deckKey: string) => Promise<QuizDeck[]>;
@@ -103,7 +110,7 @@ export type ConceptStorage = {
   deleteQuizAttemptLogsByQuestionIds: (questionIds: string[]) => Promise<void>;
   deleteQuizAttemptLogsByDeckId: (deckId: string) => Promise<void>;
 
-  /** クイズ回答ログ（ZIP 非対象） */
+  /** クイズ回答ログ。自分用 JSON / ZIP バックアップ対象 */
   getQuizAttemptLogs: () => Promise<QuizAttemptLog[]>;
   getQuizAttemptLogsByQuestionId: (questionId: string) => Promise<QuizAttemptLog[]>;
   saveQuizAttemptLog: (log: QuizAttemptLog) => Promise<void>;
