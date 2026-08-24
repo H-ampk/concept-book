@@ -11,11 +11,6 @@ import {
   formatSecondsFromMs,
   isUsableReactionTimeMs
 } from "../utils/quizStats";
-import {
-  buildLearningLogCsv,
-  buildLearningLogJsonPayload,
-  learningLogExportFilename
-} from "../utils/quiz/learningLogExport";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -57,15 +52,6 @@ const matchesConcept = (log: QuizAttemptLog, conceptId: string): boolean => {
 const sortAnsweredDesc = (items: QuizAttemptLog[]): QuizAttemptLog[] =>
   [...items].sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
 
-const downloadBlob = (filename: string, blob: Blob): void => {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
-
 export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDashboard }: Props) => {
   const [logs, setLogs] = useState<QuizAttemptLog[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
@@ -100,12 +86,6 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
   const titleById = useMemo(() => {
     const m = new Map<string, string>();
     concepts.forEach((c) => m.set(c.id, c.title || "無題"));
-    return m;
-  }, [concepts]);
-
-  const conceptTitleById = useMemo(() => {
-    const m = new Map<string, string>();
-    concepts.forEach((c) => m.set(c.id, c.title));
     return m;
   }, [concepts]);
 
@@ -194,38 +174,6 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
     } catch {
       window.alert("全削除に失敗しました。時間をおいて再試行してください。");
     }
-  };
-
-  const handleExportCsv = () => {
-    if (filteredLogs.length === 0) {
-      return;
-    }
-    const csv = buildLearningLogCsv(filteredLogs, conceptTitleById);
-    downloadBlob(
-      learningLogExportFilename("csv", new Date()),
-      new Blob([csv], { type: "text/csv;charset=utf-8" })
-    );
-  };
-
-  const handleExportJson = () => {
-    if (filteredLogs.length === 0) {
-      return;
-    }
-    const payload = buildLearningLogJsonPayload(
-      filteredLogs,
-      {
-        correctness,
-        conceptId: conceptFilter,
-        search,
-        dateStart,
-        dateEnd
-      },
-      new Date().toISOString()
-    );
-    downloadBlob(
-      learningLogExportFilename("json", new Date()),
-      new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
-    );
   };
 
   const questionTitleHint = (log: QuizAttemptLog): string => {
@@ -477,41 +425,6 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                 </button>
               </div>
               </div>
-            </div>
-          </section>
-
-          <section
-            aria-labelledby="learning-logs-export-heading"
-            className="space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm"
-          >
-            <h2 id="learning-logs-export-heading" className="text-sm font-semibold text-celestial-softGold">
-              エクスポート
-            </h2>
-            <p className="text-sm text-celestial-textMain">
-              表示中{" "}
-              <span className="tabular-nums font-semibold">{filteredLogs.length}</span>
-              件
-            </p>
-            <p className="text-xs leading-relaxed text-celestial-textSub">
-              現在の絞り込み結果を、分析用のCSVまたはJSONとして保存します。保存しても学習ログは変更されません。
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleExportCsv}
-                disabled={filteredLogs.length === 0}
-                className="header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-celestial-gold/10"
-              >
-                CSVを保存
-              </button>
-              <button
-                type="button"
-                onClick={handleExportJson}
-                disabled={filteredLogs.length === 0}
-                className="header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-              >
-                JSONを保存
-              </button>
             </div>
           </section>
 

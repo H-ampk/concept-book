@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStorage } from "../storage";
+import type { Concept } from "../types/concept";
+import type { QuizAttemptLog } from "../types/quiz";
 import {
   attachDomainColorsToBackup,
   getDomainTagColor,
   restoreDomainColorsFromBackup
 } from "../utils/domainColors";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
+import {
+  buildLearningLogCsv,
+  buildLearningLogJsonPayload,
+  learningLogExportFilename
+} from "../utils/quiz/learningLogExport";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -36,6 +43,9 @@ const downloadBlob = (filename: string, blob: Blob): void => {
   URL.revokeObjectURL(url);
 };
 
+const sortAnsweredDesc = (items: QuizAttemptLog[]): QuizAttemptLog[] =>
+  [...items].sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
+
 export const SettingsPage = ({
   onImported,
   domainTags,
@@ -46,6 +56,27 @@ export const SettingsPage = ({
   const [message, setMessage] = useState<string>("JSONバックアップを作成できます。");
   const [mode, setMode] = useState<"replace" | "merge">("merge");
   const [packageMode, setPackageMode] = useState<"replace" | "merge">("merge");
+  const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
+  const [concepts, setConcepts] = useState<Concept[]>([]);
+
+  const loadLearningLogExportData = useCallback(async () => {
+    const [allLogs, allConcepts] = await Promise.all([
+      storage.getQuizAttemptLogs(),
+      storage.getAllConcepts()
+    ]);
+    setQuizAttemptLogs(sortAnsweredDesc(allLogs));
+    setConcepts(allConcepts);
+  }, []);
+
+  useEffect(() => {
+    void loadLearningLogExportData();
+  }, [loadLearningLogExportData]);
+
+  const conceptTitleById = useMemo(() => {
+    const m = new Map<string, string>();
+    concepts.forEach((c) => m.set(c.id, c.title));
+    return m;
+  }, [concepts]);
 
   const handleExport = async () => {
     setBusy(true);
@@ -91,6 +122,7 @@ export const SettingsPage = ({
       const result = await storage.importConceptBookPackage(file, packageMode);
       restoreDomainColorsFromBackup(result.domainColors, packageMode);
       await onImported();
+      await loadLearningLogExportData();
       setMessage(
         `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
@@ -143,6 +175,7 @@ export const SettingsPage = ({
       );
       restoreDomainColorsFromBackup(domainColors, mode);
       await onImported();
+      await loadLearningLogExportData();
       setMessage(
         `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}件）`
       );
@@ -157,6 +190,30 @@ export const SettingsPage = ({
     }
   };
 
+  const handleLearningLogCsvExport = () => {
+    if (quizAttemptLogs.length === 0) {
+      return;
+    }
+    const csv = buildLearningLogCsv(quizAttemptLogs, conceptTitleById);
+    downloadBlob(
+      learningLogExportFilename("csv", new Date()),
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    );
+    setMessage(`学習ログ ${quizAttemptLogs.length} 件をCSVで保存しました。`);
+  };
+
+  const handleLearningLogJsonExport = () => {
+    if (quizAttemptLogs.length === 0) {
+      return;
+    }
+    const payload = buildLearningLogJsonPayload(quizAttemptLogs, new Date().toISOString());
+    downloadBlob(
+      learningLogExportFilename("json", new Date()),
+      new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
+    );
+    setMessage(`学習ログ ${quizAttemptLogs.length} 件をJSONで保存しました。`);
+  };
+
   return (
     <section className="space-y-5 rounded-2xl border border-celestial-border bg-celestial-panel p-5 shadow-celestial decorated-card">
       <span className="card-corner card-corner-top-left" aria-hidden="true" />
@@ -166,8 +223,16 @@ export const SettingsPage = ({
       <OrnamentLine variant="panel" />
       <header>
         <h2 className="text-lg font-semibold text-celestial-textMain">設定</h2>
-        <p className="text-sm text-celestial-textSub">バックアップ、復元、PWA運用状態を管理します。</p>
+        <p className="text-sm text-celestial-textSub">
+          バックアップ・復元、データエクスポート、PWA運用状態を管理します。
+        </p>
       </header>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-celestial-textMain">バックアップ・復元</h3>
+        <p className="text-xs text-celestial-textSub">
+          ConceptBookへ戻す・別端末へ移すためのバックアップです。分析用の書き出しではありません。
+        </p>
 
       <div className="rounded-lg border-2 border-celestial-border bg-celestial-panel/80 p-4">
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">パッケージ（ZIP）— 推奨・メディア付き</h3>
@@ -245,6 +310,39 @@ export const SettingsPage = ({
           onChange={(e) => void handleImport(e.target.files?.[0])}
           className="block w-full text-sm text-celestial-textMain file:mr-3 file:rounded-md file:border file:border-celestial-border file:bg-nordic-surface file:px-3 file:py-1.5"
         />
+      </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-celestial-textMain">データエクスポート</h3>
+        <p className="text-xs text-celestial-textSub">
+          ConceptBookに保存されているデータを、表計算ソフトや分析ツールなど外部で利用するために書き出します。
+        </p>
+        <div className="rounded-lg bg-nordic-surface p-4">
+          <h4 className="mb-2 text-sm font-semibold text-celestial-textMain">学習ログ</h4>
+          <p className="mb-2 text-xs text-celestial-textSub">
+            クイズの回答履歴をCSVまたはJSONとして保存します。エクスポートは読み取り専用で、ConceptBook内の学習履歴は変更されません。
+          </p>
+          <p className="mb-3 text-sm tabular-nums text-celestial-textMain">{quizAttemptLogs.length}件</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy || quizAttemptLogs.length === 0}
+              className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-60"
+              onClick={handleLearningLogCsvExport}
+            >
+              CSVを保存
+            </button>
+            <button
+              type="button"
+              disabled={busy || quizAttemptLogs.length === 0}
+              className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-60"
+              onClick={handleLearningLogJsonExport}
+            >
+              JSONを保存
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-lg bg-nordic-surface p-4">

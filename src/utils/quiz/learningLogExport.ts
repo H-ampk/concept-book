@@ -31,19 +31,10 @@ export const LEARNING_LOG_CSV_COLUMNS = [
 
 export type LearningLogCsvColumn = (typeof LEARNING_LOG_CSV_COLUMNS)[number];
 
-export type LearningLogExportFilters = {
-  correctness: "all" | "correct" | "incorrect";
-  conceptId: string;
-  search: string;
-  dateStart: string;
-  dateEnd: string;
-};
-
 export type LearningLogJsonExportPayload = {
   schemaVersion: typeof LEARNING_LOG_EXPORT_JSON_SCHEMA_VERSION;
   exportedAt: string;
   count: number;
-  filters: LearningLogExportFilters;
   quizAttemptLogs: QuizAttemptLog[];
 };
 
@@ -111,13 +102,11 @@ export const buildLearningLogCsv = (
 
 export const buildLearningLogJsonPayload = (
   logs: QuizAttemptLog[],
-  filters: LearningLogExportFilters,
   exportedAt: string
 ): LearningLogJsonExportPayload => ({
   schemaVersion: LEARNING_LOG_EXPORT_JSON_SCHEMA_VERSION,
   exportedAt,
   count: logs.length,
-  filters,
   quizAttemptLogs: logs
 });
 

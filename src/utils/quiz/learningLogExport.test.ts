@@ -142,11 +142,7 @@ describe("buildLearningLogCsv", () => {
 describe("buildLearningLogJsonPayload", () => {
   it("JSON payloadに元QuizAttemptLogフィールドが保持される", () => {
     const log = baseLog();
-    const payload = buildLearningLogJsonPayload(
-      [log],
-      { correctness: "all", conceptId: "", search: "", dateStart: "", dateEnd: "" },
-      "2026-08-23T12:00:00.000Z"
-    );
+    const payload = buildLearningLogJsonPayload([log], "2026-08-23T12:00:00.000Z");
     expect(payload.quizAttemptLogs[0]).toEqual(log);
     expect(payload.quizAttemptLogs[0]).toBe(log);
     expect(payload.schemaVersion).toBe(1);
@@ -156,23 +152,15 @@ describe("buildLearningLogJsonPayload", () => {
   it("JSON payloadのcountが対象ログ件数と一致する", () => {
     const payload = buildLearningLogJsonPayload(
       [baseLog({ id: "a" }), baseLog({ id: "b" })],
-      { correctness: "incorrect", conceptId: "", search: "", dateStart: "", dateEnd: "" },
       "2026-08-23T12:00:00.000Z"
     );
     expect(payload.count).toBe(2);
     expect(payload.quizAttemptLogs).toHaveLength(2);
   });
 
-  it("JSON payloadに現在のフィルタ条件を含められる", () => {
-    const filters = {
-      correctness: "correct" as const,
-      conceptId: "concept_a",
-      search: "定義",
-      dateStart: "2026-01-01",
-      dateEnd: "2026-01-31"
-    };
-    const payload = buildLearningLogJsonPayload([baseLog()], filters, "2026-08-23T12:00:00.000Z");
-    expect(payload.filters).toEqual(filters);
+  it("JSON payloadにfilters metadataを含めない", () => {
+    const payload = buildLearningLogJsonPayload([baseLog()], "2026-08-23T12:00:00.000Z");
+    expect(payload).not.toHaveProperty("filters");
   });
 });
 
