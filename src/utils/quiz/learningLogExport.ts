@@ -1,7 +1,5 @@
 import type { QuizAttemptLog } from "../../types/quiz";
 
-export const LEARNING_LOG_EXPORT_JSON_SCHEMA_VERSION = 1;
-
 export const LEARNING_LOG_CSV_COLUMNS = [
   "logId",
   "sessionId",
@@ -30,13 +28,6 @@ export const LEARNING_LOG_CSV_COLUMNS = [
 ] as const;
 
 export type LearningLogCsvColumn = (typeof LEARNING_LOG_CSV_COLUMNS)[number];
-
-export type LearningLogJsonExportPayload = {
-  schemaVersion: typeof LEARNING_LOG_EXPORT_JSON_SCHEMA_VERSION;
-  exportedAt: string;
-  count: number;
-  quizAttemptLogs: QuizAttemptLog[];
-};
 
 const CSV_NEWLINE = "\r\n";
 const UTF8_BOM = "\uFEFF";
@@ -100,19 +91,9 @@ export const buildLearningLogCsv = (
   return `${UTF8_BOM}${[header, ...rows].join(CSV_NEWLINE)}${CSV_NEWLINE}`;
 };
 
-export const buildLearningLogJsonPayload = (
-  logs: QuizAttemptLog[],
-  exportedAt: string
-): LearningLogJsonExportPayload => ({
-  schemaVersion: LEARNING_LOG_EXPORT_JSON_SCHEMA_VERSION,
-  exportedAt,
-  count: logs.length,
-  quizAttemptLogs: logs
-});
-
-export const learningLogExportFilename = (extension: "csv" | "json", now: Date): string => {
+export const learningLogCsvFilename = (now: Date): string => {
   const year = String(now.getFullYear());
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-  return `conceptbook-learning-logs-${year}-${month}-${day}.${extension}`;
+  return `conceptbook-learning-logs-${year}-${month}-${day}.csv`;
 };

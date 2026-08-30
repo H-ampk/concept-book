@@ -3,9 +3,8 @@ import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../../type
 import {
   LEARNING_LOG_CSV_COLUMNS,
   buildLearningLogCsv,
-  buildLearningLogJsonPayload,
   escapeCsvCell,
-  learningLogExportFilename,
+  learningLogCsvFilename,
   learningLogToCsvRow
 } from "./learningLogExport";
 
@@ -139,35 +138,9 @@ describe("buildLearningLogCsv", () => {
   });
 });
 
-describe("buildLearningLogJsonPayload", () => {
-  it("JSON payloadに元QuizAttemptLogフィールドが保持される", () => {
-    const log = baseLog();
-    const payload = buildLearningLogJsonPayload([log], "2026-08-23T12:00:00.000Z");
-    expect(payload.quizAttemptLogs[0]).toEqual(log);
-    expect(payload.quizAttemptLogs[0]).toBe(log);
-    expect(payload.schemaVersion).toBe(1);
-    expect(payload.exportedAt).toBe("2026-08-23T12:00:00.000Z");
-  });
-
-  it("JSON payloadのcountが対象ログ件数と一致する", () => {
-    const payload = buildLearningLogJsonPayload(
-      [baseLog({ id: "a" }), baseLog({ id: "b" })],
-      "2026-08-23T12:00:00.000Z"
-    );
-    expect(payload.count).toBe(2);
-    expect(payload.quizAttemptLogs).toHaveLength(2);
-  });
-
-  it("JSON payloadにfilters metadataを含めない", () => {
-    const payload = buildLearningLogJsonPayload([baseLog()], "2026-08-23T12:00:00.000Z");
-    expect(payload).not.toHaveProperty("filters");
-  });
-});
-
-describe("learningLogExportFilename", () => {
+describe("learningLogCsvFilename", () => {
   it("実行日のローカル日付をファイル名に含める", () => {
     const now = new Date(2026, 7, 23, 21, 0, 0);
-    expect(learningLogExportFilename("csv", now)).toBe("conceptbook-learning-logs-2026-08-23.csv");
-    expect(learningLogExportFilename("json", now)).toBe("conceptbook-learning-logs-2026-08-23.json");
+    expect(learningLogCsvFilename(now)).toBe("conceptbook-learning-logs-2026-08-23.csv");
   });
 });

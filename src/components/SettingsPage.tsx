@@ -8,11 +8,7 @@ import {
   restoreDomainColorsFromBackup
 } from "../utils/domainColors";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
-import {
-  buildLearningLogCsv,
-  buildLearningLogJsonPayload,
-  learningLogExportFilename
-} from "../utils/quiz/learningLogExport";
+import { buildLearningLogCsv, learningLogCsvFilename } from "../utils/quiz/learningLogExport";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -196,22 +192,10 @@ export const SettingsPage = ({
     }
     const csv = buildLearningLogCsv(quizAttemptLogs, conceptTitleById);
     downloadBlob(
-      learningLogExportFilename("csv", new Date()),
+      learningLogCsvFilename(new Date()),
       new Blob([csv], { type: "text/csv;charset=utf-8" })
     );
     setMessage(`学習ログ ${quizAttemptLogs.length} 件をCSVで保存しました。`);
-  };
-
-  const handleLearningLogJsonExport = () => {
-    if (quizAttemptLogs.length === 0) {
-      return;
-    }
-    const payload = buildLearningLogJsonPayload(quizAttemptLogs, new Date().toISOString());
-    downloadBlob(
-      learningLogExportFilename("json", new Date()),
-      new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
-    );
-    setMessage(`学習ログ ${quizAttemptLogs.length} 件をJSONで保存しました。`);
   };
 
   return (
@@ -321,7 +305,7 @@ export const SettingsPage = ({
         <div className="rounded-lg bg-nordic-surface p-4">
           <h4 className="mb-2 text-sm font-semibold text-celestial-textMain">学習ログ</h4>
           <p className="mb-2 text-xs text-celestial-textSub">
-            クイズの回答履歴をCSVまたはJSONとして保存します。エクスポートは読み取り専用で、ConceptBook内の学習履歴は変更されません。
+            クイズの回答履歴をCSVとして保存します。表計算ソフトや分析ツールで利用できます。エクスポートは読み取り専用で、ConceptBook内の学習履歴は変更されません。
           </p>
           <p className="mb-3 text-sm tabular-nums text-celestial-textMain">{quizAttemptLogs.length}件</p>
           <div className="flex flex-wrap gap-2">
@@ -332,14 +316,6 @@ export const SettingsPage = ({
               onClick={handleLearningLogCsvExport}
             >
               CSVを保存
-            </button>
-            <button
-              type="button"
-              disabled={busy || quizAttemptLogs.length === 0}
-              className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-60"
-              onClick={handleLearningLogJsonExport}
-            >
-              JSONを保存
             </button>
           </div>
         </div>
