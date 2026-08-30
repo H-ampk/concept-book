@@ -30,7 +30,8 @@ import {
   withRelatedIdAdded,
   withRelatedIdRemoved
 } from "../utils/conceptRelations";
-import type { ConceptStorage, ContextCardStorage } from "./types";
+import { applyBackupExportOptions } from "./backupExport";
+import type { BackupExportData, BackupExportOptions, ConceptStorage, ContextCardStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
 const DB_VERSION = 7;
@@ -1033,13 +1034,7 @@ export class IndexedDBStorage implements ConceptStorage {
     return this.getAllConcepts();
   }
 
-  async exportBackupData(): Promise<{
-    concepts: Concept[];
-    contextCards: ContextCard[];
-    quizQuestions: QuizQuestion[];
-    quizDecks: QuizDeck[];
-    quizAttemptLogs: QuizAttemptLog[];
-  }> {
+  async exportBackupData(options?: BackupExportOptions): Promise<BackupExportData> {
     const concepts = await this.getAllConcepts();
     const contextStorage = new ContextCardIndexedDBStorage();
     const contextCards = await contextStorage.getAllContextCards();
@@ -1053,13 +1048,16 @@ export class IndexedDBStorage implements ConceptStorage {
       contextDefinitions: concept.contextDefinitions ?? []
     }));
 
-    return {
-      concepts: conceptsWithContextDefs,
-      contextCards,
-      quizQuestions,
-      quizDecks,
-      quizAttemptLogs
-    };
+    return applyBackupExportOptions(
+      {
+        concepts: conceptsWithContextDefs,
+        contextCards,
+        quizQuestions,
+        quizDecks,
+        quizAttemptLogs
+      },
+      options
+    );
   }
 
   async importConcepts(
@@ -1395,8 +1393,11 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  async exportConceptBookPackage(domainColors?: Record<string, string>): Promise<Blob> {
-    const data = await this.exportBackupData();
+  async exportConceptBookPackage(
+    domainColors?: Record<string, string>,
+    options?: BackupExportOptions
+  ): Promise<Blob> {
+    const data = await this.exportBackupData(options);
     const mediaRecords: MediaRecord[] = [];
     const mediaFiles: { id: string; data: Uint8Array }[] = [];
     const seen = new Set<string>();

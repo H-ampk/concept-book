@@ -72,6 +72,19 @@ describe("validateBackupImportPayload quizAttemptLogs", () => {
     expect(result.quizAttemptLogParseSkipped).toBe(3);
   });
 
+  it("quizAttemptLogs が空配列のバックアップを正常に読み込める", () => {
+    const result = validateBackupImportPayload({
+      ...baseBackup,
+      quizAttemptLogs: []
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.quizAttemptLogs).toEqual([]);
+    expect(result.quizAttemptLogParseSkipped).toBe(0);
+  });
+
   it("quizAttemptLogs が存在しない旧バックアップを正常に読み込める", () => {
     const result = validateBackupImportPayload(baseBackup);
     expect(result.success).toBe(true);

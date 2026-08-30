@@ -39,3 +39,51 @@ describe("conceptBookZip domainColors", () => {
     expect(result.domainColors).toEqual({ 人工知能: "#2563EB" });
   });
 });
+
+describe("conceptBookZip quizAttemptLogs", () => {
+  it("ON の ZIP には学習ログが入る", () => {
+    const json = JSON.stringify({
+      concepts: [{ id: "c1" }],
+      contextCards: [{ id: "cc1" }],
+      quizQuestions: [{ id: "q1" }],
+      quizDecks: [{ id: "d1" }],
+      quizAttemptLogs: [{ id: "log1" }]
+    });
+    const zipped = buildConceptBookZip(json, [{ id: "m1", data: new Uint8Array([1, 2, 3]) }]);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const backup = JSON.parse(parsed.conceptsText) as {
+      quizAttemptLogs: { id: string }[];
+    };
+    expect(backup.quizAttemptLogs).toEqual([{ id: "log1" }]);
+    expect(parsed.mediaEntries.get("m1")).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("OFF の ZIP では quizAttemptLogs が [] でもメディアとその他データは維持される", () => {
+    const json = JSON.stringify({
+      concepts: [{ id: "c1", title: "概念" }],
+      contextCards: [{ id: "cc1" }],
+      quizQuestions: [{ id: "q1" }],
+      quizDecks: [{ id: "d1" }],
+      quizAttemptLogs: []
+    });
+    const zipped = buildConceptBookZip(json, [{ id: "m1", data: new Uint8Array([9, 8, 7]) }]);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const backup = JSON.parse(parsed.conceptsText) as {
+      concepts: unknown[];
+      contextCards: unknown[];
+      quizQuestions: unknown[];
+      quizDecks: unknown[];
+      quizAttemptLogs: unknown[];
+    };
+    expect(backup.quizAttemptLogs).toEqual([]);
+    expect(backup.concepts).toEqual([{ id: "c1", title: "概念" }]);
+    expect(backup.contextCards).toEqual([{ id: "cc1" }]);
+    expect(backup.quizQuestions).toEqual([{ id: "q1" }]);
+    expect(backup.quizDecks).toEqual([{ id: "d1" }]);
+    expect(parsed.mediaEntries.get("m1")).toEqual(new Uint8Array([9, 8, 7]));
+  });
+});

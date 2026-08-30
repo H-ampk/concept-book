@@ -54,6 +54,7 @@ export const SettingsPage = ({
   const [packageMode, setPackageMode] = useState<"replace" | "merge">("merge");
   const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [includeQuizAttemptLogsInBackup, setIncludeQuizAttemptLogsInBackup] = useState(true);
 
   const loadLearningLogExportData = useCallback(async () => {
     const [allLogs, allConcepts] = await Promise.all([
@@ -74,16 +75,21 @@ export const SettingsPage = ({
     return m;
   }, [concepts]);
 
+  const backupExportOptions = { includeQuizAttemptLogs: includeQuizAttemptLogsInBackup };
+
   const handleExport = async () => {
     setBusy(true);
     try {
-      const data = await storage.exportBackupData();
+      const data = await storage.exportBackupData(backupExportOptions);
       downloadJson(
         `concept-backup-${new Date().toISOString()}.json`,
         attachDomainColorsToBackup(data, domainColorMap)
       );
+      const logPart = includeQuizAttemptLogsInBackup
+        ? `学習ログ ${data.quizAttemptLogs.length} 件をエクスポートしました。`
+        : "学習ログは含めていません。";
       setMessage(
-        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）、学習ログ ${data.quizAttemptLogs.length} 件をエクスポートしました。`
+        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）、${logPart}`
       );
     } catch {
       setMessage("エクスポートに失敗しました。");
@@ -95,11 +101,14 @@ export const SettingsPage = ({
   const handlePackageExport = async () => {
     setBusy(true);
     try {
-      const snapshot = await storage.exportBackupData();
-      const blob = await storage.exportConceptBookPackage(domainColorMap);
+      const snapshot = await storage.exportBackupData(backupExportOptions);
+      const blob = await storage.exportConceptBookPackage(domainColorMap, backupExportOptions);
       downloadBlob(`concept-book-export-${new Date().toISOString().slice(0, 10)}.zip`, blob);
+      const logPart = includeQuizAttemptLogsInBackup
+        ? `学習ログ ${snapshot.quizAttemptLogs.length} 件を含みます。`
+        : "学習ログは含めていません。";
       setMessage(
-        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件、学習ログ ${snapshot.quizAttemptLogs.length} 件を含みます。`
+        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件、${logPart}`
       );
     } catch (err) {
       console.error("ZIP export failed:", err);
@@ -217,6 +226,20 @@ export const SettingsPage = ({
         <p className="text-xs text-celestial-textSub">
           ConceptBookへ戻す・別端末へ移すためのバックアップです。分析用の書き出しではありません。
         </p>
+        <label className="flex items-start gap-2 text-sm text-celestial-textMain">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={includeQuizAttemptLogsInBackup}
+            onChange={(e) => setIncludeQuizAttemptLogsInBackup(e.target.checked)}
+          />
+          <span>
+            学習ログを含める
+            <span className="mt-0.5 block text-xs text-celestial-textSub">
+              クイズの回答履歴をバックアップに含めます。完全なバックアップではONを推奨します。
+            </span>
+          </span>
+        </label>
 
       <div className="rounded-lg border-2 border-celestial-border bg-celestial-panel/80 p-4">
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">パッケージ（ZIP）— 推奨・メディア付き</h3>

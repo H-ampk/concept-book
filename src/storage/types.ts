@@ -3,6 +3,19 @@ import type { ConceptMediaRef } from "../types/media";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { QuizAttemptLog, QuizDeck, QuizQuestion } from "../types/quiz";
 
+export type BackupExportData = {
+  concepts: Concept[];
+  contextCards: ContextCard[];
+  quizQuestions: QuizQuestion[];
+  quizDecks: QuizDeck[];
+  quizAttemptLogs: QuizAttemptLog[];
+};
+
+/** 省略時・true は従来どおり学習ログ全件を含む完全バックアップ */
+export type BackupExportOptions = {
+  includeQuizAttemptLogs?: boolean;
+};
+
 // Security note for future sync backends:
 // - Keep this interface storage-agnostic so UI never talks directly to remote APIs.
 // - When adding cloud sync, enforce auth + transport encryption (HTTPS/TLS) at implementation level.
@@ -27,13 +40,7 @@ export type ConceptStorage = {
     concepts: Concept[],
     mode: "replace" | "merge"
   ) => Promise<{ imported: number; skipped: number }>;
-  exportBackupData: () => Promise<{
-    concepts: Concept[];
-    contextCards: ContextCard[];
-    quizQuestions: QuizQuestion[];
-    quizDecks: QuizDeck[];
-    quizAttemptLogs: QuizAttemptLog[];
-  }>;
+  exportBackupData: (options?: BackupExportOptions) => Promise<BackupExportData>;
   importBackupData: (
     data: {
       concepts: Concept[];
@@ -68,7 +75,10 @@ export type ConceptStorage = {
   updateMediaCaption: (mediaId: string, caption: string | undefined) => Promise<void>;
   getMediaBlob: (mediaId: string) => Promise<Blob | undefined>;
   /** concepts.json + media/ を含む ZIP */
-  exportConceptBookPackage: (domainColors?: Record<string, string>) => Promise<Blob>;
+  exportConceptBookPackage: (
+    domainColors?: Record<string, string>,
+    options?: BackupExportOptions
+  ) => Promise<Blob>;
   importConceptBookPackage: (
     file: File,
     mode: "replace" | "merge"
