@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
-import { collectUndirectedConceptEdges } from "../utils/conceptRelations";
+import { collectConceptNeighborhood, collectUndirectedConceptEdges } from "../utils/conceptRelations";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 
 const GRAPH_NODE_PAGE = 200;
@@ -25,6 +25,14 @@ type GraphLink = {
   target: string;
 };
 
+type GraphViewMode = "all" | "1-hop" | "2-hop";
+
+const GRAPH_VIEW_MODES: { mode: GraphViewMode; label: string }[] = [
+  { mode: "all", label: "全体" },
+  { mode: "1-hop", label: "1-hop" },
+  { mode: "2-hop", label: "2-hop" }
+];
+
 type Props = {
   concepts: Concept[];
   domainColorMap: Record<string, string>;
@@ -37,6 +45,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
   const [size, setSize] = useState({ width: 700, height: 520 });
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
+  const [viewMode, setViewMode] = useState<GraphViewMode>("all");
 
   useEffect(() => {
     setGraphNodeLimit((lim) => {
@@ -77,21 +86,45 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     return () => observer.disconnect();
   }, []);
 
+  const neighborhoodEmptyReason = useMemo((): "no-selection" | "filtered-out" | null => {
+    if (viewMode === "all") {
+      return null;
+    }
+    if (!selectedId) {
+      return "no-selection";
+    }
+    if (!concepts.some((concept) => concept.id === selectedId)) {
+      return "filtered-out";
+    }
+    return null;
+  }, [viewMode, selectedId, concepts]);
+
+  const displayedConcepts = useMemo(() => {
+    if (viewMode === "all") {
+      return conceptsWindow;
+    }
+    if (neighborhoodEmptyReason) {
+      return [];
+    }
+    const maxHops = viewMode === "1-hop" ? 1 : 2;
+    return collectConceptNeighborhood(concepts, selectedId, maxHops);
+  }, [viewMode, conceptsWindow, concepts, selectedId, neighborhoodEmptyReason]);
+
   const graphData = useMemo(() => {
-    const nodes: GraphNode[] = conceptsWindow.map((concept) => ({
+    const nodes: GraphNode[] = displayedConcepts.map((concept) => ({
       id: concept.id,
       title: concept.title,
       domainTags: concept.domainTags,
       favorite: concept.favorite
     }));
 
-    const links: GraphLink[] = collectUndirectedConceptEdges(conceptsWindow).map((edge) => ({
+    const links: GraphLink[] = collectUndirectedConceptEdges(displayedConcepts).map((edge) => ({
       source: edge.source,
       target: edge.target
     }));
 
     return { nodes, links };
-  }, [conceptsWindow]);
+  }, [displayedConcepts]);
 
   useEffect(() => {
     const graph = graphRef.current;
@@ -112,7 +145,14 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     graph.d3ReheatSimulation();
   }, [graphData]);
 
-  const canShowMoreGraph = concepts.length > conceptsWindow.length;
+  const canShowMoreGraph = viewMode === "all" && concepts.length > conceptsWindow.length;
+
+  const countLabel =
+    viewMode === "all"
+      ? `ノード ${graphData.nodes.length} / エッジ ${graphData.links.length}${
+          concepts.length > graphData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""
+        }`
+      : `${viewMode} / ノード ${graphData.nodes.length} / エッジ ${graphData.links.length}`;
 
   const handleFit = () => {
     graphRef.current?.zoomToFit(400, 48);
@@ -130,10 +170,26 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-celestial-border bg-nordic-surface">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-celestial-border px-3 py-2">
-        <p className="text-xs text-celestial-textSub">
-          ノード {graphData.nodes.length} / エッジ {graphData.links.length}
-          {concepts.length > graphData.nodes.length ? `（対象 ${concepts.length} 件中）` : ""}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1" role="group" aria-label="グラフ表示モード">
+            {GRAPH_VIEW_MODES.map(({ mode, label }) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={viewMode === mode}
+                className={`rounded-md border px-2 py-1 text-xs ${
+                  viewMode === mode
+                    ? "border-celestial-softGold bg-celestial-gold/15 text-celestial-softGold"
+                    : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
+                }`}
+                onClick={() => setViewMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-celestial-textSub">{countLabel}</p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -162,6 +218,15 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
       </header>
 
       <div ref={frameRef} className="min-h-0 w-full flex-1 overflow-hidden">
+        {neighborhoodEmptyReason ? (
+          <div className="flex h-full min-h-[320px] items-center justify-center px-4">
+            <p className="text-sm text-celestial-textSub">
+              {neighborhoodEmptyReason === "no-selection"
+                ? "近傍表示する概念を選択してください"
+                : "表示対象の概念を選択してください"}
+            </p>
+          </div>
+        ) : (
         <ForceGraph2D
           ref={graphRef}
           width={size.width}
@@ -229,6 +294,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             context.fillText(node.title, node.x, node.y + labelOffset + 2);
           }}
         />
+        )}
       </div>
     </section>
   );

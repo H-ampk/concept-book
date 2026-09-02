@@ -174,3 +174,42 @@ export const buildUndirectedAdjacency = (
   }
   return graph;
 };
+
+/**
+ * 対象集合内で、中心 Concept から無向辺を最大 maxHops まで BFS した近傍を返す。
+ * centerId が対象に無い場合は空配列。フィルタ外の Concept は経由しない。
+ */
+export const collectConceptNeighborhood = (
+  concepts: readonly Concept[],
+  centerId: string | undefined,
+  maxHops: number
+): Concept[] => {
+  if (!centerId || maxHops < 0) {
+    return [];
+  }
+
+  const idSet = new Set(concepts.map((concept) => concept.id));
+  if (!idSet.has(centerId)) {
+    return [];
+  }
+
+  const adjacency = buildUndirectedAdjacency(concepts);
+  const visited = new Set<string>([centerId]);
+  let frontier: string[] = [centerId];
+
+  for (let hop = 0; hop < maxHops; hop += 1) {
+    const next: string[] = [];
+    for (const id of frontier) {
+      for (const neighbor of adjacency.get(id) ?? []) {
+        if (visited.has(neighbor)) {
+          continue;
+        }
+        visited.add(neighbor);
+        next.push(neighbor);
+      }
+    }
+    frontier = next;
+  }
+
+  return concepts.filter((concept) => visited.has(concept.id));
+};
