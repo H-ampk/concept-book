@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
+import { shouldShowConceptGraphLabel } from "../utils/conceptGraphLod";
 import { collectConceptNeighborhood, collectUndirectedConceptEdges } from "../utils/conceptRelations";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 
@@ -286,7 +287,18 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
               context.stroke();
             }
 
-            const fontSize = Math.max(10, 12 / globalScale);
+            const shouldShowLabel = shouldShowConceptGraphLabel({
+              globalScale,
+              nodeCount: graphData.nodes.length,
+              isSelected,
+              isFavorite: node.favorite
+            });
+            if (!shouldShowLabel) {
+              return;
+            }
+
+            const safeScale = Math.min(Math.max(globalScale, 0.05), 40);
+            const fontSize = 12 / safeScale;
             context.font = `${fontSize}px sans-serif`;
             context.fillStyle = "#1f2d34";
             context.textAlign = "center";
