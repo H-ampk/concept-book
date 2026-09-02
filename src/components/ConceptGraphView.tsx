@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
 import { shouldShowConceptGraphLabel } from "../utils/conceptGraphLod";
+import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
+import { createConceptGraphTopologySignature } from "../utils/conceptGraphTopology";
 import { collectConceptNeighborhood, collectUndirectedConceptEdges } from "../utils/conceptRelations";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 
 const GRAPH_NODE_PAGE = 200;
-const LINK_DISTANCE = 90;
-const CHARGE_STRENGTH = -160;
 
 const NODE_FILL_COLOR = "#e8eef1";
 const DOMAIN_RING_WIDTH = 2.4;
@@ -16,9 +16,6 @@ const MAX_VISIBLE_DOMAIN_COLORS = 4;
 
 type GraphNode = {
   id: string;
-  title: string;
-  domainTags: string[];
-  favorite: boolean;
 };
 
 type GraphLink = {
@@ -111,12 +108,19 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     return collectConceptNeighborhood(concepts, selectedId, maxHops);
   }, [viewMode, conceptsWindow, concepts, selectedId, neighborhoodEmptyReason]);
 
+  const displayedConceptById = useMemo(
+    () => new Map(displayedConcepts.map((concept) => [concept.id, concept])),
+    [displayedConcepts]
+  );
+
+  const topologySignature = useMemo(
+    () => createConceptGraphTopologySignature(displayedConcepts),
+    [displayedConcepts]
+  );
+
   const graphData = useMemo(() => {
     const nodes: GraphNode[] = displayedConcepts.map((concept) => ({
-      id: concept.id,
-      title: concept.title,
-      domainTags: concept.domainTags,
-      favorite: concept.favorite
+      id: concept.id
     }));
 
     const links: GraphLink[] = collectUndirectedConceptEdges(displayedConcepts).map((edge) => ({
@@ -125,7 +129,14 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     }));
 
     return { nodes, links };
-  }, [displayedConcepts]);
+    // topologySignature が同じなら graphData の identity を維持する
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topologySignature]);
+
+  const simulationConfig = useMemo(
+    () => getConceptGraphSimulationConfig(graphData.nodes.length),
+    [graphData.nodes.length]
+  );
 
   useEffect(() => {
     const graph = graphRef.current;
@@ -135,16 +146,14 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
 
     const linkForce = graph.d3Force("link");
     if (linkForce && typeof linkForce.distance === "function") {
-      linkForce.distance(LINK_DISTANCE);
+      linkForce.distance(simulationConfig.linkDistance);
     }
 
     const chargeForce = graph.d3Force("charge");
     if (chargeForce && typeof chargeForce.strength === "function") {
-      chargeForce.strength(CHARGE_STRENGTH);
+      chargeForce.strength(simulationConfig.chargeStrength);
     }
-
-    graph.d3ReheatSimulation();
-  }, [graphData]);
+  }, [topologySignature, simulationConfig.linkDistance, simulationConfig.chargeStrength]);
 
   const canShowMoreGraph = viewMode === "all" && concepts.length > conceptsWindow.length;
 
@@ -236,24 +245,31 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
           nodeRelSize={6}
           linkWidth={0.8}
           linkColor={() => "rgba(117, 165, 188, 0.38)"}
-          cooldownTicks={120}
+          cooldownTicks={simulationConfig.cooldownTicks}
+          cooldownTime={simulationConfig.cooldownTime}
+          d3AlphaDecay={simulationConfig.alphaDecay}
+          d3VelocityDecay={simulationConfig.velocityDecay}
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
           nodeCanvasObject={(nodeObject, context, globalScale) => {
             const node = nodeObject as GraphNode & { x: number; y: number };
+            const concept = displayedConceptById.get(node.id);
+            if (!concept) {
+              return;
+            }
             const domainColors = getDomainTagColors(
-              node.domainTags,
+              concept.domainTags,
               domainColorMap,
               MAX_VISIBLE_DOMAIN_COLORS
             );
             const ringColors =
               domainColors.length > 0 ? domainColors : [getDomainTagColor("", domainColorMap)];
-            const radius = node.favorite ? 6.8 : 5.2;
+            const radius = concept.favorite ? 6.8 : 5.2;
             const isSelected = selectedId === node.id;
             const domainRadius = radius + DOMAIN_RING_WIDTH / 2;
             const outerLineWidth = isSelected ? 2.2 : 1.4;
             const outerRadius = domainRadius + DOMAIN_RING_WIDTH / 2 + OUTER_RING_GAP;
             const labelOffset =
-              node.favorite || isSelected
+              concept.favorite || isSelected
                 ? outerRadius + outerLineWidth / 2
                 : domainRadius + DOMAIN_RING_WIDTH / 2;
 
@@ -279,7 +295,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
               context.stroke();
             }
 
-            if (node.favorite || isSelected) {
+            if (concept.favorite || isSelected) {
               context.beginPath();
               context.arc(node.x, node.y, outerRadius, 0, Math.PI * 2, false);
               context.strokeStyle = isSelected ? "#446878" : "#7a9dad";
@@ -291,7 +307,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
               globalScale,
               nodeCount: graphData.nodes.length,
               isSelected,
-              isFavorite: node.favorite
+              isFavorite: concept.favorite
             });
             if (!shouldShowLabel) {
               return;
@@ -303,7 +319,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             context.fillStyle = "#1f2d34";
             context.textAlign = "center";
             context.textBaseline = "top";
-            context.fillText(node.title, node.x, node.y + labelOffset + 2);
+            context.fillText(concept.title, node.x, node.y + labelOffset + 2);
           }}
         />
         )}
