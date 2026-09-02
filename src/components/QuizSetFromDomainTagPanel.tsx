@@ -12,6 +12,7 @@ import {
   type QuizSetGenerationPreview
 } from "../utils/generateQuizSetFromDomainTag";
 import { applyAutoLinkedConceptIdsToChoices } from "../utils/quizConceptLink";
+import { buildDomainTagGeneratedDeckFields } from "../utils/quiz/buildDomainTagGeneratedDeckFields";
 import { parseContextualCardSourceId } from "../utils/quizQuestionSource";
 
 const storage = getStorage();
@@ -207,17 +208,13 @@ export const QuizSetFromDomainTagPanel = ({
         updatedAt: now,
         ...(isSingleMode
           ? {}
-          : {
-              sourceType: "domain-tag" as const,
-              sourceDomainTag: preview?.targetDomainTag ?? targetDomainTag.trim(),
+          : buildDomainTagGeneratedDeckFields({
+              targetDomainTag: preview?.targetDomainTag ?? targetDomainTag.trim(),
+              includeDraftConcepts,
+              generationMode,
               generationSummary: preview?.summary,
-              generationFilters: {
-                targetDomainTag: preview?.targetDomainTag ?? targetDomainTag.trim(),
-                includeDraftConcepts,
-                generationMode
-              },
               lastSyncedAt: now
-            })
+            }))
       };
       await storage.saveQuizDeck(deck);
       onSaved();

@@ -19,6 +19,7 @@ import {
   normalizeQuizAttemptLog,
   planQuizAttemptLogImport
 } from "../utils/normalizeQuizAttemptLog";
+import { hydrateLegacyGenerationFilters } from "../utils/quiz/hydrateLegacyGenerationFilters";
 import {
   findExclusiveQuestionIds,
   findOrphanQuestionIds
@@ -332,7 +333,7 @@ const normalizeQuizDeck = (raw: StoredQuizDeck): QuizDeck => {
     deck.lastSyncedAt = lastSyncedAt;
   }
 
-  return deck;
+  return hydrateLegacyGenerationFilters(deck);
 };
 
 const stripQuestionIdsFromAllDecks = async (

@@ -18,6 +18,7 @@ import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 import { normalizeRelatedIdList } from "./conceptRelations";
 import { extractBackupDomainColors } from "./domainColors";
+import { hydrateLegacyGenerationFilters } from "./quiz/hydrateLegacyGenerationFilters";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
 
@@ -263,6 +264,8 @@ const normalizeQuizDeckItem = (item: unknown): QuizDeck | null => {
   if (lastSyncedAt) {
     candidate.lastSyncedAt = lastSyncedAt;
   }
+
+  hydrateLegacyGenerationFilters(candidate);
 
   const parsed = quizDeckSchema.safeParse(candidate);
   return parsed.success ? parsed.data : null;

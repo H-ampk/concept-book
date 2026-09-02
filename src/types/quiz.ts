@@ -124,12 +124,9 @@ export const QUIZ_QUESTION_SCHEMA_VERSION = 1;
  * backup: private / public の QuizDeck を両方含める。
  * share: visibility === public の QuizDeck のみ（共有用。学習ログは含めない）。
  *
- * --- 将来フィールド候補（型にはまだ含めない）---
- * - coverConceptId, shuffleMode: "fixed" | "shuffle", estimatedMinutes, source: "manual" | "auto"
- *
  * --- 運用メモ ---
  * - Deck 削除時も QuizQuestion 本体は削除しない
- * - Question 削除時は、将来 Deck.questionIds から該当 ID を除去する方針
+ * - Question 削除時は、全 Deck の questionIds から該当 ID を除去する
  */
 export interface QuizDeck {
   id: string;
@@ -157,11 +154,15 @@ export interface QuizDeck {
   updatedAt: string;
   /** 自動生成クイズ集の場合の生成元種別 */
   sourceType?: QuizDeckSourceType;
-  /** sourceType が domain-tag のときの対象分野タグ */
+  /**
+   * 旧データ互換用。新規 Deck では保存しない。
+   * 再同期条件の正式な保存先は generationFilters.targetDomainTag。
+   * generationFilters が無い旧 Deck では読み取り時にここから復元する。
+   */
   sourceDomainTag?: string;
   /** 分野タグからの自動生成サマリー */
   generationSummary?: QuizDeckGenerationSummary;
-  /** 再同期に使う生成条件（sourceType: domain-tag 作成時に保存） */
+  /** 自動生成・再同期条件の正式な保存先（sourceType: domain-tag 作成時に保存） */
   generationFilters?: QuizDeckGenerationFilters;
   /** 最後に未反映概念を追加した日時 */
   lastSyncedAt?: string;

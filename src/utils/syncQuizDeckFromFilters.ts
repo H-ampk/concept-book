@@ -39,7 +39,7 @@ export type QuizDeckSyncResult = {
   error?: string;
 };
 
-/** クイズ集の再同期に使える生成条件を解決（古いデータは sourceDomainTag から推定） */
+/** クイズ集の再同期に使える生成条件を解決（generationFilters 優先、旧データは sourceDomainTag へフォールバック） */
 export function resolveDeckGenerationFilters(deck: QuizDeck): QuizDeckGenerationFilters | null {
   const fromFilters = deck.generationFilters?.targetDomainTag?.trim();
   if (fromFilters) {
