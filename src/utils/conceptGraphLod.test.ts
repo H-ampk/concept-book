@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  FAR_LABEL_MAX_CHARS,
   FULL_LABEL_SCALE,
+  LABEL_ELLIPSIS,
   MEDIUM_LABEL_SCALE,
-  getConceptGraphLabelStyle
+  getConceptGraphLabelStyle,
+  getConceptGraphLabelText
 } from "./conceptGraphLod";
 
 const normal = (globalScale: number) =>
@@ -124,6 +127,84 @@ describe("getConceptGraphLabelStyle", () => {
       expectFiniteStyle(normal(globalScale));
       expectFiniteStyle(selected(globalScale));
       expectFiniteStyle(favorite(globalScale));
+    });
+  });
+});
+
+const LONG_TITLE = "社会的アイデンティティ理論";
+const SHORT_TITLE = "概念";
+
+const labelText = (
+  title: string,
+  globalScale: number,
+  flags?: { isSelected?: boolean; isFavorite?: boolean }
+) =>
+  getConceptGraphLabelText({
+    title,
+    globalScale,
+    isSelected: flags?.isSelected ?? false,
+    isFavorite: flags?.isFavorite ?? false
+  });
+
+describe("getConceptGraphLabelText", () => {
+  describe("far normal", () => {
+    const globalScale = MEDIUM_LABEL_SCALE - 0.0001;
+
+    it("短いタイトルは元タイトル", () => {
+      expect(labelText(SHORT_TITLE, globalScale)).toBe(SHORT_TITLE);
+    });
+
+    it("境界ちょうど FAR_LABEL_MAX_CHARS は省略しない", () => {
+      const exact = "あ".repeat(FAR_LABEL_MAX_CHARS);
+      expect(labelText(exact, globalScale)).toBe(exact);
+    });
+
+    it("長いタイトルは省略される", () => {
+      const truncated = labelText(LONG_TITLE, globalScale);
+      expect(truncated).not.toBe(LONG_TITLE);
+      expect(truncated.length).toBeLessThan(LONG_TITLE.length + 1);
+      expect(truncated.startsWith(LONG_TITLE.slice(0, FAR_LABEL_MAX_CHARS))).toBe(true);
+    });
+
+    it("省略後に ellipsis が付く", () => {
+      expect(labelText(LONG_TITLE, globalScale).endsWith(LABEL_ELLIPSIS)).toBe(true);
+      expect(labelText(LONG_TITLE, globalScale)).toBe(
+        `${LONG_TITLE.slice(0, FAR_LABEL_MAX_CHARS)}${LABEL_ELLIPSIS}`
+      );
+    });
+  });
+
+  describe("far selected / favorite", () => {
+    const globalScale = 0.01;
+
+    it("長いタイトルでも selected は全文", () => {
+      expect(labelText(LONG_TITLE, globalScale, { isSelected: true })).toBe(LONG_TITLE);
+    });
+
+    it("長いタイトルでも favorite は全文", () => {
+      expect(labelText(LONG_TITLE, globalScale, { isFavorite: true })).toBe(LONG_TITLE);
+    });
+  });
+
+  describe("medium / near", () => {
+    it("medium では長いタイトルも全文", () => {
+      expect(labelText(LONG_TITLE, MEDIUM_LABEL_SCALE)).toBe(LONG_TITLE);
+    });
+
+    it("near では長いタイトルも全文", () => {
+      expect(labelText(LONG_TITLE, FULL_LABEL_SCALE)).toBe(LONG_TITLE);
+    });
+  });
+
+  describe("LOD 境界との整合", () => {
+    it("0.7999 は far のため省略する", () => {
+      expect(labelText(LONG_TITLE, 0.7999)).toBe(
+        `${LONG_TITLE.slice(0, FAR_LABEL_MAX_CHARS)}${LABEL_ELLIPSIS}`
+      );
+    });
+
+    it("0.8 は medium のため全文", () => {
+      expect(labelText(LONG_TITLE, 0.8)).toBe(LONG_TITLE);
     });
   });
 });

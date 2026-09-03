@@ -1,5 +1,10 @@
 export const MEDIUM_LABEL_SCALE = 0.8;
 export const FULL_LABEL_SCALE = 1.5;
+export const FAR_LABEL_MAX_CHARS = 12;
+export const LABEL_ELLIPSIS = "…";
+export const LABEL_HALO_COLOR = "#FFFDF8";
+export const LABEL_HALO_SCREEN_WIDTH = 1.15;
+export const LABEL_HALO_EMPHASIS_SCREEN_WIDTH = 1.55;
 
 const FAR_LABEL_STYLE = {
   screenFontSize: 7,
@@ -68,3 +73,33 @@ export const getConceptGraphLabelStyle = ({
 
   return base;
 };
+
+export type ConceptGraphLabelTextInput = {
+  title: string;
+  globalScale: number;
+  isSelected: boolean;
+  isFavorite: boolean;
+};
+
+const isFarLabelScale = (globalScale: number): boolean => !(globalScale >= MEDIUM_LABEL_SCALE);
+
+export const getConceptGraphLabelText = ({
+  title,
+  globalScale,
+  isSelected,
+  isFavorite
+}: ConceptGraphLabelTextInput): string => {
+  if (isSelected || isFavorite || !isFarLabelScale(globalScale) || title.length <= FAR_LABEL_MAX_CHARS) {
+    return title;
+  }
+
+  return `${title.slice(0, FAR_LABEL_MAX_CHARS)}${LABEL_ELLIPSIS}`;
+};
+
+export const getConceptGraphLabelHaloScreenWidth = ({
+  isSelected,
+  isFavorite
+}: {
+  isSelected: boolean;
+  isFavorite: boolean;
+}): number => (isSelected || isFavorite ? LABEL_HALO_EMPHASIS_SCREEN_WIDTH : LABEL_HALO_SCREEN_WIDTH);
