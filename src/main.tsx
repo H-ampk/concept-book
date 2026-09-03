@@ -6,8 +6,24 @@ import "./index.css";
 
 registerSW({ immediate: true });
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+
+const boot = async () => {
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).has("graphPerf")) {
+    const { ConceptGraphPerformanceHarness } = await import("./dev/ConceptGraphPerformanceHarness");
+    root.render(
+      <React.StrictMode>
+        <ConceptGraphPerformanceHarness />
+      </React.StrictMode>
+    );
+    return;
+  }
+
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+};
+
+void boot();
