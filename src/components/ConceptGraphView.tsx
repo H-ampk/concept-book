@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
-import { getConceptGraphLabelStyle } from "../utils/conceptGraphLod";
+import {
+  getConceptGraphLabelHaloScreenWidth,
+  getConceptGraphLabelStyle,
+  getConceptGraphLabelText,
+  LABEL_HALO_COLOR
+} from "../utils/conceptGraphLod";
 import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
 import { createConceptGraphTopologySignature } from "../utils/conceptGraphTopology";
 import { collectConceptNeighborhood, collectUndirectedConceptEdges } from "../utils/conceptRelations";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 
 const GRAPH_NODE_PAGE = 200;
+const GRAPH_FIT_DURATION_MS = 400;
+const GRAPH_FIT_PADDING_PX = 48;
 
 const NODE_FILL_COLOR = "#e8eef1";
 const DOMAIN_RING_WIDTH = 2.4;
@@ -41,6 +48,7 @@ type Props = {
 export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
+  const hasAutoFittedRef = useRef(false);
   const [size, setSize] = useState({ width: 700, height: 520 });
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
   const [viewMode, setViewMode] = useState<GraphViewMode>("all");
@@ -165,7 +173,25 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
       : `${viewMode} / ノード ${graphData.nodes.length} / エッジ ${graphData.links.length}`;
 
   const handleFit = () => {
-    graphRef.current?.zoomToFit(400, 48);
+    graphRef.current?.zoomToFit(GRAPH_FIT_DURATION_MS, GRAPH_FIT_PADDING_PX);
+  };
+
+  const handleEngineStop = () => {
+    if (hasAutoFittedRef.current) {
+      return;
+    }
+
+    if (graphData.nodes.length === 0) {
+      return;
+    }
+
+    const graph = graphRef.current;
+    if (!graph) {
+      return;
+    }
+
+    hasAutoFittedRef.current = true;
+    graph.zoomToFit(GRAPH_FIT_DURATION_MS, GRAPH_FIT_PADDING_PX);
   };
 
   const handleResetView = () => {
@@ -249,6 +275,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
           cooldownTime={simulationConfig.cooldownTime}
           d3AlphaDecay={simulationConfig.alphaDecay}
           d3VelocityDecay={simulationConfig.velocityDecay}
+          onEngineStop={handleEngineStop}
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
           nodeCanvasObject={(nodeObject, context, globalScale) => {
             const node = nodeObject as GraphNode & { x: number; y: number };
@@ -309,15 +336,33 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
               isSelected,
               isFavorite: concept.favorite
             });
+            const labelText = getConceptGraphLabelText({
+              title: concept.title,
+              globalScale,
+              isSelected,
+              isFavorite: concept.favorite
+            });
             const fontSize = labelStyle.screenFontSize / safeScale;
+            const haloWidth = getConceptGraphLabelHaloScreenWidth({
+              isSelected,
+              isFavorite: concept.favorite
+            }) / safeScale;
+            const labelX = node.x;
+            const labelY = node.y + labelOffset + 2;
 
             context.save();
-            context.globalAlpha = labelStyle.opacity;
             context.font = `${labelStyle.fontWeight} ${fontSize}px sans-serif`;
-            context.fillStyle = "#1f2d34";
             context.textAlign = "center";
             context.textBaseline = "top";
-            context.fillText(concept.title, node.x, node.y + labelOffset + 2);
+            context.lineJoin = "round";
+            context.miterLimit = 2;
+            context.lineWidth = haloWidth;
+            context.strokeStyle = LABEL_HALO_COLOR;
+            context.fillStyle = "#1f2d34";
+            context.globalAlpha = Math.min(1, labelStyle.opacity + 0.2);
+            context.strokeText(labelText, labelX, labelY);
+            context.globalAlpha = labelStyle.opacity;
+            context.fillText(labelText, labelX, labelY);
             context.restore();
           }}
         />
