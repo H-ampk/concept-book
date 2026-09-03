@@ -36,6 +36,12 @@ import type { QuizCreateInitialState } from "../components/QuizCreateModal";
 import { QuizLearningLogsPage } from "../components/QuizLearningLogsPage";
 import { QuizPlayPage } from "../components/QuizPlayPage";
 import { type LabRoute, isLabRoute } from "../constants/labRoutes";
+import {
+  clearGraphSelectionIfDeleted,
+  closeGraphDetail,
+  isGraphDetailPanelVisible,
+  selectGraphConcept
+} from "./graphDetailUiState";
 
 type Screen = "concepts" | "contexts" | "settings" | LabRoute;
 type ConceptMainTab = "list" | "graph" | "tree";
@@ -136,6 +142,7 @@ export const App = () => {
 
   const [screen, setScreen] = useState<Screen>("concepts");
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [graphDetailOpen, setGraphDetailOpen] = useState(false);
   const [mobileDetail, setMobileDetail] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingConcept, setEditingConcept] = useState<Concept | undefined>(undefined);
@@ -196,6 +203,7 @@ export const App = () => {
   const conceptMap = useMemo(() => buildConceptByIdMap(concepts), [concepts]);
   const conceptTitleIndex = useMemo(() => buildConceptByTitleMap(concepts), [concepts]);
   const selectedConcept = selectedId ? conceptMap.get(selectedId) : undefined;
+  const showGraphDetailPanel = isGraphDetailPanelVisible(Boolean(selectedConcept), graphDetailOpen);
 
   const listSourceConcepts = useMemo(
     () => visibleConcepts.slice(0, listDisplayLimit),
@@ -280,8 +288,13 @@ export const App = () => {
       detailContainer.scrollTo({ top: Math.max(relativeTop, 0), behavior: 'smooth' });
     });
   };
+  const applyGraphDetailUi = (next: { selectedId: string | undefined; graphDetailOpen: boolean }) => {
+    setSelectedId(next.selectedId);
+    setGraphDetailOpen(next.graphDetailOpen);
+  };
+
   const handleGraphSelect = (id: string) => {
-    setSelectedId(id);
+    applyGraphDetailUi(selectGraphConcept({ selectedId, graphDetailOpen }, id));
   };
 
   const handleRequestDelete = (concept: Concept) => {
@@ -295,8 +308,12 @@ export const App = () => {
     setDeleting(true);
     try {
       await remove(deleteTarget.id);
+      const nextGraphUi = clearGraphSelectionIfDeleted(
+        { selectedId, graphDetailOpen },
+        deleteTarget.id
+      );
+      applyGraphDetailUi(nextGraphUi);
       if (selectedId === deleteTarget.id) {
-        setSelectedId(undefined);
         setMobileDetail(false);
       }
       setDeleteTarget(undefined);
@@ -639,28 +656,32 @@ export const App = () => {
               >
                 {conceptMainTab === "graph" ? (
                   <section className="relative min-h-0 flex-1">
-                    <div className="h-[calc(100dvh-11.5rem)] min-h-[360px]">
-                      <ConceptGraphView
-                        concepts={visibleConcepts}
-                        domainColorMap={domainColorMap}
-                        selectedId={selectedId}
-                        onSelectConcept={handleGraphSelect}
-                      />
-                    </div>
-                    {selectedConcept && (
-                      <div className="fixed inset-0 z-40 flex justify-end">
-                        <button
-                          type="button"
-                          className="absolute inset-0 bg-nordic-navy/25"
-                          aria-label="概念詳細を閉じる"
-                          onClick={() => setSelectedId(undefined)}
+                    <div className="flex h-[calc(100dvh-11.5rem)] min-h-[360px]">
+                      <div className="relative min-h-0 min-w-0 flex-1">
+                        <ConceptGraphView
+                          concepts={visibleConcepts}
+                          domainColorMap={domainColorMap}
+                          selectedId={selectedId}
+                          onSelectConcept={handleGraphSelect}
                         />
-                        <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-celestial-border bg-celestial-panel p-3 shadow-celestial">
+                        {showGraphDetailPanel && (
+                          <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 z-10 bg-nordic-navy/25"
+                          />
+                        )}
+                      </div>
+                      {showGraphDetailPanel && (
+                        <aside className="pointer-events-auto relative z-10 flex h-full w-[min(28rem,50vw)] shrink-0 flex-col overflow-y-auto border-l border-celestial-border bg-celestial-panel p-3 shadow-celestial">
                           <div className="mb-2 flex justify-end">
                             <button
                               type="button"
                               className="index-text-button"
-                              onClick={() => setSelectedId(undefined)}
+                              onClick={() =>
+                                applyGraphDetailUi(
+                                  closeGraphDetail({ selectedId, graphDetailOpen })
+                                )
+                              }
                             >
                               閉じる
                             </button>
@@ -672,13 +693,11 @@ export const App = () => {
                             {...conceptDetailActions}
                             onRequestDelete={handleRequestDelete}
                             deleting={deleting}
-                            onSelectRelated={(id) => {
-                              setSelectedId(id);
-                            }}
+                            onSelectRelated={handleGraphSelect}
                           />
                         </aside>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </section>
                 ) : (
                   <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
