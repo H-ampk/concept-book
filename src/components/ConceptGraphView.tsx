@@ -53,19 +53,6 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
   const [viewMode, setViewMode] = useState<GraphViewMode>("all");
 
-  useEffect(() => {
-    setGraphNodeLimit((lim) => {
-      if (concepts.length === 0) {
-        return GRAPH_NODE_PAGE;
-      }
-      const capped = Math.min(lim, concepts.length);
-      if (capped === 0) {
-        return Math.min(GRAPH_NODE_PAGE, concepts.length);
-      }
-      return capped;
-    });
-  }, [concepts]);
-
   const conceptsWindow = useMemo(
     () => concepts.slice(0, Math.min(graphNodeLimit, concepts.length)),
     [concepts, graphNodeLimit]
