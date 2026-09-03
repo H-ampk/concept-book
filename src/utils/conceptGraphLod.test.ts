@@ -2,206 +2,128 @@ import { describe, expect, it } from "vitest";
 import {
   FULL_LABEL_SCALE,
   MEDIUM_LABEL_SCALE,
-  SMALL_GRAPH_NODE_COUNT,
-  shouldShowConceptGraphLabel
+  getConceptGraphLabelStyle
 } from "./conceptGraphLod";
 
-const LARGE_GRAPH = SMALL_GRAPH_NODE_COUNT + 1;
-
-describe("shouldShowConceptGraphLabel", () => {
-  it("40ノード以下はズームアウトしても通常ラベルを表示する", () => {
-    expect(
-      shouldShowConceptGraphLabel({
-        globalScale: 0.1,
-        nodeCount: SMALL_GRAPH_NODE_COUNT,
-        isSelected: false,
-        isFavorite: false
-      })
-    ).toBe(true);
+const normal = (globalScale: number) =>
+  getConceptGraphLabelStyle({
+    globalScale,
+    isSelected: false,
+    isFavorite: false
   });
 
-  it("ノード数40はsmall graph、41はLOD対象", () => {
-    const farScale = MEDIUM_LABEL_SCALE - 0.01;
-    expect(
-      shouldShowConceptGraphLabel({
-        globalScale: farScale,
-        nodeCount: 40,
-        isSelected: false,
-        isFavorite: false
-      })
-    ).toBe(true);
-    expect(
-      shouldShowConceptGraphLabel({
-        globalScale: farScale,
-        nodeCount: 41,
-        isSelected: false,
-        isFavorite: false
-      })
-    ).toBe(false);
+const selected = (globalScale: number) =>
+  getConceptGraphLabelStyle({
+    globalScale,
+    isSelected: true,
+    isFavorite: false
   });
 
+const favorite = (globalScale: number) =>
+  getConceptGraphLabelStyle({
+    globalScale,
+    isSelected: false,
+    isFavorite: true
+  });
+
+const expectFiniteStyle = (style: ReturnType<typeof getConceptGraphLabelStyle>) => {
+  expect(Number.isFinite(style.screenFontSize)).toBe(true);
+  expect(Number.isFinite(style.opacity)).toBe(true);
+  expect(Number.isFinite(style.fontWeight)).toBe(true);
+};
+
+describe("getConceptGraphLabelStyle", () => {
   describe("far (globalScale < 0.8)", () => {
-    const globalScale = MEDIUM_LABEL_SCALE - 0.0001;
+    const globalScale = 0.79;
 
-    it("通常Conceptは非表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: false
-        })
-      ).toBe(false);
+    it("通常 Concept も表示用 style を返す", () => {
+      const style = normal(globalScale);
+      expect(style.screenFontSize).toBe(7);
+      expect(style.opacity).toBe(0.55);
+      expect(style.fontWeight).toBe(400);
     });
 
-    it("お気に入りConceptも非表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: true
-        })
-      ).toBe(false);
-    });
-
-    it("選択Conceptは表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: true,
-          isFavorite: false
-        })
-      ).toBe(true);
+    it("opacity は near より低い", () => {
+      expect(normal(globalScale).opacity).toBeLessThan(normal(FULL_LABEL_SCALE).opacity);
     });
   });
 
   describe("medium (0.8 <= globalScale < 1.5)", () => {
     const globalScale = MEDIUM_LABEL_SCALE;
 
-    it("通常Conceptは非表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: false
-        })
-      ).toBe(false);
+    it("通常 Concept も表示用 style を返す", () => {
+      const style = normal(globalScale);
+      expect(style.screenFontSize).toBe(9);
+      expect(style.opacity).toBe(0.75);
+      expect(style.fontWeight).toBe(400);
     });
 
-    it("お気に入りConceptは表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: true
-        })
-      ).toBe(true);
-    });
-
-    it("選択Conceptは表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: true,
-          isFavorite: false
-        })
-      ).toBe(true);
+    it("far より文字サイズが大きい", () => {
+      expect(normal(globalScale).screenFontSize).toBeGreaterThan(normal(0.79).screenFontSize);
     });
   });
 
   describe("near (globalScale >= 1.5)", () => {
     const globalScale = FULL_LABEL_SCALE;
 
-    it("通常Conceptは表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: false
-        })
-      ).toBe(true);
+    it("通常 Concept が通常サイズになり opacity が 1 になる", () => {
+      const style = normal(globalScale);
+      expect(style.screenFontSize).toBe(12);
+      expect(style.opacity).toBe(1);
+      expect(style.fontWeight).toBe(400);
     });
+  });
 
-    it("お気に入りConceptは表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: true
-        })
-      ).toBe(true);
+  describe("selected", () => {
+    it("極端な遠景でも十分な文字サイズと opacity 1 で強調する", () => {
+      const style = selected(0.01);
+      const regular = normal(0.01);
+      expect(style.screenFontSize).toBe(12);
+      expect(style.opacity).toBe(1);
+      expect(style.fontWeight).toBe(600);
+      expect(style.screenFontSize).toBeGreaterThan(regular.screenFontSize);
+      expect(style.opacity).toBeGreaterThan(regular.opacity);
+      expect(style.fontWeight).toBeGreaterThan(regular.fontWeight);
     });
+  });
 
-    it("選択Conceptは表示", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale,
-          nodeCount: LARGE_GRAPH,
-          isSelected: true,
-          isFavorite: false
-        })
-      ).toBe(true);
+  describe("favorite", () => {
+    it("遠景でも非表示にならず通常 Concept より強調される", () => {
+      const style = favorite(0.01);
+      const regular = normal(0.01);
+      expect(style.screenFontSize).toBe(10);
+      expect(style.opacity).toBe(0.95);
+      expect(style.fontWeight).toBe(600);
+      expect(style.screenFontSize).toBeGreaterThan(regular.screenFontSize);
+      expect(style.opacity).toBeGreaterThan(regular.opacity);
+      expect(style.fontWeight).toBeGreaterThan(regular.fontWeight);
     });
   });
 
   describe("境界値", () => {
-    it("0.8 は medium（通常は非表示、お気に入りは表示）", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale: 0.8,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: false
-        })
-      ).toBe(false);
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale: 0.8,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: true
-        })
-      ).toBe(true);
+    it("globalScale = 0.8 は medium", () => {
+      expect(normal(0.8).screenFontSize).toBe(9);
     });
 
-    it("1.5 は near（通常も表示）", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale: 1.5,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: false
-        })
-      ).toBe(true);
+    it("0.8 直前は far", () => {
+      expect(normal(MEDIUM_LABEL_SCALE - 0.0001).screenFontSize).toBe(7);
     });
 
-    it("medium 上限直前は通常ラベルを出さない", () => {
-      expect(
-        shouldShowConceptGraphLabel({
-          globalScale: FULL_LABEL_SCALE - 0.0001,
-          nodeCount: LARGE_GRAPH,
-          isSelected: false,
-          isFavorite: false
-        })
-      ).toBe(false);
+    it("globalScale = 1.5 は near", () => {
+      expect(normal(1.5).screenFontSize).toBe(12);
+      expect(normal(1.5).opacity).toBe(1);
+    });
+
+    it("1.5 直前は medium", () => {
+      expect(normal(FULL_LABEL_SCALE - 0.0001).screenFontSize).toBe(9);
     });
   });
 
-  it("選択中はノード数・倍率に関係なく常に表示する", () => {
-    expect(
-      shouldShowConceptGraphLabel({
-        globalScale: 0.01,
-        nodeCount: 10_000,
-        isSelected: true,
-        isFavorite: false
-      })
-    ).toBe(true);
+  describe("extreme scale", () => {
+    it.each([0.01, 10])("globalScale %s で NaN / Infinity を返さない", (globalScale) => {
+      expectFiniteStyle(normal(globalScale));
+      expectFiniteStyle(selected(globalScale));
+      expectFiniteStyle(favorite(globalScale));
+    });
   });
 });
