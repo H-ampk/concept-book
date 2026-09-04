@@ -21,8 +21,11 @@
 - Total: 32
 - PASS: 17
 - PASS_WITH_FOLLOW_UP: 13
-- NEEDS_FIX: 1
+- NEEDS_FIX: 0
 - OBSOLETE: 1
+- NOT_PLANNED_REVIEW: 1
+
+`NOT_PLANNED_REVIEW` は、GitHub上で `not_planned` としてクローズされているが、現在もIssue本文の要求が有効に見え、見送り理由・代替仕様・後続Issueへの移管が十分に記録されていない分類である。実装不具合とは扱わず、仕様判断の再確認が必要な状態とする。
 
 ## Issues
 
@@ -47,48 +50,33 @@
 
 **Notes**
 - 後続 #108 / #112 が視認性・描画負荷を継続対応。
-- ユーザー調整可能な間隔は #2 で未達。
+- ユーザー調整可能な間隔は #2（`NOT_PLANNED_REVIEW`）。現mainには当該UIはない。
 
 ---
 
 ### #2 概念グラフのノード間隔をユーザーが調整できるようにする
 
-**Result:** NEEDS_FIX
+**Result:** NOT_PLANNED_REVIEW
 
-**Completion criteria**
-- FAIL: ユーザーがノード間隔を調整できる
-- FAIL: 変更がグラフへ即時反映される
-- FAIL: 初期値へ戻せる
-- FAIL（任意だが Issue 想定）: 設定値の保存
+**GitHub close reason**
+- `not_planned`（`completed` ではない）
+- Issue本文・コメントに見送り理由、代替仕様、後続Issueへの移管が十分に記録されていない
+- 本文の要求（ユーザーによるノード間隔調整）は現在も有効に見えるため、`OBSOLETE` とは断定しない
+- 実装不具合としては扱わない。この機能が現在も必要かは改めて判断する必要がある
+- 本監査では新規Issueは作成しない
+
+**Completion criteria（現mainの技術確認。実装漏れとは断定しない）**
+- 現mainに存在しない: ユーザーによるノード間隔調整
+- 現mainに存在しない: 変更の即時反映
+- 現mainに存在しない: 初期値への復帰
+- 現mainに存在しない: 設定値の保存（Issue が任意想定していたもの）
 
 **Current implementation**
 - `src/utils/conceptGraphSimulation.ts` — `linkDistance` / `chargeStrength` は規模別 profile の固定値のみ
 - `src/components/ConceptGraphView.tsx` — `d3Force("link").distance` / `charge` を simulation config から設定するだけ。スライダー・リセット UI なし
+- #17/#102 の内部力学パラメータ最適化はあるが、ユーザー操作可能な間隔制御としては記録されていない
 
-**Tests:** MISSING（ユーザー間隔調整の仕様テストなし）
-
-**Problem**
-Closed Issue の期待動作（スライダー等によるノード間隔のユーザー調整、即時反映、デフォルト復帰）が現在の `main` に存在しない。#17/#102 で内部の固定力学パラメータは最適化されたが、ユーザー操作可能な間隔制御には置換されていない。Issue 本文にも移管先の明示はない。
-
-**Affected files**
-- `src/components/ConceptGraphView.tsx`
-- `src/utils/conceptGraphSimulation.ts`
-
-**再現条件**
-概念グラフを開き、ノード間隔を変える UI（スライダー等）を探す。存在しない。
-
-**違反している完了条件**
-「ユーザーが概念グラフのノード間隔を調整できる」「リアルタイム反映」「初期値に戻せる」
-
-**Suggested follow-up issue**
-Title: 概念グラフのノード間隔をユーザーが調整できるようにする
-
-要点:
-- スライダー等で linkDistance（必要なら charge）を変更
-- 即時に Force へ反映（topology 非変更時の reheat 方針を明記）
-- デフォルトへ戻す
-- 永続化の要否を決める（#13 の学習ログチェックと同様、誤設定の固定を避けるなら非永続も可）
-- IndexedDB スキーマは変更しない
+**Tests:** MISSING（ユーザー間隔調整の専用テストなし）
 
 ---
 
@@ -719,7 +707,7 @@ Title: 概念グラフのノード間隔をユーザーが調整できるよう�
 ### パフォーマンス
 
 - 大規模グラフは段階表示 + ranking + topology snapshot + simulation profile。根拠のない culling は未導入で妥当。
-- ユーザー間隔調整（#2）欠如は性能問題ではなく機能欠落。
+- #2 のユーザー間隔調整 UI は現mainにない。性能問題ではなく、`not_planned` クローズに対する仕様再確認対象（`NOT_PLANNED_REVIEW`）。
 
 ### 監査中に行っていないこと
 
