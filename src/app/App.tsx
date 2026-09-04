@@ -45,6 +45,8 @@ import {
   isGraphDetailPanelVisible,
   selectGraphConcept
 } from "./graphDetailUiState";
+import { ConceptListPageLayout } from "./ConceptListPageLayout";
+import { ConceptListWorkspaceLayout } from "./ConceptListWorkspaceLayout";
 import { GraphWorkspaceLayout } from "./GraphWorkspaceLayout";
 
 type Screen = "concepts" | "contexts" | "settings" | LabRoute;
@@ -342,6 +344,251 @@ export const App = () => {
     });
   };
 
+  const conceptToolbar = (
+    <section
+      data-testid="concept-list-toolbar"
+      className={`relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] ritual-altar ${
+        conceptMainTab === "graph" ? "shrink-0 p-3" : "p-5"
+      }`}
+    >
+      <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+        <div className="hud-search-wrap min-w-0">
+          <input
+            className="search-input"
+            placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <button
+          className={`index-filter-toggle${onlyFavorite ? " index-filter-toggle--active" : ""}`}
+          type="button"
+          onClick={() => setOnlyFavorite((prev) => !prev)}
+        >
+          {onlyFavorite ? "お気に入りのみ" : "すべて"}
+        </button>
+        <button type="button" className="action-button px-4 py-3 text-sm" onClick={openCreate}>
+          概念を追加
+        </button>
+      </div>
+      <div className="hud-mode-strip mt-4 flex flex-wrap items-center gap-1">
+        <span className="index-filter-label">表示:</span>
+        {([
+          ["list", "一覧表示"],
+          ["graph", "グラフ表示"],
+          ["tree", "ツリー表示"]
+        ] as const).map(([tab, label]) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setConceptMainTab(tab)}
+            className={`index-filter-tab${conceptMainTab === tab ? " index-filter-tab--active" : ""}`}
+          >
+            {label}
+          </button>
+        ))}
+        {conceptMainTab === "graph" && (
+          <button
+            type="button"
+            onClick={() => setGraphFiltersOpen((prev) => !prev)}
+            className={`index-filter-tab${graphFiltersOpen ? " index-filter-tab--active" : ""}`}
+          >
+            {graphFiltersOpen ? "フィルタを隠す" : "フィルタ"}
+          </button>
+        )}
+      </div>
+      {conceptMainTab === "list" && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <span className="index-filter-label">表示モード:</span>
+          {([
+            ["all", "全体"],
+            ["domain", "分野別"],
+            ["research", "研究テーマ別"]
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setListViewMode(mode)}
+              className={`index-filter-tab index-filter-tab--compact${listViewMode === mode ? " index-filter-tab--active" : ""}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {(conceptMainTab !== "graph" || graphFiltersOpen) && (
+        <div className="hud-filter-stack mt-3 space-y-2">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="index-filter-label">分野タグ:</span>
+            {!isFieldTagsExpanded && (
+              <>
+                {selectedDomainTags.length > 0 ? (
+                  selectedDomainTags.map((tag) => (
+                    <button
+                      key={`domain-selected-${tag}`}
+                      type="button"
+                      onClick={() =>
+                        setSelectedDomainTags((prev) =>
+                          prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
+                        )
+                      }
+                      className="index-filter-chip index-filter-chip--active"
+                    >
+                      {tag}
+                    </button>
+                  ))
+                ) : (
+                  <span className="index-filter-hint">全体</span>
+                )}
+                {allDomainTags.length > selectedDomainTags.length && (
+                  <span className="index-filter-hint">
+                    ほか {allDomainTags.length - selectedDomainTags.length} 件
+                  </span>
+                )}
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
+              className="index-filter-chip"
+            >
+              {isFieldTagsExpanded ? "畳む" : "展開"}
+            </button>
+          </div>
+          {isFieldTagsExpanded && (
+            <div className="flex flex-wrap items-center gap-1">
+              {allDomainTags.length === 0 ? (
+                <span className="index-filter-hint">未登録</span>
+              ) : (
+                allDomainTags.map((tag) => {
+                  const active = selectedDomainTags.includes(tag);
+                  return (
+                    <button
+                      key={`domain-${tag}`}
+                      type="button"
+                      onClick={() =>
+                        setSelectedDomainTags((prev) =>
+                          prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
+                        )
+                      }
+                      className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="index-filter-label">研究テーマタグ:</span>
+            {allResearchTags.length === 0 ? (
+              <span className="index-filter-hint">未登録</span>
+            ) : (
+              allResearchTags.map((tag) => {
+                const active = selectedResearchTags.includes(tag);
+                return (
+                  <button
+                    key={`research-${tag}`}
+                    type="button"
+                    onClick={() =>
+                      setSelectedResearchTags((prev) =>
+                        prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
+                      )
+                    }
+                    className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="index-filter-label">状態:</span>
+            {conceptStatusList.map((status) => {
+              const active = selectedStatuses.includes(status);
+              return (
+                <button
+                  key={`status-${status}`}
+                  type="button"
+                  onClick={() =>
+                    setSelectedStatuses((prev) =>
+                      prev.includes(status) ? prev.filter((item) => item !== status) : [...prev, status]
+                    )
+                  }
+                  className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
+                >
+                  {statusLabelMap[status]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+
+  const listWorkspace = loading ? (
+    <p className="text-sm text-celestial-textSub">読み込み中...</p>
+  ) : (
+    <ConceptListWorkspaceLayout
+      mobileDetail={mobileDetail}
+      list={
+        <>
+          <ConceptGroupSections
+            mode={listViewMode}
+            sections={groupedSections}
+            selectedId={selectedId}
+            domainColorMap={domainColorMap}
+            conceptQuizStatsText={conceptQuizStatsText}
+            onSelect={handleSelect}
+            cardRefs={cardRefs}
+            searchQuery={debouncedSearchQuery}
+          />
+          {visibleConcepts.length > listDisplayLimit && (
+            <div className="mt-3 flex flex-col items-center gap-2 px-1">
+              <p className="text-xs text-nordic-textSecondary">
+                表示中 {Math.min(listDisplayLimit, visibleConcepts.length)} / {visibleConcepts.length} 件
+              </p>
+              <button
+                type="button"
+                className="index-text-button"
+                onClick={() => setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))}
+              >
+                さらに表示（+100件）
+              </button>
+            </div>
+          )}
+        </>
+      }
+      detail={
+        <>
+          <div className="mb-2 block lg:hidden">
+            <button className="index-text-button" type="button" onClick={() => setMobileDetail(false)}>
+              一覧に戻る
+            </button>
+          </div>
+          <ConceptDetail
+            ref={detailContainerRef}
+            concept={selectedConcept}
+            conceptMap={conceptMap}
+            domainColorMap={domainColorMap}
+            {...conceptDetailActions}
+            onRequestDelete={handleRequestDelete}
+            deleting={deleting}
+            onSelectRelated={(id) => {
+              setSelectedId(id);
+              setMobileDetail(true);
+            }}
+          />
+        </>
+      }
+    />
+  );
+
   return (
     <div className="app-background relative flex min-h-screen flex-col bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
       <div className="cyber-ambient" aria-hidden="true" />
@@ -391,11 +638,14 @@ export const App = () => {
         </div>
       </header>
 
+      {screen === "concepts" && conceptMainTab === "list" ? (
+        <ConceptListPageLayout toolbar={conceptToolbar} workspace={listWorkspace} />
+      ) : (
       <main
         className={
           screen === "concepts" && conceptMainTab === "graph"
             ? "relative z-10 flex min-h-0 flex-1 flex-col px-3 py-2 md:px-4"
-            : screen === "concepts" && (conceptMainTab === "list" || conceptMainTab === "tree")
+            : screen === "concepts" && conceptMainTab === "tree"
               ? "relative z-10 w-full px-3 py-3 sm:px-6 md:px-8"
               : "relative z-10 mx-auto max-w-7xl px-4 py-4"
         }
@@ -460,205 +710,11 @@ export const App = () => {
           )
         ) : (
           <div className={conceptMainTab === "graph" ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-4"}>
-            <section
-              className={`relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] ritual-altar ${
-                conceptMainTab === "graph" ? "shrink-0 p-3" : "p-5"
-              }`}
-            >
-              <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                <div className="hud-search-wrap min-w-0">
-                  <input
-                    className="search-input"
-                    placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
-                <button
-                  className={`index-filter-toggle${onlyFavorite ? " index-filter-toggle--active" : ""}`}
-                  type="button"
-                  onClick={() => setOnlyFavorite((prev) => !prev)}
-                >
-                  {onlyFavorite ? "お気に入りのみ" : "すべて"}
-                </button>
-                <button
-                  type="button"
-                  className="action-button px-4 py-3 text-sm"
-                  onClick={openCreate}
-                >
-                  概念を追加
-                </button>
-              </div>
-              <div className="hud-mode-strip mt-4 flex flex-wrap items-center gap-1">
-                <span className="index-filter-label">表示:</span>
-                {([
-                  ["list", "一覧表示"],
-                  ["graph", "グラフ表示"],
-                  ["tree", "ツリー表示"]
-                ] as const).map(([tab, label]) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setConceptMainTab(tab)}
-                    className={`index-filter-tab${conceptMainTab === tab ? " index-filter-tab--active" : ""}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-                {conceptMainTab === "graph" && (
-                  <button
-                    type="button"
-                    onClick={() => setGraphFiltersOpen((prev) => !prev)}
-                    className={`index-filter-tab${graphFiltersOpen ? " index-filter-tab--active" : ""}`}
-                  >
-                    {graphFiltersOpen ? "フィルタを隠す" : "フィルタ"}
-                  </button>
-                )}
-              </div>
-              {conceptMainTab === "list" && (
-                <div className="mt-2 flex flex-wrap items-center gap-1">
-                  <span className="index-filter-label">表示モード:</span>
-                  {([
-                    ["all", "全体"],
-                    ["domain", "分野別"],
-                    ["research", "研究テーマ別"]
-                  ] as const).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setListViewMode(mode)}
-                      className={`index-filter-tab index-filter-tab--compact${listViewMode === mode ? " index-filter-tab--active" : ""}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {(conceptMainTab !== "graph" || graphFiltersOpen) && (
-              <div className="hud-filter-stack mt-3 space-y-2">
-                <div className="flex flex-wrap items-center gap-1">
-                  <span className="index-filter-label">分野タグ:</span>
-                  {!isFieldTagsExpanded && (
-                    <>
-                      {selectedDomainTags.length > 0 ? (
-                        selectedDomainTags.map((tag) => (
-                          <button
-                            key={`domain-selected-${tag}`}
-                            type="button"
-                            onClick={() =>
-                              setSelectedDomainTags((prev) =>
-                                prev.includes(tag)
-                                  ? prev.filter((item) => item !== tag)
-                                  : [...prev, tag]
-                              )
-                            }
-                            className="index-filter-chip index-filter-chip--active"
-                          >
-                            {tag}
-                          </button>
-                        ))
-                      ) : (
-                        <span className="index-filter-hint">全体</span>
-                      )}
-                      {allDomainTags.length > selectedDomainTags.length && (
-                        <span className="index-filter-hint">
-                          ほか {allDomainTags.length - selectedDomainTags.length} 件
-                        </span>
-                      )}
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setIsFieldTagsExpanded((prev) => !prev)}
-                    className="index-filter-chip"
-                  >
-                    {isFieldTagsExpanded ? "畳む" : "展開"}
-                  </button>
-                </div>
-                {isFieldTagsExpanded && (
-                  <div className="flex flex-wrap items-center gap-1">
-                    {allDomainTags.length === 0 ? (
-                      <span className="index-filter-hint">未登録</span>
-                    ) : (
-                      allDomainTags.map((tag) => {
-                        const active = selectedDomainTags.includes(tag);
-                        return (
-                          <button
-                            key={`domain-${tag}`}
-                            type="button"
-                            onClick={() =>
-                              setSelectedDomainTags((prev) =>
-                                prev.includes(tag)
-                                  ? prev.filter((item) => item !== tag)
-                                  : [...prev, tag]
-                              )
-                            }
-                            className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
-                          >
-                            {tag}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center gap-1">
-                  <span className="index-filter-label">研究テーマタグ:</span>
-                  {allResearchTags.length === 0 ? (
-                    <span className="index-filter-hint">未登録</span>
-                  ) : (
-                    allResearchTags.map((tag) => {
-                      const active = selectedResearchTags.includes(tag);
-                      return (
-                        <button
-                          key={`research-${tag}`}
-                          type="button"
-                          onClick={() =>
-                            setSelectedResearchTags((prev) =>
-                              prev.includes(tag)
-                                ? prev.filter((item) => item !== tag)
-                                : [...prev, tag]
-                            )
-                          }
-                          className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1">
-                  <span className="index-filter-label">状態:</span>
-                  {conceptStatusList.map((status) => {
-                    const active = selectedStatuses.includes(status);
-                    return (
-                      <button
-                        key={`status-${status}`}
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatuses((prev) =>
-                            prev.includes(status)
-                              ? prev.filter((item) => item !== status)
-                              : [...prev, status]
-                          )
-                        }
-                        className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
-                      >
-                        {statusLabelMap[status]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              )}
-            </section>
+            {conceptToolbar}
 
             {loading ? (
               <p className="text-sm text-celestial-textSub">読み込み中...</p>
-            ) : conceptMainTab === "graph" || conceptMainTab === "tree" ? (
+            ) : (
               <div className={conceptMainTab === "graph" ? "min-h-0 flex-1" : undefined}>
               <Suspense
                 fallback={<p className="text-sm text-celestial-textSub">表示を読み込み中...</p>}
@@ -730,69 +786,11 @@ export const App = () => {
                 )}
               </Suspense>
               </div>
-            ) : (
-              <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
-                <div
-                  className={`${mobileDetail ? "hidden" : "block"} min-w-0 lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto scrollbar-none`}
-                >
-                  <ConceptGroupSections
-                    mode={listViewMode}
-                    sections={groupedSections}
-                    selectedId={selectedId}
-                    domainColorMap={domainColorMap}
-                    conceptQuizStatsText={conceptQuizStatsText}
-                    onSelect={handleSelect}
-                    cardRefs={cardRefs}
-                    searchQuery={debouncedSearchQuery}
-                  />
-                  {visibleConcepts.length > listDisplayLimit && (
-                    <div className="mt-3 flex flex-col items-center gap-2 px-1">
-                      <p className="text-xs text-nordic-textSecondary">
-                        表示中 {Math.min(listDisplayLimit, visibleConcepts.length)} / {visibleConcepts.length} 件
-                      </p>
-                      <button
-                        type="button"
-                        className="index-text-button"
-                        onClick={() =>
-                          setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))
-                        }
-                      >
-                        さらに表示（+100件）
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className={`${mobileDetail ? "block" : "hidden"} min-w-0 lg:block max-h-screen overflow-y-auto scrollbar-none`}>
-                  <div className="mb-2 block lg:hidden">
-                    <button
-                      className="index-text-button"
-                      type="button"
-                      onClick={() => setMobileDetail(false)}
-                    >
-                      一覧に戻る
-                    </button>
-                  </div>
-                  <ConceptDetail
-                    ref={detailContainerRef}
-                    concept={selectedConcept}
-                    conceptMap={conceptMap}
-                    domainColorMap={domainColorMap}
-                    {...conceptDetailActions}
-                    onRequestDelete={handleRequestDelete}
-                    deleting={deleting}
-                    onSelectRelated={(id) => {
-                      setSelectedId(id);
-                      setMobileDetail(true);
-                    }}
-                  />
-                </div>
-              </section>
             )}
           </div>
         )}
       </main>
-
+      )}
       <ConceptFormModal
         open={modalOpen}
         mode={editingConcept ? "edit" : "create"}

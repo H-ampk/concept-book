@@ -30,6 +30,16 @@ const boot = async () => {
     return;
   }
 
+  if (import.meta.env.DEV && bootParams.has("e2eListWorkspace")) {
+    const { ListWorkspaceE2eHarness } = await import("./dev/ListWorkspaceE2eHarness");
+    root.render(
+      <React.StrictMode>
+        <ListWorkspaceE2eHarness />
+      </React.StrictMode>
+    );
+    return;
+  }
+
   root.render(
     <React.StrictMode>
       <App />
