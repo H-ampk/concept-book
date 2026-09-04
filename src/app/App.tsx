@@ -45,6 +45,7 @@ import {
   isGraphDetailPanelVisible,
   selectGraphConcept
 } from "./graphDetailUiState";
+import { ConceptListWorkspaceLayout } from "./ConceptListWorkspaceLayout";
 import { GraphWorkspaceLayout } from "./GraphWorkspaceLayout";
 
 type Screen = "concepts" | "contexts" | "settings" | LabRoute;
@@ -461,6 +462,7 @@ export const App = () => {
         ) : (
           <div className={conceptMainTab === "graph" ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-4"}>
             <section
+              data-testid="concept-list-toolbar"
               className={`relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] ritual-altar ${
                 conceptMainTab === "graph" ? "shrink-0 p-3" : "p-5"
               }`}
@@ -731,63 +733,65 @@ export const App = () => {
               </Suspense>
               </div>
             ) : (
-              <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
-                <div
-                  className={`${mobileDetail ? "hidden" : "block"} min-w-0 lg:block max-lg:overflow-hidden lg:max-h-screen lg:overflow-y-auto scrollbar-none`}
-                >
-                  <ConceptGroupSections
-                    mode={listViewMode}
-                    sections={groupedSections}
-                    selectedId={selectedId}
-                    domainColorMap={domainColorMap}
-                    conceptQuizStatsText={conceptQuizStatsText}
-                    onSelect={handleSelect}
-                    cardRefs={cardRefs}
-                    searchQuery={debouncedSearchQuery}
-                  />
-                  {visibleConcepts.length > listDisplayLimit && (
-                    <div className="mt-3 flex flex-col items-center gap-2 px-1">
-                      <p className="text-xs text-nordic-textSecondary">
-                        表示中 {Math.min(listDisplayLimit, visibleConcepts.length)} / {visibleConcepts.length} 件
-                      </p>
+              <ConceptListWorkspaceLayout
+                mobileDetail={mobileDetail}
+                list={
+                  <>
+                    <ConceptGroupSections
+                      mode={listViewMode}
+                      sections={groupedSections}
+                      selectedId={selectedId}
+                      domainColorMap={domainColorMap}
+                      conceptQuizStatsText={conceptQuizStatsText}
+                      onSelect={handleSelect}
+                      cardRefs={cardRefs}
+                      searchQuery={debouncedSearchQuery}
+                    />
+                    {visibleConcepts.length > listDisplayLimit && (
+                      <div className="mt-3 flex flex-col items-center gap-2 px-1">
+                        <p className="text-xs text-nordic-textSecondary">
+                          表示中 {Math.min(listDisplayLimit, visibleConcepts.length)} / {visibleConcepts.length} 件
+                        </p>
+                        <button
+                          type="button"
+                          className="index-text-button"
+                          onClick={() =>
+                            setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))
+                          }
+                        >
+                          さらに表示（+100件）
+                        </button>
+                      </div>
+                    )}
+                  </>
+                }
+                detail={
+                  <>
+                    <div className="mb-2 block lg:hidden">
                       <button
-                        type="button"
                         className="index-text-button"
-                        onClick={() =>
-                          setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))
-                        }
+                        type="button"
+                        onClick={() => setMobileDetail(false)}
                       >
-                        さらに表示（+100件）
+                        一覧に戻る
                       </button>
                     </div>
-                  )}
-                </div>
-
-                <div className={`${mobileDetail ? "block" : "hidden"} min-w-0 lg:block max-h-screen overflow-y-auto scrollbar-none`}>
-                  <div className="mb-2 block lg:hidden">
-                    <button
-                      className="index-text-button"
-                      type="button"
-                      onClick={() => setMobileDetail(false)}
-                    >
-                      一覧に戻る
-                    </button>
-                  </div>
-                  <ConceptDetail
-                    ref={detailContainerRef}
-                    concept={selectedConcept}
-                    conceptMap={conceptMap}
-                    domainColorMap={domainColorMap}
-                    {...conceptDetailActions}
-                    onRequestDelete={handleRequestDelete}
-                    deleting={deleting}
-                    onSelectRelated={(id) => {
-                      setSelectedId(id);
-                      setMobileDetail(true);
-                    }}
-                  />
-                </div>
-              </section>
+                    <ConceptDetail
+                      ref={detailContainerRef}
+                      concept={selectedConcept}
+                      conceptMap={conceptMap}
+                      domainColorMap={domainColorMap}
+                      {...conceptDetailActions}
+                      onRequestDelete={handleRequestDelete}
+                      deleting={deleting}
+                      onSelectRelated={(id) => {
+                        setSelectedId(id);
+                        setMobileDetail(true);
+                      }}
+                    />
+                  </>
+                }
+              />
             )}
           </div>
         )}
