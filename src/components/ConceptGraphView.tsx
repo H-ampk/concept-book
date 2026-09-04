@@ -9,6 +9,7 @@ import {
 } from "../utils/conceptGraphLod";
 import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
 import { createConceptGraphTopologySnapshot } from "../utils/conceptGraphTopology";
+import { rankConceptsForGraphFromIndex } from "../utils/conceptGraphPriority";
 import {
   collectConceptNeighborhoodFromIndex,
   createConceptRelationIndex,
@@ -57,9 +58,35 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
   const [viewMode, setViewMode] = useState<GraphViewMode>("all");
 
+  const relationIndexCacheRef = useRef<{
+    source: readonly Concept[];
+    index: ConceptRelationIndex;
+  } | null>(null);
+
+  const getCachedRelationIndex = (source: readonly Concept[]): ConceptRelationIndex => {
+    const cached = relationIndexCacheRef.current;
+    if (cached && cached.source === source) {
+      return cached.index;
+    }
+    const index = createConceptRelationIndex(source);
+    relationIndexCacheRef.current = { source, index };
+    return index;
+  };
+
+  const rankedConcepts = useMemo(() => {
+    if (viewMode !== "all" || !selectedId) {
+      return concepts;
+    }
+    const index = getCachedRelationIndex(concepts);
+    if (!index.conceptById.has(selectedId)) {
+      return concepts;
+    }
+    return rankConceptsForGraphFromIndex(index, selectedId).map((entry) => entry.concept);
+  }, [concepts, selectedId, viewMode]);
+
   const conceptsWindow = useMemo(
-    () => concepts.slice(0, Math.min(graphNodeLimit, concepts.length)),
-    [concepts, graphNodeLimit]
+    () => rankedConcepts.slice(0, Math.min(graphNodeLimit, rankedConcepts.length)),
+    [graphNodeLimit, rankedConcepts]
   );
 
   useEffect(() => {
@@ -96,11 +123,6 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     return null;
   }, [viewMode, selectedId, concepts]);
 
-  const relationIndexCacheRef = useRef<{
-    source: readonly Concept[];
-    index: ConceptRelationIndex;
-  } | null>(null);
-
   const displayedConcepts = useMemo(() => {
     if (viewMode === "all") {
       return conceptsWindow;
@@ -108,14 +130,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     if (neighborhoodEmptyReason) {
       return [];
     }
-    const cached = relationIndexCacheRef.current;
-    const index =
-      cached && cached.source === concepts
-        ? cached.index
-        : createConceptRelationIndex(concepts);
-    if (!cached || cached.source !== concepts) {
-      relationIndexCacheRef.current = { source: concepts, index };
-    }
+    const index = getCachedRelationIndex(concepts);
     const maxHops = viewMode === "1-hop" ? 1 : 2;
     return collectConceptNeighborhoodFromIndex(index, selectedId, maxHops);
   }, [viewMode, conceptsWindow, concepts, selectedId, neighborhoodEmptyReason]);

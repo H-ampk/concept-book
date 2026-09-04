@@ -6,7 +6,8 @@ import {
   GRAPH_TEST_DEFAULT_SEED,
   GRAPH_TEST_DOMAIN_TAGS
 } from "../utils/conceptGraphTestData";
-import { collectUndirectedConceptEdges } from "../utils/conceptRelations";
+import { rankConceptsForGraphFromIndex } from "../utils/conceptGraphPriority";
+import { collectUndirectedConceptEdges, createConceptRelationIndex } from "../utils/conceptRelations";
 
 const GRAPH_PERF_PRESETS = [
   { count: 200, label: "200" },
@@ -90,6 +91,24 @@ export const ConceptGraphPerformanceHarness = () => {
     };
   }, [filteredConcepts]);
 
+  const relationIndex = useMemo(() => {
+    const startedAt = performance.now();
+    const index = createConceptRelationIndex(filteredConcepts);
+    return {
+      index,
+      indexMs: performance.now() - startedAt
+    };
+  }, [filteredConcepts]);
+
+  const ranking = useMemo(() => {
+    if (!selectedId || !relationIndex.index.conceptById.has(selectedId)) {
+      return { ms: null as number | null, selected: false as const };
+    }
+    const startedAt = performance.now();
+    rankConceptsForGraphFromIndex(relationIndex.index, selectedId);
+    return { ms: performance.now() - startedAt, selected: true as const };
+  }, [relationIndex.index, selectedId]);
+
   return (
     <div className="flex min-h-dvh flex-col bg-nordic-bg text-celestial-textMain">
       <header className="shrink-0 border-b border-celestial-border bg-celestial-panel px-4 py-3">
@@ -143,6 +162,19 @@ export const ConceptGraphPerformanceHarness = () => {
           <div>
             edge生成: <span className="text-celestial-textMain">{formatMs(edges.edgeMs)}</span>
           </div>
+          <div>
+            relation index: <span className="text-celestial-textMain">{formatMs(relationIndex.indexMs)}</span>
+          </div>
+          <div>
+            priority計算:{" "}
+            <span className="text-celestial-textMain">
+              {ranking.selected && ranking.ms != null ? formatMs(ranking.ms) : "未選択"}
+            </span>
+          </div>
+          <div>
+            selected:{" "}
+            <span className="text-celestial-textMain">{selectedId ?? "未選択"}</span>
+          </div>
         </dl>
         <p className="mt-1 text-xs text-celestial-textSub">
           この画面の Concept はメモリ上のみです。IndexedDB には書き込みません。計測値は比較用で、固定閾値の合否には使いません。
@@ -173,6 +205,20 @@ export const ConceptGraphPerformanceHarness = () => {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+            onClick={() => setSelectedId(filteredConcepts[0]?.id)}
+          >
+            先頭を選択
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+            onClick={() => setSelectedId(undefined)}
+          >
+            選択解除
+          </button>
         </div>
       </header>
       <div className="min-h-0 flex-1 p-3">

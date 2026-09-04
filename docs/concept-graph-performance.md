@@ -11,7 +11,9 @@ ConceptBook が約 10,000 Concept を保持することを前提に、疑似デ�
 ↓
 既存フィルタ
 ↓
-200件段階表示 / 1-hop / 2-hop
+全体 + selected あり → priority ranking → 200件段階表示
+全体 + selected なし → 既存順 → 200件段階表示
+1-hop / 2-hop → 近傍抽出
 ↓
 displayedConcepts
 ↓
@@ -42,7 +44,9 @@ npm run dev
 - `relations` — 平均次数の目標（省略時 4）
 - `seed` — 決定的生成の種（省略時 103）
 
-Harness には生成 Concept 数、filter 後 Concept 数、edge 数、seed、averageRelations を表示します。DEV 専用の参考値として fixture 生成 / filter / edge 生成の `performance.now()` も出します。固定ミリ秒・固定 FPS は CI の合否にしません。
+Harness には生成 Concept 数、filter 後 Concept 数、edge 数、seed、averageRelations を表示します。DEV 専用の参考値として fixture 生成 / filter / edge 生成 / relation index / priority 計算の `performance.now()` も出します。selected がないときは priority 計算は `未選択`（既存順 fallback）です。固定ミリ秒・固定 FPS は CI の合否にしません。
+
+計測用に `先頭を選択` / `選択解除` があります。グラフ上のノード click でも同じ selected を渡せます。
 
 ## 手動チェックリスト
 
@@ -115,10 +119,20 @@ Harness には生成 Concept 数、filter 後 Concept 数、edge 数、seed、av
 | 規模 | 生成 | filter後 | 全edge（filter後母集団） | fixture生成 | filter | 母集団edge生成 | 初期表示 | フリーズ |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 200 | できた | 200 | 400 | 約 1.7 ms | 約 0.0 ms | 約 1.2 ms | 200 / 400 | なし |
-| 1,000 | できた | 1,000 | （平均次数 4 相当） | 数 ms 規模 | 1 ms 未満 | 数 ms 規模 | 200 件 | なし |
+| 1,000 | できた | 1,000 | 2,000 | 約 4.6 ms | 約 0.1 ms | 約 1.4 ms | 200 / 336。選択後 200 / 328 | なし |
 | 2,000 | できた | 2,000 | 4,000 | 約 16.9 ms | 約 0.2 ms | 約 8.4 ms | 200 / 279 | なし |
-| 5,000 | できた | 5,000 | 10,000 | 約 16.7 ms | 約 0.4 ms | 約 21.9 ms | 200。+200 で 400 / 495 | なし |
-| 10,000 | できた | 10,000 | 20,000 | 約 38.3 ms | 約 0.7 ms | 約 28.8 ms | 200 / 207（対象 10000 件中） | なし |
+| 5,000 | できた | 5,000 | 10,000 | 約 14.8 ms | 約 0.3 ms | 約 8.8 ms | 200 / 230。選択後 200 / 212 | なし |
+| 10,000 | できた | 10,000 | 20,000 | 約 23.0 ms | 約 0.5 ms | 約 25.7 ms | 200 / 207（対象 10000 件中）。選択後 200 / 213 | なし |
+
+### priority ranking（#110、2026-09-04、先頭 Concept を選択）
+
+`rankConceptsForGraphFromIndex` のみの計測。index 構築は別表示。`graphNodeLimit` 変更では ranking をやり直さない。
+
+| 規模 | selected | relation 数 | relation index | priority計算 | 表示件数 | フリーズ |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1,000 | graph-test-00001 | 2,000 | 約 1.9 ms | 約 3.3 ms | 200（全体）。+200 で 400 | なし |
+| 5,000 | graph-test-00001 | 10,000 | 約 18.0 ms | 約 9.4 ms | 200（全体） | なし |
+| 10,000 | graph-test-00001 | 20,000 | 約 27.8 ms | 約 17.7 ms | 200（全体）。1-hop は 41 / 40 | なし |
 
 ### 主要ボトルネック（今回の実測範囲）
 
@@ -132,7 +146,8 @@ Harness には生成 Concept 数、filter 後 Concept 数、edge 数、seed、av
 | graph topology 準備 | 以前は signature 用と graphData 用で辺収集が二重だった。これを 1 回に削減した。表示 200 件では milliseond 以下 |
 | Force simulation | 初期 200 件は既存 `small` profile。2000 / 5000 / 10000 **件を全部表示した状態** では測定していない。現状の主要ボトルネックとは判断せず、`very-large` は追加していない |
 | Canvas node 描画 / `strokeText` / `fillText` | `react-force-graph-2d`（内部 `force-graph`）は **viewport 外でも** `graphData.nodes` 全件に対して `nodeCanvasObject` を呼ぶ。ただし描画対象は displayedConcepts（初期 200）なので、10,000 保持だけでは milliseond 級の描画ボトルネックにはなっていない |
-| 近傍抽出 | 以前は selected 変更のたびに全 Concept から adjacency を再構築していた。index 再利用後、全体モードでは index を作らない。1-hop / 2-hop 切替と selected 変更では同一 `concepts` なら index を再利用する |
+| 近傍抽出 | 以前は selected 変更のたびに全 Concept から adjacency を再構築していた。同一 `concepts` なら relation index を再利用する。全体モードでも selected があるときだけ同じ index で priority ranking する |
+| priority ranking | 10,000 件で十数 ms。O(V+E) の層単位 BFS + 1 回の sort。Canvas / zoom / pan では走らない |
 
 ## viewport culling
 
