@@ -3,7 +3,10 @@ import {
   FAR_LABEL_MAX_CHARS,
   FULL_LABEL_SCALE,
   LABEL_ELLIPSIS,
+  LABEL_HALO_EMPHASIS_SCREEN_WIDTH,
+  LABEL_HALO_SCREEN_WIDTH,
   MEDIUM_LABEL_SCALE,
+  getConceptGraphLabelHaloScreenWidth,
   getConceptGraphLabelStyle,
   getConceptGraphLabelText
 } from "./conceptGraphLod";
@@ -206,5 +209,31 @@ describe("getConceptGraphLabelText", () => {
     it("0.8 は medium のため全文", () => {
       expect(labelText(LONG_TITLE, 0.8)).toBe(LONG_TITLE);
     });
+  });
+});
+
+describe("getConceptGraphLabelHaloScreenWidth", () => {
+  it("通常 Concept は LABEL_HALO_SCREEN_WIDTH を返す", () => {
+    expect(
+      getConceptGraphLabelHaloScreenWidth({ isSelected: false, isFavorite: false })
+    ).toBe(LABEL_HALO_SCREEN_WIDTH);
+  });
+
+  it("selected は LABEL_HALO_EMPHASIS_SCREEN_WIDTH を返す", () => {
+    expect(
+      getConceptGraphLabelHaloScreenWidth({ isSelected: true, isFavorite: false })
+    ).toBe(LABEL_HALO_EMPHASIS_SCREEN_WIDTH);
+  });
+
+  it("favorite は LABEL_HALO_EMPHASIS_SCREEN_WIDTH を返す", () => {
+    expect(
+      getConceptGraphLabelHaloScreenWidth({ isSelected: false, isFavorite: true })
+    ).toBe(LABEL_HALO_EMPHASIS_SCREEN_WIDTH);
+  });
+
+  it("selected かつ favorite でも強調ハローになる", () => {
+    expect(
+      getConceptGraphLabelHaloScreenWidth({ isSelected: true, isFavorite: true })
+    ).toBe(LABEL_HALO_EMPHASIS_SCREEN_WIDTH);
   });
 });
