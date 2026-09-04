@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
+import type { ConceptQuizStats } from "../utils/quiz/getConceptQuizStats";
+import {
+  GRAPH_METRIC_MODES,
+  getConceptGraphAttemptLabel,
+  getConceptGraphNodeRadius,
+  type GraphMetricMode
+} from "../utils/conceptGraphAttemptRadius";
 import {
   getConceptGraphLabelHaloScreenWidth,
   getConceptGraphLabelStyle,
   getConceptGraphLabelText,
-  LABEL_HALO_COLOR
+  LABEL_HALO_COLOR,
+  MEDIUM_LABEL_SCALE
 } from "../utils/conceptGraphLod";
 import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
 import { createConceptGraphTopologySnapshot } from "../utils/conceptGraphTopology";
@@ -48,15 +56,23 @@ type Props = {
   domainColorMap: Record<string, string>;
   selectedId?: string;
   onSelectConcept: (id: string) => void;
+  conceptQuizStatsMap?: Map<string, ConceptQuizStats>;
 };
 
-export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelectConcept }: Props) => {
+export const ConceptGraphView = ({
+  concepts,
+  domainColorMap,
+  selectedId,
+  onSelectConcept,
+  conceptQuizStatsMap
+}: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
   const hasAutoFittedRef = useRef(false);
   const [size, setSize] = useState({ width: 700, height: 520 });
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
   const [viewMode, setViewMode] = useState<GraphViewMode>("all");
+  const [metricMode, setMetricMode] = useState<GraphMetricMode>("normal");
 
   const relationIndexCacheRef = useRef<{
     source: readonly Concept[];
@@ -221,7 +237,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-celestial-border bg-nordic-surface">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-celestial-border px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1" role="group" aria-label="グラフ表示モード">
+          <div className="flex items-center gap-1" role="group" aria-label="グラフ表示範囲">
             {GRAPH_VIEW_MODES.map(({ mode, label }) => (
               <button
                 key={mode}
@@ -233,6 +249,23 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
                     : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
                 }`}
                 onClick={() => setViewMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1" role="group" aria-label="グラフ指標表示">
+            {GRAPH_METRIC_MODES.map(({ mode, label }) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={metricMode === mode}
+                className={`rounded-md border px-2 py-1 text-xs ${
+                  metricMode === mode
+                    ? "border-celestial-softGold bg-celestial-gold/15 text-celestial-softGold"
+                    : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
+                }`}
+                onClick={() => setMetricMode(mode)}
               >
                 {label}
               </button>
@@ -304,7 +337,12 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             );
             const ringColors =
               domainColors.length > 0 ? domainColors : [getDomainTagColor("", domainColorMap)];
-            const radius = concept.favorite ? 6.8 : 5.2;
+            const totalAttempts = conceptQuizStatsMap?.get(concept.id)?.totalAttempts ?? 0;
+            const radius = getConceptGraphNodeRadius({
+              metricMode,
+              totalAttempts,
+              isFavorite: concept.favorite
+            });
             const isSelected = selectedId === node.id;
             const domainRadius = radius + DOMAIN_RING_WIDTH / 2;
             const outerLineWidth = isSelected ? 2.2 : 1.4;
@@ -377,6 +415,22 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
             context.strokeText(labelText, labelX, labelY);
             context.globalAlpha = labelStyle.opacity;
             context.fillText(labelText, labelX, labelY);
+
+            if (metricMode === "attempts") {
+              const showAttemptLabel = isSelected || globalScale >= MEDIUM_LABEL_SCALE;
+              if (showAttemptLabel) {
+                const attemptLabel = getConceptGraphAttemptLabel(totalAttempts);
+                const attemptFontSize = (isSelected ? 10 : 8) / safeScale;
+                const attemptY = labelY + fontSize + 2 / safeScale;
+                context.font = `400 ${attemptFontSize}px sans-serif`;
+                context.lineWidth = haloWidth;
+                context.globalAlpha = Math.min(1, labelStyle.opacity + 0.2);
+                context.strokeText(attemptLabel, labelX, attemptY);
+                context.globalAlpha = labelStyle.opacity;
+                context.fillText(attemptLabel, labelX, attemptY);
+              }
+            }
+
             context.restore();
           }}
         />

@@ -22,7 +22,10 @@ import { buildContextualCardSourceId } from "../utils/quizQuestionSource";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
 import type { ConceptSaveOptions } from "../utils/conceptStatus";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
-import { buildConceptQuizStatsDisplayMap } from "../utils/quiz/getConceptQuizStats";
+import {
+  buildConceptQuizStatsDisplayMap,
+  buildConceptQuizStatsMap
+} from "../utils/quiz/getConceptQuizStats";
 import { getConceptMastery } from "../utils/mastery/getConceptMastery";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
@@ -219,6 +222,11 @@ export const App = () => {
     }
     return buildTagSections(listSourceConcepts, "research");
   }, [listViewMode, listSourceConcepts]);
+
+  const conceptQuizStatsMap = useMemo(
+    () => buildConceptQuizStatsMap(quizAttemptLogs),
+    [quizAttemptLogs]
+  );
 
   const conceptQuizStatsText = useMemo(
     () => buildConceptQuizStatsDisplayMap(quizAttemptLogs),
@@ -663,6 +671,7 @@ export const App = () => {
                           domainColorMap={domainColorMap}
                           selectedId={selectedId}
                           onSelectConcept={handleGraphSelect}
+                          conceptQuizStatsMap={conceptQuizStatsMap}
                         />
                         {showGraphDetailPanel && (
                           <div
