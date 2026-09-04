@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Concept } from "../types/concept";
 import { collectUndirectedConceptEdges } from "./conceptRelations";
-import { createConceptGraphTopologySignature } from "./conceptGraphTopology";
+import {
+  createConceptGraphTopologySignature,
+  createConceptGraphTopologySnapshot
+} from "./conceptGraphTopology";
 
 const stub = (id: string, relatedIds: string[], extras?: Partial<Concept>): Concept => ({
   id,
@@ -106,5 +109,28 @@ describe("createConceptGraphTopologySignature", () => {
       nodes: ["A", "B"],
       links: [["A", "B"]]
     });
+  });
+});
+
+describe("createConceptGraphTopologySnapshot", () => {
+  it("signature と links を同じ辺収集から返す", () => {
+    const concepts = [stub("B", ["A", "C"]), stub("A", ["B"]), stub("C", ["B"])];
+    const snapshot = createConceptGraphTopologySnapshot(concepts);
+    const edges = collectUndirectedConceptEdges(concepts);
+
+    expect(snapshot.signature).toBe(createConceptGraphTopologySignature(concepts));
+    expect(snapshot.nodes.map((node) => node.id)).toEqual(["B", "A", "C"]);
+    expect(snapshot.links).toEqual(edges.map((edge) => ({ source: edge.source, target: edge.target })));
+  });
+
+  it("title / favorite / domainTags / 配列順だけでは signature が変わらない", () => {
+    const base = [stub("A", ["B"], { title: "a" }), stub("B", ["A"], { favorite: false })];
+    const shuffled = [
+      stub("B", ["A"], { favorite: true, domainTags: ["x"] }),
+      stub("A", ["B"], { title: "changed" })
+    ];
+    expect(createConceptGraphTopologySnapshot(base).signature).toBe(
+      createConceptGraphTopologySnapshot(shuffled).signature
+    );
   });
 });

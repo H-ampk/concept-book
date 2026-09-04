@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../types/concept";
-import { collectConceptNeighborhood } from "./conceptRelations";
+import {
+  collectConceptNeighborhood,
+  collectConceptNeighborhoodFromIndex,
+  createConceptRelationIndex
+} from "./conceptRelations";
 
 const concept = (id: string, relatedIds: string[]): Concept => ({
   ...createEmptyConceptInput(),
@@ -67,5 +71,45 @@ describe("collectConceptNeighborhood", () => {
     const concepts = [concept("A", ["B"]), concept("B", [])];
     const ids = collectConceptNeighborhood(concepts, "A", 1).map((item) => item.id);
     expect(ids.sort()).toEqual(["A", "B"]);
+  });
+
+  it("結果の並びは元の concepts 配列順を維持する", () => {
+    const concepts = [
+      concept("D", []),
+      concept("A", ["C", "B"]),
+      concept("C", ["A"]),
+      concept("B", ["A"])
+    ];
+    expect(collectConceptNeighborhood(concepts, "A", 1).map((item) => item.id)).toEqual([
+      "A",
+      "C",
+      "B"
+    ]);
+  });
+});
+
+describe("createConceptRelationIndex", () => {
+  it("同じ index を selected 変更でも再利用できる", () => {
+    const concepts = [
+      concept("A", ["B"]),
+      concept("B", ["A", "C"]),
+      concept("C", ["B"])
+    ];
+    const index = createConceptRelationIndex(concepts);
+    const fromA = collectConceptNeighborhoodFromIndex(index, "A", 1).map((item) => item.id);
+    const fromC = collectConceptNeighborhoodFromIndex(index, "C", 1).map((item) => item.id);
+    expect(fromA.sort()).toEqual(["A", "B"]);
+    expect(fromC.sort()).toEqual(["B", "C"]);
+    expect(collectConceptNeighborhoodFromIndex(index, "A", 2).map((item) => item.id)).toEqual([
+      "A",
+      "B",
+      "C"
+    ]);
+  });
+
+  it("存在しない selected は空配列", () => {
+    const index = createConceptRelationIndex([concept("A", [])]);
+    expect(collectConceptNeighborhoodFromIndex(index, "Z", 1)).toEqual([]);
+    expect(collectConceptNeighborhoodFromIndex(index, undefined, 1)).toEqual([]);
   });
 });

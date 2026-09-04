@@ -113,6 +113,24 @@ describe("createGraphTestConcepts", () => {
     expect(collectUndirectedConceptEdges(concepts).length).toBeGreaterThan(1000);
   });
 
+  it("10,000件 smoke: 生成でき、IDが一意で自己参照・不正 relatedId がない", () => {
+    const concepts = createGraphTestConcepts({
+      conceptCount: 10_000,
+      averageRelations: 4,
+      seed: GRAPH_TEST_DEFAULT_SEED
+    });
+    expect(concepts).toHaveLength(10_000);
+    const ids = concepts.map((concept) => concept.id);
+    const idSet = new Set(ids);
+    expect(idSet.size).toBe(10_000);
+    for (const concept of concepts) {
+      expect(concept.relatedIds).not.toContain(concept.id);
+      for (const relatedId of concept.relatedIds) {
+        expect(idSet.has(relatedId)).toBe(true);
+      }
+    }
+  });
+
   it("異常な件数でも無限ループせず空配列または有限件になる", () => {
     expect(createGraphTestConcepts({ conceptCount: Number.NaN })).toEqual([]);
     expect(createGraphTestConcepts({ conceptCount: -10 })).toEqual([]);

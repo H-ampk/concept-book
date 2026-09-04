@@ -175,32 +175,53 @@ export const buildUndirectedAdjacency = (
   return graph;
 };
 
+export type ConceptRelationIndex = {
+  concepts: readonly Concept[];
+  conceptById: Map<string, Concept>;
+  adjacency: Map<string, string[]>;
+  orderById: Map<string, number>;
+};
+
+/** フィルタ済み Concept 集合向けの近傍探索 index。concepts が変わったときだけ作り直す。 */
+export const createConceptRelationIndex = (
+  concepts: readonly Concept[]
+): ConceptRelationIndex => {
+  const conceptById = new Map<string, Concept>();
+  const orderById = new Map<string, number>();
+  for (let index = 0; index < concepts.length; index += 1) {
+    const concept = concepts[index];
+    conceptById.set(concept.id, concept);
+    orderById.set(concept.id, index);
+  }
+
+  return {
+    concepts,
+    conceptById,
+    adjacency: buildUndirectedAdjacency(concepts),
+    orderById
+  };
+};
+
 /**
- * 対象集合内で、中心 Concept から無向辺を最大 maxHops まで BFS した近傍を返す。
- * centerId が対象に無い場合は空配列。フィルタ外の Concept は経由しない。
+ * 既存 index 上で、中心 Concept から無向辺を最大 maxHops まで BFS した近傍を返す。
+ * 結果の並びは元の concepts 配列順。centerId が対象に無い場合は空配列。
  */
-export const collectConceptNeighborhood = (
-  concepts: readonly Concept[],
+export const collectConceptNeighborhoodFromIndex = (
+  index: ConceptRelationIndex,
   centerId: string | undefined,
   maxHops: number
 ): Concept[] => {
-  if (!centerId || maxHops < 0) {
+  if (!centerId || maxHops < 0 || !index.conceptById.has(centerId)) {
     return [];
   }
 
-  const idSet = new Set(concepts.map((concept) => concept.id));
-  if (!idSet.has(centerId)) {
-    return [];
-  }
-
-  const adjacency = buildUndirectedAdjacency(concepts);
   const visited = new Set<string>([centerId]);
   let frontier: string[] = [centerId];
 
   for (let hop = 0; hop < maxHops; hop += 1) {
     const next: string[] = [];
     for (const id of frontier) {
-      for (const neighbor of adjacency.get(id) ?? []) {
+      for (const neighbor of index.adjacency.get(id) ?? []) {
         if (visited.has(neighbor)) {
           continue;
         }
@@ -211,5 +232,25 @@ export const collectConceptNeighborhood = (
     frontier = next;
   }
 
-  return concepts.filter((concept) => visited.has(concept.id));
+  const ordered = [...visited].sort(
+    (a, b) => (index.orderById.get(a) ?? 0) - (index.orderById.get(b) ?? 0)
+  );
+  const result: Concept[] = [];
+  for (const id of ordered) {
+    const concept = index.conceptById.get(id);
+    if (concept) {
+      result.push(concept);
+    }
+  }
+  return result;
 };
+
+/**
+ * 対象集合内で、中心 Concept から無向辺を最大 maxHops まで BFS した近傍を返す。
+ * centerId が対象に無い場合は空配列。フィルタ外の Concept は経由しない。
+ */
+export const collectConceptNeighborhood = (
+  concepts: readonly Concept[],
+  centerId: string | undefined,
+  maxHops: number
+): Concept[] => collectConceptNeighborhoodFromIndex(createConceptRelationIndex(concepts), centerId, maxHops);

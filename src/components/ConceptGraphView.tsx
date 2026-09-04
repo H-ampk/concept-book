@@ -8,8 +8,12 @@ import {
   LABEL_HALO_COLOR
 } from "../utils/conceptGraphLod";
 import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
-import { createConceptGraphTopologySignature } from "../utils/conceptGraphTopology";
-import { collectConceptNeighborhood, collectUndirectedConceptEdges } from "../utils/conceptRelations";
+import { createConceptGraphTopologySnapshot } from "../utils/conceptGraphTopology";
+import {
+  collectConceptNeighborhoodFromIndex,
+  createConceptRelationIndex,
+  type ConceptRelationIndex
+} from "../utils/conceptRelations";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 
 const GRAPH_NODE_PAGE = 200;
@@ -92,6 +96,11 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     return null;
   }, [viewMode, selectedId, concepts]);
 
+  const relationIndexCacheRef = useRef<{
+    source: readonly Concept[];
+    index: ConceptRelationIndex;
+  } | null>(null);
+
   const displayedConcepts = useMemo(() => {
     if (viewMode === "all") {
       return conceptsWindow;
@@ -99,8 +108,16 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     if (neighborhoodEmptyReason) {
       return [];
     }
+    const cached = relationIndexCacheRef.current;
+    const index =
+      cached && cached.source === concepts
+        ? cached.index
+        : createConceptRelationIndex(concepts);
+    if (!cached || cached.source !== concepts) {
+      relationIndexCacheRef.current = { source: concepts, index };
+    }
     const maxHops = viewMode === "1-hop" ? 1 : 2;
-    return collectConceptNeighborhood(concepts, selectedId, maxHops);
+    return collectConceptNeighborhoodFromIndex(index, selectedId, maxHops);
   }, [viewMode, conceptsWindow, concepts, selectedId, neighborhoodEmptyReason]);
 
   const displayedConceptById = useMemo(
@@ -108,25 +125,20 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     [displayedConcepts]
   );
 
-  const topologySignature = useMemo(
-    () => createConceptGraphTopologySignature(displayedConcepts),
+  const topologySnapshot = useMemo(
+    () => createConceptGraphTopologySnapshot(displayedConcepts),
     [displayedConcepts]
   );
 
-  const graphData = useMemo(() => {
-    const nodes: GraphNode[] = displayedConcepts.map((concept) => ({
-      id: concept.id
-    }));
-
-    const links: GraphLink[] = collectUndirectedConceptEdges(displayedConcepts).map((edge) => ({
-      source: edge.source,
-      target: edge.target
-    }));
-
-    return { nodes, links };
-    // topologySignature が同じなら graphData の identity を維持する
+  const graphData = useMemo(
+    () => ({
+      nodes: topologySnapshot.nodes,
+      links: topologySnapshot.links
+    }),
+    // signature が同じなら graphData の identity を維持する
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topologySignature]);
+    [topologySnapshot.signature]
+  );
 
   const simulationConfig = useMemo(
     () => getConceptGraphSimulationConfig(graphData.nodes.length),
@@ -148,7 +160,7 @@ export const ConceptGraphView = ({ concepts, domainColorMap, selectedId, onSelec
     if (chargeForce && typeof chargeForce.strength === "function") {
       chargeForce.strength(simulationConfig.chargeStrength);
     }
-  }, [topologySignature, simulationConfig.linkDistance, simulationConfig.chargeStrength]);
+  }, [topologySnapshot.signature, simulationConfig.linkDistance, simulationConfig.chargeStrength]);
 
   const canShowMoreGraph = viewMode === "all" && concepts.length > conceptsWindow.length;
 
