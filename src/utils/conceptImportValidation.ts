@@ -7,6 +7,7 @@ import type {
   QuizChoice,
   QuizDeck,
   QuizQuestion,
+  QuizQuestionSource,
   QuizVisibility
 } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
@@ -108,9 +109,19 @@ export const quizChoiceSchema = z.object({
   sourceStrategy: quizChoiceSourceStrategySchema.optional()
 });
 
+const quizQuestionSourceTypeSchema = z.enum(["contextualConceptCard", "contextCard"]);
+
+export const quizQuestionSourceSchema = z.object({
+  type: quizQuestionSourceTypeSchema,
+  sourceId: z.string().min(1),
+  sourceTitle: z.string().min(1),
+  fieldName: z.string().min(1).optional()
+});
+
 export const quizQuestionSchema = z.object({
   id: z.string().min(1),
   conceptId: z.string().min(1).optional(),
+  source: quizQuestionSourceSchema.optional(),
   prompt: z.string().min(1),
   choices: z.array(quizChoiceSchema),
   correctChoiceId: z.string().min(1),
@@ -328,6 +339,29 @@ const normalizeQuizChoiceEntry = (entry: unknown): QuizChoice | null => {
   return choice;
 };
 
+/** IndexedDB の normalizeQuizQuestionSource と同趣旨。不正なら source だけ落とす */
+const normalizeImportedQuizQuestionSource = (raw: unknown): QuizQuestionSource | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const item = raw as Record<string, unknown>;
+  const typeResult = quizQuestionSourceTypeSchema.safeParse(item.type);
+  const sourceId = typeof item.sourceId === "string" ? item.sourceId.trim() : "";
+  const sourceTitle = typeof item.sourceTitle === "string" ? item.sourceTitle.trim() : "";
+  if (!typeResult.success || !sourceId || !sourceTitle) {
+    return undefined;
+  }
+  const fieldName = typeof item.fieldName === "string" ? item.fieldName.trim() : "";
+  const source: QuizQuestionSource = {
+    type: typeResult.data,
+    sourceId,
+    sourceTitle,
+    ...(fieldName ? { fieldName } : {})
+  };
+  const parsed = quizQuestionSourceSchema.safeParse(source);
+  return parsed.success ? parsed.data : undefined;
+};
+
 const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
   if (!item || typeof item !== "object") {
     return null;
@@ -396,6 +430,10 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
   };
   if (conceptId) {
     candidate.conceptId = conceptId;
+  }
+  const source = normalizeImportedQuizQuestionSource(raw.source);
+  if (source) {
+    candidate.source = source;
   }
 
   const parsed = quizQuestionSchema.safeParse(candidate);
