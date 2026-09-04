@@ -107,6 +107,22 @@ const api = (page: Page) => ({
       }
       return e2e.seedLegacyV6(value);
     }, records),
+  openProductionDb: () =>
+    page.evaluate(async () => {
+      const e2e = window.__conceptRelationE2e;
+      if (!e2e) {
+        throw new Error("concept relation e2e API is missing");
+      }
+      return e2e.openProductionDb();
+    }),
+  readRawConcepts: () =>
+    page.evaluate(async () => {
+      const e2e = window.__conceptRelationE2e;
+      if (!e2e) {
+        throw new Error("concept relation e2e API is missing");
+      }
+      return e2e.readRawConcepts();
+    }),
   mergeImportConcepts: (records: RawSeed[]) =>
     page.evaluate(async (value) => {
       const e2e = window.__conceptRelationE2e;
@@ -230,6 +246,11 @@ test.describe("relatedIds IndexedDB storage regressions (#140)", () => {
     expect(relatedOf(rows, "B")).toEqual(["legacy-a"]);
     expect(rows.find((row) => row.title === "A")?.updatedAt).toBe("2020-01-01T00:00:00.000Z");
     expect(rows.find((row) => row.title === "B")?.updatedAt).toBe("2020-01-01T00:00:00.000Z");
+
+    const raw = await e2e.readRawConcepts();
+    expect(relatedOf(raw, "A")).toEqual(["legacy-b"]);
+    expect(relatedOf(raw, "B")).toEqual(["legacy-a"]);
+    expect(raw.find((row) => row.title === "A")?.updatedAt).toBe("2020-01-01T00:00:00.000Z");
   });
 
   test("merge import で既存 DB の Concept への関連が双方向に統合される", async ({ page }) => {
@@ -296,10 +317,16 @@ test.describe("relatedIds IndexedDB storage regressions (#140)", () => {
         updatedAt: "2019-06-01T00:00:00.000Z"
       }
     ]);
-    const rows = await e2e.list();
-    expect(relatedOf(rows, "A")).toEqual(["v6-b"]);
-    expect(relatedOf(rows, "B")).toEqual(["v6-a"]);
-    expect(rows.find((row) => row.title === "A")?.updatedAt).toBe("2019-06-01T00:00:00.000Z");
-    expect(rows.find((row) => row.title === "B")?.updatedAt).toBe("2019-06-01T00:00:00.000Z");
+    const opened = await e2e.openProductionDb();
+    expect(opened.dbVersion).toBe(7);
+
+    const raw = await e2e.readRawConcepts();
+    expect(relatedOf(raw, "A")).toEqual(["v6-b"]);
+    expect(relatedOf(raw, "B")).toEqual(["v6-a"]);
+    expect(raw.find((row) => row.title === "A")?.relatedIds).not.toContain("v6-a");
+    expect(raw.find((row) => row.title === "A")?.relatedIds).not.toContain("missing-concept");
+    expect(raw.find((row) => row.title === "A")?.relatedIds).not.toContain("");
+    expect(raw.find((row) => row.title === "A")?.updatedAt).toBe("2019-06-01T00:00:00.000Z");
+    expect(raw.find((row) => row.title === "B")?.updatedAt).toBe("2019-06-01T00:00:00.000Z");
   });
 });

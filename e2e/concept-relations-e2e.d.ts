@@ -19,6 +19,10 @@ type ConceptRelationE2eApi = {
   seedLegacyV6: (
     records: Array<{ id: string; title: string; relatedIds: string[]; updatedAt?: string }>
   ) => Promise<void>;
+  openProductionDb: () => Promise<{ dbVersion: number }>;
+  readRawConcepts: () => Promise<
+    Array<{ id: string; title: string; relatedIds: string[]; updatedAt: string }>
+  >;
   mergeImportConcepts: (
     records: Array<{ id: string; title: string; relatedIds: string[]; updatedAt?: string }>
   ) => Promise<void>;

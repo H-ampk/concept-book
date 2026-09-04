@@ -30,6 +30,10 @@ type ConceptRelationE2eApi = {
   deleteConcept: (id: string) => Promise<void>;
   putRawConcepts: (records: RawConceptSeed[]) => Promise<void>;
   seedLegacyV6: (records: RawConceptSeed[]) => Promise<void>;
+  /** 本番 IndexedDBStorage.openDb を発火する。concepts の getAll repair は通さない。 */
+  openProductionDb: () => Promise<{ dbVersion: number }>;
+  /** object store を直接読む。getAllConcepts は呼ばない。 */
+  readRawConcepts: () => Promise<ConceptRelationSnapshot[]>;
   mergeImportConcepts: (records: RawConceptSeed[]) => Promise<void>;
   replaceImportConcepts: (records: RawConceptSeed[]) => Promise<void>;
   zipReplaceRoundtrip: () => Promise<void>;
@@ -119,6 +123,32 @@ const openDbVersion = (version: number): Promise<IDBDatabase> =>
     request.onerror = () => reject(request.error);
   });
 
+const openExistingDb = (): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+const readRawConceptSnapshots = async (): Promise<ConceptRelationSnapshot[]> => {
+  const db = await openExistingDb();
+  try {
+    if (!db.objectStoreNames.contains(STORE_CONCEPTS)) {
+      return [];
+    }
+    const tx = db.transaction(STORE_CONCEPTS, "readonly");
+    const store = tx.objectStore(STORE_CONCEPTS);
+    const data = (await requestToPromise(store.getAll())) as Concept[];
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    return data.map(toSnapshot).sort((a, b) => a.title.localeCompare(b.title));
+  } finally {
+    db.close();
+  }
+};
+
 const putRecordsIntoOpenDb = async (db: IDBDatabase, records: RawConceptSeed[]): Promise<void> => {
   const tx = db.transaction(STORE_CONCEPTS, "readwrite");
   const store = tx.objectStore(STORE_CONCEPTS);
@@ -189,6 +219,17 @@ const createApi = (): ConceptRelationE2eApi => {
         db.close();
       }
     },
+    openProductionDb: async () => {
+      // quiz store を読むことで本番 openDb（v7）だけを走らせ、concepts の getAll repair は避ける。
+      await storage.getQuizQuestions();
+      const db = await openExistingDb();
+      try {
+        return { dbVersion: db.version };
+      } finally {
+        db.close();
+      }
+    },
+    readRawConcepts: async () => readRawConceptSnapshots(),
     mergeImportConcepts: async (records) => {
       await storage.importBackupData(
         {
