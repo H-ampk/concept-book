@@ -45,6 +45,7 @@ import {
   isGraphDetailPanelVisible,
   selectGraphConcept
 } from "./graphDetailUiState";
+import { GraphWorkspaceLayout } from "./GraphWorkspaceLayout";
 
 type Screen = "concepts" | "contexts" | "settings" | LabRoute;
 type ConceptMainTab = "list" | "graph" | "tree";
@@ -663,51 +664,44 @@ export const App = () => {
                 fallback={<p className="text-sm text-celestial-textSub">表示を読み込み中...</p>}
               >
                 {conceptMainTab === "graph" ? (
-                  <section className="relative min-h-0 flex-1">
-                    <div className="flex h-[calc(100dvh-11.5rem)] min-h-[360px]">
-                      <div className="relative min-h-0 min-w-0 flex-1">
-                        <ConceptGraphView
-                          concepts={visibleConcepts}
+                  <GraphWorkspaceLayout
+                    detailOpen={showGraphDetailPanel}
+                    graph={
+                      <ConceptGraphView
+                        concepts={visibleConcepts}
+                        domainColorMap={domainColorMap}
+                        selectedId={selectedId}
+                        onSelectConcept={handleGraphSelect}
+                        conceptQuizStatsMap={conceptQuizStatsMap}
+                      />
+                    }
+                    detail={
+                      <>
+                        <div className="mb-2 flex justify-end">
+                          <button
+                            type="button"
+                            className="index-text-button"
+                            onClick={() =>
+                              applyGraphDetailUi(
+                                closeGraphDetail({ selectedId, graphDetailOpen })
+                              )
+                            }
+                          >
+                            閉じる
+                          </button>
+                        </div>
+                        <ConceptDetail
+                          concept={selectedConcept}
+                          conceptMap={conceptMap}
                           domainColorMap={domainColorMap}
-                          selectedId={selectedId}
-                          onSelectConcept={handleGraphSelect}
-                          conceptQuizStatsMap={conceptQuizStatsMap}
+                          {...conceptDetailActions}
+                          onRequestDelete={handleRequestDelete}
+                          deleting={deleting}
+                          onSelectRelated={handleGraphSelect}
                         />
-                        {showGraphDetailPanel && (
-                          <div
-                            aria-hidden="true"
-                            className="pointer-events-none absolute inset-0 z-10 bg-nordic-navy/25"
-                          />
-                        )}
-                      </div>
-                      {showGraphDetailPanel && (
-                        <aside className="pointer-events-auto relative z-10 flex h-full w-[min(28rem,50vw)] shrink-0 flex-col overflow-y-auto border-l border-celestial-border bg-celestial-panel p-3 shadow-celestial">
-                          <div className="mb-2 flex justify-end">
-                            <button
-                              type="button"
-                              className="index-text-button"
-                              onClick={() =>
-                                applyGraphDetailUi(
-                                  closeGraphDetail({ selectedId, graphDetailOpen })
-                                )
-                              }
-                            >
-                              閉じる
-                            </button>
-                          </div>
-                          <ConceptDetail
-                            concept={selectedConcept}
-                            conceptMap={conceptMap}
-                            domainColorMap={domainColorMap}
-                            {...conceptDetailActions}
-                            onRequestDelete={handleRequestDelete}
-                            deleting={deleting}
-                            onSelectRelated={handleGraphSelect}
-                          />
-                        </aside>
-                      )}
-                    </div>
-                  </section>
+                      </>
+                    }
+                  />
                 ) : (
                   <section className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
                     <div className="min-w-0">

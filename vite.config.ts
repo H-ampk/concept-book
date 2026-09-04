@@ -42,6 +42,25 @@ export default defineConfig(({ mode }) => ({
     })
   ],
   test: {
-    environment: "node"
+    setupFiles: "./src/test/setup.ts",
+    exclude: ["e2e/**", "node_modules/**", "dist/**"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["src/**/*.test.ts"]
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: "component",
+          environment: "jsdom",
+          include: ["src/**/*.test.tsx"]
+        }
+      }
+    ]
   }
 }));
