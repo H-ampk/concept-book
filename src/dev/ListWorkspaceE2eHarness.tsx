@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ConceptListPageLayout } from "../app/ConceptListPageLayout";
 import { ConceptListWorkspaceLayout } from "../app/ConceptListWorkspaceLayout";
+import { ConceptList, type ConceptListLayout } from "../components/ConceptList";
+import { filterConcepts } from "../features/concepts/conceptFilters";
+import {
+  createVirtualListE2eConcepts,
+  VIRTUAL_LIST_E2E_IDS
+} from "./listWorkspaceVirtualE2eData";
 
 const sampleConcepts = [
   { id: "concept-a", title: "Concept A", definition: "定義 A" },
   { id: "concept-b", title: "Concept B", definition: "定義 B" }
 ] as const;
 
-export const ListWorkspaceE2eHarness = () => {
+const ListWorkspaceLegacyE2ePanel = () => {
   const [selectedId, setSelectedId] = useState<string>(sampleConcepts[0].id);
   const [mobileDetail, setMobileDetail] = useState(false);
   const [query, setQuery] = useState("");
@@ -130,4 +136,87 @@ export const ListWorkspaceE2eHarness = () => {
       />
     </div>
   );
+};
+
+const ListWorkspaceVirtualE2ePanel = () => {
+  const listLayout: ConceptListLayout =
+    new URLSearchParams(window.location.search).get("listLayout") === "grouped"
+      ? "grouped"
+      : "full";
+  const allConcepts = useMemo(() => createVirtualListE2eConcepts(), []);
+  const [selectedId, setSelectedId] = useState<string | undefined>(VIRTUAL_LIST_E2E_IDS.first);
+  const [query, setQuery] = useState("");
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const visibleConcepts = useMemo(
+    () => filterConcepts(allConcepts, query, [], [], [], false),
+    [allConcepts, query]
+  );
+  const selected = allConcepts.find((item) => item.id === selectedId);
+
+  return (
+    <div className="app-background relative flex min-h-screen flex-col bg-nordic-bg text-celestial-textMain overflow-hidden">
+      <header className="relative z-30 shrink-0 border-b border-celestial-border px-3 py-2">
+        <p className="text-xs text-celestial-textSub">list workspace virtualization e2e harness (DEV)</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" data-testid="e2e-select-first" onClick={() => setSelectedId(VIRTUAL_LIST_E2E_IDS.first)}>
+            先頭を選択
+          </button>
+          <button type="button" data-testid="e2e-select-last" onClick={() => setSelectedId(VIRTUAL_LIST_E2E_IDS.last)}>
+            末尾を選択
+          </button>
+          <button
+            type="button"
+            data-testid="e2e-select-missing"
+            onClick={() => setSelectedId(VIRTUAL_LIST_E2E_IDS.missing)}
+          >
+            集合外を選択
+          </button>
+        </div>
+      </header>
+      <ConceptListPageLayout
+        toolbar={
+          <section
+            data-testid="concept-list-toolbar"
+            className="relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] ritual-altar p-5"
+          >
+            <div className="hud-search-wrap min-w-0">
+              <input
+                className="search-input"
+                placeholder="タイトル・定義・解釈・分野タグ・研究テーマタグ・メモを検索"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </section>
+        }
+        workspace={
+          <ConceptListWorkspaceLayout
+            mobileDetail={false}
+            list={
+              <ConceptList
+                concepts={visibleConcepts}
+                selectedId={selectedId}
+                domainColorMap={{}}
+                onSelect={setSelectedId}
+                cardRefs={cardRefs}
+                listLayout={listLayout}
+                searchQuery={query}
+              />
+            }
+            detail={
+              <div data-testid="concept-detail-content">
+                <h2>{selected?.title ?? "未選択"}</h2>
+                <p>{selected?.definition ?? ""}</p>
+              </div>
+            }
+          />
+        }
+      />
+    </div>
+  );
+};
+
+export const ListWorkspaceE2eHarness = () => {
+  const virtualMode = new URLSearchParams(window.location.search).get("virtual") === "1";
+  return virtualMode ? <ListWorkspaceVirtualE2ePanel /> : <ListWorkspaceLegacyE2ePanel />;
 };
