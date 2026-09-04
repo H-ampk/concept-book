@@ -40,6 +40,16 @@ const boot = async () => {
     return;
   }
 
+  if (import.meta.env.DEV && bootParams.has("e2eConceptRelations")) {
+    const { ConceptRelationsE2eHarness } = await import("./dev/ConceptRelationsE2eHarness");
+    root.render(
+      <React.StrictMode>
+        <ConceptRelationsE2eHarness />
+      </React.StrictMode>
+    );
+    return;
+  }
+
   root.render(
     <React.StrictMode>
       <App />
