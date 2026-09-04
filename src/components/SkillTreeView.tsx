@@ -2,15 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import type { Concept } from "../types/concept";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
 import { buildUndirectedAdjacency } from "../utils/conceptRelations";
+import {
+  SKILL_TREE_CARD_HEIGHT,
+  SKILL_TREE_CARD_WIDTH,
+  computeSkillTreeLayout,
+} from "../utils/skillTreeLayout";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const TREE_NODE_PAGE = 250;
-const CARD_WIDTH = 240;
-const CARD_HEIGHT = 64;
-const HORIZONTAL_GAP = 130;
-const VERTICAL_GAP = 80;
-const CANVAS_MARGIN_X = 48;
-const CANVAS_MARGIN_Y = 48;
+const CARD_WIDTH = SKILL_TREE_CARD_WIDTH;
+const CARD_HEIGHT = SKILL_TREE_CARD_HEIGHT;
 const LABEL_MAX_CHARS = 12;
 const MAX_VISIBLE_DOMAIN_COLORS = 4;
 const DOMAIN_SWATCH_SIZE = 7;
@@ -234,49 +235,22 @@ const computeTreeLayout = (
   visibleIds: Set<string>
 ): LayoutData => {
   const conceptMap = new Map(concepts.map((c) => [c.id, c]));
-  const depths = new Map<string, number>();
-  const levelNodes = new Map<number, string[]>();
-
-  const queue: { node: string; depth: number }[] = [{ node: rootId, depth: 0 }];
-  depths.set(rootId, 0);
-  levelNodes.set(0, [rootId]);
-
-  while (queue.length > 0) {
-    const { node, depth } = queue.shift()!;
-    const children = tree.get(node) || [];
-    children.forEach((child) => {
-      if (depths.has(child)) return;
-      depths.set(child, depth + 1);
-      const current = levelNodes.get(depth + 1) ?? [];
-      levelNodes.set(depth + 1, [...current, child]);
-      queue.push({ node: child, depth: depth + 1 });
-    });
-  }
-
-  const maxDepth = Math.max(...Array.from(depths.values()), 0);
-  const maxLevelCount = Math.max(...Array.from(levelNodes.values()).map((ids) => ids.length), 1);
-  const columnStep = CARD_WIDTH + HORIZONTAL_GAP;
-  const rowStep = CARD_HEIGHT + VERTICAL_GAP;
-  const canvasWidth = CANVAS_MARGIN_X * 2 + (maxDepth + 1) * CARD_WIDTH + maxDepth * HORIZONTAL_GAP;
-  const canvasHeight = CANVAS_MARGIN_Y * 2 + maxLevelCount * CARD_HEIGHT + (maxLevelCount - 1) * VERTICAL_GAP;
+  const { positions, canvasWidth, canvasHeight } = computeSkillTreeLayout(tree, rootId);
 
   const nodes: LayoutNode[] = [];
-  levelNodes.forEach((ids, depth) => {
-    const columnX = CANVAS_MARGIN_X + CARD_WIDTH / 2 + depth * columnStep;
-    ids.forEach((id, index) => {
-      const concept = conceptMap.get(id)!;
-      const centerY = CANVAS_MARGIN_Y + CARD_HEIGHT / 2 + index * rowStep;
-      nodes.push({
-        id,
-        x: columnX,
-        y: centerY,
-        title: concept.title,
-        domainTags: concept.domainTags,
-        favorite: concept.favorite,
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-        isRoot: id === rootId,
-      });
+  positions.forEach((position) => {
+    const concept = conceptMap.get(position.id);
+    if (!concept) return;
+    nodes.push({
+      id: position.id,
+      x: position.x,
+      y: position.y,
+      title: concept.title,
+      domainTags: concept.domainTags,
+      favorite: concept.favorite,
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      isRoot: position.id === rootId,
     });
   });
 
