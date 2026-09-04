@@ -85,6 +85,7 @@ function ConceptListItem({
     <Wrapper
       ref={outerRef}
       style={style}
+      data-testid={`concept-list-item-${concept.id}`}
       data-selected={selected ? "true" : undefined}
       {...(virtualRowIndex !== undefined ? { "data-index": virtualRowIndex } : {})}
       {...(as === "div" ? { role: "listitem" as const } : {})}
@@ -165,6 +166,7 @@ export const ConceptList = ({
   const isMobile = useMatchMedia("(max-width: 768px)");
   const parentRef = useRef<HTMLDivElement>(null);
 
+  const lastAutoScrolledSelectedIdRef = useRef<string | undefined>();
   const idToIndex = useMemo(() => {
     const m = new Map<string, number>();
     concepts.forEach((c, i) => m.set(c.id, i));
@@ -187,16 +189,24 @@ export const ConceptList = ({
     }
   }, [searchQuery, concepts, isMobile, rowVirtualizer]);
 
-  /* 選択 ID が変わったときだけ追従（concepts を依存に含めると検索デバウンスのたびにスクロールが動く） */
+  /* 同じ selectedId のまま concepts / 検索だけ変わっても auto-scroll し直さない */
   useEffect(() => {
-    if (!isMobile || concepts.length === 0 || !selectedId) {
+    if (!isMobile) {
+      lastAutoScrolledSelectedIdRef.current = undefined;
+      return;
+    }
+    if (concepts.length === 0 || !selectedId) {
+      return;
+    }
+    if (lastAutoScrolledSelectedIdRef.current === selectedId) {
       return;
     }
     const idx = idToIndex.get(selectedId);
     if (idx !== undefined && idx >= 0) {
       rowVirtualizer.scrollToIndex(idx, { align: "center" });
+      lastAutoScrolledSelectedIdRef.current = selectedId;
     }
-  }, [selectedId, isMobile, rowVirtualizer, idToIndex]);
+  }, [selectedId, isMobile, rowVirtualizer, idToIndex, concepts.length]);
 
   if (concepts.length === 0) {
     return (
@@ -238,7 +248,12 @@ export const ConceptList = ({
       : "concept-list-scroll concept-list-scroll--grouped scrollbar-none";
 
   return (
-    <div ref={parentRef} className={scrollClass} role="list">
+    <div
+      ref={parentRef}
+      className={scrollClass}
+      role="list"
+      data-testid="concept-list-virtual-scroll"
+    >
       <div
         className="relative w-full"
         style={{
