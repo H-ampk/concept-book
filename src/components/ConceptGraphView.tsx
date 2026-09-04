@@ -24,10 +24,14 @@ import {
   type ConceptRelationIndex
 } from "../utils/conceptRelations";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
-
-const GRAPH_NODE_PAGE = 200;
-const GRAPH_FIT_DURATION_MS = 400;
-const GRAPH_FIT_PADDING_PX = 48;
+import {
+  GRAPH_FIT_DURATION_MS,
+  GRAPH_FIT_PADDING_PX,
+  GRAPH_NODE_PAGE,
+  getVisibleGraphNodeCount,
+  nextGraphNodeLimit,
+  shouldAutoFitConceptGraph
+} from "../utils/conceptGraphViewState";
 
 const NODE_FILL_COLOR = "#e8eef1";
 const DOMAIN_RING_WIDTH = 2.4;
@@ -101,7 +105,7 @@ export const ConceptGraphView = ({
   }, [concepts, selectedId, viewMode]);
 
   const conceptsWindow = useMemo(
-    () => rankedConcepts.slice(0, Math.min(graphNodeLimit, rankedConcepts.length)),
+    () => rankedConcepts.slice(0, getVisibleGraphNodeCount(graphNodeLimit, rankedConcepts.length)),
     [graphNodeLimit, rankedConcepts]
   );
 
@@ -207,11 +211,7 @@ export const ConceptGraphView = ({
   };
 
   const handleEngineStop = () => {
-    if (hasAutoFittedRef.current) {
-      return;
-    }
-
-    if (graphData.nodes.length === 0) {
+    if (!shouldAutoFitConceptGraph(hasAutoFittedRef.current, graphData.nodes.length)) {
       return;
     }
 
@@ -292,7 +292,7 @@ export const ConceptGraphView = ({
             <button
               type="button"
               className="rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
-              onClick={() => setGraphNodeLimit((n) => Math.min(n + GRAPH_NODE_PAGE, concepts.length))}
+              onClick={() => setGraphNodeLimit((n) => nextGraphNodeLimit(n, concepts.length))}
             >
               さらに表示（+{GRAPH_NODE_PAGE}）
             </button>
