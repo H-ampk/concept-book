@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ConceptListPageLayout } from "../app/ConceptListPageLayout";
 import { ConceptListWorkspaceLayout } from "../app/ConceptListWorkspaceLayout";
 
 const sampleConcepts = [
@@ -22,8 +23,8 @@ export const ListWorkspaceE2eHarness = () => {
       <header className="relative z-30 shrink-0 border-b border-celestial-border px-3 py-2">
         <p className="text-xs text-celestial-textSub">list workspace e2e harness (DEV)</p>
       </header>
-      <main className="relative z-10 w-full px-3 py-3 sm:px-6 md:px-8">
-        <div className="space-y-4">
+      <ConceptListPageLayout
+        toolbar={
           <section
             data-testid="concept-list-toolbar"
             className="relative z-10 rounded-xl border border-[rgba(110,140,155,0.2)] bg-[rgba(248,251,252,0.92)] ritual-altar p-5"
@@ -85,7 +86,8 @@ export const ListWorkspaceE2eHarness = () => {
               </div>
             </div>
           </section>
-
+        }
+        workspace={
           <ConceptListWorkspaceLayout
             mobileDetail={mobileDetail}
             list={
@@ -124,8 +126,8 @@ export const ListWorkspaceE2eHarness = () => {
               </>
             }
           />
-        </div>
-      </main>
+        }
+      />
     </div>
   );
 };

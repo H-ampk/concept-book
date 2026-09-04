@@ -10,6 +10,7 @@ const boxesOverlap = (
 
 const gotoListWorkspace = async (page: Page) => {
   await page.goto("/?e2eListWorkspace=1");
+  await expect(page.getByTestId("concept-list-page-layout")).toBeVisible();
   await expect(page.getByTestId("concept-list-workspace")).toBeVisible();
 };
 
@@ -65,13 +66,20 @@ test.describe("concept list workspace browser regressions (#52 / #138)", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await gotoListWorkspace(page);
 
+    const pageLayout = page.getByTestId("concept-list-page-layout");
     const workspace = page.getByTestId("concept-list-workspace");
-    const box = await workspace.boundingBox();
-    expect(box).toBeTruthy();
-    if (!box) {
+    const pageBox = await pageLayout.boundingBox();
+    const workspaceBox = await workspace.boundingBox();
+    expect(pageBox).toBeTruthy();
+    expect(workspaceBox).toBeTruthy();
+    if (!pageBox || !workspaceBox) {
       return;
     }
-    expect(box.width).toBeGreaterThanOrEqual(1280 * 0.8);
+    expect(pageBox.width).toBeGreaterThanOrEqual(1280 * 0.8);
+    expect(workspaceBox.width).toBeGreaterThanOrEqual(1280 * 0.8);
+    await expect(pageLayout).toHaveClass(/w-full/);
+    await expect(pageLayout).not.toHaveClass(/max-w-/);
+    await expect(pageLayout).not.toHaveClass(/mx-auto/);
     await expect(workspace).not.toHaveClass(/max-w-/);
   });
 
