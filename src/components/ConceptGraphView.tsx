@@ -15,6 +15,11 @@ import {
   LABEL_HALO_COLOR,
   MEDIUM_LABEL_SCALE
 } from "../utils/conceptGraphLod";
+import {
+  getConceptGraphNodeGeometry,
+  GRAPH_DOMAIN_RING_WIDTH,
+  GRAPH_LABEL_NODE_GAP
+} from "../utils/conceptGraphNodeGeometry";
 import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
 import { createConceptGraphTopologySnapshot } from "../utils/conceptGraphTopology";
 import { rankConceptsForGraphFromIndex } from "../utils/conceptGraphPriority";
@@ -34,8 +39,6 @@ import {
 } from "../utils/conceptGraphViewState";
 
 const NODE_FILL_COLOR = "#e8eef1";
-const DOMAIN_RING_WIDTH = 2.4;
-const OUTER_RING_GAP = 1.6;
 const MAX_VISIBLE_DOMAIN_COLORS = 4;
 
 type GraphNode = {
@@ -344,13 +347,16 @@ export const ConceptGraphView = ({
               isFavorite: concept.favorite
             });
             const isSelected = selectedId === node.id;
-            const domainRadius = radius + DOMAIN_RING_WIDTH / 2;
-            const outerLineWidth = isSelected ? 2.2 : 1.4;
-            const outerRadius = domainRadius + DOMAIN_RING_WIDTH / 2 + OUTER_RING_GAP;
-            const labelOffset =
-              concept.favorite || isSelected
-                ? outerRadius + outerLineWidth / 2
-                : domainRadius + DOMAIN_RING_WIDTH / 2;
+            const {
+              domainRadius,
+              outerLineWidth,
+              outerRadius,
+              labelOffset
+            } = getConceptGraphNodeGeometry({
+              nodeRadius: radius,
+              isSelected,
+              isFavorite: concept.favorite
+            });
 
             context.beginPath();
             context.arc(node.x, node.y, radius, 0, Math.PI * 2, false);
@@ -370,7 +376,7 @@ export const ConceptGraphView = ({
                 false
               );
               context.strokeStyle = ringColors[i];
-              context.lineWidth = DOMAIN_RING_WIDTH;
+              context.lineWidth = GRAPH_DOMAIN_RING_WIDTH;
               context.stroke();
             }
 
@@ -401,7 +407,7 @@ export const ConceptGraphView = ({
               isFavorite: concept.favorite
             }) / safeScale;
             const labelX = node.x;
-            const labelY = node.y + labelOffset + 2;
+            const labelY = node.y + labelOffset + GRAPH_LABEL_NODE_GAP;
 
             context.save();
             context.font = `${labelStyle.fontWeight} ${fontSize}px sans-serif`;

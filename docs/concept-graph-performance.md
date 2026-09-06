@@ -178,3 +178,66 @@ CI で FPS や描画ミリ秒の固定閾値は使いません。
 - 1-hop / 2-hop が利用できる
 - simulation が無期限に継続しない
 - 10,000 件全部描画は完了条件ではない
+
+## ノード・ラベル重なりの回帰評価（Issue #144）
+
+目的は **collision avoidance の実装ではない**。current main の配置について node ↔ node / label ↔ node / label ↔ label の重なり件数を定量化し、simulation / node size / label size / LOD / force 設定などを変えたときに **明確な悪化** を Vitest で検出する。
+
+`overlap count = 0` は要求しない。pixel-perfect な見た目再現でもない。
+
+### bounds の近似
+
+- ノード: production と同じ `getConceptGraphNodeGeometry()` の `visualRadius`（core + domain ring + selected/favorite outer ring）を使い、screen-space の円同士で判定する。
+- ラベル: `getConceptGraphLabelStyle` / `getConceptGraphLabelText` / `getConceptGraphLabelHaloScreenWidth` を再利用する。文字幅は Canvas `measureText()` ではなく `文字種 × screenFontSize × 固定係数`（ASCII 0.6、CJK/全角 1.0）。ハロー幅は矩形 padding に含める。
+- 評価空間: simulation の x/y に `globalScale` を掛けた screen-space。
+
+### overlap の定義
+
+- **node-node**: 異なるノードの visual 円。pair は一度だけ数える。
+- **label-node**: Concept A のラベル矩形と Concept B のノード円。A === B は除外。
+- **label-label**: 異なる Concept のラベル矩形。pair は一度だけ数える。
+
+O(n²) の pair scan は test / pure utility のみ。production の `nodeCanvasObject` / tick / zoom / pan には入れない。
+
+### fixture
+
+`createGraphTestConcepts()` を再利用する。seed = 103、averageRelations = 4。
+
+| fixture | Concept 数 | selected | favorite |
+| --- | --- | --- | --- |
+| small | 15 | 先頭 1 件 | 別の 1 件（生成後 clone で正規化） |
+| medium | 50 | 同上 | 同上 |
+| initial200 | 200（初期表示件数） | 同上 | 同上 |
+
+generator 本体の favorite 仕様は変えない。
+
+LOD: 同じ simulation 座標に対して `far: globalScale = 0.79` と `medium: globalScale = 1.0` を評価する。
+
+### simulation の決定的化
+
+Vitest 内で `d3-force-3d@3.0.6`（lock と互換の devDependency）を使い、production と同じ link / charge / center と `getConceptGraphSimulationConfig` を適用する。
+
+- 初期座標は d3 既定の黄金角配置（x/y 未指定）
+- `randomSource` を d3 と同じ LCG、seed = 1 に固定
+- `simulation.stop()` のあと `tick(cooldownTicks)` のみ（時間ベースの cooldown は使わない）
+
+### current main baseline（8 回実測、毎回同値）
+
+| fixture | scale | node-node | label-node | label-label |
+| --- | --- | --- | --- | --- |
+| small 15 | far 0.79 | 0 | 0 | 3 |
+| small 15 | medium 1.0 | 0 | 4 | 5 |
+| medium 50 | far 0.79 | 0 | 5 | 1 |
+| medium 50 | medium 1.0 | 0 | 9 | 7 |
+| initial200 | far 0.79 | 0 | 33 | 22 |
+| initial200 | medium 1.0 | 0 | 79 | 56 |
+
+8 回とも完全一致したため、実測ばらつきによる margin は不要。将来の軽微な実装差用に明示的 tolerance を小さく置く。
+
+| metric | tolerance |
+| --- | --- |
+| node-node | 1 |
+| label-node | 2 |
+| label-label | 3 |
+
+回帰テストは `src/utils/conceptGraphOverlap.baseline.test.ts`。
