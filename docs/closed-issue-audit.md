@@ -27,6 +27,60 @@
 
 `NOT_PLANNED_REVIEW` は、GitHub上で `not_planned` としてクローズされているが、現在もIssue本文の要求が有効に見え、見送り理由・代替仕様・後続Issueへの移管が十分に記録されていない分類である。実装不具合とは扱わず、仕様判断の再確認が必要な状態とする。
 
+上記 Summary は **2026-09-04 の監査 snapshot** である。後続の follow-up 完了によって `PASS_WITH_FOLLOW_UP` を減算したり `PASS` へ付け替えたりしない。
+
+## Follow-up status
+
+このセクションは 2026-09-04 の監査後に行われた対応を追跡する。Original audit result / audit tests は変更しない。
+
+GitHub current state の確認日: `2026-09-06`
+
+### Status definitions
+
+- `NONE` — 監査後の追加対応なし
+- `TRACKED` — follow-up Issue が存在し、未完了
+- `IN_PROGRESS` — 実装・PR 等が進行中
+- `COMPLETED` — follow-up 対応が完了し、必要な変更が main へ反映済み
+- `MOVED` — 別の既存 Issue 群へ責務を移管済み
+- `NO_ACTION_NEEDED` — 再確認の結果、新しい対応は不要
+
+### Follow-up summary
+
+#### Completed
+
+- #1 → #144 / PR #152
+- #3 → #140 / PR #147
+- #4 → #142 / PR #150（PR #149 は unmerged close）
+- #9 → #145 / PR #148
+- #11 → #83 / PR #135
+- #18 → #141（専用 PR は確認できず。Issue 完了コメントで main 反映を記録）
+- #52 → #138 / PR #139
+- #104 / #106 / #107 → #136 / PR #137
+- #108 → #143（専用 PR は確認できず。Issue 完了コメントで main 反映を記録）
+
+#### Tracked
+
+- #2 → #134（open。ノード間隔から表示密度へ再設計。旧 #2 の `not_planned` は維持）
+
+#### Moved
+
+- #5 → #56 / #57 / #58 等（理解度の可視化・推移・復習候補）
+- #6 → #89–#98 等（Data Lab 実装）
+- #7 → #64–#68 等（AI 実装）
+- #8 → #69–#82 等（同期・複数端末の実装）
+- #14 → #84–#88 等（クイズ共有の実装）
+- #17 → #100–#112 等（監査時点で既に個別操作性へ移管）
+- #109 → #112（数千 Concept 実描画。#112 は open）
+- #110 → #113–#119 等（監査時点で既に移管）
+
+#### Historical / no new action
+
+- #15 → original `OBSOLETE` を維持（`NO_ACTION_NEEDED`）
+
+#### GitHub housekeeping after audit
+
+- #42 / #43 / #44 は監査時点では Open だったが、その後いずれも `closed` / `completed`
+
 ## Issues
 
 ### #1 概念グラフのノード・ラベルの重なりを改善する
@@ -51,6 +105,18 @@
 **Notes**
 - 後続 #108 / #112 が視認性・描画負荷を継続対応。
 - ユーザー調整可能な間隔は #2（`NOT_PLANNED_REVIEW`）。現mainには当該UIはない。
+
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #144 概念グラフのノード・ラベル重なりを定量評価する回帰テストを追加する（closed / completed）
+- PR #152 `test: add concept graph overlap regression metrics`（merged）
+
+**Current assessment**
+- 監査時点の `Tests: PARTIAL` は履歴として維持
+- #144 で定量評価・baseline regression は完了
+- 実際の label-node / label-label 重なり改善は別 Issue #151（open）で追跡
+- #112 は数千 Concept 描画性能であり責務が異なる
 
 ---
 
@@ -77,6 +143,15 @@
 - #17/#102 の内部力学パラメータ最適化はあるが、ユーザー操作可能な間隔制御としては記録されていない
 
 **Tests:** MISSING（ユーザー間隔調整の専用テストなし）
+
+**Follow-up status:** TRACKED
+
+**Follow-up**
+- #134 概念グラフの表示密度をユーザーが調整できるようにする（open）
+
+**Current assessment**
+- 旧 #2 は historical な `not_planned` のまま維持する（completed 扱いへ変更しない）
+- 仕様はノード間隔から表示密度へ再設計し、#134 で追跡している
 
 ---
 
@@ -106,6 +181,19 @@
 **Notes**
 - Open の #42/#43 は本 Issue クローズ後も残っている重複チケットの可能性が高い。仕様自体は main で満たしている。
 
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #140 関連概念の保存層整合性に回帰テストを追加する（closed / completed）
+- PR #147 `test: add relatedIds IndexedDB storage regressions`（merged）
+
+**Current tests:** COVERED
+
+**Current assessment**
+- 監査時点の `Tests: PARTIAL` は履歴として維持
+- 現在は follow-up により保存層の主要回帰ケースも自動テストでカバー
+- 監査後に GitHub 上の旧 Issue 整理も完了（#42 / #43 は `closed` / `completed`）。コード仕様の達成と Issue 整理は別件
+
 ---
 
 ### #4 複数分野を持つ概念の色表現を整理する
@@ -129,6 +217,18 @@
 
 **Notes**
 - Open #44「先頭タグのみ参照」は本実装と矛盾して残存。後続整理が必要。
+
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #142 複数分野カラー表示にUI回帰テストを追加する（closed / completed）
+- PR #150 `test: cover multi-domain color rendering`（merged）
+- PR #149 は同名だが unmerged のまま close（merge 済みとは記載しない）
+
+**Current assessment**
+- 監査時点の `Tests: PARTIAL` と Open #44 残存の記録は履歴として維持
+- Current note: #44 はその後 `completed` として close 済み。監査後に GitHub 上の旧 Issue 整理も完了
+- コード仕様の達成と GitHub Issue 整理の完了は混同しない
 
 ---
 
@@ -155,6 +255,17 @@
 **Notes**
 - グラフ上の理解度可視化は未実装（#41/#56）。本 Issue の完了条件は基盤まで。
 
+**Follow-up status:** MOVED
+
+**Follow-up**
+- #56 概念一覧・概念グラフに理解度を可視化する（open）
+- #57 概念ごとの理解度推移を時系列で可視化する（open）
+- #58 理解度を利用して苦手概念・復習候補を抽出する（open）
+
+**Current assessment**
+- 未実装部分は既存 Issue へ移管済み。新しい重複 Issue は作らない
+- #5 自体を未完了へ戻さない
+
 ---
 
 ### #6 Data Labの目的と機能範囲を整理する
@@ -175,6 +286,15 @@
 **Notes**
 - 実装は open #89–#98。クイズ作成/学習/分析などは Lab 配下で実画面化済み。`LAB_MENU_ITEMS.status` が全て `coming_soon` なのは #47/#48 の整理対象。
 
+**Follow-up status:** MOVED
+
+**Follow-up**
+- Data Lab 実装は既存 #89–#98 等（確認した例: #89 / #90 / #91 / #92 / #95 / #97 / #98 は open）
+
+**Current assessment**
+- 設計 Issue としての original audit result は変更しない
+- 新しい重複 Issue は作らない
+
 ---
 
 ### #7 ConceptBookにおけるAI機能の設計方針を整理する
@@ -193,6 +313,14 @@
 **Notes**
 - ローカル関連候補 `suggestRelatedConcepts.ts` は LLM ではない境界として残存。
 
+**Follow-up status:** MOVED
+
+**Follow-up**
+- 実装責務は既存子 Issue #64–#68 等（確認した例: #64 / #68 は open）
+
+**Current assessment**
+- 設計 Issue としての original audit result は変更しない
+
 ---
 
 ### #8 クラウド同期・複数端末対応の方針を整理する
@@ -207,6 +335,14 @@
 - `src/storage/types.ts` の将来 sync 向けコメントのみ。同期実装なし。
 
 **Tests:** NOT_NEEDED
+
+**Follow-up status:** MOVED
+
+**Follow-up**
+- 実装責務は既存 #69–#82 等（確認した例: #69 / #82 は open）
+
+**Current assessment**
+- 設計 Issue としての original audit result は変更しない
 
 ---
 
@@ -229,6 +365,16 @@
 
 **Tests:** SUFFICIENT（検索ヒットと文脈別定義）
 
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #145 モバイル一覧の可変行高仮想スクロールに回帰テストを追加する（closed / completed）
+- PR #148 `test: cover variable-height mobile concept list`（merged）
+
+**Current assessment**
+- 検索機能本体の original `Result: PASS` は変更しない
+- モバイル仮想スクロール + 検索スニペットによる可変行高の専用回帰は #145 で完了
+
 ---
 
 ### #10 分野カラー設定をバックアップ対象にする
@@ -247,6 +393,8 @@
 - `src/components/SettingsPage.tsx`
 
 **Tests:** SUFFICIENT（`domainColors.test.ts`, `conceptBookZip.test.ts`, `conceptImportValidation.backupDomainColors.test.ts`）
+
+**Follow-up status:** NONE
 
 ---
 
@@ -270,6 +418,16 @@
 **Notes**
 - Open #83（JSON 復元時 `QuizQuestion.source` 喪失の調査）はクイズ問題側の互換。学習ログ本体とは別だがバックアップ経路の後続リスク。
 
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #83 JSONバックアップ復元時に QuizQuestion.source が失われる可能性を調査・修正する（closed / completed）
+- PR #135 `fix: preserve QuizQuestion.source in backup restore`（merged）
+
+**Current assessment**
+- #11 = 学習ログ backup、#83 = QuizQuestion.source restore であり別の問題だった
+- original `PASS_WITH_FOLLOW_UP` は変更しない
+
 ---
 
 ### #12 学習ログをエクスポートできるようにする
@@ -289,6 +447,8 @@
 - `src/components/SettingsPage.tsx`
 
 **Tests:** SUFFICIENT（`learningLogExport.test.ts`）
+
+**Follow-up status:** NONE
 
 ---
 
@@ -310,6 +470,8 @@
 
 **Tests:** SUFFICIENT（`backupExport.test.ts`）
 
+**Follow-up status:** NONE
+
 ---
 
 ### #14 クイズを共有できるようにする
@@ -330,6 +492,14 @@
 **Notes**
 - 共有機能そのものは未達だが、完了条件は設計完了。実装未達は後続 Open Issue。
 
+**Follow-up status:** MOVED
+
+**Follow-up**
+- 実装は既存 #84–#88 等（確認した例: #84 / #88 は open）
+
+**Current assessment**
+- 設計 Issue としての original audit result は変更しない
+
 ---
 
 ### #15 共有用ZIPを生成できるようにする
@@ -344,6 +514,12 @@
 - 既存 ZIP は自分用バックアップ（`exportConceptBookPackage`）。共有専用 ZIP なし（意図どおり）
 
 **Tests:** NOT_NEEDED
+
+**Follow-up status:** NO_ACTION_NEEDED
+
+**Current assessment**
+- original `Result: OBSOLETE` は維持する
+- 共有用 ZIP 方針は JSON 共有へ置換された historical Issue。再実装対象には戻さない
 
 ---
 
@@ -364,6 +540,8 @@
 - `src/utils/syncQuizDeckFromFilters.ts`
 
 **Tests:** SUFFICIENT（`generationFiltersNormalize.test.ts`, `conceptImportValidation.quizDecks.test.ts`）
+
+**Follow-up status:** NONE
 
 ---
 
@@ -389,6 +567,11 @@
 
 **Tests:** SUFFICIENT（topology / simulation / testData / neighborhood / priority / lod）
 
+**Follow-up status:** MOVED
+
+**Current assessment**
+- 監査時点どおり個別操作性は #100–#112 へ移管済み。新規 follow-up Issue は作らない
+
 ---
 
 ### #18 ツリー表示のレイアウトを改善する
@@ -411,6 +594,19 @@
 **Notes**
 - Open #53「ツリー表示のレイアウト改善」が残っており、追加改善余地あり。
 
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #141 ツリー表示のレイアウトと主要操作に回帰テストを追加する（closed / completed）
+- 専用 PR 番号は GitHub 上で確認できなかったため記載しない（Issue #141 完了コメントで browser regression 追加を記録）
+
+**Current tests:** COVERED
+
+**Current assessment**
+- 監査時点の `Tests: PARTIAL` は履歴として維持
+- #141 により subtree-aware layout、card overlap、collapse / expand、zoom、pan、selection、narrow viewport、horizontal overflow の browser regression を追加
+- #53 は別の追加レイアウト改善として open のまま（#141 の回帰テスト完了とは別）
+
 ---
 
 ### #19 学習回数を概念グラフ上に表示する
@@ -429,6 +625,8 @@
 - `src/components/ConceptGraphView.tsx`
 
 **Tests:** SUFFICIENT（`conceptGraphAttemptRadius.test.ts`）
+
+**Follow-up status:** NONE
 
 ---
 
@@ -451,6 +649,18 @@
 **Notes**
 - 書き換え後の Issue 本文チェックボックスは未チェックだが、現 main の UI は条件を満たす。
 
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #138 一覧ワークスペースのレスポンシブレイアウトに回帰テストを追加する（closed / completed）
+- PR #139 `test: add list workspace regression coverage`（merged）
+
+**Current tests:** COVERED
+
+**Current assessment**
+- 監査時点の `Tests: MISSING` は履歴として維持
+- 現在は follow-up により一覧 workspace の主要回帰ケースを自動テストでカバー
+
 ---
 
 ### #99 QuizDeckのgenerationFiltersを正規化しsourceDomainTagを互換フィールド化する
@@ -468,6 +678,8 @@
 - #16 と同一一式 + `src/storage/indexeddb.ts` の Deck 正規化
 
 **Tests:** SUFFICIENT
+
+**Follow-up status:** NONE
 
 ---
 
@@ -489,6 +701,8 @@
 - `src/components/ConceptGraphView.tsx`
 
 **Tests:** SUFFICIENT（`collectConceptNeighborhood.test.ts`）
+
+**Follow-up status:** NONE
 
 ---
 
@@ -512,6 +726,8 @@
 **Notes**
 - #102 本文の「遠景でラベル非表示」は旧 LOD。現仕様は常時表示（#101/#108）。#102 実装（topology/simulation）は残っている。
 
+**Follow-up status:** NONE
+
 ---
 
 ### #102 大規模データ時のForceGraphシミュレーション負荷を制御する
@@ -531,6 +747,8 @@
 - `src/components/ConceptGraphView.tsx`
 
 **Tests:** SUFFICIENT（`conceptGraphTopology.test.ts`, `conceptGraphSimulation.test.ts`）
+
+**Follow-up status:** NONE
 
 ---
 
@@ -552,6 +770,8 @@
 
 **Tests:** SUFFICIENT（`conceptGraphTestData.test.ts`）
 
+**Follow-up status:** NONE
+
 ---
 
 ### #104 詳細パネル表示中も概念グラフの操作UIを利用できるようにする
@@ -568,6 +788,16 @@
 - `src/app/App.tsx`（graph タブの overlay / aside）
 
 **Tests:** MISSING（pointer-events の自動テストなし。コード構造で確認）
+
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #136 概念グラフの主要UI操作に回帰テストを追加する（closed / completed）
+- PR #137 `test: add concept graph UI regression coverage`（merged）
+
+**Current assessment**
+- 監査時点の `Tests: MISSING` は履歴として維持
+- #104 の UI 回帰は #136 / PR #137 経由で COMPLETED
 
 ---
 
@@ -587,6 +817,8 @@
 
 **Tests:** SUFFICIENT（`graphDetailUiState.test.ts`）
 
+**Follow-up status:** NONE
+
 ---
 
 ### #106 概念グラフの初期表示時に表示範囲を自動調整する
@@ -603,6 +835,16 @@
 - `src/components/ConceptGraphView.tsx`
 
 **Tests:** MISSING（auto-fit フラグのユニットテストなし）
+
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #136 概念グラフの主要UI操作に回帰テストを追加する（closed / completed）
+- PR #137 `test: add concept graph UI regression coverage`（merged）
+
+**Current assessment**
+- 監査時点の `Tests: MISSING` は履歴として維持
+- #106 の UI 回帰は #136 / PR #137 経由で COMPLETED
 
 ---
 
@@ -623,6 +865,16 @@
 
 **Notes**
 - 「さらに表示」は `Math.min(n+200, concepts.length)` のため、フィルタ中にボタンが出る状態で押すと limit がフィルタ件数へ上がる/固定されうる。現状 `canShowMoreGraph` が全件表示時は隠すため、#107 の主バグ（解除後に 200 へ戻る）は再発しない。
+
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #136 概念グラフの主要UI操作に回帰テストを追加する（closed / completed）
+- PR #137 `test: add concept graph UI regression coverage`（merged）
+
+**Current assessment**
+- 監査時点の `Tests: MISSING` は履歴として維持
+- #107 の UI 回帰は #136 / PR #137 経由で COMPLETED
 
 ---
 
@@ -645,6 +897,20 @@
 **Notes**
 - 残差の可読性は #112 等。
 
+**Follow-up status:** COMPLETED
+
+**Follow-up**
+- #143 概念グラフのCanvasラベル描画に回帰テストを追加する（closed / completed）
+- 専用 PR 番号は GitHub 上で確認できなかったため記載しない（Issue #143 完了コメント: main commit `fa22ef14d428e6f3c85c57940010c35ccc9b1d5a`）
+
+**Current tests:** COVERED
+
+**Current assessment**
+- 監査時点の `Tests: PARTIAL` は履歴として維持
+- Canvas integration test により far 短縮、selected / favorite 全文、medium / near 全文、strokeText → fillText、halo、safeScale、全表示 Concept ラベルが実描画経路まで固定
+- #143 対応は current main へ反映済み
+- #143 中に `safeScale` の NaN fallback を最小修正した記録あり。#108 の original audit result を書き換える理由にはしない
+
 ---
 
 ### #109 大規模概念グラフの描画・simulationを10,000 Concept規模へ最適化する
@@ -664,6 +930,15 @@
 - `docs/concept-graph-performance.md`
 
 **Tests:** SUFFICIENT（topology 統合テスト）
+
+**Follow-up status:** MOVED
+
+**Follow-up**
+- #112 概念グラフで数千ノードを実表示する場合のCanvas描画性能を改善する（open）
+
+**Current assessment**
+- 数千 Concept を実際に Canvas 描画する性能改善は #112 へ移管済み
+- #109 そのものを未完了扱いへ戻さない
 
 ---
 
@@ -686,6 +961,11 @@
 
 **Tests:** SUFFICIENT（`conceptGraphPriority.test.ts`）
 
+**Follow-up status:** MOVED
+
+**Current assessment**
+- 監査時点どおり #113–#119 等へ移管済み。新規 follow-up Issue は作らない
+
 ---
 
 ## 横断メモ
@@ -696,9 +976,11 @@
 - `domainColors` と `quizAttemptLogs` は optional 互換あり。
 - Deck は読み込み時 hydrate。一括 migration なし。
 - 共有 JSON は未実装（#14/#15 方針）。バックアップ ZIP と混同しないこと。
-- Open #83 は QuizQuestion.source 復元の調査として残存。
+- 監査時点では Open #83 が QuizQuestion.source 復元の調査として残存していた。その後 #83 / PR #135 で完了（merged）。
 
 ### テスト不足（仕様保証が弱い Closed Issue）
+
+監査時点（2026-09-04）の記録。後続で解消したものは Follow-up 欄を参照。
 
 - #1, #2, #52, #104, #106, #107: UI/操作の自動テストが無い、または足りない
 - #4, #18, #108: 視覚表現のテストが部分的
@@ -707,8 +989,39 @@
 ### パフォーマンス
 
 - 大規模グラフは段階表示 + ranking + topology snapshot + simulation profile。根拠のない culling は未導入で妥当。
-- #2 のユーザー間隔調整 UI は現mainにない。性能問題ではなく、`not_planned` クローズに対する仕様再確認対象（`NOT_PLANNED_REVIEW`）。
+- #2 のユーザー間隔調整 UI は現mainにない。性能問題ではなく、`not_planned` クローズに対する仕様再確認対象（`NOT_PLANNED_REVIEW`）。監査後の追跡先は #134（表示密度、open）。
 
 ### 監査中に行っていないこと
 
 ソース修正、テスト追加、Issue 作成/reopen/close、PR、commit、push、merge、branch 削除は未実施。本ファイルの作成のみ。
+
+### 監査後の GitHub current state（2026-09-06 確認）
+
+コード仕様の達成と GitHub Issue 整理は別件として記録する。
+
+| Issue / PR | current state | 文書への反映 |
+| --- | --- | --- |
+| #2 | closed / `not_planned` | original `NOT_PLANNED_REVIEW` 維持。追跡は #134 |
+| #42 | closed / completed | #3 の Current assessment |
+| #43 | closed / completed | #3 の Current assessment |
+| #44 | closed / completed | #4 の Current assessment |
+| #83 | closed / completed | #11 follow-up COMPLETED |
+| #112 | open | #109 MOVED |
+| #134 | open | #2 TRACKED |
+| #136 | closed / completed | #104/#106/#107 COMPLETED |
+| #138 | closed / completed | #52 COMPLETED |
+| #140 | closed / completed | #3 COMPLETED |
+| #141 | closed / completed | #18 COMPLETED |
+| #142 | closed / completed | #4 COMPLETED |
+| #143 | closed / completed | #108 COMPLETED |
+| #144 | closed / completed | #1 COMPLETED |
+| #145 | closed / completed | #9 COMPLETED |
+| #151 | open | #1 のラベル配置改善（#144 から分離） |
+| PR #135 | merged | #83 |
+| PR #137 | merged | #136 |
+| PR #139 | merged | #138 |
+| PR #147 | merged | #140 |
+| PR #148 | merged | #145 |
+| PR #149 | closed（unmerged） | merge 済みと書かない |
+| PR #150 | merged | #142 |
+| PR #152 | merged | #144 |
