@@ -9,10 +9,17 @@ export const d3Force = vi.fn(() => ({
   strength: vi.fn()
 }));
 
+export type NodeCanvasObject = (
+  node: { id: string; x?: number; y?: number },
+  context: CanvasRenderingContext2D,
+  globalScale: number
+) => void;
+
 export type CapturedForceGraphProps = {
   graphData?: { nodes: unknown[]; links: unknown[] };
   onEngineStop?: () => void;
   onNodeClick?: (node: { id: string }) => void;
+  nodeCanvasObject?: NodeCanvasObject;
 };
 
 export let lastForceGraphProps: CapturedForceGraphProps = {};

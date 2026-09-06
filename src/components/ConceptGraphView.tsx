@@ -382,7 +382,8 @@ export const ConceptGraphView = ({
               context.stroke();
             }
 
-            const safeScale = Math.min(Math.max(globalScale, 0.05), 40);
+            const clampedScale = Math.min(Math.max(globalScale, 0.05), 40);
+            const safeScale = Number.isFinite(clampedScale) ? clampedScale : 0.05;
             const labelStyle = getConceptGraphLabelStyle({
               globalScale,
               isSelected,

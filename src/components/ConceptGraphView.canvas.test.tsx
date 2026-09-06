@@ -1,0 +1,406 @@
+import { render } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ConceptGraphView } from "../components/ConceptGraphView";
+import type { Concept } from "../types/concept";
+import {
+  FULL_LABEL_SCALE,
+  getConceptGraphLabelHaloScreenWidth,
+  getConceptGraphLabelStyle,
+  getConceptGraphLabelText,
+  LABEL_ELLIPSIS,
+  MEDIUM_LABEL_SCALE
+} from "../utils/conceptGraphLod";
+import { lastForceGraphProps, resetForceGraphMock } from "../test/mocks/react-force-graph-2d";
+
+vi.mock("react-force-graph-2d", () => import("../test/mocks/react-force-graph-2d"));
+
+const LONG_TITLE = "これは十分に長いConceptタイトルです";
+const SHORT_TITLE = "AI教育";
+const FAR_SCALE = MEDIUM_LABEL_SCALE - 0.0001;
+
+type CanvasCall = {
+  type: string;
+  args: unknown[];
+  lineWidth?: number;
+  font?: string;
+};
+
+const makeConcept = (
+  id: string,
+  title: string,
+  flags?: { favorite?: boolean }
+): Concept => ({
+  id,
+  title,
+  definition: "d",
+  myInterpretation: "",
+  domainTags: ["人工知能"],
+  researchTags: [],
+  relatedIds: [],
+  source: { book: "", page: "", author: null },
+  notes: "",
+  status: "active",
+  favorite: flags?.favorite ?? false,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z"
+});
+
+const createCanvasContextMock = () => {
+  const calls: CanvasCall[] = [];
+  const context = {
+    fillStyle: "",
+    strokeStyle: "",
+    lineWidth: 0,
+    font: "",
+    textAlign: "start",
+    textBaseline: "alphabetic",
+    lineJoin: "miter",
+    miterLimit: 10,
+    globalAlpha: 1,
+    beginPath: (...args: unknown[]) => {
+      calls.push({ type: "beginPath", args });
+    },
+    arc: (...args: unknown[]) => {
+      calls.push({ type: "arc", args });
+    },
+    fill: (...args: unknown[]) => {
+      calls.push({ type: "fill", args });
+    },
+    stroke: (...args: unknown[]) => {
+      calls.push({ type: "stroke", args });
+    },
+    save: (...args: unknown[]) => {
+      calls.push({ type: "save", args });
+    },
+    restore: (...args: unknown[]) => {
+      calls.push({ type: "restore", args });
+    },
+    strokeText: (...args: unknown[]) => {
+      calls.push({
+        type: "strokeText",
+        args,
+        lineWidth: context.lineWidth,
+        font: context.font
+      });
+    },
+    fillText: (...args: unknown[]) => {
+      calls.push({
+        type: "fillText",
+        args,
+        lineWidth: context.lineWidth,
+        font: context.font
+      });
+    }
+  };
+
+  return { context: context as unknown as CanvasRenderingContext2D, calls };
+};
+
+const renderGraph = (concepts: Concept[], selectedId?: string) =>
+  render(
+    <ConceptGraphView
+      concepts={concepts}
+      domainColorMap={{}}
+      selectedId={selectedId}
+      onSelectConcept={vi.fn()}
+    />
+  );
+
+const paintNode = (
+  concept: Concept,
+  globalScale: number,
+  selectedId?: string
+) => {
+  renderGraph([concept], selectedId);
+  const nodeCanvasObject = lastForceGraphProps.nodeCanvasObject;
+  expect(nodeCanvasObject).toBeTypeOf("function");
+  const mock = createCanvasContextMock();
+  nodeCanvasObject?.(
+    { id: concept.id, x: 100, y: 100 },
+    mock.context,
+    globalScale
+  );
+  return mock;
+};
+
+const parseFontPx = (font: string): number => {
+  const match = font.match(/([\d.]+)px/);
+  expect(match?.[1]).toBeDefined();
+  return Number(match?.[1]);
+};
+
+const conceptLabelCalls = (calls: CanvasCall[]) =>
+  calls.filter((call) => call.type === "strokeText" || call.type === "fillText");
+
+describe("ConceptGraphView Canvas label integration (#143)", () => {
+  beforeEach(() => {
+    resetForceGraphMock();
+  });
+
+  describe("label text through nodeCanvasObject", () => {
+    it("A. far + normal + 長文は先頭12文字+…が strokeText / fillText に渡り、全文は渡らない", () => {
+      const concept = makeConcept("a", LONG_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const expected = getConceptGraphLabelText({
+        title: LONG_TITLE,
+        globalScale: FAR_SCALE,
+        isSelected: false,
+        isFavorite: false
+      });
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+
+      expect(expected).toBe(`${LONG_TITLE.slice(0, 12)}${LABEL_ELLIPSIS}`);
+      expect(labels).toEqual([expected, expected]);
+      expect(labels).not.toContain(LONG_TITLE);
+    });
+
+    it("B. far + selected は長文でも全文が Canvas へ渡る", () => {
+      const concept = makeConcept("a", LONG_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE, concept.id);
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+
+      expect(labels).toEqual([LONG_TITLE, LONG_TITLE]);
+      expect(String(labels[0])).not.toContain(LABEL_ELLIPSIS);
+    });
+
+    it("C. far + favorite は長文でも全文が Canvas へ渡る", () => {
+      const concept = makeConcept("a", LONG_TITLE, { favorite: true });
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+
+      expect(labels).toEqual([LONG_TITLE, LONG_TITLE]);
+      expect(String(labels[0])).not.toContain(LABEL_ELLIPSIS);
+    });
+
+    it("D. far + selected + favorite でも全文になり、強調 halo になる", () => {
+      const concept = makeConcept("a", LONG_TITLE, { favorite: true });
+      const { calls } = paintNode(concept, FAR_SCALE, concept.id);
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+      const expectedHalo = getConceptGraphLabelHaloScreenWidth({
+        isSelected: true,
+        isFavorite: true
+      });
+      const safeScale = Math.min(Math.max(FAR_SCALE, 0.05), 40);
+      const stroke = calls.find((call) => call.type === "strokeText");
+
+      expect(labels).toEqual([LONG_TITLE, LONG_TITLE]);
+      expect((stroke?.lineWidth ?? Number.NaN) * safeScale).toBeCloseTo(expectedHalo);
+    });
+
+    it("E. medium では通常 Concept でも全文が Canvas へ渡る", () => {
+      const concept = makeConcept("a", LONG_TITLE);
+      const { calls } = paintNode(concept, MEDIUM_LABEL_SCALE);
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+
+      expect(labels).toEqual([LONG_TITLE, LONG_TITLE]);
+    });
+
+    it("F. near では通常 Concept でも全文が Canvas へ渡る", () => {
+      const concept = makeConcept("a", LONG_TITLE);
+      const { calls } = paintNode(concept, FULL_LABEL_SCALE);
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+
+      expect(labels).toEqual([LONG_TITLE, LONG_TITLE]);
+    });
+
+    it("G. far + 短文は省略記号を付けない", () => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const labels = conceptLabelCalls(calls).map((call) => call.args[0]);
+
+      expect(labels).toEqual([SHORT_TITLE, SHORT_TITLE]);
+      expect(String(labels[0])).not.toContain(LABEL_ELLIPSIS);
+    });
+  });
+
+  describe("strokeText / fillText", () => {
+    it("H/I. 同一ラベルは strokeText → fillText の順で同じ文字列・座標になる", () => {
+      const concept = makeConcept("a", LONG_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const textCalls = conceptLabelCalls(calls);
+
+      expect(textCalls.map((call) => call.type)).toEqual(["strokeText", "fillText"]);
+      expect(textCalls[0]?.args).toEqual(textCalls[1]?.args);
+    });
+  });
+
+  describe("全Concept描画", () => {
+    it("J. graphData.nodes の全 Concept で本体ラベルの fillText が描画される", () => {
+      const concepts = [
+        makeConcept("c1", "概念1"),
+        makeConcept("c2", "概念2"),
+        makeConcept("c3", "概念3"),
+        makeConcept("c4", "概念4"),
+        makeConcept("c5", "概念5")
+      ];
+      renderGraph(concepts);
+      const nodeCanvasObject = lastForceGraphProps.nodeCanvasObject;
+      const nodes = lastForceGraphProps.graphData?.nodes ?? [];
+      expect(nodes).toHaveLength(5);
+
+      const mock = createCanvasContextMock();
+      for (const node of nodes) {
+        const id = (node as { id: string }).id;
+        nodeCanvasObject?.({ id, x: 10, y: 10 }, mock.context, FAR_SCALE);
+      }
+
+      const fillTexts = mock.calls.filter((call) => call.type === "fillText");
+      expect(fillTexts).toHaveLength(5);
+      expect(fillTexts.map((call) => call.args[0])).toEqual(
+        concepts.map((concept) => concept.title)
+      );
+    });
+  });
+
+  describe("halo", () => {
+    const haloScreenWidthFromCanvas = (lineWidth: number, globalScale: number) =>
+      lineWidth * Math.min(Math.max(globalScale, 0.05), 40);
+
+    it("K. normal の lineWidth * safeScale が helper と一致する", () => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const expected = getConceptGraphLabelHaloScreenWidth({
+        isSelected: false,
+        isFavorite: false
+      });
+      const stroke = calls.find((call) => call.type === "strokeText");
+
+      expect(haloScreenWidthFromCanvas(stroke?.lineWidth ?? Number.NaN, FAR_SCALE)).toBeCloseTo(
+        expected
+      );
+    });
+
+    it("L. selected は normal より強い halo で helper と一致する", () => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE, concept.id);
+      const expected = getConceptGraphLabelHaloScreenWidth({
+        isSelected: true,
+        isFavorite: false
+      });
+      const normal = getConceptGraphLabelHaloScreenWidth({
+        isSelected: false,
+        isFavorite: false
+      });
+      const stroke = calls.find((call) => call.type === "strokeText");
+
+      expect(expected).toBeGreaterThan(normal);
+      expect(haloScreenWidthFromCanvas(stroke?.lineWidth ?? Number.NaN, FAR_SCALE)).toBeCloseTo(
+        expected
+      );
+    });
+
+    it("M. favorite は normal より強い halo になる", () => {
+      const concept = makeConcept("a", SHORT_TITLE, { favorite: true });
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const expected = getConceptGraphLabelHaloScreenWidth({
+        isSelected: false,
+        isFavorite: true
+      });
+      const normal = getConceptGraphLabelHaloScreenWidth({
+        isSelected: false,
+        isFavorite: false
+      });
+      const stroke = calls.find((call) => call.type === "strokeText");
+
+      expect(expected).toBeGreaterThan(normal);
+      expect(haloScreenWidthFromCanvas(stroke?.lineWidth ?? Number.NaN, FAR_SCALE)).toBeCloseTo(
+        expected
+      );
+    });
+
+    it("N. selected + favorite でも helper の強調 halo と一致する", () => {
+      const concept = makeConcept("a", SHORT_TITLE, { favorite: true });
+      const { calls } = paintNode(concept, FAR_SCALE, concept.id);
+      const expected = getConceptGraphLabelHaloScreenWidth({
+        isSelected: true,
+        isFavorite: true
+      });
+      const stroke = calls.find((call) => call.type === "strokeText");
+
+      expect(haloScreenWidthFromCanvas(stroke?.lineWidth ?? Number.NaN, FAR_SCALE)).toBeCloseTo(
+        expected
+      );
+    });
+  });
+
+  describe("font / halo screen-space", () => {
+    it.each([0.5, 2])("O. globalScale %s の font px が screenFontSize / safeScale と一致する", (globalScale) => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, globalScale);
+      const style = getConceptGraphLabelStyle({
+        globalScale,
+        isSelected: false,
+        isFavorite: false
+      });
+      const safeScale = Math.min(Math.max(globalScale, 0.05), 40);
+      const fill = calls.find((call) => call.type === "fillText");
+      const fontPx = parseFontPx(fill?.font ?? "");
+
+      expect(fontPx).toBeCloseTo(style.screenFontSize / safeScale);
+      expect(fontPx * safeScale).toBeCloseTo(style.screenFontSize);
+    });
+
+    it.each([0.5, 2])("P. globalScale %s でも lineWidth × safeScale が halo helper と一致する", (globalScale) => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, globalScale);
+      const expected = getConceptGraphLabelHaloScreenWidth({
+        isSelected: false,
+        isFavorite: false
+      });
+      const safeScale = Math.min(Math.max(globalScale, 0.05), 40);
+      const stroke = calls.find((call) => call.type === "strokeText");
+
+      expect((stroke?.lineWidth ?? Number.NaN) * safeScale).toBeCloseTo(expected);
+    });
+  });
+
+  describe("異常 scale", () => {
+    const expectedClampedScale = (globalScale: number) => {
+      const clamped = Math.min(Math.max(globalScale, 0.05), 40);
+      return Number.isFinite(clamped) ? clamped : 0.05;
+    };
+
+    it.each([
+      { name: "0", globalScale: 0 },
+      { name: "negative", globalScale: -2 },
+      { name: "Infinity", globalScale: Number.POSITIVE_INFINITY },
+      { name: "NaN", globalScale: Number.NaN }
+    ])("$name では font / lineWidth が有限値になる", ({ globalScale }) => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, globalScale);
+      const fill = calls.find((call) => call.type === "fillText");
+      const stroke = calls.find((call) => call.type === "strokeText");
+      const fontPx = parseFontPx(fill?.font ?? "");
+      const style = getConceptGraphLabelStyle({
+        globalScale,
+        isSelected: false,
+        isFavorite: false
+      });
+      const safeScale = expectedClampedScale(globalScale);
+
+      expect(Number.isFinite(fontPx)).toBe(true);
+      expect(Number.isFinite(stroke?.lineWidth ?? Number.NaN)).toBe(true);
+      expect(fontPx).toBeCloseTo(style.screenFontSize / safeScale);
+      expect((stroke?.lineWidth ?? Number.NaN) * safeScale).toBeCloseTo(
+        getConceptGraphLabelHaloScreenWidth({ isSelected: false, isFavorite: false })
+      );
+    });
+  });
+
+  describe("描画順", () => {
+    it("node fill / ring stroke の後に label strokeText → fillText が来る", () => {
+      const concept = makeConcept("a", SHORT_TITLE);
+      const { calls } = paintNode(concept, FAR_SCALE);
+      const types = calls.map((call) => call.type);
+      const fillIndex = types.indexOf("fill");
+      const strokeIndex = types.indexOf("stroke");
+      const strokeTextIndex = types.indexOf("strokeText");
+      const fillTextIndex = types.indexOf("fillText");
+
+      expect(fillIndex).toBeGreaterThanOrEqual(0);
+      expect(strokeIndex).toBeGreaterThan(fillIndex);
+      expect(strokeTextIndex).toBeGreaterThan(strokeIndex);
+      expect(fillTextIndex).toBeGreaterThan(strokeTextIndex);
+    });
+  });
+});
