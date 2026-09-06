@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   attachDomainColorsToBackup,
   extractBackupDomainColors,
+  getDomainTagColor,
+  getDomainTagColors,
+  isHexColor,
   loadDomainColorMap,
   mergeDomainColorMaps,
   normalizeDomainColorMap,
@@ -102,6 +105,66 @@ describe("JSON export payload", () => {
       { 人工知能: "#2563EB" }
     );
     expect(payload.domainColors).toEqual({ 人工知能: "#2563EB" });
+  });
+});
+
+describe("getDomainTagColors", () => {
+  const map = {
+    AI: "#111111",
+    HCI: "#222222",
+    教育: "#333333",
+    心理: "#444444",
+    社会科学: "#555555"
+  };
+
+  it("0件は空配列を返す（UI側fallbackとは責務を分ける）", () => {
+    expect(getDomainTagColors([], map)).toEqual([]);
+  });
+
+  it("1件は1色", () => {
+    expect(getDomainTagColors(["AI"], map)).toEqual(["#111111"]);
+  });
+
+  it("2件は2色", () => {
+    expect(getDomainTagColors(["AI", "教育"], map)).toHaveLength(2);
+    expect(getDomainTagColors(["AI", "教育"], map)).toEqual(
+      ["AI", "教育"].sort((a, b) => a.localeCompare(b, "ja")).map((tag) => map[tag])
+    );
+  });
+
+  it("4件は4色", () => {
+    expect(getDomainTagColors(["AI", "HCI", "教育", "心理"], map)).toHaveLength(4);
+  });
+
+  it("5件以上は最大4色", () => {
+    expect(getDomainTagColors(["AI", "教育", "心理", "HCI", "社会科学"], map)).toHaveLength(4);
+  });
+
+  it("入力順が違っても ja localeCompare で同じ色配列になる", () => {
+    const a = getDomainTagColors(["AI", "教育", "HCI"], map);
+    const b = getDomainTagColors(["HCI", "AI", "教育"], map);
+    const expected = ["AI", "HCI", "教育"].map((tag) => map[tag]);
+    expect(a).toEqual(expected);
+    expect(b).toEqual(expected);
+  });
+
+  it("重複タグは表示対象だけ除去してから sort / slice する", () => {
+    const colors = getDomainTagColors(["AI", "AI", "教育"], map);
+    expect(colors).toEqual(
+      ["AI", "教育"].sort((a, b) => a.localeCompare(b, "ja")).map((tag) => map[tag])
+    );
+    const original = ["AI", "AI", "教育"];
+    getDomainTagColors(original, map);
+    expect(original).toEqual(["AI", "AI", "教育"]);
+  });
+
+  it("未登録タグでも #RRGGBB の string を返し undefined にしない", () => {
+    const colors = getDomainTagColors(["未登録タグXYZ"], {});
+    expect(colors).toHaveLength(1);
+    expect(colors[0]).toBeTypeOf("string");
+    expect(colors[0]).toBeDefined();
+    expect(isHexColor(colors[0]!)).toBe(true);
+    expect(colors[0]).toBe(getDomainTagColor("未登録タグXYZ", {}));
   });
 });
 

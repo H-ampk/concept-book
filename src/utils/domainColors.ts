@@ -107,7 +107,7 @@ export const getDomainTagColors = (
   map: Record<string, string>,
   limit = 4
 ): string[] =>
-  [...tags]
+  [...new Set(tags)]
     .sort((a, b) => a.localeCompare(b, "ja"))
     .slice(0, limit)
     .map((tag) => getDomainTagColor(tag, map));
