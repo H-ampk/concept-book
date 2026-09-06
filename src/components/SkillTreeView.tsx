@@ -608,6 +608,7 @@ export const SkillTreeView = ({
         </div>
       <div
         ref={containerRef}
+        data-testid="skill-tree-container"
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onPointerMove={handlePointerMove}
@@ -616,6 +617,7 @@ export const SkillTreeView = ({
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
         <svg
+          data-testid="skill-tree-content"
           width={layoutData.canvasWidth * zoom}
           height={layoutData.canvasHeight * zoom}
           viewBox={`0 0 ${layoutData.canvasWidth} ${layoutData.canvasHeight}`}
@@ -663,6 +665,7 @@ export const SkillTreeView = ({
             return (
               <path
                 key={`extra-${index}`}
+                data-testid={`skill-tree-extra-edge-${index}`}
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                 fill="none"
                 stroke="rgba(117, 165, 188, 0.7)"
@@ -681,7 +684,8 @@ export const SkillTreeView = ({
             );
             const swatchColors =
               domainColors.length > 0 ? domainColors : [getDomainTagColor("", domainColorMap)];
-            const overflowCount = Math.max(0, node.domainTags.length - MAX_VISIBLE_DOMAIN_COLORS);
+            const uniqueDomainCount = new Set(node.domainTags).size;
+            const overflowCount = Math.max(0, uniqueDomainCount - MAX_VISIBLE_DOMAIN_COLORS);
             const isSelected = selectedId === node.id;
             const cardFill = node.isRoot ? "#f2f7f9" : isSelected ? "#d8e8ee" : "rgba(255,255,255,0.9)";
             const borderColor = node.isRoot ? "#7a9dad" : isSelected ? "#537b8e" : "rgba(92,126,145,0.38)";
@@ -698,6 +702,7 @@ export const SkillTreeView = ({
             return (
               <g
                 key={node.id}
+                data-testid={`skill-tree-node-${node.id}`}
                 onClick={() => handleNodeClick(node.id)}
                 style={{ cursor: "pointer" }}
               >
@@ -716,6 +721,7 @@ export const SkillTreeView = ({
                 {swatchColors.map((color, swatchIndex) => (
                   <rect
                     key={`${node.id}-domain-${swatchIndex}`}
+                    data-testid="concept-domain-swatch"
                     x={x + 12 + swatchIndex * (DOMAIN_SWATCH_SIZE + DOMAIN_SWATCH_GAP)}
                     y={y + 10}
                     width={DOMAIN_SWATCH_SIZE}
@@ -726,6 +732,7 @@ export const SkillTreeView = ({
                 ))}
                 {overflowCount > 0 && (
                   <text
+                    data-testid="concept-domain-more-count"
                     x={
                       x +
                       12 +
@@ -753,6 +760,7 @@ export const SkillTreeView = ({
                 ))}
                 {childCount > 0 && (
                   <g
+                    data-testid={`skill-tree-collapse-${node.id}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       toggleCollapse(node.id);
