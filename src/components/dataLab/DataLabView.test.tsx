@@ -204,6 +204,68 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-line-chart")).toBeInTheDocument();
   });
 
+  it("表示selectに散布図があり、Concept/分野/Deckで描画し、日では案内、X/Yを変えられ、同じ指標は選べない", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    const displaySelect = screen.getByLabelText("表示");
+    expect(within(displaySelect).getByRole("option", { name: "散布図" })).toBeInTheDocument();
+
+    await user.selectOptions(displaySelect, "scatter");
+    expect(screen.getByTestId("data-lab-scatter-plot")).toBeInTheDocument();
+    expect(screen.getByLabelText("X軸")).toBeInTheDocument();
+    expect(screen.getByLabelText("Y軸")).toBeInTheDocument();
+    expect(screen.getByLabelText("X軸")).toHaveValue("averageResponseTimeMs");
+    expect(screen.getByLabelText("Y軸")).toHaveValue("accuracy");
+    expect(screen.getByLabelText("X軸")).not.toHaveValue("accuracy");
+    expect(screen.queryByLabelText("指標")).not.toBeInTheDocument();
+
+    const ySameAsX = within(screen.getByLabelText("Y軸")).getByRole("option", { name: "平均回答時間" });
+    expect(ySameAsX).toBeDisabled();
+    const xSameAsY = within(screen.getByLabelText("X軸")).getByRole("option", { name: "正答率" });
+    expect(xSameAsY).toBeDisabled();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(screen.getByTestId("data-lab-scatter-plot")).toBeInTheDocument();
+    expect(screen.getByText("※ 複数分野を持つ Concept は各分野に重複して集計されます。")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "deck");
+    expect(screen.getByTestId("data-lab-scatter-plot")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByText("散布図では Concept・分野・Deck 単位の集計を選択してください。")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-scatter-plot")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "week");
+    expect(screen.getByTestId("data-lab-scatter-plot-unsupported")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("集計軸"), "month");
+    expect(screen.getByTestId("data-lab-scatter-plot-unsupported")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "concept");
+    await user.selectOptions(screen.getByLabelText("X軸"), "attemptCount");
+    expect(screen.getByLabelText("X軸")).toHaveValue("attemptCount");
+    expect(screen.getByLabelText("Y軸")).toHaveValue("accuracy");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("X軸: 回答数");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("Y軸: 正答率");
+
+    await user.selectOptions(displaySelect, "table");
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-scatter-plot")).not.toBeInTheDocument();
+
+    await user.selectOptions(displaySelect, "scatter");
+    expect(screen.getByLabelText("X軸")).toHaveValue("attemptCount");
+    expect(screen.getByLabelText("Y軸")).toHaveValue("accuracy");
+  });
+
   it("折れ線グラフ表示は日集計でグラフ、Conceptでは案内、テーブルに戻せる", async () => {
     const user = userEvent.setup();
     render(

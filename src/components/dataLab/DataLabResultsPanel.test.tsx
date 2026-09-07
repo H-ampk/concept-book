@@ -244,4 +244,62 @@ describe("DataLabResultsPanel 表示分岐", () => {
     expect(screen.getByText("この条件では棒グラフに表示できるデータがありません。")).toBeInTheDocument();
     expect(screen.queryByTestId("data-lab-bar-chart")).not.toBeInTheDocument();
   });
+
+  it.each(["concept", "domain", "deck"] as const)("scatter + %s は散布図を表示する", (groupBy) => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy={groupBy}
+        metric="accuracy"
+        scatterXMetric="averageResponseTimeMs"
+        scatterYMetric="accuracy"
+        displayMode="scatter"
+        aggregatedRows={[{ ...sampleRow, groupBy, label: groupBy === "domain" ? "情報科学" : sampleRow.label }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-scatter-plot")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("X軸: 平均回答時間");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("Y軸: 正答率");
+    expect(screen.queryByTestId("data-lab-table")).not.toBeInTheDocument();
+    if (groupBy === "domain") {
+      expect(screen.getByText("※ 複数分野を持つ Concept は各分野に重複して集計されます。")).toBeInTheDocument();
+    }
+  });
+
+  it.each(["day", "week", "month"] as const)("scatter + %s は非対応案内を表示する", (groupBy) => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy={groupBy}
+        metric="accuracy"
+        displayMode="scatter"
+        aggregatedRows={[{ ...dayRow, groupBy }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-scatter-plot-unsupported")).toHaveTextContent(
+      "散布図では Concept・分野・Deck 単位の集計を選択してください。"
+    );
+    expect(screen.queryByTestId("data-lab-scatter-plot")).not.toBeInTheDocument();
+  });
+
+  it("X/Y 値がすべて欠損のときは散布図用空状態を表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="concept"
+        metric="accuracy"
+        scatterXMetric="averageResponseTimeMs"
+        scatterYMetric="accuracy"
+        displayMode="scatter"
+        aggregatedRows={[{ ...sampleRow, averageResponseTimeMs: null, accuracy: null }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-scatter-plot-empty")).toHaveTextContent(
+      "選択した指標では散布図に表示できるデータがありません。"
+    );
+    expect(screen.queryByTestId("data-lab-scatter-plot")).not.toBeInTheDocument();
+  });
 });

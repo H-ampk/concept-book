@@ -17,6 +17,10 @@ type Props = {
   onGroupByChange: (groupBy: DataLabGroupBy) => void;
   metric: DataLabMetric;
   onMetricChange: (metric: DataLabMetric) => void;
+  scatterXMetric: DataLabMetric;
+  onScatterXMetricChange: (metric: DataLabMetric) => void;
+  scatterYMetric: DataLabMetric;
+  onScatterYMetricChange: (metric: DataLabMetric) => void;
   displayMode: DataLabDisplayMode;
   onDisplayModeChange: (displayMode: DataLabDisplayMode) => void;
   barSort: DataLabBarChartSort;
@@ -43,6 +47,10 @@ export const DataLabControlsPanel = ({
   onGroupByChange,
   metric,
   onMetricChange,
+  scatterXMetric,
+  onScatterXMetricChange,
+  scatterYMetric,
+  onScatterYMetricChange,
   displayMode,
   onDisplayModeChange,
   barSort,
@@ -65,7 +73,13 @@ export const DataLabControlsPanel = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div
+          className={
+            displayMode === "scatter"
+              ? "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4"
+              : "grid grid-cols-1 gap-3 md:grid-cols-3"
+          }
+        >
           <div className="min-w-0">
             <label htmlFor="data-lab-control-axis" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
               集計軸
@@ -84,23 +98,74 @@ export const DataLabControlsPanel = ({
             </select>
           </div>
 
-          <div className="min-w-0">
-            <label htmlFor="data-lab-control-metric" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
-              指標
-            </label>
-            <select
-              id="data-lab-control-metric"
-              value={metric}
-              onChange={(event) => onMetricChange(event.target.value as DataLabMetric)}
-              className={inputClass}
-            >
-              {DATA_LAB_METRIC_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {displayMode === "scatter" ? (
+            <>
+              <div className="min-w-0">
+                <label htmlFor="data-lab-control-scatter-x" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
+                  X軸
+                </label>
+                <select
+                  id="data-lab-control-scatter-x"
+                  value={scatterXMetric}
+                  onChange={(event) => {
+                    const next = event.target.value as DataLabMetric;
+                    if (next === scatterYMetric) {
+                      return;
+                    }
+                    onScatterXMetricChange(next);
+                  }}
+                  className={inputClass}
+                >
+                  {DATA_LAB_METRIC_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} disabled={option.value === scatterYMetric}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="data-lab-control-scatter-y" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
+                  Y軸
+                </label>
+                <select
+                  id="data-lab-control-scatter-y"
+                  value={scatterYMetric}
+                  onChange={(event) => {
+                    const next = event.target.value as DataLabMetric;
+                    if (next === scatterXMetric) {
+                      return;
+                    }
+                    onScatterYMetricChange(next);
+                  }}
+                  className={inputClass}
+                >
+                  {DATA_LAB_METRIC_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} disabled={option.value === scatterXMetric}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          ) : (
+            <div className="min-w-0">
+              <label htmlFor="data-lab-control-metric" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
+                指標
+              </label>
+              <select
+                id="data-lab-control-metric"
+                value={metric}
+                onChange={(event) => onMetricChange(event.target.value as DataLabMetric)}
+                className={inputClass}
+              >
+                {DATA_LAB_METRIC_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="min-w-0">
             <label htmlFor="data-lab-control-display" className="mb-1.5 block text-xs font-medium text-celestial-textSub">

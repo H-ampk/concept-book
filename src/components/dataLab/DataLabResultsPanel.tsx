@@ -9,8 +9,10 @@ import {
   type DataLabBarChartSort
 } from "../../utils/dataLab/toDataLabBarChartRows";
 import { isDataLabLineChartGroupBy } from "../../utils/dataLab/toDataLabLineChartPoints";
+import { isDataLabScatterGroupBy, toDataLabScatterPoints } from "../../utils/dataLab/toDataLabScatterPoints";
 import { DataLabBarChart } from "./DataLabBarChart";
 import { DataLabLineChart } from "./DataLabLineChart";
+import { DataLabScatterPlot } from "./DataLabScatterPlot";
 import { DataLabTable } from "./DataLabTable";
 
 type Props = {
@@ -18,6 +20,8 @@ type Props = {
   displayedLogs: number;
   groupBy: DataLabGroupBy;
   metric: DataLabMetric;
+  scatterXMetric?: DataLabMetric;
+  scatterYMetric?: DataLabMetric;
   displayMode: DataLabDisplayMode;
   barSort?: DataLabBarChartSort;
   barLimit?: DataLabBarChartLimit;
@@ -48,6 +52,8 @@ export const DataLabResultsPanel = ({
   displayedLogs,
   groupBy,
   metric,
+  scatterXMetric = "averageResponseTimeMs",
+  scatterYMetric = "accuracy",
   displayMode,
   barSort = "valueDesc",
   barLimit = 10,
@@ -68,6 +74,38 @@ export const DataLabResultsPanel = ({
           testId="data-lab-line-chart-unsupported"
           title="折れ線グラフでは日・週・月単位の集計を選択してください。"
         />
+      );
+    }
+
+    if (displayMode === "scatter") {
+      if (!isDataLabScatterGroupBy(groupBy)) {
+        return (
+          <EmptyNotice
+            testId="data-lab-scatter-plot-unsupported"
+            title="散布図では Concept・分野・Deck 単位の集計を選択してください。"
+          />
+        );
+      }
+
+      const scatterPoints = toDataLabScatterPoints(aggregatedRows, scatterXMetric, scatterYMetric);
+      if (scatterPoints.length === 0) {
+        return (
+          <EmptyNotice
+            testId="data-lab-scatter-plot-empty"
+            title="選択した指標では散布図に表示できるデータがありません。"
+          />
+        );
+      }
+
+      return (
+        <div className="space-y-3">
+          {groupBy === "domain" ? (
+            <p className="text-xs leading-relaxed text-celestial-textSub">
+              ※ 複数分野を持つ Concept は各分野に重複して集計されます。
+            </p>
+          ) : null}
+          <DataLabScatterPlot points={scatterPoints} xMetric={scatterXMetric} yMetric={scatterYMetric} />
+        </div>
       );
     }
 
@@ -107,7 +145,9 @@ export const DataLabResultsPanel = ({
       ? "この条件では棒グラフに表示できるデータがありません。"
       : displayMode === "line"
         ? "この条件ではグラフに表示できるデータがありません。"
-        : "この条件では集計できるデータがありません。";
+        : displayMode === "scatter"
+          ? "この条件では散布図に表示できるデータがありません。"
+          : "この条件では集計できるデータがありません。";
 
   return (
     <section
@@ -150,8 +190,9 @@ export const DataLabResultsPanel = ({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-celestial-textSub" data-testid="data-lab-aggregate-summary">
-              集計軸: {DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　指標: {DATA_LAB_METRIC_LABELS[metric]}　対象ログ:{" "}
-              {displayedLogs}件　集計結果: {aggregatedRows.length}件
+              {displayMode === "scatter"
+                ? `集計軸: ${DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　X軸: ${DATA_LAB_METRIC_LABELS[scatterXMetric]}　Y軸: ${DATA_LAB_METRIC_LABELS[scatterYMetric]}　対象ログ: ${displayedLogs}件　集計結果: ${aggregatedRows.length}件`
+                : `集計軸: ${DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　指標: ${DATA_LAB_METRIC_LABELS[metric]}　対象ログ: ${displayedLogs}件　集計結果: ${aggregatedRows.length}件`}
             </p>
             {renderVisualization()}
           </div>

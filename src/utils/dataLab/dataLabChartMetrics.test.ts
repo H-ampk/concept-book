@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { DataLabAggregateRow } from "./aggregateDataLabLogs";
 import {
   formatDataLabMetricValue,
+  getDataLabMetricAxisDomain,
+  getDataLabMetricAxisLabel,
   getDataLabMetricValue,
   getDataLabMetricValueAxisDomain,
   getDataLabMetricYDomain
@@ -40,5 +42,12 @@ describe("dataLabChartMetrics", () => {
   it("正答率の Y 軸 domain は 0〜1 固定である", () => {
     expect(getDataLabMetricYDomain("accuracy")).toEqual([0, 1]);
     expect(getDataLabMetricValueAxisDomain("accuracy")).toEqual([0, 1]);
+    expect(getDataLabMetricAxisDomain("accuracy")).toEqual([0, 1]);
+  });
+
+  it("軸ラベルに単位を付ける", () => {
+    expect(getDataLabMetricAxisLabel("accuracy")).toBe("正答率（%）");
+    expect(getDataLabMetricAxisLabel("averageResponseTimeMs")).toBe("平均回答時間（秒）");
+    expect(getDataLabMetricAxisLabel("attemptCount")).toBe("回答数");
   });
 });

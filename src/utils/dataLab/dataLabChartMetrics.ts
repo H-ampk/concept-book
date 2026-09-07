@@ -74,3 +74,16 @@ export const getDataLabMetricYDomain = (metric: DataLabMetric): [number, number]
 
 /** 横棒グラフの値軸（X）でも同じ domain を使う */
 export const getDataLabMetricValueAxisDomain = getDataLabMetricYDomain;
+
+/** 散布図など、X/Y どちらでも同じ domain を使う */
+export const getDataLabMetricAxisDomain = getDataLabMetricYDomain;
+
+export const getDataLabMetricAxisLabel = (metric: DataLabMetric): string => {
+  if (metric === "accuracy") {
+    return "正答率（%）";
+  }
+  if (metric === "averageResponseTimeMs") {
+    return "平均回答時間（秒）";
+  }
+  return DATA_LAB_METRIC_LABELS[metric];
+};
