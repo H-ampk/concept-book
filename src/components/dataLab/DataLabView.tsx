@@ -5,6 +5,8 @@ import {
   aggregateDataLabLogs,
   type DataLabGroupBy
 } from "../../utils/dataLab/aggregateDataLabLogs";
+import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
+import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
 import {
   DEFAULT_DATA_LAB_FILTERS,
@@ -37,6 +39,8 @@ export const DataLabView = ({
 }: DataLabViewProps) => {
   const [filters, setFilters] = useState<DataLabFilters>(DEFAULT_DATA_LAB_FILTERS);
   const [groupBy, setGroupBy] = useState<DataLabGroupBy>("concept");
+  const [metric, setMetric] = useState<DataLabMetric>("accuracy");
+  const [displayMode, setDisplayMode] = useState<DataLabDisplayMode>("table");
 
   const conceptById = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
   const deckById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
@@ -123,11 +127,20 @@ export const DataLabView = ({
             decks={decks}
             chips={chips}
           />
-          <DataLabControlsPanel groupBy={groupBy} onGroupByChange={setGroupBy} />
+          <DataLabControlsPanel
+            groupBy={groupBy}
+            onGroupByChange={setGroupBy}
+            metric={metric}
+            onMetricChange={setMetric}
+            displayMode={displayMode}
+            onDisplayModeChange={setDisplayMode}
+          />
           <DataLabResultsPanel
             totalLogs={totalLogs}
             displayedLogs={displayedLogs}
             groupBy={groupBy}
+            metric={metric}
+            displayMode={displayMode}
             aggregatedRows={aggregatedRows}
             onGoToQuizPlay={onGoToQuizPlay}
           />

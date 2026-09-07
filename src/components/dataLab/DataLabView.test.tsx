@@ -73,6 +73,10 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByLabelText("開始日")).toBeEnabled();
     expect(screen.getByLabelText("集計軸")).toBeEnabled();
     expect(screen.getByLabelText("集計軸")).toHaveValue("concept");
+    expect(screen.getByLabelText("指標")).toBeEnabled();
+    expect(screen.getByLabelText("指標")).toHaveValue("accuracy");
+    expect(screen.getByLabelText("表示")).toBeEnabled();
+    expect(screen.getByLabelText("表示")).toHaveValue("table");
   });
 
   it("ログ0件で空状態になる", () => {
@@ -147,6 +151,31 @@ describe("DataLabView (#89 / #90)", () => {
     await user.selectOptions(screen.getByLabelText("集計軸"), "month");
     expect(screen.getByRole("button", { name: "月で並べ替え" })).toBeInTheDocument();
     expect(within(table()).getAllByRole("rowheader")).toHaveLength(1);
+  });
+
+  it("折れ線グラフ表示は日集計でグラフ、Conceptでは案内、テーブルに戻せる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.selectOptions(screen.getByLabelText("表示"), "line");
+    expect(screen.getByText("折れ線グラフでは日・週・月単位の集計を選択してください。")).toBeInTheDocument();
+    expect(screen.getByLabelText("集計軸")).toHaveValue("concept");
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByTestId("data-lab-line-chart")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-table")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("表示"), "table");
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
   });
 
   it("loading 状態を表示する", () => {
