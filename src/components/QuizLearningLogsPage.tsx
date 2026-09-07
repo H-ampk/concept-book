@@ -193,11 +193,6 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
         className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
         aria-labelledby="learning-logs-title"
       >
-        <span className="card-corner card-corner-top-left" aria-hidden="true" />
-        <span className="card-corner card-corner-top-right" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-
         <div className="relative z-[1] flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>

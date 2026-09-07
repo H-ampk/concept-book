@@ -55,11 +55,6 @@ export const DataLabControlsPanel = ({
       className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
       aria-labelledby="data-lab-controls-title"
     >
-      <span className="card-corner card-corner-top-left" aria-hidden="true" />
-      <span className="card-corner card-corner-top-right" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-
       <div className="relative z-[1] space-y-4">
         <div className="space-y-1">
           <h2 id="data-lab-controls-title" className="text-sm font-semibold text-celestial-softGold">

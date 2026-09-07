@@ -452,11 +452,6 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
         className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
         aria-labelledby="quiz-play-title"
       >
-        <span className="card-corner card-corner-top-left" aria-hidden="true" />
-        <span className="card-corner card-corner-top-right" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-
         <div className="relative z-[1] space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 演習場</p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

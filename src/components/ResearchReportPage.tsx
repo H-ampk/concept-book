@@ -117,11 +117,6 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
         className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
         aria-labelledby="research-report-title"
       >
-        <span className="card-corner card-corner-top-left" aria-hidden="true" />
-        <span className="card-corner card-corner-top-right" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-        <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-
         <div className="relative z-[1] space-y-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

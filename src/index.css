@@ -925,44 +925,6 @@ body {
   letter-spacing: 0.02em;
 }
 
-.card-corner {
-  position: absolute;
-  display: block;
-  width: 64px;
-  height: 64px;
-  background-image: var(--corner-decoration-url, url("/decorations/corner.svg"));
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.72;
-  pointer-events: none;
-  z-index: 5;
-  filter: drop-shadow(0 0 4px rgba(100, 134, 150, 0.14));
-}
-
-.card-corner-top-left {
-  top: -8px;
-  left: -8px;
-}
-
-.card-corner-top-right {
-  top: -8px;
-  right: -8px;
-  transform: scaleX(-1);
-}
-
-.card-corner-bottom-left {
-  bottom: -8px;
-  left: -8px;
-  transform: scaleY(-1);
-}
-
-.card-corner-bottom-right {
-  bottom: -8px;
-  right: -8px;
-  transform: scale(-1, -1);
-}
-
 /* 内部スクロール領域：バー非表示（スクロール操作は維持） */
 .scrollbar-none,
 .hide-scrollbar {
@@ -975,10 +937,6 @@ body {
   display: none;
   width: 0;
   height: 0;
-}
-
-.decorated-card:hover .card-corner {
-  filter: none;
 }
 
 /* 概念索引リスト */
@@ -1770,11 +1728,6 @@ textarea::placeholder {
       0 0 0 1px rgba(100, 134, 150, 0.2),
       0 10px 24px rgba(55, 88, 102, 0.08),
       0 0 14px rgba(100, 134, 150, 0.07);
-  }
-
-  .card-corner {
-    filter: none !important;
-    opacity: 0.72;
   }
 
   .ornament-line-header .ornament-line-image {

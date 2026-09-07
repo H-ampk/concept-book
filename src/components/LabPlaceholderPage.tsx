@@ -16,11 +16,6 @@ export const LabPlaceholderPage = ({ route, onBack }: Props) => {
       className="mx-auto max-w-2xl space-y-8 rounded-3xl border border-celestial-border bg-celestial-panel/90 p-8 shadow-celestial backdrop-blur-md decorated-card md:p-10"
       aria-labelledby="lab-placeholder-title"
     >
-      <span className="card-corner card-corner-top-left" aria-hidden="true" />
-      <span className="card-corner card-corner-top-right" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-left" aria-hidden="true" />
-      <span className="card-corner card-corner-bottom-right" aria-hidden="true" />
-
       <div className="relative z-[1] space-y-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
         <h1 id="lab-placeholder-title" className="text-2xl font-semibold tracking-wide text-celestial-textMain md:text-3xl">

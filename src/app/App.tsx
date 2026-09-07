@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 
@@ -60,9 +60,6 @@ const statusLabelMap: Record<ConceptStatus, string> = {
   draft: "下書き",
   archived: "保管"
 };
-
-const assetUrl = (path: string): string =>
-  `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
 const storage = getStorage();
 
@@ -166,14 +163,6 @@ export const App = () => {
   const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
     null
   );
-  const appShellStyle = useMemo(
-    () =>
-      ({
-        "--corner-decoration-url": `url(${assetUrl("decorations/corner.svg")})`
-      }) as CSSProperties,
-    []
-  );
-
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const detailContainerRef = useRef<HTMLDivElement>(null);
 
@@ -591,7 +580,7 @@ export const App = () => {
   );
 
   return (
-    <div className="app-background relative flex min-h-screen flex-col bg-nordic-bg text-celestial-textMain overflow-hidden" style={appShellStyle}>
+    <div className="app-background relative flex min-h-screen flex-col bg-nordic-bg text-celestial-textMain overflow-hidden">
       <div className="cyber-ambient" aria-hidden="true" />
       <DecorativeBackground />
 

@@ -22,12 +22,6 @@
 - **実装:** `src/components/common/OrnamentLine.tsx` の `<img>`（`variant="header"`）
 - **利用箇所:** `src/app/App.tsx` のヘッダー（題字・ナビの装飾線として表示）
 
-### Card corner decoration
-
-- **画像:** `public/decorations/corner.svg`
-- **実装:** ルート要素のインラインスタイル `--corner-decoration-url`（`src/app/App.tsx`）と、`src/index.css` の `.card-corner` の `background-image`
-- **用途:** 主要パネル・カード四隅の角モチーフ（`<span class="card-corner" />`）
-
 ### CSS-only moon emblem
 
 - **実装:** `src/app/App.tsx` の `DecorativeBackground` 内 `.moon-emblem` と、`src/index.css` の `.moon-ring` / `.moon-axis` など
@@ -87,7 +81,7 @@
 
 - `decorated-card`
   - 主要パネル共通の装飾土台
-  - `position: relative` と `overflow: visible` を持ち、角装飾や線装飾の基準になる
+  - `position: relative` と `overflow: visible` を持ち、線装飾などの基準になる
 
 - `ritual-altar`
   - フィルターパネルなど「主役パネル」の重厚化クラス
@@ -127,12 +121,6 @@
 - `ornament-line-header` / `ornament-line-panel`: 横幅・マージン・見出し周りの補助線（`::after` のグラデ線を含む）
 - `ornament-line-image`: SVG 画像のサイズ・ドロップシャドウ・アニメーション
 
-## corner.svg の扱い
-
-- `corner.svg` は背景フルスクリーン画像ではなく **カード／パネル角の装飾** として利用する
-- 疑似要素競合を避けるため、`::before/::after` ではなく `span.card-corner` 方式を採用
-- 画像参照は CSS 変数 `--corner-decoration-url`（`App.tsx` で定義）＋ `src/index.css` の fallback で管理
-
 ## Future Asset Phase
 
 素材追加が必要になった場合は、フェーズを切って実施する。
@@ -151,14 +139,13 @@
 | `.ornament-line-header` | `src/index.css` | ヘッダー用の横長装飾線サイズと補助線 |
 | `.ornament-line-panel` | `src/index.css` | パネル用の短い装飾線サイズと補助線 |
 | `.ritual-altar` | `src/index.css`（適用: `src/app/App.tsx`） | 主役パネルの重厚化（上下線/光彩/陰影） |
-| `.decorated-card` | `src/index.css`（適用: 主要パネル各TSX） | 角装飾・線装飾の基準となる共通土台 |
+| `.decorated-card` | `src/index.css`（適用: 主要パネル各TSX） | 線装飾などの基準となる共通土台 |
 | `.concept-card-main-button` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード内部ボタンの内枠見えを抑制 |
 | `.concept-card-selected` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード選択時の外側グロー強調 |
 | `.tag-chip` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード内タグの印章風質感 |
 | `.filter-button` | `src/index.css` + `src/components/ConceptList.tsx` | 一覧カード内小ボタンの印章風質感 |
 | `.moon-emblem` ほか | `src/index.css` / `DecorativeBackground`（`App.tsx`） | CSS のみの月環モチーフ |
 | `moon.png` / `botanical.png` / `constellation.png` | `public/decorations/` | **現状ランタイム未参照**（アーカイブ素材） |
-| `--corner-decoration-url` | 定義: `src/app/App.tsx` / 使用: `src/index.css` | `corner.svg` をカード角装飾へ渡す CSS 変数 |
 
 ## Do / Don't
 
