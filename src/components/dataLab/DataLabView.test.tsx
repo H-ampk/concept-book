@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../../types/concept";
@@ -67,9 +67,12 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "分析条件" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "分析結果" })).toBeInTheDocument();
-    expect(screen.getByText("条件に一致する学習ログは 2件です。（全2件中）")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計軸: Concept");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
     expect(screen.getByLabelText("開始日")).toBeEnabled();
-    expect(screen.getByLabelText("集計軸")).toBeDisabled();
+    expect(screen.getByLabelText("集計軸")).toBeEnabled();
+    expect(screen.getByLabelText("集計軸")).toHaveValue("concept");
   });
 
   it("ログ0件で空状態になる", () => {
@@ -105,7 +108,45 @@ describe("DataLabView (#89 / #90)", () => {
 
     await user.click(screen.getByRole("button", { name: "条件をリセット" }));
     expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("2 / 2");
-    expect(screen.getByText("条件に一致する学習ログは 2件です。（全2件中）")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
+  });
+
+  it("6集計軸を切り替え、先頭列名とラベルを表示する", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    const table = () => screen.getByTestId("data-lab-table");
+    expect(screen.getByRole("button", { name: "Conceptで並べ替え" })).toBeInTheDocument();
+    expect(within(table()).getByRole("rowheader", { name: "人工知能" })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(screen.getByRole("button", { name: "分野で並べ替え" })).toBeInTheDocument();
+    expect(within(table()).getByRole("rowheader", { name: "情報科学" })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "deck");
+    expect(screen.getByRole("button", { name: "Deckで並べ替え" })).toBeInTheDocument();
+    expect(within(table()).getByRole("rowheader", { name: "AI基礎" })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByRole("button", { name: "日付で並べ替え" })).toBeInTheDocument();
+    expect(within(table()).getAllByRole("rowheader")).toHaveLength(1);
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "week");
+    expect(screen.getByRole("button", { name: "週で並べ替え" })).toBeInTheDocument();
+    expect(within(table()).getAllByRole("rowheader")).toHaveLength(1);
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "month");
+    expect(screen.getByRole("button", { name: "月で並べ替え" })).toBeInTheDocument();
+    expect(within(table()).getAllByRole("rowheader")).toHaveLength(1);
   });
 
   it("loading 状態を表示する", () => {

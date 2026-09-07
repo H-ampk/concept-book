@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import type { Concept } from "../../types/concept";
 import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
+import {
+  aggregateDataLabLogs,
+  type DataLabGroupBy
+} from "../../utils/dataLab/aggregateDataLabLogs";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
 import {
   DEFAULT_DATA_LAB_FILTERS,
@@ -32,6 +36,7 @@ export const DataLabView = ({
   onGoToQuizPlay
 }: DataLabViewProps) => {
   const [filters, setFilters] = useState<DataLabFilters>(DEFAULT_DATA_LAB_FILTERS);
+  const [groupBy, setGroupBy] = useState<DataLabGroupBy>("concept");
 
   const conceptById = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
   const deckById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
@@ -39,6 +44,17 @@ export const DataLabView = ({
   const filteredLogs = useMemo(
     () => filterDataLabLogs(logs, filters, conceptById),
     [logs, filters, conceptById]
+  );
+
+  const aggregatedRows = useMemo(
+    () =>
+      aggregateDataLabLogs({
+        logs: filteredLogs,
+        groupBy,
+        conceptById,
+        deckById
+      }),
+    [filteredLogs, groupBy, conceptById, deckById]
   );
 
   const chips = useMemo(
@@ -50,9 +66,9 @@ export const DataLabView = ({
   const displayedLogs = filteredLogs.length;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-1 sm:px-0">
+    <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 px-1 sm:px-0">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
         aria-labelledby="data-lab-title"
       >
         <span className="card-corner card-corner-top-left" aria-hidden="true" />
@@ -107,8 +123,14 @@ export const DataLabView = ({
             decks={decks}
             chips={chips}
           />
-          <DataLabControlsPanel />
-          <DataLabResultsPanel totalLogs={totalLogs} displayedLogs={displayedLogs} onGoToQuizPlay={onGoToQuizPlay} />
+          <DataLabControlsPanel groupBy={groupBy} onGroupByChange={setGroupBy} />
+          <DataLabResultsPanel
+            totalLogs={totalLogs}
+            displayedLogs={displayedLogs}
+            groupBy={groupBy}
+            aggregatedRows={aggregatedRows}
+            onGoToQuizPlay={onGoToQuizPlay}
+          />
         </>
       )}
     </div>

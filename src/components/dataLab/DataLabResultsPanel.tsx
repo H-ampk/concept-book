@@ -1,13 +1,25 @@
+import type { DataLabAggregateRow, DataLabGroupBy } from "../../utils/dataLab/aggregateDataLabLogs";
+import { DATA_LAB_GROUP_BY_CONTROL_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
+import { DataLabTable } from "./DataLabTable";
+
 type Props = {
   totalLogs: number;
   displayedLogs: number;
+  groupBy: DataLabGroupBy;
+  aggregatedRows: DataLabAggregateRow[];
   onGoToQuizPlay?: () => void;
 };
 
-export const DataLabResultsPanel = ({ totalLogs, displayedLogs, onGoToQuizPlay }: Props) => {
+export const DataLabResultsPanel = ({
+  totalLogs,
+  displayedLogs,
+  groupBy,
+  aggregatedRows,
+  onGoToQuizPlay
+}: Props) => {
   return (
     <section
-      className="relative min-h-[16rem] rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-8"
+      className="relative min-h-[16rem] min-w-0 max-w-full overflow-hidden rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-8"
       aria-labelledby="data-lab-results-title"
     >
       <span className="card-corner card-corner-top-left" aria-hidden="true" />
@@ -41,12 +53,20 @@ export const DataLabResultsPanel = ({ totalLogs, displayedLogs, onGoToQuizPlay }
             <p className="text-base font-medium text-celestial-textMain">条件に一致する学習データがありません。</p>
             <p className="mt-3 text-sm leading-relaxed text-celestial-textSub">フィルタ条件を変更してください。</p>
           </div>
-        ) : (
-          <div className="space-y-3 text-sm leading-relaxed text-celestial-textSub">
-            <p className="text-base text-celestial-textMain">
-              条件に一致する学習ログは {displayedLogs}件です。（全{totalLogs}件中）
+        ) : aggregatedRows.length === 0 ? (
+          <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-5 py-10 text-center">
+            <p className="text-base font-medium text-celestial-textMain">この条件では集計できるデータがありません。</p>
+            <p className="mt-3 text-sm leading-relaxed text-celestial-textSub">
+              対象ログは {displayedLogs}件ありますが、現在の集計軸では行を作れません。
             </p>
-            <p>集計・可視化機能はここに表示されます。</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-celestial-textSub" data-testid="data-lab-aggregate-summary">
+              集計軸: {DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　対象ログ: {displayedLogs}件　集計結果:{" "}
+              {aggregatedRows.length}件
+            </p>
+            <DataLabTable rows={aggregatedRows} groupBy={groupBy} />
           </div>
         )}
       </div>
