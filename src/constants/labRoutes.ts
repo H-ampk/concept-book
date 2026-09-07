@@ -52,9 +52,9 @@ export const LAB_MENU_ITEMS: LabMenuItem[] = [
     status: "coming_soon"
   },
   {
-    label: "データ実験",
+    label: "Data Lab",
     route: "data-lab",
-    description: "保存データ、ログ、分析用データを確認・実験するためのラボ画面。",
+    description: "学習ログを条件指定して探索・分析するためのラボ画面。",
     status: "coming_soon"
   }
 ];

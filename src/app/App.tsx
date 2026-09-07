@@ -37,6 +37,7 @@ import { QuizAnalysisDashboardPage } from "../components/QuizAnalysisDashboardPa
 import { QuizBuilderPage } from "../components/QuizBuilderPage";
 import type { QuizCreateInitialState } from "../components/QuizCreateModal";
 import { QuizLearningLogsPage } from "../components/QuizLearningLogsPage";
+import { DataLabPage } from "../components/dataLab/DataLabPage";
 import { QuizPlayPage } from "../components/QuizPlayPage";
 import { type LabRoute, isLabRoute } from "../constants/labRoutes";
 import {
@@ -702,6 +703,11 @@ export const App = () => {
             <ConceptGraphAnalysisPage onBack={() => setScreen("concepts")} />
           ) : screen === "research-report" ? (
             <ResearchReportPage
+              onBack={() => setScreen("concepts")}
+              onGoToQuizPlay={() => setScreen("quiz-play")}
+            />
+          ) : screen === "data-lab" ? (
+            <DataLabPage
               onBack={() => setScreen("concepts")}
               onGoToQuizPlay={() => setScreen("quiz-play")}
             />
