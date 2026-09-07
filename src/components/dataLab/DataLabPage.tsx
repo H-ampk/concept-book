@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getStorage } from "../../storage";
-import type { QuizAttemptLog } from "../../types/quiz";
+import type { Concept } from "../../types/concept";
+import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
 import { DataLabView } from "./DataLabView";
 
 const storage = getStorage();
@@ -12,6 +13,8 @@ type Props = {
 
 export const DataLabPage = ({ onBack, onGoToQuizPlay }: Props) => {
   const [logs, setLogs] = useState<QuizAttemptLog[]>([]);
+  const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [decks, setDecks] = useState<QuizDeck[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -19,10 +22,18 @@ export const DataLabPage = ({ onBack, onGoToQuizPlay }: Props) => {
     setLoading(true);
     setError(false);
     try {
-      const allLogs = await storage.getQuizAttemptLogs();
+      const [allLogs, allConcepts, allDecks] = await Promise.all([
+        storage.getQuizAttemptLogs(),
+        storage.getAllConcepts(),
+        storage.getQuizDecks()
+      ]);
       setLogs(allLogs);
+      setConcepts(allConcepts);
+      setDecks(allDecks);
     } catch {
       setLogs([]);
+      setConcepts([]);
+      setDecks([]);
       setError(true);
     } finally {
       setLoading(false);
@@ -35,7 +46,9 @@ export const DataLabPage = ({ onBack, onGoToQuizPlay }: Props) => {
 
   return (
     <DataLabView
-      logCount={logs.length}
+      logs={logs}
+      concepts={concepts}
+      decks={decks}
       loading={loading}
       error={error}
       onBack={onBack}

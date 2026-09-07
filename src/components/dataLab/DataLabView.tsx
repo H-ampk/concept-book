@@ -1,17 +1,54 @@
+import { useMemo, useState } from "react";
+import type { Concept } from "../../types/concept";
+import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
+import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
+import {
+  DEFAULT_DATA_LAB_FILTERS,
+  filterDataLabLogs,
+  type DataLabFilters
+} from "../../utils/dataLab/filterDataLabLogs";
 import { OrnamentLine } from "../common/OrnamentLine";
 import { DataLabControlsPanel } from "./DataLabControlsPanel";
 import { DataLabFiltersPanel } from "./DataLabFiltersPanel";
 import { DataLabResultsPanel } from "./DataLabResultsPanel";
 
 export type DataLabViewProps = {
-  logCount: number;
+  logs: QuizAttemptLog[];
+  concepts: Concept[];
+  decks: QuizDeck[];
   loading: boolean;
   error: boolean;
   onBack: () => void;
   onGoToQuizPlay?: () => void;
 };
 
-export const DataLabView = ({ logCount, loading, error, onBack, onGoToQuizPlay }: DataLabViewProps) => {
+export const DataLabView = ({
+  logs,
+  concepts,
+  decks,
+  loading,
+  error,
+  onBack,
+  onGoToQuizPlay
+}: DataLabViewProps) => {
+  const [filters, setFilters] = useState<DataLabFilters>(DEFAULT_DATA_LAB_FILTERS);
+
+  const conceptById = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
+  const deckById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
+
+  const filteredLogs = useMemo(
+    () => filterDataLabLogs(logs, filters, conceptById),
+    [logs, filters, conceptById]
+  );
+
+  const chips = useMemo(
+    () => describeDataLabFilters(filters, conceptById, deckById),
+    [filters, conceptById, deckById]
+  );
+
+  const totalLogs = logs.length;
+  const displayedLogs = filteredLogs.length;
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-1 sm:px-0">
       <section
@@ -39,7 +76,7 @@ export const DataLabView = ({ logCount, loading, error, onBack, onGoToQuizPlay }
             <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-4 py-3">
               <p className="text-xs font-medium tracking-wide text-celestial-textSub">対象ログ</p>
               <p className="mt-1 text-xl font-semibold tabular-nums text-celestial-textMain" data-testid="data-lab-log-count">
-                {loading ? "…" : error ? "—" : `${logCount}件`}
+                {loading ? "…" : error ? "—" : `${displayedLogs} / ${totalLogs}`}
               </p>
             </div>
             <button
@@ -63,9 +100,15 @@ export const DataLabView = ({ logCount, loading, error, onBack, onGoToQuizPlay }
         </p>
       ) : (
         <>
-          <DataLabFiltersPanel />
+          <DataLabFiltersPanel
+            filters={filters}
+            onChange={setFilters}
+            concepts={concepts}
+            decks={decks}
+            chips={chips}
+          />
           <DataLabControlsPanel />
-          <DataLabResultsPanel totalLogs={logCount} displayedLogs={logCount} onGoToQuizPlay={onGoToQuizPlay} />
+          <DataLabResultsPanel totalLogs={totalLogs} displayedLogs={displayedLogs} onGoToQuizPlay={onGoToQuizPlay} />
         </>
       )}
     </div>
