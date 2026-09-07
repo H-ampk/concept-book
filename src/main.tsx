@@ -50,6 +50,16 @@ const boot = async () => {
     return;
   }
 
+  if (import.meta.env.DEV && bootParams.has("e2eSkillTree")) {
+    const { SkillTreeE2eHarness } = await import("./dev/SkillTreeE2eHarness");
+    root.render(
+      <React.StrictMode>
+        <SkillTreeE2eHarness />
+      </React.StrictMode>
+    );
+    return;
+  }
+
   root.render(
     <React.StrictMode>
       <App />
