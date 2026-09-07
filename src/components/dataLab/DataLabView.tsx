@@ -8,6 +8,7 @@ import {
 import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
+import type { DataLabBarChartLimit, DataLabBarChartSort } from "../../utils/dataLab/toDataLabBarChartRows";
 import {
   DEFAULT_DATA_LAB_FILTERS,
   filterDataLabLogs,
@@ -41,6 +42,8 @@ export const DataLabView = ({
   const [groupBy, setGroupBy] = useState<DataLabGroupBy>("concept");
   const [metric, setMetric] = useState<DataLabMetric>("accuracy");
   const [displayMode, setDisplayMode] = useState<DataLabDisplayMode>("table");
+  const [barSort, setBarSort] = useState<DataLabBarChartSort>("valueDesc");
+  const [barLimit, setBarLimit] = useState<DataLabBarChartLimit>(10);
 
   const conceptById = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
   const deckById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
@@ -134,6 +137,10 @@ export const DataLabView = ({
             onMetricChange={setMetric}
             displayMode={displayMode}
             onDisplayModeChange={setDisplayMode}
+            barSort={barSort}
+            onBarSortChange={setBarSort}
+            barLimit={barLimit}
+            onBarLimitChange={setBarLimit}
           />
           <DataLabResultsPanel
             totalLogs={totalLogs}
@@ -141,6 +148,8 @@ export const DataLabView = ({
             groupBy={groupBy}
             metric={metric}
             displayMode={displayMode}
+            barSort={barSort}
+            barLimit={barLimit}
             aggregatedRows={aggregatedRows}
             onGoToQuizPlay={onGoToQuizPlay}
           />

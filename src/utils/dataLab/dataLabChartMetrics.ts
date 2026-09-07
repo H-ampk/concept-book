@@ -71,3 +71,6 @@ export const getDataLabMetricYDomain = (metric: DataLabMetric): [number, number]
   }
   return [0, "auto"];
 };
+
+/** 横棒グラフの値軸（X）でも同じ domain を使う */
+export const getDataLabMetricValueAxisDomain = getDataLabMetricYDomain;

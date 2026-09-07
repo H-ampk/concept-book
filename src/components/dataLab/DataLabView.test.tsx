@@ -153,6 +153,57 @@ describe("DataLabView (#89 / #90)", () => {
     expect(within(table()).getAllByRole("rowheader")).toHaveLength(1);
   });
 
+  it("表示selectに棒グラフがあり、Concept/分野/Deckで描画し、日では案内、指標・並び・件数を変え、テーブルと折れ線に戻せる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    const displaySelect = screen.getByLabelText("表示");
+    expect(within(displaySelect).getByRole("option", { name: "棒グラフ" })).toBeInTheDocument();
+
+    await user.selectOptions(displaySelect, "bar");
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+    expect(screen.getByLabelText("並び順")).toHaveValue("valueDesc");
+    expect(screen.getByLabelText("表示件数")).toHaveValue("10");
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+    expect(screen.getByText("※ 複数分野を持つ Concept は各分野に重複して集計されます。")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "deck");
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByText("棒グラフでは Concept・分野・Deck 単位の集計を選択してください。")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-bar-chart")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "concept");
+    await user.selectOptions(screen.getByLabelText("指標"), "attemptCount");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("指標: 回答数");
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("並び順"), "valueAsc");
+    expect(screen.getByLabelText("並び順")).toHaveValue("valueAsc");
+    await user.selectOptions(screen.getByLabelText("表示件数"), "20");
+    expect(screen.getByLabelText("表示件数")).toHaveValue("20");
+
+    await user.selectOptions(displaySelect, "table");
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-bar-chart")).not.toBeInTheDocument();
+
+    await user.selectOptions(displaySelect, "line");
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByTestId("data-lab-line-chart")).toBeInTheDocument();
+  });
+
   it("折れ線グラフ表示は日集計でグラフ、Conceptでは案内、テーブルに戻せる", async () => {
     const user = userEvent.setup();
     render(

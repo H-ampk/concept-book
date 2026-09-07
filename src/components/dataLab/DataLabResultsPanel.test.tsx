@@ -74,6 +74,20 @@ describe("DataLabResultsPanel 空状態", () => {
     expect(screen.queryByTestId("data-lab-table")).not.toBeInTheDocument();
   });
 
+  it("棒グラフで集計行0件のときは棒グラフ用の空状態を表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="concept"
+        metric="accuracy"
+        displayMode="bar"
+        aggregatedRows={[]}
+      />
+    );
+    expect(screen.getByText("この条件では棒グラフに表示できるデータがありません。")).toBeInTheDocument();
+  });
+
   it("折れ線グラフで集計行0件のときはグラフ用の空状態を表示する", () => {
     render(
       <DataLabResultsPanel
@@ -153,5 +167,81 @@ describe("DataLabResultsPanel 表示分岐", () => {
     );
     expect(screen.queryByTestId("data-lab-table")).not.toBeInTheDocument();
     expect(screen.queryByTestId("data-lab-line-chart")).not.toBeInTheDocument();
+  });
+
+  it("bar + concept は棒グラフを表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="concept"
+        metric="accuracy"
+        displayMode="bar"
+        aggregatedRows={[sampleRow]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-table")).not.toBeInTheDocument();
+  });
+
+  it("bar + domain は棒グラフと重複計上の補足を表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="domain"
+        metric="accuracy"
+        displayMode="bar"
+        aggregatedRows={[{ ...sampleRow, groupBy: "domain", label: "情報科学" }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+    expect(screen.getByText("※ 複数分野を持つ Concept は各分野に重複して集計されます。")).toBeInTheDocument();
+  });
+
+  it("bar + deck は棒グラフを表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="deck"
+        metric="accuracy"
+        displayMode="bar"
+        aggregatedRows={[{ ...sampleRow, groupBy: "deck", label: "AI基礎" }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+  });
+
+  it.each(["day", "week", "month"] as const)("bar + %s は非対応案内を表示する", (groupBy) => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy={groupBy}
+        metric="accuracy"
+        displayMode="bar"
+        aggregatedRows={[{ ...dayRow, groupBy }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-bar-chart-unsupported")).toHaveTextContent(
+      "棒グラフでは Concept・分野・Deck 単位の集計を選択してください。"
+    );
+    expect(screen.queryByTestId("data-lab-bar-chart")).not.toBeInTheDocument();
+  });
+
+  it("棒グラフで指標値がすべて欠損のときは空状態を表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="concept"
+        metric="accuracy"
+        displayMode="bar"
+        aggregatedRows={[{ ...sampleRow, accuracy: null }]}
+      />
+    );
+    expect(screen.getByText("この条件では棒グラフに表示できるデータがありません。")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-bar-chart")).not.toBeInTheDocument();
   });
 });

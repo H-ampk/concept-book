@@ -3,6 +3,7 @@ import type { DataLabAggregateRow } from "./aggregateDataLabLogs";
 import {
   formatDataLabMetricValue,
   getDataLabMetricValue,
+  getDataLabMetricValueAxisDomain,
   getDataLabMetricYDomain
 } from "./dataLabChartMetrics";
 
@@ -38,5 +39,6 @@ describe("dataLabChartMetrics", () => {
 
   it("正答率の Y 軸 domain は 0〜1 固定である", () => {
     expect(getDataLabMetricYDomain("accuracy")).toEqual([0, 1]);
+    expect(getDataLabMetricValueAxisDomain("accuracy")).toEqual([0, 1]);
   });
 });

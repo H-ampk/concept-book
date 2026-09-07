@@ -2,7 +2,14 @@ import type { DataLabAggregateRow, DataLabGroupBy } from "../../utils/dataLab/ag
 import { DATA_LAB_METRIC_LABELS, type DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { DATA_LAB_GROUP_BY_CONTROL_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
+import {
+  isDataLabBarChartGroupBy,
+  toDataLabBarChartRows,
+  type DataLabBarChartLimit,
+  type DataLabBarChartSort
+} from "../../utils/dataLab/toDataLabBarChartRows";
 import { isDataLabLineChartGroupBy } from "../../utils/dataLab/toDataLabLineChartPoints";
+import { DataLabBarChart } from "./DataLabBarChart";
 import { DataLabLineChart } from "./DataLabLineChart";
 import { DataLabTable } from "./DataLabTable";
 
@@ -12,9 +19,29 @@ type Props = {
   groupBy: DataLabGroupBy;
   metric: DataLabMetric;
   displayMode: DataLabDisplayMode;
+  barSort?: DataLabBarChartSort;
+  barLimit?: DataLabBarChartLimit;
   aggregatedRows: DataLabAggregateRow[];
   onGoToQuizPlay?: () => void;
 };
+
+const EmptyNotice = ({
+  title,
+  description,
+  testId
+}: {
+  title: string;
+  description?: string;
+  testId?: string;
+}) => (
+  <div
+    className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-5 py-10 text-center"
+    data-testid={testId}
+  >
+    <p className="text-base font-medium text-celestial-textMain">{title}</p>
+    {description ? <p className="mt-3 text-sm leading-relaxed text-celestial-textSub">{description}</p> : null}
+  </div>
+);
 
 export const DataLabResultsPanel = ({
   totalLogs,
@@ -22,10 +49,65 @@ export const DataLabResultsPanel = ({
   groupBy,
   metric,
   displayMode,
+  barSort = "valueDesc",
+  barLimit = 10,
   aggregatedRows,
   onGoToQuizPlay
 }: Props) => {
-  const showLineChart = displayMode === "line" && isDataLabLineChartGroupBy(groupBy);
+  const renderVisualization = () => {
+    if (displayMode === "table") {
+      return <DataLabTable rows={aggregatedRows} groupBy={groupBy} />;
+    }
+
+    if (displayMode === "line") {
+      if (isDataLabLineChartGroupBy(groupBy)) {
+        return <DataLabLineChart rows={aggregatedRows} groupBy={groupBy} metric={metric} />;
+      }
+      return (
+        <EmptyNotice
+          testId="data-lab-line-chart-unsupported"
+          title="折れ線グラフでは日・週・月単位の集計を選択してください。"
+        />
+      );
+    }
+
+    if (!isDataLabBarChartGroupBy(groupBy)) {
+      return (
+        <EmptyNotice
+          testId="data-lab-bar-chart-unsupported"
+          title="棒グラフでは Concept・分野・Deck 単位の集計を選択してください。"
+        />
+      );
+    }
+
+    const barRows = toDataLabBarChartRows(aggregatedRows, metric, barSort, barLimit);
+    if (barRows.length === 0) {
+      return (
+        <EmptyNotice
+          testId="data-lab-bar-chart-empty"
+          title="この条件では棒グラフに表示できるデータがありません。"
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {groupBy === "domain" ? (
+          <p className="text-xs leading-relaxed text-celestial-textSub">
+            ※ 複数分野を持つ Concept は各分野に重複して集計されます。
+          </p>
+        ) : null}
+        <DataLabBarChart rows={barRows} metric={metric} />
+      </div>
+    );
+  };
+
+  const emptyAggregatedTitle =
+    displayMode === "bar"
+      ? "この条件では棒グラフに表示できるデータがありません。"
+      : displayMode === "line"
+        ? "この条件ではグラフに表示できるデータがありません。"
+        : "この条件では集計できるデータがありません。";
 
   return (
     <section
@@ -65,11 +147,7 @@ export const DataLabResultsPanel = ({
           </div>
         ) : aggregatedRows.length === 0 ? (
           <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-5 py-10 text-center">
-            <p className="text-base font-medium text-celestial-textMain">
-              {displayMode === "line"
-                ? "この条件ではグラフに表示できるデータがありません。"
-                : "この条件では集計できるデータがありません。"}
-            </p>
+            <p className="text-base font-medium text-celestial-textMain">{emptyAggregatedTitle}</p>
             <p className="mt-3 text-sm leading-relaxed text-celestial-textSub">
               対象ログは {displayedLogs}件ありますが、現在の集計軸では行を作れません。
             </p>
@@ -80,20 +158,7 @@ export const DataLabResultsPanel = ({
               集計軸: {DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　指標: {DATA_LAB_METRIC_LABELS[metric]}　対象ログ:{" "}
               {displayedLogs}件　集計結果: {aggregatedRows.length}件
             </p>
-            {displayMode === "table" ? (
-              <DataLabTable rows={aggregatedRows} groupBy={groupBy} />
-            ) : showLineChart ? (
-              <DataLabLineChart rows={aggregatedRows} groupBy={groupBy} metric={metric} />
-            ) : (
-              <div
-                className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-5 py-10 text-center"
-                data-testid="data-lab-line-chart-unsupported"
-              >
-                <p className="text-base font-medium text-celestial-textMain">
-                  折れ線グラフでは日・週・月単位の集計を選択してください。
-                </p>
-              </div>
-            )}
+            {renderVisualization()}
           </div>
         )}
       </div>
