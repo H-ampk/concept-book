@@ -71,6 +71,18 @@ describe("sortDataLabTableRows", () => {
     expect(desc.map((item) => item.key)).toEqual(["a", "b", "c"]);
   });
 
+  it("理解度を生数値でソートし、null は最後にする", () => {
+    const withMastery = [
+      row({ key: "a", label: "低", masteryProbability: 0.2 }),
+      row({ key: "b", label: "高", masteryProbability: 0.9 }),
+      row({ key: "c", label: "欠損", masteryProbability: null })
+    ];
+    const asc = sortDataLabTableRows(withMastery, { key: "mastery", direction: "asc" });
+    expect(asc.map((item) => item.key)).toEqual(["a", "b", "c"]);
+    const desc = sortDataLabTableRows(withMastery, { key: "mastery", direction: "desc" });
+    expect(desc.map((item) => item.key)).toEqual(["b", "a", "c"]);
+  });
+
   it("日時を日時値としてソートし、null は最後にする", () => {
     const desc = sortDataLabTableRows(rows, { key: "lastAttemptAt", direction: "desc" });
     expect(desc.map((item) => item.key)).toEqual(["a", "b", "c"]);

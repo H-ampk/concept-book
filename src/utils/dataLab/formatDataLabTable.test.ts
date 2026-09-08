@@ -3,7 +3,8 @@ import { shortDateTime } from "../date";
 import {
   formatDataLabAccuracy,
   formatDataLabAverageResponseTime,
-  formatDataLabDateTime
+  formatDataLabDateTime,
+  formatDataLabMastery
 } from "./formatDataLabTable";
 
 describe("formatDataLabTable", () => {
@@ -11,6 +12,12 @@ describe("formatDataLabTable", () => {
     expect(formatDataLabAccuracy(0.778)).toBe("77.8%");
     expect(formatDataLabAccuracy(1)).toBe("100%");
     expect(formatDataLabAccuracy(0.8)).toBe("80%");
+  });
+
+  it("理解度は Concept 詳細と同じ整数パーセントで、null は — にする", () => {
+    expect(formatDataLabMastery(0.821)).toBe("82%");
+    expect(formatDataLabMastery(0)).toBe("0%");
+    expect(formatDataLabMastery(null)).toBe("—");
   });
 
   it("正答率の欠損は — にする", () => {

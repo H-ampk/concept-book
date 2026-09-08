@@ -1,4 +1,5 @@
 import { shortDateTime } from "../date";
+import { formatConceptMasteryProbability } from "../mastery/formatConceptMastery";
 
 export const DATA_LAB_MISSING_VALUE = "—";
 
@@ -14,6 +15,9 @@ export const formatDataLabAccuracy = (accuracy: number | null): string => {
   }
   return formatTrimmedOneDecimal(accuracy * 100, "%");
 };
+
+export const formatDataLabMastery = (masteryProbability: number | null): string =>
+  formatConceptMasteryProbability(masteryProbability) ?? DATA_LAB_MISSING_VALUE;
 
 export const formatDataLabAverageResponseTime = (averageResponseTimeMs: number | null): string => {
   if (averageResponseTimeMs == null) {

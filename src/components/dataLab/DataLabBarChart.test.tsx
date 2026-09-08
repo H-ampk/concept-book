@@ -12,4 +12,14 @@ describe("DataLabBarChart", () => {
     );
     expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
   });
+
+  it("理解度の棒グラフを描画できる", () => {
+    render(
+      <DataLabBarChart
+        rows={[{ key: "c1", label: "人工知能", value: 0.821, attemptCount: 18 }]}
+        metric="mastery"
+      />
+    );
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
+  });
 });

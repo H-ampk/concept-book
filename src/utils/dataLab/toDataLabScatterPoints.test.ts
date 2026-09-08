@@ -50,6 +50,15 @@ describe("toDataLabScatterPoints 指標", () => {
   it("平均回答時間を ms のまま利用できる", () => {
     expect(toDataLabScatterPoints([sample], "averageResponseTimeMs", "accuracy")[0]?.x).toBe(4200);
   });
+
+  it("理解度を X/Y に利用し、null 点は除外する", () => {
+    const withMastery = row({ masteryProbability: 0.821 });
+    expect(toDataLabScatterPoints([withMastery], "accuracy", "mastery")[0]?.y).toBe(0.821);
+    expect(toDataLabScatterPoints([withMastery], "averageResponseTimeMs", "mastery")[0]?.y).toBe(0.821);
+    expect(toDataLabScatterPoints([withMastery], "mastery", "accuracy")[0]?.x).toBe(0.821);
+    expect(toDataLabScatterPoints([row({ masteryProbability: null })], "accuracy", "mastery")).toEqual([]);
+    expect(toDataLabScatterPoints([row({ masteryProbability: 0 })], "mastery", "accuracy")[0]?.x).toBe(0);
+  });
 });
 
 describe("toDataLabScatterPoints 欠損と 0", () => {

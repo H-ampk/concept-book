@@ -1,5 +1,5 @@
 import type { DataLabGroupBy } from "../../utils/dataLab/aggregateDataLabLogs";
-import { DATA_LAB_METRIC_OPTIONS, type DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
+import { getDataLabMetricOptions, type DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import { DATA_LAB_DISPLAY_MODE_OPTIONS, type DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { DATA_LAB_GROUP_BY_OPTIONS } from "../../utils/dataLab/dataLabGroupByLabels";
 import {
@@ -58,6 +58,8 @@ export const DataLabControlsPanel = ({
   barLimit,
   onBarLimitChange
 }: Props) => {
+  const metricOptions = getDataLabMetricOptions(groupBy);
+
   return (
     <section
       className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
@@ -71,6 +73,11 @@ export const DataLabControlsPanel = ({
           <p className="text-xs text-celestial-textSub">
             集計軸・指標・表示を切り替えると、分析結果が更新されます。
           </p>
+          {groupBy === "concept" ? (
+            <p className="text-xs leading-relaxed text-celestial-textSub">
+              理解度は現在の全学習履歴から計算されます。
+            </p>
+          ) : null}
         </div>
 
         <div
@@ -116,7 +123,7 @@ export const DataLabControlsPanel = ({
                   }}
                   className={inputClass}
                 >
-                  {DATA_LAB_METRIC_OPTIONS.map((option) => (
+                  {metricOptions.map((option) => (
                     <option key={option.value} value={option.value} disabled={option.value === scatterYMetric}>
                       {option.label}
                     </option>
@@ -139,7 +146,7 @@ export const DataLabControlsPanel = ({
                   }}
                   className={inputClass}
                 >
-                  {DATA_LAB_METRIC_OPTIONS.map((option) => (
+                  {metricOptions.map((option) => (
                     <option key={option.value} value={option.value} disabled={option.value === scatterXMetric}>
                       {option.label}
                     </option>
@@ -158,7 +165,7 @@ export const DataLabControlsPanel = ({
                 onChange={(event) => onMetricChange(event.target.value as DataLabMetric)}
                 className={inputClass}
               >
-                {DATA_LAB_METRIC_OPTIONS.map((option) => (
+                {metricOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

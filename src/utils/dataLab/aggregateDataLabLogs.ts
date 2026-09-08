@@ -23,6 +23,8 @@ export type DataLabAggregateRow = {
   correctCount: number;
   incorrectCount: number;
   accuracy: number | null;
+  /** Concept 集計のみ。全学習履歴の現在理解度（0〜1）。欠損は null（0 ではない）。 */
+  masteryProbability: number | null;
   averageResponseTimeMs: number | null;
   firstAttemptAt: string | null;
   lastAttemptAt: string | null;
@@ -153,6 +155,7 @@ const toRow = (groupBy: DataLabGroupBy, key: string, bucket: BucketAcc): DataLab
     correctCount,
     incorrectCount: attemptCount - correctCount,
     accuracy: attemptCount > 0 ? correctCount / attemptCount : null,
+    masteryProbability: null,
     averageResponseTimeMs: bucket.timeN > 0 ? bucket.timeSum / bucket.timeN : null,
     firstAttemptAt: bucket.firstAttemptAt,
     lastAttemptAt: bucket.lastAttemptAt,

@@ -77,12 +77,49 @@ describe("DataLabTable", () => {
     expect(screen.getByRole("button", { name: "月で並べ替え" })).toBeInTheDocument();
   });
 
+  it("Concept 集計だけ理解度列を出し、百分率表示する", () => {
+    const rows = [
+      row({
+        key: "alpha",
+        label: "アルファ",
+        masteryProbability: 0.821
+      }),
+      row({
+        key: "missing",
+        label: "欠損",
+        masteryProbability: null
+      })
+    ];
+    const { rerender } = render(<DataLabTable rows={rows} groupBy="concept" />);
+    expect(screen.getByRole("button", { name: "理解度で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+
+    rerender(<DataLabTable rows={rows} groupBy="domain" />);
+    expect(screen.queryByRole("button", { name: "理解度で並べ替え" })).not.toBeInTheDocument();
+  });
+
+  it("理解度を生数値でソートし、null は最後にする", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      row({ key: "mid", label: "中", masteryProbability: 0.5 }),
+      row({ key: "high", label: "高", masteryProbability: 0.9 }),
+      row({ key: "missing", label: "欠損", masteryProbability: null })
+    ];
+    render(<DataLabTable rows={rows} groupBy="concept" />);
+    const header = screen.getByRole("button", { name: "理解度で並べ替え" });
+    await user.click(header);
+    expect(labels()).toEqual(["中", "高", "欠損"]);
+    await user.click(header);
+    expect(labels()).toEqual(["高", "中", "欠損"]);
+  });
+
   it("row.label と formatter を表示する", () => {
     render(<DataLabTable rows={sampleRows} groupBy="concept" />);
     expect(screen.getByText("アルファ")).toBeInTheDocument();
     expect(screen.getByText("77.8%")).toBeInTheDocument();
     expect(screen.getByText("4.2秒")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getAllByText("—")).toHaveLength(6);
     expect(screen.getByText(shortDateTime("2026-09-01T12:00:00.000Z"))).toBeInTheDocument();
   });
 

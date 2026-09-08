@@ -5,15 +5,18 @@ import {
   aggregateDataLabLogs,
   type DataLabGroupBy
 } from "../../utils/dataLab/aggregateDataLabLogs";
+import { attachDataLabConceptMastery } from "../../utils/dataLab/attachDataLabConceptMastery";
 import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
+import { sanitizeDataLabAnalysisMetrics } from "../../utils/dataLab/sanitizeDataLabMetrics";
 import type { DataLabBarChartLimit, DataLabBarChartSort } from "../../utils/dataLab/toDataLabBarChartRows";
 import {
   DEFAULT_DATA_LAB_FILTERS,
   filterDataLabLogs,
   type DataLabFilters
 } from "../../utils/dataLab/filterDataLabLogs";
+import { buildConceptMasteryMap } from "../../utils/mastery/getConceptMastery";
 import { OrnamentLine } from "../common/OrnamentLine";
 import { DataLabControlsPanel } from "./DataLabControlsPanel";
 import { DataLabFiltersPanel } from "./DataLabFiltersPanel";
@@ -55,16 +58,30 @@ export const DataLabView = ({
     [logs, filters, conceptById]
   );
 
-  const aggregatedRows = useMemo(
-    () =>
-      aggregateDataLabLogs({
-        logs: filteredLogs,
-        groupBy,
-        conceptById,
-        deckById
-      }),
-    [filteredLogs, groupBy, conceptById, deckById]
-  );
+  const masteryByConceptId = useMemo(() => buildConceptMasteryMap(logs), [logs]);
+
+  const aggregatedRows = useMemo(() => {
+    const rows = aggregateDataLabLogs({
+      logs: filteredLogs,
+      groupBy,
+      conceptById,
+      deckById
+    });
+    return attachDataLabConceptMastery(rows, masteryByConceptId, conceptById);
+  }, [filteredLogs, groupBy, conceptById, deckById, masteryByConceptId]);
+
+  const handleGroupByChange = (nextGroupBy: DataLabGroupBy) => {
+    const sanitized = sanitizeDataLabAnalysisMetrics({
+      groupBy: nextGroupBy,
+      metric,
+      scatterXMetric,
+      scatterYMetric
+    });
+    setGroupBy(nextGroupBy);
+    setMetric(sanitized.metric);
+    setScatterXMetric(sanitized.scatterXMetric);
+    setScatterYMetric(sanitized.scatterYMetric);
+  };
 
   const chips = useMemo(
     () => describeDataLabFilters(filters, conceptById, deckById),
@@ -129,7 +146,7 @@ export const DataLabView = ({
           />
           <DataLabControlsPanel
             groupBy={groupBy}
-            onGroupByChange={setGroupBy}
+            onGroupByChange={handleGroupByChange}
             metric={metric}
             onMetricChange={setMetric}
             scatterXMetric={scatterXMetric}

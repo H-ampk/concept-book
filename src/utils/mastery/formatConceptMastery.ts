@@ -10,6 +10,17 @@ import type { ConceptMastery } from "./types";
 const formatRecentMarks = (recentResults: boolean[]): string =>
   recentResults.map((ok) => (ok ? "○" : "×")).join("");
 
+/** Concept 詳細の `masteryScore` と同じ丸め（0〜1 → 0〜100 の整数）。 */
+export const toConceptMasteryScore = (masteryProbability: number): number =>
+  Math.round(masteryProbability * 100);
+
+export const formatConceptMasteryProbability = (masteryProbability: number | null): string | null => {
+  if (masteryProbability == null) {
+    return null;
+  }
+  return `${toConceptMasteryScore(masteryProbability)}%`;
+};
+
 const formatAccuracyPct = (accuracy: number | null): string | null => {
   if (accuracy == null) {
     return null;
@@ -39,7 +50,7 @@ export const toConceptMasteryDetailView = (
   return {
     stateLabel: MASTERY_STATE_LABELS[mastery.state],
     showScore: !unlearned,
-    scoreText: `理解度 ${mastery.masteryScore} / 100`,
+    scoreText: `理解度 ${toConceptMasteryScore(mastery.masteryProbability)} / 100`,
     isReferenceScore: mastery.state === "insufficient-data",
     confidenceLabel: MASTERY_CONFIDENCE_LABELS[mastery.confidence],
     accuracyText: formatAccuracyPct(mastery.accuracy),

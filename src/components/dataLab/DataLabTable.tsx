@@ -4,7 +4,8 @@ import { DATA_LAB_GROUP_BY_COLUMN_LABELS } from "../../utils/dataLab/dataLabGrou
 import {
   formatDataLabAccuracy,
   formatDataLabAverageResponseTime,
-  formatDataLabDateTime
+  formatDataLabDateTime,
+  formatDataLabMastery
 } from "../../utils/dataLab/formatDataLabTable";
 import {
   sortDataLabTableRows,
@@ -17,7 +18,7 @@ type Props = {
   groupBy: DataLabGroupBy;
 };
 
-const COLUMNS: { key: DataLabTableSortKey; label: string }[] = [
+const BASE_COLUMNS: { key: DataLabTableSortKey; label: string }[] = [
   { key: "label", label: "集計対象" },
   { key: "attemptCount", label: "回答数" },
   { key: "correctCount", label: "正答数" },
@@ -26,6 +27,18 @@ const COLUMNS: { key: DataLabTableSortKey; label: string }[] = [
   { key: "averageResponseTimeMs", label: "平均回答時間" },
   { key: "lastAttemptAt", label: "最終学習日時" }
 ];
+
+const columnsForGroupBy = (groupBy: DataLabGroupBy): { key: DataLabTableSortKey; label: string }[] => {
+  if (groupBy !== "concept") {
+    return BASE_COLUMNS;
+  }
+  const accuracyIndex = BASE_COLUMNS.findIndex((column) => column.key === "accuracy");
+  return [
+    ...BASE_COLUMNS.slice(0, accuracyIndex + 1),
+    { key: "mastery", label: "理解度" },
+    ...BASE_COLUMNS.slice(accuracyIndex + 1)
+  ];
+};
 
 const UNSORTED: DataLabTableSortState = { key: null, direction: "asc" };
 
@@ -37,6 +50,7 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
   }, [groupBy]);
 
   const sortedRows = useMemo(() => sortDataLabTableRows(rows, sort), [rows, sort]);
+  const columns = columnsForGroupBy(groupBy);
   const labelColumn = DATA_LAB_GROUP_BY_COLUMN_LABELS[groupBy];
 
   const handleSort = (key: DataLabTableSortKey) => {
@@ -53,7 +67,7 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
       <table className="w-full min-w-[52rem] border-collapse text-left text-sm" data-testid="data-lab-table">
         <thead>
           <tr className="border-b border-celestial-border/50 text-xs tracking-wide text-celestial-textSub">
-            {COLUMNS.map((column) => {
+            {columns.map((column) => {
               const heading = column.key === "label" ? labelColumn : column.label;
               const active = sort.key === column.key;
               const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
@@ -91,6 +105,11 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
               <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
                 {formatDataLabAccuracy(row.accuracy)}
               </td>
+              {groupBy === "concept" ? (
+                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
+                  {formatDataLabMastery(row.masteryProbability ?? null)}
+                </td>
+              ) : null}
               <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
                 {formatDataLabAverageResponseTime(row.averageResponseTimeMs)}
               </td>

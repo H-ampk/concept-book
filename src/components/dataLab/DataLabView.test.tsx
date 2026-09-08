@@ -1,8 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../../types/concept";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog, type QuizDeck } from "../../types/quiz";
+import { getConceptMastery } from "../../utils/mastery/getConceptMastery";
+import { formatConceptMasteryProbability } from "../../utils/mastery/formatConceptMastery";
 import { DataLabView } from "./DataLabView";
 
 const log = (overrides: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
@@ -308,5 +310,100 @@ describe("DataLabView (#89 / #90)", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("学習データを読み込めませんでした。");
     expect(screen.queryByRole("heading", { name: "分析結果" })).not.toBeInTheDocument();
+  });
+});
+
+describe("DataLabView 理解度 (#97)", () => {
+  it("Concept では理解度を選択でき、他の集計軸では出さない", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(within(screen.getByLabelText("指標")).getByRole("option", { name: "理解度" })).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-mastery-note")).toHaveTextContent(
+      "理解度は現在の全学習履歴から計算されます。"
+    );
+    expect(screen.getByRole("button", { name: "理解度で並べ替え" })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(within(screen.getByLabelText("指標")).queryByRole("option", { name: "理解度" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-mastery-note")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "理解度で並べ替え" })).not.toBeInTheDocument();
+  });
+
+  it("理解度選択中に groupBy を変えても不正な指標が残らない", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.selectOptions(screen.getByLabelText("指標"), "mastery");
+    expect(screen.getByLabelText("指標")).toHaveValue("mastery");
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByLabelText("指標")).toHaveValue("accuracy");
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "concept");
+    await user.selectOptions(screen.getByLabelText("表示"), "scatter");
+    await user.selectOptions(screen.getByLabelText("Y軸"), "mastery");
+    expect(screen.getByLabelText("X軸")).toHaveValue("averageResponseTimeMs");
+    expect(screen.getByLabelText("Y軸")).toHaveValue("mastery");
+    expect(within(screen.getByLabelText("X軸")).getByRole("option", { name: "理解度" })).toBeDisabled();
+    expect(within(screen.getByLabelText("Y軸")).getByRole("option", { name: "平均回答時間" })).toBeDisabled();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(screen.getByLabelText("X軸")).toHaveValue("averageResponseTimeMs");
+    expect(screen.getByLabelText("Y軸")).toHaveValue("accuracy");
+    expect(within(screen.getByLabelText("X軸")).queryByRole("option", { name: "理解度" })).not.toBeInTheDocument();
+  });
+
+  it("期間フィルタしても回答数は期間内、理解度は全ログになる", () => {
+    const oldLog = log({
+      id: "old",
+      correct: false,
+      answeredAt: new Date(2026, 0, 1, 12).toISOString()
+    });
+    const recentLog = log({
+      id: "recent",
+      correct: true,
+      answeredAt: new Date(2026, 8, 5, 12).toISOString()
+    });
+    render(
+      <DataLabView
+        logs={[oldLog, recentLog]}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("開始日"), { target: { value: "2026-09-01" } });
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("1 / 2");
+    const table = screen.getByTestId("data-lab-table");
+    const cells = within(table).getAllByRole("cell");
+    expect(cells[0]).toHaveTextContent("1");
+    expect(cells[1]).toHaveTextContent("1");
+    expect(cells[3]).toHaveTextContent("100%");
+    const expected = formatConceptMasteryProbability(
+      getConceptMastery([oldLog, recentLog], "concept-a").masteryProbability
+    );
+    expect(cells[4]).toHaveTextContent(expected ?? "");
+    expect(cells[4]).not.toHaveTextContent("0%");
   });
 });

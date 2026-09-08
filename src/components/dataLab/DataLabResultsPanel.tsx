@@ -194,6 +194,11 @@ export const DataLabResultsPanel = ({
                 ? `集計軸: ${DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　X軸: ${DATA_LAB_METRIC_LABELS[scatterXMetric]}　Y軸: ${DATA_LAB_METRIC_LABELS[scatterYMetric]}　対象ログ: ${displayedLogs}件　集計結果: ${aggregatedRows.length}件`
                 : `集計軸: ${DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy]}　指標: ${DATA_LAB_METRIC_LABELS[metric]}　対象ログ: ${displayedLogs}件　集計結果: ${aggregatedRows.length}件`}
             </p>
+            {groupBy === "concept" ? (
+              <p className="text-xs leading-relaxed text-celestial-textSub" data-testid="data-lab-mastery-note">
+                理解度は現在の全学習履歴から計算されます。
+              </p>
+            ) : null}
             {renderVisualization()}
           </div>
         )}

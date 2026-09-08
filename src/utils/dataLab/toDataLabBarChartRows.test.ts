@@ -56,6 +56,19 @@ describe("toDataLabBarChartRows 指標", () => {
     expect(toDataLabBarChartRows([sample], "accuracy", "original", "all")[0]?.value).toBe(0.784);
   });
 
+  it("理解度を 0〜1 の生数値のまま取得し、null は除外する", () => {
+    const withMastery = [
+      row({ key: "missing", masteryProbability: null }),
+      row({ key: "ok", masteryProbability: 0.821 }),
+      row({ key: "zero", masteryProbability: 0 })
+    ];
+    expect(toDataLabBarChartRows(withMastery, "mastery", "original", "all").map((item) => item.key)).toEqual([
+      "ok",
+      "zero"
+    ]);
+    expect(toDataLabBarChartRows(withMastery, "mastery", "original", "all")[0]?.value).toBe(0.821);
+  });
+
   it("平均回答時間を ms のまま取得する", () => {
     expect(toDataLabBarChartRows([sample], "averageResponseTimeMs", "original", "all")[0]?.value).toBe(4200);
   });

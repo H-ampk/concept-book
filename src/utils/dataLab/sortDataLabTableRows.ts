@@ -6,6 +6,7 @@ export type DataLabTableSortKey =
   | "correctCount"
   | "incorrectCount"
   | "accuracy"
+  | "mastery"
   | "averageResponseTimeMs"
   | "lastAttemptAt";
 
@@ -65,6 +66,9 @@ const compareValue = (
   }
   if (key === "accuracy") {
     return compareNullable(rowA.accuracy, rowB.accuracy, direction);
+  }
+  if (key === "mastery") {
+    return compareNullable(rowA.masteryProbability ?? null, rowB.masteryProbability ?? null, direction);
   }
   if (key === "averageResponseTimeMs") {
     return compareNullable(rowA.averageResponseTimeMs, rowB.averageResponseTimeMs, direction);

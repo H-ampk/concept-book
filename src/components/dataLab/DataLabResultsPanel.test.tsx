@@ -11,6 +11,7 @@ const sampleRow: DataLabAggregateRow = {
   correctCount: 1,
   incorrectCount: 1,
   accuracy: 0.5,
+  masteryProbability: null,
   averageResponseTimeMs: 1000,
   firstAttemptAt: "2026-01-01T00:00:00.000Z",
   lastAttemptAt: "2026-01-01T00:00:00.000Z"
@@ -117,6 +118,7 @@ describe("DataLabResultsPanel 空状態", () => {
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計結果: 1件");
     expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-mastery-note")).toBeInTheDocument();
   });
 });
 
@@ -181,7 +183,7 @@ describe("DataLabResultsPanel 表示分岐", () => {
       />
     );
     expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
-    expect(screen.queryByTestId("data-lab-table")).not.toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-mastery-note")).toBeInTheDocument();
   });
 
   it("bar + domain は棒グラフと重複計上の補足を表示する", () => {
