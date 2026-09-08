@@ -8,6 +8,7 @@ import {
   restoreDomainColorsFromBackup
 } from "../utils/domainColors";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
+import { downloadBlob } from "../utils/downloadFile";
 import { buildLearningLogCsv, learningLogCsvFilename } from "../utils/quiz/learningLogExport";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -21,22 +22,7 @@ type Props = {
 };
 
 const downloadJson = (filename: string, payload: unknown): void => {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
-
-const downloadBlob = (filename: string, blob: Blob): void => {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(filename, new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
 };
 
 const sortAnsweredDesc = (items: QuizAttemptLog[]): QuizAttemptLog[] =>

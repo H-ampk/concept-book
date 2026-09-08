@@ -19,6 +19,7 @@ import {
 import { buildConceptMasteryMap } from "../../utils/mastery/getConceptMastery";
 import { OrnamentLine } from "../common/OrnamentLine";
 import { DataLabControlsPanel } from "./DataLabControlsPanel";
+import { DataLabExportPanel } from "./DataLabExportPanel";
 import { DataLabFiltersPanel } from "./DataLabFiltersPanel";
 import { DataLabResultsPanel } from "./DataLabResultsPanel";
 
@@ -159,6 +160,13 @@ export const DataLabView = ({
             onBarSortChange={setBarSort}
             barLimit={barLimit}
             onBarLimitChange={setBarLimit}
+          />
+          <DataLabExportPanel
+            filteredLogs={filteredLogs}
+            aggregatedRows={aggregatedRows}
+            groupBy={groupBy}
+            conceptById={conceptById}
+            deckById={deckById}
           />
           <DataLabResultsPanel
             totalLogs={totalLogs}

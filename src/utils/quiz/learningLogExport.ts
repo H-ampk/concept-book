@@ -1,4 +1,7 @@
 import type { QuizAttemptLog } from "../../types/quiz";
+import { buildCsv, escapeCsvCell, localDateYmd } from "../csv";
+
+export { escapeCsvCell };
 
 export const LEARNING_LOG_CSV_COLUMNS = [
   "logId",
@@ -29,9 +32,6 @@ export const LEARNING_LOG_CSV_COLUMNS = [
 
 export type LearningLogCsvColumn = (typeof LEARNING_LOG_CSV_COLUMNS)[number];
 
-const CSV_NEWLINE = "\r\n";
-const UTF8_BOM = "\uFEFF";
-
 const optionalText = (value: string | undefined): string => value ?? "";
 
 const currentTitle = (id: string | undefined, titles: Map<string, string>): string => {
@@ -39,14 +39,6 @@ const currentTitle = (id: string | undefined, titles: Map<string, string>): stri
     return "";
   }
   return titles.get(id) ?? "";
-};
-
-export const escapeCsvCell = (value: string | number | boolean): string => {
-  const text = typeof value === "string" ? value : String(value);
-  if (/[",\r\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
 };
 
 export const learningLogToCsvRow = (
@@ -83,17 +75,12 @@ export const buildLearningLogCsv = (
   logs: QuizAttemptLog[],
   conceptTitles: Map<string, string>
 ): string => {
-  const header = LEARNING_LOG_CSV_COLUMNS.map((column) => escapeCsvCell(column)).join(",");
   const rows = logs.map((log) => {
     const row = learningLogToCsvRow(log, conceptTitles);
-    return LEARNING_LOG_CSV_COLUMNS.map((column) => escapeCsvCell(row[column])).join(",");
+    return LEARNING_LOG_CSV_COLUMNS.map((column) => row[column]);
   });
-  return `${UTF8_BOM}${[header, ...rows].join(CSV_NEWLINE)}${CSV_NEWLINE}`;
+  return buildCsv(LEARNING_LOG_CSV_COLUMNS, rows);
 };
 
-export const learningLogCsvFilename = (now: Date): string => {
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `conceptbook-learning-logs-${year}-${month}-${day}.csv`;
-};
+export const learningLogCsvFilename = (now: Date): string =>
+  `conceptbook-learning-logs-${localDateYmd(now)}.csv`;

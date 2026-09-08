@@ -68,6 +68,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("2 / 2");
     expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "分析条件" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "CSV エクスポート" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "分析結果" })).toBeInTheDocument();
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計軸: Concept");
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
@@ -310,6 +311,66 @@ describe("DataLabView (#89 / #90)", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("学習データを読み込めませんでした。");
     expect(screen.queryByRole("heading", { name: "分析結果" })).not.toBeInTheDocument();
+  });
+
+  it("初期状態で CSV エクスポート UI を表示し、対象を切り替えられる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("CSVエクスポート対象")).toHaveValue("aggregate");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("出力対象: 集計結果");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計軸: Concept");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 1");
+    expect(screen.getByRole("button", { name: "CSVを保存" })).toBeEnabled();
+
+    await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "logs");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("出力対象: フィルタ済みログ");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 2");
+    expect(screen.getByTestId("data-lab-export-summary")).not.toHaveTextContent("集計軸:");
+
+    await user.selectOptions(screen.getByLabelText("回答結果"), "incorrect");
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 1");
+  });
+
+  it("groupBy を変えるとエクスポートの集計軸表示も変わる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計軸: 分野");
+    await user.selectOptions(screen.getByLabelText("集計軸"), "deck");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計軸: Deck");
+  });
+
+  it("0件では CSVを保存 を disabled にし、案内を出す", () => {
+    render(
+      <DataLabView logs={[]} concepts={[]} decks={[]} loading={false} error={false} onBack={vi.fn()} />
+    );
+
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 0");
+    expect(screen.getByTestId("data-lab-export-empty")).toHaveTextContent(
+      "エクスポートできるデータがありません。"
+    );
+    expect(screen.getByRole("button", { name: "CSVを保存" })).toBeDisabled();
   });
 });
 
