@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { planFiltersToRevealConcept } from "./revealConceptInGraphFilters";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 
@@ -164,6 +165,7 @@ export const App = () => {
   const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
     null
   );
+  const [analysisFocusConceptId, setAnalysisFocusConceptId] = useState<string | undefined>();
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const detailContainerRef = useRef<HTMLDivElement>(null);
 
@@ -307,6 +309,39 @@ export const App = () => {
 
   const handleGraphSelect = (id: string) => {
     applyGraphDetailUi(selectGraphConcept({ selectedId, graphDetailOpen }, id));
+  };
+
+  const openConceptInGraphFromAnalysis = (conceptId: string) => {
+    const concept = conceptMap.get(conceptId);
+    if (!concept) {
+      return;
+    }
+    const isVisible = visibleConcepts.some((item) => item.id === conceptId);
+    if (!isVisible) {
+      const { filtersChanged, nextFilters } = planFiltersToRevealConcept(concept, {
+        query,
+        selectedDomainTags,
+        selectedResearchTags,
+        selectedStatuses,
+        onlyFavorite
+      });
+      if (filtersChanged) {
+        setQuery(nextFilters.query);
+        setSelectedDomainTags(nextFilters.selectedDomainTags);
+        setSelectedResearchTags(nextFilters.selectedResearchTags);
+        setSelectedStatuses(nextFilters.selectedStatuses);
+        setOnlyFavorite(nextFilters.onlyFavorite);
+        setFeedback("対象の概念を表示するためフィルタを解除しました。");
+      }
+    }
+    setScreen("concepts");
+    setConceptMainTab("graph");
+    applyGraphDetailUi(selectGraphConcept({ selectedId, graphDetailOpen }, conceptId));
+  };
+
+  const openGraphAnalysisForConcept = (conceptId: string) => {
+    setAnalysisFocusConceptId(conceptId);
+    setScreen("concept-graph-analysis");
   };
 
   const handleRequestDelete = (concept: Concept) => {
@@ -624,7 +659,12 @@ export const App = () => {
             <LabNavDropdown
               screen={screen}
               isLabActive={isLabRoute(screen)}
-              onNavigate={(route) => setScreen(route)}
+              onNavigate={(route) => {
+                if (route === "concept-graph-analysis") {
+                  setAnalysisFocusConceptId(undefined);
+                }
+                setScreen(route);
+              }}
             />
             <button
               className={`header-nav-button${
@@ -700,7 +740,11 @@ export const App = () => {
               onGoToAnalysisDashboard={() => setScreen("analysis-dashboard")}
             />
           ) : screen === "concept-graph-analysis" ? (
-            <ConceptGraphAnalysisPage onBack={() => setScreen("concepts")} />
+            <ConceptGraphAnalysisPage
+              onBack={() => setScreen("concepts")}
+              onOpenConceptInGraph={openConceptInGraphFromAnalysis}
+              focusConceptId={analysisFocusConceptId}
+            />
           ) : screen === "research-report" ? (
             <ResearchReportPage
               onBack={() => setScreen("concepts")}
@@ -762,6 +806,7 @@ export const App = () => {
                           onRequestDelete={handleRequestDelete}
                           deleting={deleting}
                           onSelectRelated={handleGraphSelect}
+                          onOpenGraphAnalysis={openGraphAnalysisForConcept}
                         />
                       </>
                     }

@@ -48,6 +48,13 @@ export const formatConceptGraphNodeLabel = (
   return titleById.get(conceptKey) ?? "無題";
 };
 
+/** 通常グラフへ遷移できるのは、マップ上に実在する Concept ID のみ */
+export const canOpenConceptInGraph = (
+  conceptKey: string,
+  conceptById: ReadonlyMap<string, unknown>
+): boolean =>
+  conceptKey !== CONCEPT_GRAPH_UNCLASSIFIED_KEY && conceptById.has(conceptKey);
+
 /**
  * 不正解ログについて、選んだ Concept → 正解 Concept の有向エッジを件数集計する。
  */

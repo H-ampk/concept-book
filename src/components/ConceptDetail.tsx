@@ -25,6 +25,8 @@ type Props = {
   onCreateQuizFromContextualCard?: (conceptId: string, contextDefinitionId: string) => void;
   onRequestDelete: (concept: Concept) => void;
   deleting: boolean;
+  /** 通常グラフ詳細からのみ渡す。渡されたときだけ「この概念を分析」を表示する */
+  onOpenGraphAnalysis?: (conceptId: string) => void;
 };
 
 const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
@@ -140,7 +142,8 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   onToggleFavorite,
   onCreateQuizFromContextualCard,
   onRequestDelete,
-  deleting
+  deleting,
+  onOpenGraphAnalysis
 }, ref) => {
   if (!concept) {
     return (
@@ -198,6 +201,15 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               className="detail-action-button"
             >
               {concept.favorite ? "お気に入り解除" : "お気に入り"}
+            </button>
+          )}
+          {onOpenGraphAnalysis && (
+            <button
+              type="button"
+              onClick={() => onOpenGraphAnalysis(concept.id)}
+              className="detail-action-button"
+            >
+              この概念を分析
             </button>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { QuizAttemptLog } from "../types/quiz";
@@ -6,6 +6,7 @@ import { shortDateTime } from "../utils/date";
 import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
 import {
   buildNetworkPartnersByConcept,
+  canOpenConceptInGraph,
   computeConceptConfusionNodeStats,
   computeConceptGraphSummary,
   computeConfusionEdges,
@@ -18,6 +19,8 @@ const storage = getStorage();
 
 type Props = {
   onBack: () => void;
+  onOpenConceptInGraph?: (conceptId: string) => void;
+  focusConceptId?: string;
 };
 
 const partnerDirectionLabel = (p: NetworkCardPartner): string =>
@@ -25,7 +28,37 @@ const partnerDirectionLabel = (p: NetworkCardPartner): string =>
     ? `この Concept を誤って選んだときの正解`
     : `この Concept が正解だったときに誤って選ばれた Concept`;
 
-export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
+const analysisFocusCardId = (conceptKey: string) =>
+  `concept-graph-analysis-card-${conceptKey}`;
+
+const OpenInGraphButton = ({
+  conceptKey,
+  conceptById,
+  onOpen
+}: {
+  conceptKey: string;
+  conceptById: Map<string, Concept>;
+  onOpen?: (conceptId: string) => void;
+}) => {
+  if (!onOpen || !canOpenConceptInGraph(conceptKey, conceptById)) {
+    return null;
+  }
+  return (
+    <button
+      type="button"
+      className="shrink-0 text-xs text-celestial-gold underline decoration-celestial-gold/50 underline-offset-2 hover:decoration-celestial-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+      onClick={() => onOpen(conceptKey)}
+    >
+      グラフで見る
+    </button>
+  );
+};
+
+export const ConceptGraphAnalysisPage = ({
+  onBack,
+  onOpenConceptInGraph,
+  focusConceptId
+}: Props) => {
   const [logs, setLogs] = useState<QuizAttemptLog[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +86,12 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
   const titleById = useMemo(() => {
     const m = new Map<string, string>();
     concepts.forEach((c) => m.set(c.id, c.title || "無題"));
+    return m;
+  }, [concepts]);
+
+  const conceptById = useMemo(() => {
+    const m = new Map<string, Concept>();
+    concepts.forEach((c) => m.set(c.id, c));
     return m;
   }, [concepts]);
 
@@ -101,6 +140,47 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
       ? formatConceptGraphNodeLabel(summary.topMisleadingConceptKey, titleById)
       : "—";
 
+  const focusedHasConfusionData =
+    focusConceptId != null && nodeStats.some((row) => row.conceptKey === focusConceptId);
+
+  const focusTitle =
+    focusConceptId != null
+      ? formatConceptGraphNodeLabel(focusConceptId, titleById)
+      : "";
+
+  useLayoutEffect(() => {
+    if (!focusConceptId || loading) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const card = document.getElementById(analysisFocusCardId(focusConceptId));
+      const target = card ?? document.getElementById("concept-graph-analysis-focus-banner");
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusConceptId, loading, nodeStats, logsInPeriod.length]);
+
+  const focusBanner =
+    focusConceptId && !loading ? (
+      <section
+        id="concept-graph-analysis-focus-banner"
+        className="rounded-xl border border-celestial-softGold/70 bg-celestial-gold/10 px-4 py-3"
+        aria-labelledby="concept-graph-analysis-focus-heading"
+      >
+        <h2 id="concept-graph-analysis-focus-heading" className="text-sm font-semibold text-celestial-softGold">
+          選択中の Concept
+        </h2>
+        <p className="mt-1 text-sm text-celestial-textMain">{focusTitle}</p>
+        {!focusedHasConfusionData ? (
+          <p className="mt-2 text-sm text-celestial-textSub">
+            このConceptに関連する混同データはまだありません。
+          </p>
+        ) : null}
+      </section>
+    ) : null;
+
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-1 sm:px-0">
       <section
@@ -130,6 +210,8 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
           </div>
         </div>
       </section>
+
+      {focusBanner}
 
       {loading ? (
         <p className="text-center text-sm text-celestial-textSub" role="status">
@@ -298,17 +380,31 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
                       {confusionEdges.map((e) => (
                         <tr key={`${e.selectedKey}\u0000${e.correctKey}`} className="border-b border-celestial-border/30 last:border-0">
                           <td className="max-w-[220px] px-4 py-3 text-celestial-textMain">
-                            <span className="line-clamp-2" title={formatConceptGraphNodeLabel(e.selectedKey, titleById)}>
-                              {formatConceptGraphNodeLabel(e.selectedKey, titleById)}
-                            </span>
+                            <div className="flex flex-wrap items-start gap-2">
+                              <span className="line-clamp-2" title={formatConceptGraphNodeLabel(e.selectedKey, titleById)}>
+                                {formatConceptGraphNodeLabel(e.selectedKey, titleById)}
+                              </span>
+                              <OpenInGraphButton
+                                conceptKey={e.selectedKey}
+                                conceptById={conceptById}
+                                onOpen={onOpenConceptInGraph}
+                              />
+                            </div>
                           </td>
                           <td className="px-2 py-3 text-center text-celestial-gold/90" aria-hidden="true">
                             →
                           </td>
                           <td className="max-w-[220px] px-4 py-3 text-celestial-textMain">
-                            <span className="line-clamp-2" title={formatConceptGraphNodeLabel(e.correctKey, titleById)}>
-                              {formatConceptGraphNodeLabel(e.correctKey, titleById)}
-                            </span>
+                            <div className="flex flex-wrap items-start gap-2">
+                              <span className="line-clamp-2" title={formatConceptGraphNodeLabel(e.correctKey, titleById)}>
+                                {formatConceptGraphNodeLabel(e.correctKey, titleById)}
+                              </span>
+                              <OpenInGraphButton
+                                conceptKey={e.correctKey}
+                                conceptById={conceptById}
+                                onOpen={onOpenConceptInGraph}
+                              />
+                            </div>
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">{e.count}</td>
                         </tr>
@@ -349,11 +445,25 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
                     </thead>
                     <tbody>
                       {nodeStats.map((row) => (
-                        <tr key={row.conceptKey} className="border-b border-celestial-border/30 last:border-0">
+                        <tr
+                          key={row.conceptKey}
+                          className={`border-b border-celestial-border/30 last:border-0${
+                            focusConceptId === row.conceptKey
+                              ? " bg-celestial-gold/10"
+                              : ""
+                          }`}
+                        >
                           <th scope="row" className="max-w-[240px] px-4 py-3 font-normal text-celestial-softGold">
-                            <span className="line-clamp-2" title={formatConceptGraphNodeLabel(row.conceptKey, titleById)}>
-                              {formatConceptGraphNodeLabel(row.conceptKey, titleById)}
-                            </span>
+                            <div className="flex flex-wrap items-start gap-2">
+                              <span className="line-clamp-2" title={formatConceptGraphNodeLabel(row.conceptKey, titleById)}>
+                                {formatConceptGraphNodeLabel(row.conceptKey, titleById)}
+                              </span>
+                              <OpenInGraphButton
+                                conceptKey={row.conceptKey}
+                                conceptById={conceptById}
+                                onOpen={onOpenConceptInGraph}
+                              />
+                            </div>
                           </th>
                           <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.chosenAsWrongCount}</td>
                           <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.asCorrectInWrongCount}</td>
@@ -385,11 +495,23 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
                     return (
                       <article
                         key={row.conceptKey}
-                        className="rounded-2xl border border-celestial-border/70 bg-nordic-navy/40 p-4 shadow-[inset_0_0_0_1px_rgba(117,165,188,0.12)] backdrop-blur-sm"
+                        id={analysisFocusCardId(row.conceptKey)}
+                        className={`rounded-2xl border p-4 shadow-[inset_0_0_0_1px_rgba(117,165,188,0.12)] backdrop-blur-sm ${
+                          focusConceptId === row.conceptKey
+                            ? "border-celestial-softGold ring-2 ring-celestial-softGold/60 bg-celestial-gold/10"
+                            : "border-celestial-border/70 bg-nordic-navy/40"
+                        }`}
                       >
-                        <h3 className="text-base font-semibold text-celestial-softGold">
-                          {formatConceptGraphNodeLabel(row.conceptKey, titleById)}
-                        </h3>
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <h3 className="text-base font-semibold text-celestial-softGold">
+                            {formatConceptGraphNodeLabel(row.conceptKey, titleById)}
+                          </h3>
+                          <OpenInGraphButton
+                            conceptKey={row.conceptKey}
+                            conceptById={conceptById}
+                            onOpen={onOpenConceptInGraph}
+                          />
+                        </div>
                         <dl className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
                           <div className="rounded-lg border border-celestial-border/40 bg-celestial-deepBlue/30 px-2 py-2">
                             <dt className="text-celestial-textSub">誤選</dt>
@@ -417,6 +539,11 @@ export const ConceptGraphAnalysisPage = ({ onBack }: Props) => {
                                 <span className="font-medium text-celestial-softGold">
                                   {formatConceptGraphNodeLabel(p.partnerKey, titleById)}
                                 </span>
+                                <OpenInGraphButton
+                                  conceptKey={p.partnerKey}
+                                  conceptById={conceptById}
+                                  onOpen={onOpenConceptInGraph}
+                                />
                                 <span className="tabular-nums text-celestial-textSub">× {p.count}</span>
                               </li>
                             ))}
