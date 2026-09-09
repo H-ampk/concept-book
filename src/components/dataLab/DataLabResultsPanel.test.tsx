@@ -117,6 +117,7 @@ describe("DataLabResultsPanel 空状態", () => {
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計軸: Concept");
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計結果: 1件");
+    expect(screen.getByTestId("data-lab-metric-aggregation-note")).toHaveTextContent("正答率: 正答数 ÷ 回答数");
     expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
     expect(screen.getByTestId("data-lab-mastery-note")).toBeInTheDocument();
   });
@@ -303,5 +304,90 @@ describe("DataLabResultsPanel 表示分岐", () => {
       "選択した指標では散布図に表示できるデータがありません。"
     );
     expect(screen.queryByTestId("data-lab-scatter-plot")).not.toBeInTheDocument();
+  });
+
+  it("histogram + concept はヒストグラムを表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="concept"
+        metric="accuracy"
+        displayMode="histogram"
+        aggregatedRows={[sampleRow]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計軸: Concept");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("指標: 正答率");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計結果: 1件");
+    expect(screen.getByTestId("data-lab-metric-aggregation-note")).toHaveTextContent("正答率: 正答数 ÷ 回答数");
+    expect(screen.getByTestId("data-lab-histogram-method-note")).toHaveTextContent(
+      "現在の集計軸で算出した各集計値を範囲ごとに分類し、その件数を表示します。"
+    );
+  });
+
+  it("histogram + domain はヒストグラムと重複計上の補足を表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="domain"
+        metric="accuracy"
+        displayMode="histogram"
+        aggregatedRows={[{ ...sampleRow, groupBy: "domain", label: "情報科学" }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+    expect(screen.getByText("※ 複数分野を持つ Concept は各分野に重複して集計されます。")).toBeInTheDocument();
+  });
+
+  it("histogram + deck はヒストグラムを表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="deck"
+        metric="accuracy"
+        displayMode="histogram"
+        aggregatedRows={[{ ...sampleRow, groupBy: "deck", label: "AI基礎" }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+  });
+
+  it.each(["day", "week", "month"] as const)("histogram + %s は非対応案内を表示する", (groupBy) => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy={groupBy}
+        metric="accuracy"
+        displayMode="histogram"
+        aggregatedRows={[{ ...dayRow, groupBy }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-histogram-unsupported")).toHaveTextContent(
+      "ヒストグラムでは Concept・分野・Deck 単位の集計を選択してください。"
+    );
+    expect(screen.queryByTestId("data-lab-histogram")).not.toBeInTheDocument();
+  });
+
+  it("指標値がすべて欠損のときはヒストグラム用空状態を表示する", () => {
+    render(
+      <DataLabResultsPanel
+        totalLogs={4}
+        displayedLogs={2}
+        groupBy="concept"
+        metric="accuracy"
+        displayMode="histogram"
+        aggregatedRows={[{ ...sampleRow, accuracy: null }]}
+      />
+    );
+    expect(screen.getByTestId("data-lab-histogram-empty")).toHaveTextContent(
+      "選択した指標ではヒストグラムに表示できるデータがありません。"
+    );
+    expect(screen.queryByTestId("data-lab-histogram")).not.toBeInTheDocument();
   });
 });

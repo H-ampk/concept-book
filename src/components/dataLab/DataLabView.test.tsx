@@ -315,6 +315,48 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByLabelText("Y軸")).toHaveValue("accuracy");
   });
 
+  it("表示selectにヒストグラムがあり、Concept/分野/Deckで描画し、日では案内、テーブルに戻せる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    const displaySelect = screen.getByLabelText("表示");
+    expect(within(displaySelect).getByRole("option", { name: "ヒストグラム" })).toBeInTheDocument();
+
+    await user.selectOptions(displaySelect, "histogram");
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-histogram-method-note")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("指標: 正答率");
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+    expect(screen.getByText("※ 複数分野を持つ Concept は各分野に重複して集計されます。")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "deck");
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    expect(screen.getByText("ヒストグラムでは Concept・分野・Deck 単位の集計を選択してください。")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-histogram")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "concept");
+    await user.selectOptions(screen.getByLabelText("指標"), "attemptCount");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("指標: 回答数");
+    expect(screen.getByTestId("data-lab-histogram")).toBeInTheDocument();
+
+    await user.selectOptions(displaySelect, "table");
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-histogram")).not.toBeInTheDocument();
+  });
+
   it("折れ線グラフ表示は日集計でグラフ、Conceptでは案内、テーブルに戻せる", async () => {
     const user = userEvent.setup();
     render(

@@ -3,14 +3,20 @@ import { DATA_LAB_METRIC_LABELS, type DataLabMetric } from "../../utils/dataLab/
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { DATA_LAB_GROUP_BY_CONTROL_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
 import {
+  DATA_LAB_HISTOGRAM_AGGREGATION_DESCRIPTION,
+  describeDataLabMetricAggregation
+} from "../../utils/dataLab/describeDataLabMetricAggregation";
+import {
   isDataLabBarChartGroupBy,
   toDataLabBarChartRows,
   type DataLabBarChartLimit,
   type DataLabBarChartSort
 } from "../../utils/dataLab/toDataLabBarChartRows";
+import { isDataLabHistogramGroupBy, toDataLabHistogramBins } from "../../utils/dataLab/toDataLabHistogramBins";
 import { isDataLabLineChartGroupBy } from "../../utils/dataLab/toDataLabLineChartPoints";
 import { isDataLabScatterGroupBy, toDataLabScatterPoints } from "../../utils/dataLab/toDataLabScatterPoints";
 import { DataLabBarChart } from "./DataLabBarChart";
+import { DataLabHistogram } from "./DataLabHistogram";
 import { DataLabLineChart } from "./DataLabLineChart";
 import { DataLabScatterPlot } from "./DataLabScatterPlot";
 import { DataLabTable } from "./DataLabTable";
@@ -109,6 +115,38 @@ export const DataLabResultsPanel = ({
       );
     }
 
+    if (displayMode === "histogram") {
+      if (!isDataLabHistogramGroupBy(groupBy)) {
+        return (
+          <EmptyNotice
+            testId="data-lab-histogram-unsupported"
+            title="ヒストグラムでは Concept・分野・Deck 単位の集計を選択してください。"
+          />
+        );
+      }
+
+      const histogramBins = toDataLabHistogramBins(aggregatedRows, metric);
+      if (histogramBins.length === 0) {
+        return (
+          <EmptyNotice
+            testId="data-lab-histogram-empty"
+            title="選択した指標ではヒストグラムに表示できるデータがありません。"
+          />
+        );
+      }
+
+      return (
+        <div className="space-y-3">
+          {groupBy === "domain" ? (
+            <p className="text-xs leading-relaxed text-celestial-textSub">
+              ※ 複数分野を持つ Concept は各分野に重複して集計されます。
+            </p>
+          ) : null}
+          <DataLabHistogram bins={histogramBins} metric={metric} groupBy={groupBy} />
+        </div>
+      );
+    }
+
     if (!isDataLabBarChartGroupBy(groupBy)) {
       return (
         <EmptyNotice
@@ -147,7 +185,9 @@ export const DataLabResultsPanel = ({
         ? "この条件ではグラフに表示できるデータがありません。"
         : displayMode === "scatter"
           ? "この条件では散布図に表示できるデータがありません。"
-          : "この条件では集計できるデータがありません。";
+          : displayMode === "histogram"
+            ? "この条件ではヒストグラムに表示できるデータがありません。"
+            : "この条件では集計できるデータがありません。";
 
   return (
     <section
@@ -199,6 +239,27 @@ export const DataLabResultsPanel = ({
                 理解度は現在の全学習履歴から計算されます。
               </p>
             ) : null}
+            <div className="space-y-1" data-testid="data-lab-metric-aggregation-note">
+              {displayMode === "scatter" ? (
+                <>
+                  <p className="text-xs leading-relaxed text-celestial-textSub">
+                    {DATA_LAB_METRIC_LABELS[scatterXMetric]}: {describeDataLabMetricAggregation(scatterXMetric)}
+                  </p>
+                  <p className="text-xs leading-relaxed text-celestial-textSub">
+                    {DATA_LAB_METRIC_LABELS[scatterYMetric]}: {describeDataLabMetricAggregation(scatterYMetric)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs leading-relaxed text-celestial-textSub">
+                  {DATA_LAB_METRIC_LABELS[metric]}: {describeDataLabMetricAggregation(metric)}
+                </p>
+              )}
+              {displayMode === "histogram" ? (
+                <p className="text-xs leading-relaxed text-celestial-textSub" data-testid="data-lab-histogram-method-note">
+                  {DATA_LAB_HISTOGRAM_AGGREGATION_DESCRIPTION}
+                </p>
+              ) : null}
+            </div>
             {renderVisualization()}
           </div>
         )}
