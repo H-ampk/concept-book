@@ -1,4 +1,8 @@
 import type { DataLabAggregateRow, DataLabGroupBy } from "./aggregateDataLabLogs";
+import type { DataLabMetric } from "./dataLabChartMetrics";
+import type { DataLabDisplayMode } from "./dataLabDisplayMode";
+import type { DataLabFilterChip } from "./describeDataLabFilters";
+import type { DataLabFilters } from "./filterDataLabLogs";
 import type { DataLabBarChartLimit, DataLabBarChartSort } from "./toDataLabBarChartRows";
 import {
   DATA_LAB_ANALYSIS_SNAPSHOT_SCHEMA_VERSION,
