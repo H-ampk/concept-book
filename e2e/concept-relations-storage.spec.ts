@@ -318,7 +318,7 @@ test.describe("relatedIds IndexedDB storage regressions (#140)", () => {
       }
     ]);
     const opened = await e2e.openProductionDb();
-    expect(opened.dbVersion).toBe(7);
+    expect(opened.dbVersion).toBe(8);
 
     const raw = await e2e.readRawConcepts();
     expect(relatedOf(raw, "A")).toEqual(["v6-b"]);

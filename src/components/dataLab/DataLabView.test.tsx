@@ -69,6 +69,8 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "分析条件" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "CSV エクスポート" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "研究レポート" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "研究レポートに追加" })).toBeEnabled();
     expect(screen.getByRole("heading", { name: "分析結果" })).toBeInTheDocument();
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計軸: Concept");
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
@@ -371,6 +373,10 @@ describe("DataLabView (#89 / #90)", () => {
       "エクスポートできるデータがありません。"
     );
     expect(screen.getByRole("button", { name: "CSVを保存" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "研究レポートに追加" })).toBeDisabled();
+    expect(screen.getByTestId("data-lab-research-report-empty")).toHaveTextContent(
+      "保存できる集計結果がありません。"
+    );
   });
 });
 

@@ -9,6 +9,7 @@ import type { Concept, ConceptInput, ContextDefinition } from "../types/concept"
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource, QuizVisibility } from "../types/quiz";
+import type { ResearchReport } from "../types/researchReport";
 import {
   QUIZ_DECK_SCHEMA_VERSION,
   QUIZ_QUESTION_SCHEMA_VERSION
@@ -35,13 +36,14 @@ import { applyBackupExportOptions } from "./backupExport";
 import type { BackupExportData, BackupExportOptions, ConceptStorage, ContextCardStorage } from "./types";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
 const STORE_QUIZ_QUESTIONS = "quizQuestions";
 const STORE_QUIZ_DECKS = "quizDecks";
 const STORE_QUIZ_ATTEMPT_LOGS = "quizAttemptLogs";
+const STORE_RESEARCH_REPORTS = "researchReports";
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -451,6 +453,10 @@ const openDb = (): Promise<IDBDatabase> =>
         deckStore.createIndex("deckKey", "deckKey", { unique: false });
         deckStore.createIndex("visibility", "visibility", { unique: false });
         deckStore.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_RESEARCH_REPORTS)) {
+        const reportStore = db.createObjectStore(STORE_RESEARCH_REPORTS, { keyPath: "id" });
+        reportStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
 
       // v7: relatedIds を無向関係として一度だけ修復する
@@ -1028,6 +1034,37 @@ export class IndexedDBStorage implements ConceptStorage {
   async clearQuizAttemptLogs(): Promise<void> {
     return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
       await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).clear());
+    });
+  }
+
+  async getResearchReports(): Promise<ResearchReport[]> {
+    return withTransaction([STORE_RESEARCH_REPORTS], "readonly", async (getStore) => {
+      const store = getStore(STORE_RESEARCH_REPORTS);
+      const data = (await requestToPromise(store.getAll())) as ResearchReport[];
+      return data
+        .filter((report) => typeof report?.id === "string" && report.id.length > 0)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    });
+  }
+
+  async getResearchReport(id: string): Promise<ResearchReport | undefined> {
+    return withTransaction([STORE_RESEARCH_REPORTS], "readonly", async (getStore) => {
+      const row = (await requestToPromise(getStore(STORE_RESEARCH_REPORTS).get(id))) as
+        | ResearchReport
+        | undefined;
+      if (!row || typeof row.id !== "string") {
+        return undefined;
+      }
+      return row;
+    });
+  }
+
+  async saveResearchReport(report: ResearchReport): Promise<void> {
+    if (!report.id?.trim()) {
+      throw new Error("ResearchReport の id が空です。");
+    }
+    return withTransaction([STORE_RESEARCH_REPORTS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_RESEARCH_REPORTS).put(report));
     });
   }
 

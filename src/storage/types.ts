@@ -2,6 +2,7 @@ import type { Concept, ConceptInput } from "../types/concept";
 import type { ConceptMediaRef } from "../types/media";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { QuizAttemptLog, QuizDeck, QuizQuestion } from "../types/quiz";
+import type { ResearchReport } from "../types/researchReport";
 
 export type BackupExportData = {
   concepts: Concept[];
@@ -126,6 +127,11 @@ export type ConceptStorage = {
   saveQuizAttemptLog: (log: QuizAttemptLog) => Promise<void>;
   deleteQuizAttemptLog: (id: string) => Promise<void>;
   clearQuizAttemptLogs: () => Promise<void>;
+
+  /** 保存済み研究レポート（IndexedDB `researchReports`。バックアップ対象外） */
+  getResearchReports: () => Promise<ResearchReport[]>;
+  getResearchReport: (id: string) => Promise<ResearchReport | undefined>;
+  saveResearchReport: (report: ResearchReport) => Promise<void>;
 };
 
 export type ContextCardStorage = {

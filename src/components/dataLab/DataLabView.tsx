@@ -18,6 +18,7 @@ import {
 } from "../../utils/dataLab/filterDataLabLogs";
 import { buildConceptMasteryMap } from "../../utils/mastery/getConceptMastery";
 import { OrnamentLine } from "../common/OrnamentLine";
+import { DataLabAddToResearchReportPanel } from "./DataLabAddToResearchReportPanel";
 import { DataLabControlsPanel } from "./DataLabControlsPanel";
 import { DataLabExportPanel } from "./DataLabExportPanel";
 import { DataLabFiltersPanel } from "./DataLabFiltersPanel";
@@ -167,6 +168,19 @@ export const DataLabView = ({
             groupBy={groupBy}
             conceptById={conceptById}
             deckById={deckById}
+          />
+          <DataLabAddToResearchReportPanel
+            filters={filters}
+            filterChips={chips}
+            groupBy={groupBy}
+            metric={metric}
+            scatterXMetric={scatterXMetric}
+            scatterYMetric={scatterYMetric}
+            displayMode={displayMode}
+            barSort={barSort}
+            barLimit={barLimit}
+            filteredLogCount={displayedLogs}
+            aggregatedRows={aggregatedRows}
           />
           <DataLabResultsPanel
             totalLogs={totalLogs}

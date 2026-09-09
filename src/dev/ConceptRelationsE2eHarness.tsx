@@ -203,7 +203,7 @@ const createApi = (): ConceptRelationE2eApi => {
     },
     putRawConcepts: async (records) => {
       await storage.getAllConcepts();
-      const db = await openDbVersion(7);
+      const db = await openExistingDb();
       try {
         await putRecordsIntoOpenDb(db, records);
       } finally {
@@ -220,7 +220,7 @@ const createApi = (): ConceptRelationE2eApi => {
       }
     },
     openProductionDb: async () => {
-      // quiz store を読むことで本番 openDb（v7）だけを走らせ、concepts の getAll repair は避ける。
+      // quiz store を読むことで本番 openDb だけを走らせ、concepts の getAll repair は避ける。
       await storage.getQuizQuestions();
       const db = await openExistingDb();
       try {

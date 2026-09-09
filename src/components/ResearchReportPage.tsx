@@ -2,11 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { QuizAttemptLog, QuizQuestion } from "../types/quiz";
+import type { ResearchReport } from "../types/researchReport";
 import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
 import { computeConfusionEdges } from "../utils/quizConceptGraphStats";
 import { generateResearchReportMarkdown } from "../utils/quizResearchReport";
 import { computeOverallSummary, formatSecondsFromMs } from "../utils/quizStats";
+import {
+  deleteResearchReportBlock,
+  updateResearchReportBlockCommentary,
+  updateResearchReportTitle
+} from "../utils/researchReport/researchReportBlocks";
 import { OrnamentLine } from "./common/OrnamentLine";
+import { SavedResearchReportsPanel } from "./researchReport/SavedResearchReportsPanel";
 
 const storage = getStorage();
 
@@ -34,6 +41,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
   const [logs, setLogs] = useState<QuizAttemptLog[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [savedReports, setSavedReports] = useState<ResearchReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
@@ -42,18 +50,29 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [allLogs, allConcepts, allQuestions] = await Promise.all([
+      const [allLogs, allConcepts, allQuestions, reports] = await Promise.all([
         storage.getQuizAttemptLogs(),
         storage.getAllConcepts(),
-        storage.getQuizQuestions()
+        storage.getQuizQuestions(),
+        storage.getResearchReports()
       ]);
       setLogs(allLogs);
       setConcepts(allConcepts);
       setQuestions(allQuestions);
+      setSavedReports(reports);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const persistReport = async (next: ResearchReport) => {
+    await storage.saveResearchReport(next);
+    setSavedReports((current) =>
+      current
+        .map((report) => (report.id === next.id ? next : report))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    );
+  };
 
   useEffect(() => {
     void load();
@@ -145,7 +164,36 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
         <p className="text-center text-sm text-celestial-textSub" role="status">
           読み込み中…
         </p>
-      ) : logs.length === 0 ? (
+      ) : (
+        <div className="rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6">
+        <SavedResearchReportsPanel
+          reports={savedReports}
+          onTitleChange={(reportId, title) => {
+            const current = savedReports.find((report) => report.id === reportId);
+            if (!current) {
+              return;
+            }
+            void persistReport(updateResearchReportTitle(current, title));
+          }}
+          onCommentaryChange={(reportId, blockId, commentary) => {
+            const current = savedReports.find((report) => report.id === reportId);
+            if (!current) {
+              return;
+            }
+            void persistReport(updateResearchReportBlockCommentary(current, blockId, commentary));
+          }}
+          onDeleteBlock={(reportId, blockId) => {
+            const current = savedReports.find((report) => report.id === reportId);
+            if (!current) {
+              return;
+            }
+            void persistReport(deleteResearchReportBlock(current, blockId));
+          }}
+        />
+        </div>
+      )}
+
+      {loading ? null : logs.length === 0 ? (
         <section
           className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-6 py-10 text-center backdrop-blur-sm"
           aria-labelledby="research-report-empty-title"
