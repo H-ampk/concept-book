@@ -518,3 +518,149 @@ describe("DataLabView 理解度 (#97)", () => {
     expect(cells[4]).not.toHaveTextContent("0%");
   });
 });
+
+describe("DataLabView 概念データ (#28)", () => {
+  const conceptsForStats: Concept[] = [
+    concept({
+      id: "concept-a",
+      title: "人工知能",
+      domainTags: ["情報科学", "哲学"],
+      status: "active",
+      favorite: true,
+      relatedIds: ["concept-b"],
+      contextDefinitions: [{ id: "cd1", context: "情報", definition: "定義A" }]
+    }),
+    concept({
+      id: "concept-b",
+      title: "現象学",
+      domainTags: ["哲学"],
+      status: "draft",
+      favorite: false,
+      relatedIds: ["concept-a"],
+      definition: "",
+      source: { book: "", page: "", author: null },
+      contextDefinitions: []
+    }),
+    concept({
+      id: "concept-c",
+      title: "線形代数",
+      domainTags: ["数学"],
+      status: "active",
+      favorite: false,
+      relatedIds: [],
+      contextDefinitions: []
+    })
+  ];
+
+  it("初期状態は従来の学習ログモード", () => {
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={conceptsForStats}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("data-lab-target-learning-logs")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("2 / 2");
+    expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-concept-results")).not.toBeInTheDocument();
+  });
+
+  it("概念データモードへ切り替え、件数・分野・関連・文脈・充足状況を表示できる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={conceptsForStats}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByTestId("data-lab-target-concepts"));
+    expect(screen.getByTestId("data-lab-target-concepts")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("data-lab-concept-count")).toHaveTextContent("3 / 3");
+    expect(screen.getByTestId("data-lab-concept-filters")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-concept-results")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-concept-overview")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-concept-domains")).toHaveTextContent("情報科学");
+    expect(screen.getByTestId("data-lab-concept-domains")).toHaveTextContent("哲学");
+    expect(screen.getByTestId("data-lab-concept-relations")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-concept-relation-ranking")).toHaveTextContent("人工知能");
+    expect(screen.getByTestId("data-lab-concept-contexts")).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-concept-completeness")).toHaveTextContent("定義未入力");
+    expect(screen.getByTestId("data-lab-concept-disclaimer")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Filters" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "CSV エクスポート" })).not.toBeInTheDocument();
+  });
+
+  it("Concept フィルタで件数が変わり、0件表示とリセットができる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={conceptsForStats}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByTestId("data-lab-target-concepts"));
+    await user.selectOptions(screen.getByLabelText("お気に入り"), "favorite");
+    expect(screen.getByTestId("data-lab-concept-count")).toHaveTextContent("1 / 3");
+    expect(screen.getByTestId("data-lab-concept-active-filters")).toHaveTextContent("お気に入りのみ");
+
+    await user.type(screen.getByLabelText("検索"), "存在しない概念xyz");
+    expect(screen.getByTestId("data-lab-concept-count")).toHaveTextContent("0 / 3");
+    expect(screen.getByTestId("data-lab-concept-empty-filtered")).toHaveTextContent(
+      "条件に一致する Concept がありません。"
+    );
+
+    await user.click(screen.getByRole("button", { name: "条件をリセット" }));
+    expect(screen.getByTestId("data-lab-concept-count")).toHaveTextContent("3 / 3");
+    expect(screen.getByTestId("data-lab-concept-overview")).toBeInTheDocument();
+  });
+
+  it("Concept が0件の空状態を表示する", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView logs={[]} concepts={[]} decks={[]} loading={false} error={false} onBack={vi.fn()} />
+    );
+
+    await user.click(screen.getByTestId("data-lab-target-concepts"));
+    expect(screen.getByTestId("data-lab-concept-count")).toHaveTextContent("0 / 0");
+    expect(screen.getByTestId("data-lab-concept-empty-all")).toHaveTextContent(
+      "まだ集計できる Concept がありません。"
+    );
+  });
+
+  it("学習ログモードへ戻したとき既存 Data Lab が使える", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={conceptsForStats}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByTestId("data-lab-target-concepts"));
+    await user.click(screen.getByTestId("data-lab-target-learning-logs"));
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("2 / 2");
+    expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "分析条件" })).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-lab-concept-results")).not.toBeInTheDocument();
+  });
+});

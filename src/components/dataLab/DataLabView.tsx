@@ -5,9 +5,11 @@ import {
   aggregateDataLabLogs,
   type DataLabGroupBy
 } from "../../utils/dataLab/aggregateDataLabLogs";
+import { aggregateDataLabConcepts } from "../../utils/dataLab/aggregateDataLabConcepts";
 import { attachDataLabConceptMastery } from "../../utils/dataLab/attachDataLabConceptMastery";
 import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
+import { describeDataLabConceptFilters } from "../../utils/dataLab/describeDataLabConceptFilters";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
 import { sanitizeDataLabAnalysisMetrics } from "../../utils/dataLab/sanitizeDataLabMetrics";
 import type { DataLabBarChartLimit, DataLabBarChartSort } from "../../utils/dataLab/toDataLabBarChartRows";
@@ -16,14 +18,23 @@ import {
   filterDataLabLogs,
   type DataLabFilters
 } from "../../utils/dataLab/filterDataLabLogs";
+import {
+  DEFAULT_DATA_LAB_CONCEPT_FILTERS,
+  filterDataLabConcepts,
+  type DataLabConceptFilters
+} from "../../utils/dataLab/filterDataLabConcepts";
 import { fillDataLabTimeSeries } from "../../utils/dataLab/fillDataLabTimeSeries";
 import { buildConceptMasteryMap } from "../../utils/mastery/getConceptMastery";
 import { OrnamentLine } from "../common/OrnamentLine";
 import { DataLabAddToResearchReportPanel } from "./DataLabAddToResearchReportPanel";
+import { DataLabConceptFiltersPanel } from "./DataLabConceptFiltersPanel";
+import { DataLabConceptResultsPanel } from "./DataLabConceptResultsPanel";
 import { DataLabControlsPanel } from "./DataLabControlsPanel";
 import { DataLabExportPanel } from "./DataLabExportPanel";
 import { DataLabFiltersPanel } from "./DataLabFiltersPanel";
 import { DataLabResultsPanel } from "./DataLabResultsPanel";
+
+export type DataLabAnalysisTarget = "learningLogs" | "concepts";
 
 export type DataLabViewProps = {
   logs: QuizAttemptLog[];
@@ -44,7 +55,11 @@ export const DataLabView = ({
   onBack,
   onGoToQuizPlay
 }: DataLabViewProps) => {
+  const [analysisTarget, setAnalysisTarget] = useState<DataLabAnalysisTarget>("learningLogs");
   const [filters, setFilters] = useState<DataLabFilters>(DEFAULT_DATA_LAB_FILTERS);
+  const [conceptFilters, setConceptFilters] = useState<DataLabConceptFilters>(
+    DEFAULT_DATA_LAB_CONCEPT_FILTERS
+  );
   const [groupBy, setGroupBy] = useState<DataLabGroupBy>("concept");
   const [metric, setMetric] = useState<DataLabMetric>("accuracy");
   const [scatterXMetric, setScatterXMetric] = useState<DataLabMetric>("averageResponseTimeMs");
@@ -59,6 +74,20 @@ export const DataLabView = ({
   const filteredLogs = useMemo(
     () => filterDataLabLogs(logs, filters, conceptById),
     [logs, filters, conceptById]
+  );
+
+  const filteredConcepts = useMemo(
+    () => filterDataLabConcepts(concepts, conceptFilters),
+    [concepts, conceptFilters]
+  );
+
+  const conceptAggregate = useMemo(
+    () =>
+      aggregateDataLabConcepts({
+        concepts: filteredConcepts,
+        allConcepts: concepts
+      }),
+    [filteredConcepts, concepts]
   );
 
   const masteryByConceptId = useMemo(() => buildConceptMasteryMap(logs), [logs]);
@@ -96,8 +125,16 @@ export const DataLabView = ({
     [filters, conceptById, deckById]
   );
 
+  const conceptChips = useMemo(
+    () => describeDataLabConceptFilters(conceptFilters),
+    [conceptFilters]
+  );
+
   const totalLogs = logs.length;
   const displayedLogs = filteredLogs.length;
+  const totalConcepts = concepts.length;
+  const displayedConcepts = filteredConcepts.length;
+  const isConceptMode = analysisTarget === "concepts";
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 px-1 sm:px-0">
@@ -112,16 +149,29 @@ export const DataLabView = ({
               Data Lab
             </h1>
             <p className="max-w-3xl text-sm leading-relaxed text-celestial-textSub md:text-base">
-              学習ログを条件指定して探索・分析します。
+              {isConceptMode
+                ? "Concept データの構成・充足状況を集計します。"
+                : "学習ログを条件指定して探索・分析します。"}
             </p>
             <OrnamentLine variant="header" className="max-w-md opacity-80" />
           </div>
 
           <div className="flex flex-wrap items-end gap-4">
             <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-4 py-3">
-              <p className="text-xs font-medium tracking-wide text-celestial-textSub">対象ログ</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-celestial-textMain" data-testid="data-lab-log-count">
-                {loading ? "…" : error ? "—" : `${displayedLogs} / ${totalLogs}`}
+              <p className="text-xs font-medium tracking-wide text-celestial-textSub">
+                {isConceptMode ? "対象 Concept" : "対象ログ"}
+              </p>
+              <p
+                className="mt-1 text-xl font-semibold tabular-nums text-celestial-textMain"
+                data-testid={isConceptMode ? "data-lab-concept-count" : "data-lab-log-count"}
+              >
+                {loading
+                  ? "…"
+                  : error
+                    ? "—"
+                    : isConceptMode
+                      ? `${displayedConcepts} / ${totalConcepts}`
+                      : `${displayedLogs} / ${totalLogs}`}
               </p>
             </div>
             <button
@@ -133,6 +183,44 @@ export const DataLabView = ({
             </button>
           </div>
         </div>
+
+        <div className="relative z-[1] mt-5 space-y-2" data-testid="data-lab-analysis-target">
+          <p className="text-xs font-medium text-celestial-textSub" id="data-lab-analysis-target-label">
+            分析対象
+          </p>
+          <div
+            className="inline-flex flex-wrap gap-2 rounded-xl border border-celestial-border/60 bg-nordic-navy/40 p-1"
+            role="group"
+            aria-labelledby="data-lab-analysis-target-label"
+          >
+            <button
+              type="button"
+              aria-pressed={analysisTarget === "learningLogs"}
+              onClick={() => setAnalysisTarget("learningLogs")}
+              className={`rounded-lg px-3 py-2 text-sm transition ${
+                analysisTarget === "learningLogs"
+                  ? "bg-celestial-gold/20 text-celestial-softGold"
+                  : "text-celestial-textMain hover:bg-celestial-gold/10"
+              }`}
+              data-testid="data-lab-target-learning-logs"
+            >
+              学習ログ
+            </button>
+            <button
+              type="button"
+              aria-pressed={analysisTarget === "concepts"}
+              onClick={() => setAnalysisTarget("concepts")}
+              className={`rounded-lg px-3 py-2 text-sm transition ${
+                analysisTarget === "concepts"
+                  ? "bg-celestial-gold/20 text-celestial-softGold"
+                  : "text-celestial-textMain hover:bg-celestial-gold/10"
+              }`}
+              data-testid="data-lab-target-concepts"
+            >
+              概念データ
+            </button>
+          </div>
+        </div>
       </section>
 
       {loading ? (
@@ -141,8 +229,22 @@ export const DataLabView = ({
         </p>
       ) : error ? (
         <p className="text-center text-sm text-celestial-textSub" role="alert">
-          学習データを読み込めませんでした。
+          {isConceptMode ? "Concept データを読み込めませんでした。" : "学習データを読み込めませんでした。"}
         </p>
+      ) : isConceptMode ? (
+        <>
+          <DataLabConceptFiltersPanel
+            filters={conceptFilters}
+            onChange={setConceptFilters}
+            concepts={concepts}
+            chips={conceptChips}
+          />
+          <DataLabConceptResultsPanel
+            totalConcepts={totalConcepts}
+            displayedConcepts={displayedConcepts}
+            aggregate={conceptAggregate}
+          />
+        </>
       ) : (
         <>
           <DataLabFiltersPanel
