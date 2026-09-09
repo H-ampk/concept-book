@@ -44,4 +44,19 @@ describe("applyBackupExportOptions / exportBackupData 相当", () => {
     expect(result.quizQuestions).toEqual(data.quizQuestions);
     expect(result.quizDecks).toEqual(data.quizDecks);
   });
+
+  it("AI設定キーをバックアップデータへ混ぜない", () => {
+    const result = applyBackupExportOptions(sampleData());
+    expect(Object.keys(result).sort()).toEqual([
+      "concepts",
+      "contextCards",
+      "quizAttemptLogs",
+      "quizDecks",
+      "quizQuestions"
+    ]);
+    expect(result).not.toHaveProperty("aiSettings");
+    expect(result).not.toHaveProperty("baseUrl");
+    expect(result).not.toHaveProperty("textModel");
+    expect(result).not.toHaveProperty("embeddingModel");
+  });
 });
