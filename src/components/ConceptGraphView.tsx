@@ -3,6 +3,11 @@ import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { Concept } from "../types/concept";
 import type { ConceptQuizStats } from "../utils/quiz/getConceptQuizStats";
 import {
+  GRAPH_ACCURACY_LEGEND_ITEMS,
+  getConceptGraphAccuracyFill,
+  getConceptGraphAccuracyLabel
+} from "../utils/conceptGraphAccuracy";
+import {
   GRAPH_METRIC_MODES,
   getConceptGraphAttemptLabel,
   getConceptGraphNodeRadius,
@@ -275,6 +280,23 @@ export const ConceptGraphView = ({
             ))}
           </div>
           <p className="text-xs text-celestial-textSub">{countLabel}</p>
+          {metricMode === "accuracy" && (
+            <ul
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-celestial-textSub"
+              aria-label="正答率の凡例"
+            >
+              {GRAPH_ACCURACY_LEGEND_ITEMS.map((item) => (
+                <li key={item.band} className="flex items-center gap-1">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full border border-celestial-border"
+                    style={{ backgroundColor: item.fill }}
+                    aria-hidden="true"
+                  />
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -340,7 +362,9 @@ export const ConceptGraphView = ({
             );
             const ringColors =
               domainColors.length > 0 ? domainColors : [getDomainTagColor("", domainColorMap)];
-            const totalAttempts = conceptQuizStatsMap?.get(concept.id)?.totalAttempts ?? 0;
+            const quizStats = conceptQuizStatsMap?.get(concept.id);
+            const totalAttempts = quizStats?.totalAttempts ?? 0;
+            const accuracy = quizStats?.accuracy ?? null;
             const radius = getConceptGraphNodeRadius({
               metricMode,
               totalAttempts,
@@ -360,7 +384,8 @@ export const ConceptGraphView = ({
 
             context.beginPath();
             context.arc(node.x, node.y, radius, 0, Math.PI * 2, false);
-            context.fillStyle = NODE_FILL_COLOR;
+            context.fillStyle =
+              metricMode === "accuracy" ? getConceptGraphAccuracyFill(accuracy) : NODE_FILL_COLOR;
             context.fill();
 
             const displayedDomainCount = ringColors.length;
@@ -423,18 +448,21 @@ export const ConceptGraphView = ({
             context.globalAlpha = labelStyle.opacity;
             context.fillText(labelText, labelX, labelY);
 
-            if (metricMode === "attempts") {
-              const showAttemptLabel = isSelected || globalScale >= MEDIUM_LABEL_SCALE;
-              if (showAttemptLabel) {
-                const attemptLabel = getConceptGraphAttemptLabel(totalAttempts);
-                const attemptFontSize = (isSelected ? 10 : 8) / safeScale;
-                const attemptY = labelY + fontSize + 2 / safeScale;
-                context.font = `400 ${attemptFontSize}px sans-serif`;
+            if (metricMode === "attempts" || metricMode === "accuracy") {
+              const showMetricLabel = isSelected || globalScale >= MEDIUM_LABEL_SCALE;
+              if (showMetricLabel) {
+                const metricLabel =
+                  metricMode === "attempts"
+                    ? getConceptGraphAttemptLabel(totalAttempts)
+                    : getConceptGraphAccuracyLabel(accuracy);
+                const metricFontSize = (isSelected ? 10 : 8) / safeScale;
+                const metricY = labelY + fontSize + 2 / safeScale;
+                context.font = `400 ${metricFontSize}px sans-serif`;
                 context.lineWidth = haloWidth;
                 context.globalAlpha = Math.min(1, labelStyle.opacity + 0.2);
-                context.strokeText(attemptLabel, labelX, attemptY);
+                context.strokeText(metricLabel, labelX, metricY);
                 context.globalAlpha = labelStyle.opacity;
-                context.fillText(attemptLabel, labelX, attemptY);
+                context.fillText(metricLabel, labelX, metricY);
               }
             }
 

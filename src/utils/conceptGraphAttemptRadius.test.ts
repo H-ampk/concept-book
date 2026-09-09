@@ -52,6 +52,29 @@ describe("getConceptGraphNodeRadius", () => {
     });
     expect(favorite).toBe(notFavorite);
   });
+
+  it("正答率モードでは通常と同じサイズで、学習回数は影響しない", () => {
+    expect(
+      getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 100, isFavorite: false })
+    ).toBe(
+      getConceptGraphNodeRadius({ metricMode: "normal", totalAttempts: 100, isFavorite: false })
+    );
+    expect(
+      getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 100, isFavorite: false })
+    ).toBe(
+      getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 0, isFavorite: false })
+    );
+    expect(
+      getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 8, isFavorite: true })
+    ).toBeGreaterThan(
+      getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 8, isFavorite: false })
+    );
+    expect(
+      getConceptGraphNodeRadius({ metricMode: "attempts", totalAttempts: 100, isFavorite: false })
+    ).toBeGreaterThan(
+      getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 100, isFavorite: false })
+    );
+  });
 });
 
 describe("getConceptGraphAttemptLabel", () => {

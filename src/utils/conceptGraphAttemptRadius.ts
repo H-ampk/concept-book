@@ -1,8 +1,9 @@
-export type GraphMetricMode = "normal" | "attempts";
+export type GraphMetricMode = "normal" | "attempts" | "accuracy";
 
 export const GRAPH_METRIC_MODES: { mode: GraphMetricMode; label: string }[] = [
   { mode: "normal", label: "通常" },
-  { mode: "attempts", label: "学習回数" }
+  { mode: "attempts", label: "学習回数" },
+  { mode: "accuracy", label: "正答率" }
 ];
 
 export const GRAPH_NODE_RADIUS_DEFAULT = 5.2;

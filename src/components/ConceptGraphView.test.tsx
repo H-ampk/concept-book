@@ -73,6 +73,31 @@ describe("ConceptGraphView UI regressions (#104 / #106 / #107)", () => {
       await user.click(screen.getByRole("button", { name: /さらに表示/ }));
       expect(parseVisibleNodeCount()).toBe(250);
     });
+
+    it("通常 / 学習回数 / 正答率を切り替えられ、正答率のときだけ凡例が出る", async () => {
+      const user = userEvent.setup();
+      const concepts = [makeConcept("a"), makeConcept("b")];
+      renderGraph(concepts);
+      const graphDataBefore = lastForceGraphProps.graphData;
+
+      expect(screen.getByRole("button", { name: "通常" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "正答率" }));
+      expect(screen.getByRole("button", { name: "正答率" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("list", { name: "正答率の凡例" })).toHaveTextContent("未学習");
+      expect(screen.getByRole("list", { name: "正答率の凡例" })).toHaveTextContent("0–25%");
+      expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
+
+      await user.click(screen.getByRole("button", { name: "学習回数" }));
+      expect(screen.getByRole("button", { name: "学習回数" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
+      expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
+
+      await user.click(screen.getByRole("button", { name: "通常" }));
+      expect(screen.getByRole("button", { name: "通常" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
+    });
   });
 
   describe("#106 初回 auto fit", () => {
@@ -312,7 +337,7 @@ const paintDomainRings = (
   options?: {
     selectedId?: string;
     domainColorMap?: Record<string, string>;
-    metricMode?: "attempts";
+    metricMode?: "attempts" | "accuracy";
   }
 ) => {
   const domainColorMap = options?.domainColorMap ?? {};
@@ -332,12 +357,15 @@ const invokeNodeCanvas = async (
   options?: {
     selectedId?: string;
     domainColorMap?: Record<string, string>;
-    metricMode?: "attempts";
+    metricMode?: "attempts" | "accuracy";
   }
 ) => {
   const domainColorMap = paintDomainRings(concept, options);
   if (options?.metricMode === "attempts") {
     await userEvent.setup().click(screen.getByRole("button", { name: "学習回数" }));
+  }
+  if (options?.metricMode === "accuracy") {
+    await userEvent.setup().click(screen.getByRole("button", { name: "正答率" }));
   }
   const nodeCanvasObject = lastForceGraphProps.nodeCanvasObject;
   expect(nodeCanvasObject).toBeTypeOf("function");
@@ -466,6 +494,18 @@ describe("#142 複数分野カラー描画", () => {
     const { domainStrokes } = await invokeNodeCanvas(concept, {
       domainColorMap: colorMap,
       metricMode: "attempts"
+    });
+    expect(domainStrokes).toHaveLength(2);
+    expect(domainStrokes.map((stroke) => stroke.strokeStyle)).toEqual(
+      getDomainTagColors(concept.domainTags, colorMap)
+    );
+  });
+
+  it("正答率モードでも domain ring の色数と色は失われない", async () => {
+    const concept = makeConcept("a", [], false, ["AI", "教育"]);
+    const { domainStrokes } = await invokeNodeCanvas(concept, {
+      domainColorMap: colorMap,
+      metricMode: "accuracy"
     });
     expect(domainStrokes).toHaveLength(2);
     expect(domainStrokes.map((stroke) => stroke.strokeStyle)).toEqual(

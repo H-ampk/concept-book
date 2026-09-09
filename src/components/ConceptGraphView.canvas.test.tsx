@@ -1,7 +1,16 @@
-import { render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConceptGraphView } from "../components/ConceptGraphView";
 import type { Concept } from "../types/concept";
+import {
+  GRAPH_ACCURACY_FILL_0_25,
+  GRAPH_ACCURACY_FILL_76_100,
+  GRAPH_ACCURACY_FILL_UNLEARNED,
+  getConceptGraphAccuracyFill
+} from "../utils/conceptGraphAccuracy";
+import { GRAPH_NODE_RADIUS_DEFAULT } from "../utils/conceptGraphAttemptRadius";
+import type { ConceptQuizStats } from "../utils/quiz/getConceptQuizStats";
 import {
   FULL_LABEL_SCALE,
   getConceptGraphLabelHaloScreenWidth,
@@ -23,6 +32,7 @@ type CanvasCall = {
   args: unknown[];
   lineWidth?: number;
   font?: string;
+  fillStyle?: unknown;
 };
 
 const makeConcept = (
@@ -64,7 +74,7 @@ const createCanvasContextMock = () => {
       calls.push({ type: "arc", args });
     },
     fill: (...args: unknown[]) => {
-      calls.push({ type: "fill", args });
+      calls.push({ type: "fill", args, fillStyle: context.fillStyle });
     },
     stroke: (...args: unknown[]) => {
       calls.push({ type: "stroke", args });
@@ -402,5 +412,108 @@ describe("ConceptGraphView Canvas label integration (#143)", () => {
       expect(strokeTextIndex).toBeGreaterThan(strokeIndex);
       expect(fillTextIndex).toBeGreaterThan(strokeTextIndex);
     });
+  });
+});
+
+const makeStats = (
+  conceptId: string,
+  accuracy: number | null,
+  totalAttempts = 10
+): ConceptQuizStats => ({
+  conceptId,
+  totalAttempts,
+  correctAttempts: accuracy == null ? 0 : Math.round((accuracy / 100) * totalAttempts),
+  wrongAttempts: accuracy == null ? 0 : totalAttempts - Math.round((accuracy / 100) * totalAttempts),
+  accuracy,
+  lastAnsweredAt: accuracy == null ? null : "2026-01-01T00:00:00.000Z"
+});
+
+describe("ConceptGraphView Canvas accuracy mode (#20)", () => {
+  beforeEach(() => {
+    resetForceGraphMock();
+  });
+
+  const paintAccuracyNode = async (
+    concept: Concept,
+    globalScale: number,
+    stats?: ConceptQuizStats
+  ) => {
+    const map = new Map<string, ConceptQuizStats>();
+    if (stats) {
+      map.set(concept.id, stats);
+    }
+    render(
+      <ConceptGraphView
+        concepts={[concept]}
+        domainColorMap={{}}
+        onSelectConcept={vi.fn()}
+        conceptQuizStatsMap={map}
+      />
+    );
+    await userEvent.setup().click(screen.getByRole("button", { name: "正答率" }));
+    const nodeCanvasObject = lastForceGraphProps.nodeCanvasObject;
+    const mock = createCanvasContextMock();
+    nodeCanvasObject?.({ id: concept.id, x: 100, y: 100 }, mock.context, globalScale);
+    return mock;
+  };
+
+  it("未学習はグレー塗りと未学習ラベル、0% は別色と 0%", async () => {
+    const unlearned = makeConcept("a", SHORT_TITLE);
+    const { calls: unlearnedCalls } = await paintAccuracyNode(unlearned, MEDIUM_LABEL_SCALE);
+    const unlearnedFill = unlearnedCalls.find((call) => call.type === "fill");
+    const unlearnedLabels = conceptLabelCalls(unlearnedCalls).map((call) => call.args[0]);
+
+    expect(unlearnedFill?.fillStyle).toBe(GRAPH_ACCURACY_FILL_UNLEARNED);
+    expect(unlearnedLabels).toContain("未学習");
+    expect(unlearnedLabels).not.toContain("0%");
+
+    cleanup();
+    resetForceGraphMock();
+    const zero = makeConcept("b", SHORT_TITLE);
+    const { calls: zeroCalls } = await paintAccuracyNode(zero, MEDIUM_LABEL_SCALE, makeStats("b", 0));
+    const zeroFill = zeroCalls.find((call) => call.type === "fill");
+    const zeroLabels = conceptLabelCalls(zeroCalls).map((call) => call.args[0]);
+
+    expect(zeroFill?.fillStyle).toBe(GRAPH_ACCURACY_FILL_0_25);
+    expect(zeroLabels).toContain("0%");
+    expect(zeroLabels).not.toContain("未学習");
+  });
+
+  it("高正答率は濃い fill とパーセントラベルになる", async () => {
+    const concept = makeConcept("a", SHORT_TITLE);
+    const { calls } = await paintAccuracyNode(concept, MEDIUM_LABEL_SCALE, makeStats("a", 100));
+    const fill = calls.find((call) => call.type === "fill");
+    expect(fill?.fillStyle).toBe(GRAPH_ACCURACY_FILL_76_100);
+    expect(fill?.fillStyle).toBe(getConceptGraphAccuracyFill(100));
+    expect(conceptLabelCalls(calls).map((call) => call.args[0])).toContain("100%");
+  });
+
+  it("far では正答率ラベルを省略し、selected では出す", async () => {
+    const concept = makeConcept("a", SHORT_TITLE);
+    const { calls: farCalls } = await paintAccuracyNode(concept, FAR_SCALE, makeStats("a", 84));
+    expect(conceptLabelCalls(farCalls).map((call) => call.args[0])).not.toContain("84%");
+
+    cleanup();
+    resetForceGraphMock();
+    render(
+      <ConceptGraphView
+        concepts={[concept]}
+        domainColorMap={{}}
+        selectedId={concept.id}
+        onSelectConcept={vi.fn()}
+        conceptQuizStatsMap={new Map([[concept.id, makeStats(concept.id, 84)]])}
+      />
+    );
+    await userEvent.setup().click(screen.getByRole("button", { name: "正答率" }));
+    const mock = createCanvasContextMock();
+    lastForceGraphProps.nodeCanvasObject?.({ id: concept.id, x: 1, y: 1 }, mock.context, FAR_SCALE);
+    expect(conceptLabelCalls(mock.calls).map((call) => call.args[0])).toContain("84%");
+  });
+
+  it("正答率モードでもノード半径は通常サイズのまま", async () => {
+    const concept = makeConcept("a", SHORT_TITLE);
+    const { calls } = await paintAccuracyNode(concept, MEDIUM_LABEL_SCALE, makeStats("a", 50, 100));
+    const firstArc = calls.find((call) => call.type === "arc");
+    expect(firstArc?.args[2]).toBe(GRAPH_NODE_RADIUS_DEFAULT);
   });
 });
