@@ -98,6 +98,37 @@ describe("ConceptGraphView UI regressions (#104 / #106 / #107)", () => {
       expect(screen.getByRole("button", { name: "通常" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
     });
+
+    it("混同表示は初期 OFF で、直接混同 / 混同近傍に切り替えても graphData identity を変えない", async () => {
+      const user = userEvent.setup();
+      const concepts = [makeConcept("a"), makeConcept("b")];
+      render(
+        <ConceptGraphView
+          concepts={concepts}
+          domainColorMap={{}}
+          onSelectConcept={vi.fn()}
+          confusionPairs={[{ selectedConceptId: "a", correctConceptId: "b", count: 2 }]}
+        />
+      );
+      const graphDataBefore = lastForceGraphProps.graphData;
+      expect(screen.getByRole("button", { name: "OFF" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.queryByLabelText("直接混同の凡例")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("混同近傍の凡例")).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "直接混同" }));
+      expect(screen.getByRole("button", { name: "直接混同" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByLabelText("直接混同の凡例")).toHaveTextContent("1組");
+      expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
+
+      await user.click(screen.getByRole("button", { name: "混同近傍" }));
+      expect(screen.getByRole("button", { name: "混同近傍" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByLabelText("混同近傍の凡例")).toHaveTextContent("誤答パターンが似ている概念");
+      expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
+
+      await user.click(screen.getByRole("button", { name: "OFF" }));
+      expect(screen.getByRole("button", { name: "OFF" })).toHaveAttribute("aria-pressed", "true");
+      expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
+    });
   });
 
   describe("#106 初回 auto fit", () => {

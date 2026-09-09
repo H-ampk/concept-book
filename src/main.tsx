@@ -10,6 +10,16 @@ const root = ReactDOM.createRoot(document.getElementById("root")!);
 
 const boot = async () => {
   const bootParams = new URLSearchParams(window.location.search);
+  if (import.meta.env.DEV && bootParams.has("graphConfusion")) {
+    const { ConceptGraphConfusionHarness } = await import("./dev/ConceptGraphConfusionHarness");
+    root.render(
+      <React.StrictMode>
+        <ConceptGraphConfusionHarness />
+      </React.StrictMode>
+    );
+    return;
+  }
+
   if (import.meta.env.DEV && bootParams.has("graphPerf")) {
     const { ConceptGraphPerformanceHarness } = await import("./dev/ConceptGraphPerformanceHarness");
     root.render(

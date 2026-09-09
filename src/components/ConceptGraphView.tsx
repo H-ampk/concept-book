@@ -8,6 +8,27 @@ import {
   getConceptGraphAccuracyLabel
 } from "../utils/conceptGraphAccuracy";
 import {
+  buildConfusionKnnEdges,
+  buildConfusionProfiles,
+  buildDirectConfusionEdges,
+  CONFUSION_GRAPH_MODES,
+  DEFAULT_CONFUSION_K,
+  DIRECT_CONFUSION_DASH_LENGTH,
+  DIRECT_CONFUSION_GAP_LENGTH,
+  DIRECT_CONFUSION_STROKE,
+  filterUndirectedEdgesByVisibleIds,
+  getConfusionKnnLineWidth,
+  getConfusionKnnOpacity,
+  getDirectConfusionLineWidth,
+  KNN_CONFUSION_DASH_LENGTH,
+  KNN_CONFUSION_GAP_LENGTH,
+  KNN_CONFUSION_STROKE,
+  type ConfusionGraphMode,
+  type ConfusionKnnEdge,
+  type DirectConfusionEdge
+} from "../utils/conceptGraphConfusion";
+import type { ConfusionPairStat } from "../utils/quizStats";
+import {
   GRAPH_METRIC_MODES,
   getConceptGraphAttemptLabel,
   getConceptGraphNodeRadius,
@@ -63,12 +84,16 @@ const GRAPH_VIEW_MODES: { mode: GraphViewMode; label: string }[] = [
   { mode: "2-hop", label: "2-hop" }
 ];
 
+type GraphSimNode = GraphNode & { x?: number; y?: number };
+
 type Props = {
   concepts: Concept[];
   domainColorMap: Record<string, string>;
   selectedId?: string;
   onSelectConcept: (id: string) => void;
   conceptQuizStatsMap?: Map<string, ConceptQuizStats>;
+  confusionPairs?: ConfusionPairStat[];
+  confusionUniverseIds?: readonly string[];
 };
 
 export const ConceptGraphView = ({
@@ -76,7 +101,9 @@ export const ConceptGraphView = ({
   domainColorMap,
   selectedId,
   onSelectConcept,
-  conceptQuizStatsMap
+  conceptQuizStatsMap,
+  confusionPairs,
+  confusionUniverseIds
 }: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
@@ -85,6 +112,7 @@ export const ConceptGraphView = ({
   const [graphNodeLimit, setGraphNodeLimit] = useState(GRAPH_NODE_PAGE);
   const [viewMode, setViewMode] = useState<GraphViewMode>("all");
   const [metricMode, setMetricMode] = useState<GraphMetricMode>("normal");
+  const [confusionMode, setConfusionMode] = useState<ConfusionGraphMode>("off");
 
   const relationIndexCacheRef = useRef<{
     source: readonly Concept[];
@@ -183,6 +211,46 @@ export const ConceptGraphView = ({
     [topologySnapshot.signature]
   );
 
+  const validConceptIdSet = useMemo(() => {
+    const ids =
+      confusionUniverseIds && confusionUniverseIds.length > 0
+        ? confusionUniverseIds
+        : concepts.map((concept) => concept.id);
+    return new Set(ids);
+  }, [confusionUniverseIds, concepts]);
+
+  const directConfusionEdgesAll = useMemo(
+    () => buildDirectConfusionEdges(confusionPairs ?? [], validConceptIdSet),
+    [confusionPairs, validConceptIdSet]
+  );
+
+  const confusionKnnEdgesAll = useMemo(() => {
+    const profiles = buildConfusionProfiles(confusionPairs ?? [], validConceptIdSet);
+    return buildConfusionKnnEdges(profiles, { k: DEFAULT_CONFUSION_K });
+  }, [confusionPairs, validConceptIdSet]);
+
+  const displayedConceptIds = useMemo(
+    () => new Set(displayedConcepts.map((concept) => concept.id)),
+    [displayedConcepts]
+  );
+
+  const visibleDirectConfusionEdges = useMemo(
+    () => filterUndirectedEdgesByVisibleIds(directConfusionEdgesAll, displayedConceptIds),
+    [directConfusionEdgesAll, displayedConceptIds]
+  );
+
+  const visibleConfusionKnnEdges = useMemo(
+    () => filterUndirectedEdgesByVisibleIds(confusionKnnEdgesAll, displayedConceptIds),
+    [confusionKnnEdgesAll, displayedConceptIds]
+  );
+
+  const confusionModeRef = useRef(confusionMode);
+  confusionModeRef.current = confusionMode;
+  const visibleDirectConfusionEdgesRef = useRef<DirectConfusionEdge[]>(visibleDirectConfusionEdges);
+  visibleDirectConfusionEdgesRef.current = visibleDirectConfusionEdges;
+  const visibleConfusionKnnEdgesRef = useRef<ConfusionKnnEdge[]>(visibleConfusionKnnEdges);
+  visibleConfusionKnnEdgesRef.current = visibleConfusionKnnEdges;
+
   const simulationConfig = useMemo(
     () => getConceptGraphSimulationConfig(graphData.nodes.length),
     [graphData.nodes.length]
@@ -279,7 +347,52 @@ export const ConceptGraphView = ({
               </button>
             ))}
           </div>
+          <div className="flex items-center gap-1" role="group" aria-label="混同表示">
+            <span className="text-xs text-celestial-textSub">混同:</span>
+            {CONFUSION_GRAPH_MODES.map(({ mode, label }) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={confusionMode === mode}
+                className={`rounded-md border px-2 py-1 text-xs ${
+                  confusionMode === mode
+                    ? "border-celestial-softGold bg-celestial-gold/15 text-celestial-softGold"
+                    : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
+                }`}
+                onClick={() => setConfusionMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <p className="text-xs text-celestial-textSub">{countLabel}</p>
+          {confusionMode === "direct" && (
+            <p
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-celestial-textSub"
+              aria-label="直接混同の凡例"
+            >
+              <span
+                className="inline-block w-7 border-t-2 border-dashed"
+                style={{ borderColor: DIRECT_CONFUSION_STROKE }}
+                aria-hidden="true"
+              />
+              直接混同 · 太いほど取り違え回数が多い · {visibleDirectConfusionEdges.length}組
+            </p>
+          )}
+          {confusionMode === "knn" && (
+            <p
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-celestial-textSub"
+              aria-label="混同近傍の凡例"
+            >
+              <span
+                className="inline-block w-7 border-t-2 border-dotted"
+                style={{ borderColor: KNN_CONFUSION_STROKE }}
+                aria-hidden="true"
+              />
+              混同近傍 · 誤答パターンが似ている概念 · 線が強いほど類似 · k = {DEFAULT_CONFUSION_K} ·{" "}
+              {visibleConfusionKnnEdges.length}組
+            </p>
+          )}
           {metricMode === "accuracy" && (
             <ul
               className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-celestial-textSub"
@@ -349,6 +462,86 @@ export const ConceptGraphView = ({
           d3VelocityDecay={simulationConfig.velocityDecay}
           onEngineStop={handleEngineStop}
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
+          onRenderFramePre={(context, globalScale) => {
+            const mode = confusionModeRef.current;
+            if (mode === "off") {
+              return;
+            }
+
+            const clampedScale = Math.min(Math.max(globalScale, 0.05), 40);
+            const safeScale = Number.isFinite(clampedScale) ? clampedScale : 0.05;
+            const nodeById = new Map<string, GraphSimNode>();
+            for (const node of graphData.nodes as GraphSimNode[]) {
+              nodeById.set(node.id, node);
+            }
+
+            const resolveEnds = (sourceId: string, targetId: string) => {
+              const source = nodeById.get(sourceId);
+              const target = nodeById.get(targetId);
+              if (!source || !target) {
+                return null;
+              }
+              const sx = source.x;
+              const sy = source.y;
+              const tx = target.x;
+              const ty = target.y;
+              if (
+                sx == null ||
+                sy == null ||
+                tx == null ||
+                ty == null ||
+                !Number.isFinite(sx) ||
+                !Number.isFinite(sy) ||
+                !Number.isFinite(tx) ||
+                !Number.isFinite(ty)
+              ) {
+                return null;
+              }
+              return { sx, sy, tx, ty };
+            };
+
+            context.save();
+            context.lineCap = "round";
+
+            if (mode === "direct") {
+              context.strokeStyle = DIRECT_CONFUSION_STROKE;
+              context.setLineDash([
+                DIRECT_CONFUSION_DASH_LENGTH / safeScale,
+                DIRECT_CONFUSION_GAP_LENGTH / safeScale
+              ]);
+              for (const edge of visibleDirectConfusionEdgesRef.current) {
+                const ends = resolveEnds(edge.source, edge.target);
+                if (!ends) {
+                  continue;
+                }
+                context.lineWidth = getDirectConfusionLineWidth(edge.count) / safeScale;
+                context.beginPath();
+                context.moveTo(ends.sx, ends.sy);
+                context.lineTo(ends.tx, ends.ty);
+                context.stroke();
+              }
+            } else {
+              context.strokeStyle = KNN_CONFUSION_STROKE;
+              context.setLineDash([
+                KNN_CONFUSION_DASH_LENGTH / safeScale,
+                KNN_CONFUSION_GAP_LENGTH / safeScale
+              ]);
+              for (const edge of visibleConfusionKnnEdgesRef.current) {
+                const ends = resolveEnds(edge.source, edge.target);
+                if (!ends) {
+                  continue;
+                }
+                context.globalAlpha = getConfusionKnnOpacity(edge.similarity);
+                context.lineWidth = getConfusionKnnLineWidth(edge.similarity) / safeScale;
+                context.beginPath();
+                context.moveTo(ends.sx, ends.sy);
+                context.lineTo(ends.tx, ends.ty);
+                context.stroke();
+              }
+            }
+
+            context.restore();
+          }}
           nodeCanvasObject={(nodeObject, context, globalScale) => {
             const node = nodeObject as GraphNode & { x: number; y: number };
             const concept = displayedConceptById.get(node.id);

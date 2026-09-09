@@ -10,6 +10,18 @@ import {
   getConceptGraphAccuracyFill
 } from "../utils/conceptGraphAccuracy";
 import { GRAPH_NODE_RADIUS_DEFAULT } from "../utils/conceptGraphAttemptRadius";
+import {
+  cosineSimilaritySparse,
+  DIRECT_CONFUSION_DASH_LENGTH,
+  DIRECT_CONFUSION_GAP_LENGTH,
+  DIRECT_CONFUSION_STROKE,
+  getConfusionKnnLineWidth,
+  getConfusionKnnOpacity,
+  getDirectConfusionLineWidth,
+  KNN_CONFUSION_DASH_LENGTH,
+  KNN_CONFUSION_GAP_LENGTH,
+  KNN_CONFUSION_STROKE
+} from "../utils/conceptGraphConfusion";
 import type { ConceptQuizStats } from "../utils/quiz/getConceptQuizStats";
 import {
   FULL_LABEL_SCALE,
@@ -33,6 +45,8 @@ type CanvasCall = {
   lineWidth?: number;
   font?: string;
   fillStyle?: unknown;
+  globalAlpha?: number;
+  strokeStyle?: unknown;
 };
 
 const makeConcept = (
@@ -77,7 +91,13 @@ const createCanvasContextMock = () => {
       calls.push({ type: "fill", args, fillStyle: context.fillStyle });
     },
     stroke: (...args: unknown[]) => {
-      calls.push({ type: "stroke", args });
+      calls.push({
+        type: "stroke",
+        args,
+        lineWidth: context.lineWidth,
+        globalAlpha: context.globalAlpha,
+        strokeStyle: context.strokeStyle
+      });
     },
     save: (...args: unknown[]) => {
       calls.push({ type: "save", args });
@@ -100,6 +120,15 @@ const createCanvasContextMock = () => {
         lineWidth: context.lineWidth,
         font: context.font
       });
+    },
+    setLineDash: (...args: unknown[]) => {
+      calls.push({ type: "setLineDash", args });
+    },
+    moveTo: (...args: unknown[]) => {
+      calls.push({ type: "moveTo", args });
+    },
+    lineTo: (...args: unknown[]) => {
+      calls.push({ type: "lineTo", args });
     }
   };
 
@@ -515,5 +544,185 @@ describe("ConceptGraphView Canvas accuracy mode (#20)", () => {
     const { calls } = await paintAccuracyNode(concept, MEDIUM_LABEL_SCALE, makeStats("a", 50, 100));
     const firstArc = calls.find((call) => call.type === "arc");
     expect(firstArc?.args[2]).toBe(GRAPH_NODE_RADIUS_DEFAULT);
+  });
+});
+
+describe("ConceptGraphView Canvas confusion overlay (#21)", () => {
+  beforeEach(() => {
+    resetForceGraphMock();
+  });
+
+  const assignNodeCoords = () => {
+    const nodes = lastForceGraphProps.graphData?.nodes as { id: string; x?: number; y?: number }[];
+    for (const node of nodes ?? []) {
+      if (node.id === "a") {
+        node.x = 0;
+        node.y = 0;
+      }
+      if (node.id === "b") {
+        node.x = 20;
+        node.y = 0;
+      }
+      if (node.id === "c") {
+        node.x = 0;
+        node.y = 20;
+      }
+      if (node.id === "d") {
+        node.x = 20;
+        node.y = 20;
+      }
+    }
+  };
+
+  const collectSegments = (calls: CanvasCall[]) => {
+    let move: unknown[] | null = null;
+    let line: unknown[] | null = null;
+    const segments: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      lineWidth: number;
+      globalAlpha: number;
+    }[] = [];
+    for (const call of calls) {
+      if (call.type === "moveTo") {
+        move = call.args;
+      }
+      if (call.type === "lineTo") {
+        line = call.args;
+      }
+      if (call.type === "stroke" && move && line) {
+        segments.push({
+          x1: Number(move[0]),
+          y1: Number(move[1]),
+          x2: Number(line[0]),
+          y2: Number(line[1]),
+          lineWidth: call.lineWidth ?? 0,
+          globalAlpha: call.globalAlpha ?? 1
+        });
+      }
+    }
+    return segments;
+  };
+
+  const isSegment = (
+    segment: { x1: number; y1: number; x2: number; y2: number },
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number
+  ) =>
+    (segment.x1 === ax && segment.y1 === ay && segment.x2 === bx && segment.y2 === by) ||
+    (segment.x1 === bx && segment.y1 === by && segment.x2 === ax && segment.y2 === ay);
+
+  const renderConfusionFixture = () => {
+    const a = makeConcept("a", SHORT_TITLE);
+    const b = makeConcept("b", "別概念");
+    const c = makeConcept("c", "第三");
+    const d = makeConcept("d", "第四");
+    a.relatedIds = ["b"];
+    b.relatedIds = ["a"];
+    render(
+      <ConceptGraphView
+        concepts={[a, b, c, d]}
+        domainColorMap={{}}
+        onSelectConcept={vi.fn()}
+        confusionPairs={[
+          { selectedConceptId: "b", correctConceptId: "a", count: 1 },
+          { selectedConceptId: "a", correctConceptId: "b", count: 2 },
+          { selectedConceptId: "c", correctConceptId: "a", count: 6 },
+          { selectedConceptId: "x", correctConceptId: "a", count: 5 },
+          { selectedConceptId: "y", correctConceptId: "a", count: 2 },
+          { selectedConceptId: "x", correctConceptId: "b", count: 4 },
+          { selectedConceptId: "y", correctConceptId: "b", count: 2 },
+          { selectedConceptId: "z", correctConceptId: "c", count: 5 },
+          { selectedConceptId: "x", correctConceptId: "d", count: 1 }
+        ]}
+        confusionUniverseIds={["a", "b", "c", "d", "x", "y", "z"]}
+      />
+    );
+    assignNodeCoords();
+  };
+
+  it("OFF では混同 overlay を描画しない", async () => {
+    renderConfusionFixture();
+    const offMock = createCanvasContextMock();
+    lastForceGraphProps.onRenderFramePre?.(offMock.context, 1);
+    expect(offMock.calls.some((call) => call.type === "moveTo")).toBe(false);
+    expect(offMock.calls.some((call) => call.type === "lineTo")).toBe(false);
+    expect(offMock.calls.some((call) => call.type === "setLineDash")).toBe(false);
+    expect(offMock.calls.some((call) => call.type === "stroke")).toBe(false);
+  });
+
+  it("直接混同は save/restore・破線・moveTo/lineTo/stroke し、count 大の線が太い", async () => {
+    const user = userEvent.setup();
+    renderConfusionFixture();
+    await user.click(screen.getByRole("button", { name: "直接混同" }));
+    const mock = createCanvasContextMock();
+    lastForceGraphProps.onRenderFramePre?.(mock.context, 1);
+
+    expect(mock.calls.some((call) => call.type === "save")).toBe(true);
+    expect(mock.calls.some((call) => call.type === "restore")).toBe(true);
+    expect(mock.calls.some((call) => call.type === "moveTo")).toBe(true);
+    expect(mock.calls.some((call) => call.type === "lineTo")).toBe(true);
+    expect(mock.context.strokeStyle).toBe(DIRECT_CONFUSION_STROKE);
+
+    const dash = mock.calls.find((call) => call.type === "setLineDash");
+    expect(dash?.args[0]).toEqual([DIRECT_CONFUSION_DASH_LENGTH, DIRECT_CONFUSION_GAP_LENGTH]);
+
+    const segments = collectSegments(mock.calls);
+    const ab = segments.find((segment) => isSegment(segment, 0, 0, 20, 0));
+    const ac = segments.find((segment) => isSegment(segment, 0, 0, 0, 20));
+    expect(ab?.lineWidth).toBe(getDirectConfusionLineWidth(3));
+    expect(ac?.lineWidth).toBe(getDirectConfusionLineWidth(6));
+    expect(ac?.lineWidth ?? 0).toBeGreaterThan(ab?.lineWidth ?? 0);
+  });
+
+  it("混同近傍は点線で、similarity が高いほど lineWidth と opacity が大きい", async () => {
+    const user = userEvent.setup();
+    renderConfusionFixture();
+    await user.click(screen.getByRole("button", { name: "混同近傍" }));
+    const mock = createCanvasContextMock();
+    lastForceGraphProps.onRenderFramePre?.(mock.context, 1);
+
+    expect(mock.calls.some((call) => call.type === "save")).toBe(true);
+    expect(mock.calls.some((call) => call.type === "restore")).toBe(true);
+    expect(mock.context.strokeStyle).toBe(KNN_CONFUSION_STROKE);
+
+    const dash = mock.calls.find((call) => call.type === "setLineDash");
+    expect(dash?.args[0]).toEqual([KNN_CONFUSION_DASH_LENGTH, KNN_CONFUSION_GAP_LENGTH]);
+
+    const segments = collectSegments(mock.calls);
+    const ab = segments.find((segment) => isSegment(segment, 0, 0, 20, 0));
+    const ad = segments.find((segment) => isSegment(segment, 0, 0, 20, 20));
+    expect(ab).toBeDefined();
+    expect(ad).toBeDefined();
+    const simAB = cosineSimilaritySparse(
+      new Map([
+        ["b", 1],
+        ["c", 6],
+        ["x", 5],
+        ["y", 2]
+      ]),
+      new Map([
+        ["a", 2],
+        ["x", 4],
+        ["y", 2]
+      ])
+    );
+    const simAD = cosineSimilaritySparse(
+      new Map([
+        ["b", 1],
+        ["c", 6],
+        ["x", 5],
+        ["y", 2]
+      ]),
+      new Map([["x", 1]])
+    );
+    expect(ab?.lineWidth).toBe(getConfusionKnnLineWidth(simAB));
+    expect(ad?.lineWidth).toBe(getConfusionKnnLineWidth(simAD));
+    expect(ab?.globalAlpha).toBe(getConfusionKnnOpacity(simAB));
+    expect(ad?.globalAlpha).toBe(getConfusionKnnOpacity(simAD));
   });
 });

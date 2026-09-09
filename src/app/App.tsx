@@ -27,6 +27,7 @@ import {
   buildConceptQuizStatsMap
 } from "../utils/quiz/getConceptQuizStats";
 import { getConceptMastery } from "../utils/mastery/getConceptMastery";
+import { computeConfusionPairs } from "../utils/quizStats";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
@@ -219,6 +220,16 @@ export const App = () => {
   const conceptQuizStatsMap = useMemo(
     () => buildConceptQuizStatsMap(quizAttemptLogs),
     [quizAttemptLogs]
+  );
+
+  const confusionPairs = useMemo(
+    () => computeConfusionPairs(quizAttemptLogs),
+    [quizAttemptLogs]
+  );
+
+  const confusionUniverseIds = useMemo(
+    () => concepts.map((concept) => concept.id),
+    [concepts]
   );
 
   const conceptQuizStatsText = useMemo(
@@ -724,6 +735,8 @@ export const App = () => {
                         selectedId={selectedId}
                         onSelectConcept={handleGraphSelect}
                         conceptQuizStatsMap={conceptQuizStatsMap}
+                        confusionPairs={confusionPairs}
+                        confusionUniverseIds={confusionUniverseIds}
                       />
                     }
                     detail={
