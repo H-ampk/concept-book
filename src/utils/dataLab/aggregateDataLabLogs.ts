@@ -1,6 +1,7 @@
 import type { Concept } from "../../types/concept";
 import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
 import { isUsableReactionTimeMs, QUIZ_DECK_BUCKET_FREE } from "../quizStats";
+import { isoWeekKeyAndRange, lastLocalDayOfMonth, localYm, localYmd } from "./dataLabTimePeriod";
 import { getDataLabLogConceptId } from "./filterDataLabLogs";
 
 export type DataLabGroupBy = "concept" | "domain" | "deck" | "day" | "week" | "month";
@@ -52,8 +53,6 @@ type BucketAcc = {
   label: string;
 };
 
-const pad2 = (n: number): string => String(n).padStart(2, "0");
-
 const parseAnsweredAt = (value: string): Date | null => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -61,52 +60,6 @@ const parseAnsweredAt = (value: string): Date | null => {
   }
   return date;
 };
-
-const localYmd = (date: Date): string =>
-  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-
-const localYm = (date: Date): string => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
-
-const startOfLocalDay = (date: Date): Date =>
-  new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-/** ローカルカレンダー上、その日を含む週の月曜日 */
-const mondayOfLocalWeek = (date: Date): Date => {
-  const start = startOfLocalDay(date);
-  const day = start.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  return new Date(start.getFullYear(), start.getMonth(), start.getDate() + diff);
-};
-
-const addLocalDays = (date: Date, days: number): Date =>
-  new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
-
-/**
- * ISO week-year（木曜日が属する年）と週番号。キーは `YYYY-Www`。
- * `date.getFullYear()` をそのまま連結すると年末年始で週が割れるため使わない。
- */
-const isoWeekKeyAndRange = (
-  date: Date
-): { key: string; periodStart: string; periodEnd: string; label: string } => {
-  const monday = mondayOfLocalWeek(date);
-  const sunday = addLocalDays(monday, 6);
-  const thursday = addLocalDays(monday, 3);
-  const isoYear = thursday.getFullYear();
-  const week1Monday = mondayOfLocalWeek(new Date(isoYear, 0, 4));
-  const week =
-    Math.round((monday.getTime() - week1Monday.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-  const periodStart = localYmd(monday);
-  const periodEnd = localYmd(sunday);
-  return {
-    key: `${isoYear}-W${pad2(week)}`,
-    periodStart,
-    periodEnd,
-    label: `${periodStart} ～ ${periodEnd}`
-  };
-};
-
-const lastLocalDayOfMonth = (date: Date): string =>
-  localYmd(new Date(date.getFullYear(), date.getMonth() + 1, 0));
 
 const emptyBucket = (label: string, extra: Partial<BucketAcc> = {}): BucketAcc => ({
   attemptCount: 0,

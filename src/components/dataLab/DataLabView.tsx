@@ -16,6 +16,7 @@ import {
   filterDataLabLogs,
   type DataLabFilters
 } from "../../utils/dataLab/filterDataLabLogs";
+import { fillDataLabTimeSeries } from "../../utils/dataLab/fillDataLabTimeSeries";
 import { buildConceptMasteryMap } from "../../utils/mastery/getConceptMastery";
 import { OrnamentLine } from "../common/OrnamentLine";
 import { DataLabAddToResearchReportPanel } from "./DataLabAddToResearchReportPanel";
@@ -69,8 +70,13 @@ export const DataLabView = ({
       conceptById,
       deckById
     });
-    return attachDataLabConceptMastery(rows, masteryByConceptId, conceptById);
-  }, [filteredLogs, groupBy, conceptById, deckById, masteryByConceptId]);
+    const withMastery = attachDataLabConceptMastery(rows, masteryByConceptId, conceptById);
+    return fillDataLabTimeSeries(withMastery, {
+      groupBy,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo
+    });
+  }, [filteredLogs, groupBy, conceptById, deckById, masteryByConceptId, filters.dateFrom, filters.dateTo]);
 
   const handleGroupByChange = (nextGroupBy: DataLabGroupBy) => {
     const sanitized = sanitizeDataLabAnalysisMetrics({

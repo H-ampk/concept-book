@@ -41,7 +41,7 @@ describe("toDataLabLineChartPoints", () => {
     expect(points[0]?.value).toBeNull();
   });
 
-  it("存在しない期間の行を追加しない", () => {
+  it("入力行にない期間は追加しない（空期間補完は fillDataLabTimeSeries の責務）", () => {
     const points = toDataLabLineChartPoints(
       [
         row({ key: "2026-08-26", periodStart: "2026-08-26", periodEnd: "2026-08-26" }),
@@ -52,6 +52,15 @@ describe("toDataLabLineChartPoints", () => {
     );
     expect(points).toHaveLength(2);
     expect(points.map((point) => point.key)).not.toContain("2026-08-27");
+  });
+
+  it("正答率の欠損は null のまま渡し 0 にしない", () => {
+    const points = toDataLabLineChartPoints(
+      [row({ attemptCount: 0, correctCount: 0, incorrectCount: 0, accuracy: null })],
+      "day",
+      "accuracy"
+    );
+    expect(points[0]?.value).toBeNull();
   });
 
   it("日ラベルは 8/26 形式で、年をまたぐと年を付ける", () => {

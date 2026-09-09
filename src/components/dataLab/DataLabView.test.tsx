@@ -120,6 +120,50 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
   });
 
+  it("日集計ではログのない日を空期間として補完し、正答率は — になる", async () => {
+    const user = userEvent.setup();
+    const atLocal = (ymd: string): string => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(y!, m! - 1, d!, 12, 0, 0, 0).toISOString();
+    };
+    const gapLogs: QuizAttemptLog[] = [
+      log({
+        id: "day-1",
+        answeredAt: atLocal("2026-09-01"),
+        correct: true,
+        timeMs: 1000
+      }),
+      log({
+        id: "day-3",
+        answeredAt: atLocal("2026-09-03"),
+        correct: false,
+        timeMs: 2000
+      })
+    ];
+    render(
+      <DataLabView
+        logs={gapLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.selectOptions(screen.getByLabelText("集計軸"), "day");
+    const table = screen.getByTestId("data-lab-table");
+    expect(within(table).getByRole("rowheader", { name: "2026-09-01" })).toBeInTheDocument();
+    expect(within(table).getByRole("rowheader", { name: "2026-09-02" })).toBeInTheDocument();
+    expect(within(table).getByRole("rowheader", { name: "2026-09-03" })).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計結果: 3件");
+
+    const gapRow = within(table).getByRole("rowheader", { name: "2026-09-02" }).closest("tr");
+    expect(gapRow).not.toBeNull();
+    const gapCells = within(gapRow as HTMLElement).getAllByRole("cell");
+    expect(gapCells.map((cell) => cell.textContent)).toEqual(["0", "0", "0", "—", "—", "—"]);
+  });
+
   it("6集計軸を切り替え、先頭列名とラベルを表示する", async () => {
     const user = userEvent.setup();
     render(

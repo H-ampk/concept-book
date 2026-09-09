@@ -60,7 +60,11 @@ const LineChartTooltip = ({
     >
       <p className="font-medium text-celestial-textMain">{point.tooltipPeriod}</p>
       <p className="mt-2 text-xs text-celestial-textSub">{DATA_LAB_METRIC_LABELS[metric]}</p>
-      <p className="tabular-nums text-celestial-textMain">{formatDataLabMetricTooltipValue(metric, point.value)}</p>
+      <p className="tabular-nums text-celestial-textMain">
+        {point.attemptCount === 0 && point.value == null
+          ? "学習なし"
+          : formatDataLabMetricTooltipValue(metric, point.value)}
+      </p>
       <p className="mt-2 text-xs text-celestial-textSub">回答数</p>
       <p className="tabular-nums text-celestial-textMain">{formatDataLabMetricValue("attemptCount", point.attemptCount)}</p>
     </div>
