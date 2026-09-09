@@ -1,5 +1,14 @@
 import type { ConfusionPairStat } from "./quizStats";
 
+/** グラフ用。count または方向付き集計の confusionCount を受け取る */
+export type ConfusionEdgeCountInput = Pick<
+  ConfusionPairStat,
+  "selectedConceptId" | "correctConceptId"
+> & {
+  count?: number;
+  confusionCount?: number;
+};
+
 export type ConfusionGraphMode = "off" | "direct" | "knn";
 
 export type DirectConfusionEdge = {
@@ -65,11 +74,14 @@ const clamp01 = (value: number): number => {
   return Math.min(1, value);
 };
 
+const pairCount = (pair: ConfusionEdgeCountInput): number =>
+  usableCount(pair.count ?? pair.confusionCount ?? 0);
+
 /**
  * 方向付き混同ペアを無向の直接混同エッジへ変換する。入力は変更しない。
  */
 export const buildDirectConfusionEdges = (
-  pairs: readonly ConfusionPairStat[],
+  pairs: readonly ConfusionEdgeCountInput[],
   validConceptIds: ReadonlySet<string>
 ): DirectConfusionEdge[] => {
   const merged = new Map<string, DirectConfusionEdge>();
@@ -87,7 +99,7 @@ export const buildDirectConfusionEdges = (
       continue;
     }
 
-    const count = usableCount(pair.count);
+    const count = pairCount(pair);
     if (count <= 0) {
       continue;
     }
@@ -110,7 +122,7 @@ export const buildDirectConfusionEdges = (
  * 行 = correctConceptId、列 = selectedConceptId。
  */
 export const buildConfusionProfiles = (
-  pairs: readonly ConfusionPairStat[],
+  pairs: readonly ConfusionEdgeCountInput[],
   validConceptIds: ReadonlySet<string>
 ): Map<string, Map<string, number>> => {
   const profiles = new Map<string, Map<string, number>>();
@@ -128,7 +140,7 @@ export const buildConfusionProfiles = (
       continue;
     }
 
-    const count = usableCount(pair.count);
+    const count = pairCount(pair);
     if (count <= 0) {
       continue;
     }

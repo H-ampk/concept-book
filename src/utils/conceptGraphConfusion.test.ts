@@ -36,6 +36,18 @@ describe("buildDirectConfusionEdges", () => {
     ).toEqual([{ source: "A", target: "B", count: 5 }]);
   });
 
+  it("方向付き stat の confusionCount も合算できる", () => {
+    expect(
+      buildDirectConfusionEdges(
+        [
+          { selectedConceptId: "B", correctConceptId: "A", confusionCount: 2 },
+          { selectedConceptId: "A", correctConceptId: "B", confusionCount: 3 }
+        ],
+        new Set(["A", "B"])
+      )
+    ).toEqual([{ source: "A", target: "B", count: 5 }]);
+  });
+
   it("null ID のペアは除外する", () => {
     expect(
       buildDirectConfusionEdges(

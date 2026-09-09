@@ -2,11 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { QuizAttemptLog, QuizQuestion } from "../types/quiz";
+import {
+  computeConfusionAnalysis,
+  isSparseConfusionSample,
+  RECENT_CONFUSION_ATTEMPT_LIMIT,
+  type ConceptConfusionSummary,
+  type DirectedConfusionStat
+} from "../utils/confusionAnalysis";
 import { shortDateTime } from "../utils/date";
 import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
 import {
   computeConceptStats,
-  computeConfusionPairs,
   computeDeckStats,
   computeOverallSummary,
   computeQuestionStats,
@@ -32,6 +38,212 @@ const pctText = (rate: number): string => `${(rate * 100).toFixed(1)}%`;
 
 const lowAccuracyClass = (rate: number): string =>
   rate < 0.5 ? "text-amber-400/95" : "text-celestial-textMain";
+
+const shortDate = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+};
+
+const SparseSampleBadge = () => (
+  <span className="ml-2 inline-flex rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-300/90">
+    データ少
+  </span>
+);
+
+const ConfusionPairCard = ({
+  stat,
+  titleById
+}: {
+  stat: DirectedConfusionStat;
+  titleById: Map<string, string>;
+}) => {
+  const correctName = formatConceptRef(stat.correctConceptId, titleById);
+  const selectedName = formatConceptRef(stat.selectedConceptId, titleById);
+  const recentRateText =
+    stat.recentConfusionRate == null ? "—" : pctText(stat.recentConfusionRate);
+  return (
+    <article
+      className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 p-4 backdrop-blur-sm"
+      data-testid={`confusion-pair-${stat.correctConceptId}-${stat.selectedConceptId}`}
+    >
+      <p className="text-sm font-medium text-celestial-softGold">
+        {correctName}
+        {isSparseConfusionSample(stat.opportunityCount) ? <SparseSampleBadge /> : null}
+      </p>
+      <p className="mt-1 text-sm text-celestial-textMain">→ {selectedName}</p>
+      <p className="mt-1 text-xs text-celestial-textSub">
+        {correctName} を {selectedName} と誤答
+      </p>
+      <dl className="mt-3 grid gap-2 text-sm">
+        <div>
+          <dt className="text-xs text-celestial-textSub">全期間</dt>
+          <dd className="tabular-nums text-celestial-textMain">
+            {stat.confusionCount}回 / {stat.opportunityCount}回答
+          </dd>
+          <dd className="tabular-nums text-celestial-textMain">混同率 {pctText(stat.confusionRate)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-celestial-textSub">直近{RECENT_CONFUSION_ATTEMPT_LIMIT}回答</dt>
+          <dd className="tabular-nums text-celestial-textMain">
+            {stat.recentConfusionCount}回 / {stat.recentOpportunityCount}回答
+          </dd>
+          <dd className="tabular-nums text-celestial-textMain">直近混同率 {recentRateText}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-celestial-textSub">最終混同</dt>
+          <dd className="text-celestial-textMain">
+            {stat.lastConfusedAt ? shortDate(stat.lastConfusedAt) : "—"}
+          </dd>
+        </div>
+      </dl>
+    </article>
+  );
+};
+
+const ConfusionAnalysisSection = ({
+  directedStats,
+  conceptSummaries,
+  titleById
+}: {
+  directedStats: DirectedConfusionStat[];
+  conceptSummaries: ConceptConfusionSummary[];
+  titleById: Map<string, string>;
+}) => {
+  const [selectedConceptId, setSelectedConceptId] = useState("");
+  const resolvedConceptId = conceptSummaries.some((s) => s.conceptId === selectedConceptId)
+    ? selectedConceptId
+    : (conceptSummaries[0]?.conceptId ?? "");
+  const selectedSummary =
+    conceptSummaries.find((s) => s.conceptId === resolvedConceptId) ?? null;
+
+  return (
+    <>
+      <section aria-labelledby="quiz-analysis-confusion-heading" className="space-y-3">
+        <h2 id="quiz-analysis-confusion-heading" className="text-sm font-semibold text-celestial-softGold">
+          混同概念分析
+        </h2>
+        <p className="text-xs leading-relaxed text-celestial-textSub">
+          A → B は「正解 Concept は A だったが、B を選んだ」を意味します。逆方向の B → A は別の混同として表示します。
+        </p>
+        <p className="text-xs leading-relaxed text-celestial-textSub">
+          混同率は「正解Conceptが対象Conceptだった回答」に対する割合です。誤答選択肢として毎回同じConceptが提示されるとは限らないため、選択肢構成の影響を受けます。
+        </p>
+        <p className="text-xs leading-relaxed text-celestial-textSub">
+          直近の混同率は、対象 Concept の新しい回答から最大 {RECENT_CONFUSION_ATTEMPT_LIMIT}{" "}
+          件を分母にします。10 件未満なら存在する回答だけを使い、2/3 と 2/10 は同じものとして扱いません。
+        </p>
+        <p className="text-xs leading-relaxed text-celestial-textSub">
+          1 回の誤答も集計から消しません。ただし対象 Concept の回答数が少ない率には「データ少」を付け、回数・回答数・率を同時に表示します。
+        </p>
+        {directedStats.length === 0 ? (
+          <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-3 text-sm text-celestial-textSub">
+            方向付きの Concept 混同はまだありません。正解と選択の両方に linkedConceptId がある誤答があると、ここに表示されます。
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {directedStats.map((stat) => (
+              <ConfusionPairCard
+                key={`${stat.correctConceptId}\u0000${stat.selectedConceptId}`}
+                stat={stat}
+                titleById={titleById}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="quiz-analysis-confusion-by-concept-heading" className="space-y-3">
+        <h2
+          id="quiz-analysis-confusion-by-concept-heading"
+          className="text-sm font-semibold text-celestial-softGold"
+        >
+          Concept ごとのよく混同する Concept
+        </h2>
+        <p className="text-xs leading-relaxed text-celestial-textSub">
+          正解 Concept を選ぶと、その Concept をどれと取り違えたかを回数の多い順に確認できます。同数なら混同率で並べます。
+        </p>
+        {conceptSummaries.length === 0 ? (
+          <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-3 text-sm text-celestial-textSub">
+            正解の linkedConceptId がある回答がまだないため、Concept 単位の混同は表示できません。
+          </p>
+        ) : (
+          <div className="space-y-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm">
+            <div>
+              <label
+                htmlFor="quiz-analysis-confusion-concept"
+                className="mb-1.5 block text-xs font-medium text-celestial-textSub"
+              >
+                正解 Concept
+              </label>
+              <select
+                id="quiz-analysis-confusion-concept"
+                value={resolvedConceptId}
+                onChange={(e) => setSelectedConceptId(e.target.value)}
+                className="w-full max-w-md rounded-md border border-celestial-border/60 bg-nordic-navy/50 px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+              >
+                {conceptSummaries.map((summary) => (
+                  <option key={summary.conceptId} value={summary.conceptId}>
+                    {formatConceptRef(summary.conceptId, titleById)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedSummary ? (
+              <div>
+                <p className="text-base font-medium text-celestial-softGold">
+                  {formatConceptRef(selectedSummary.conceptId, titleById)}
+                  {isSparseConfusionSample(selectedSummary.opportunityCount) ? (
+                    <SparseSampleBadge />
+                  ) : null}
+                </p>
+                <p className="mt-1 text-xs tabular-nums text-celestial-textSub">
+                  対象回答 {selectedSummary.opportunityCount} 回 · 別 Concept への誤選択{" "}
+                  {selectedSummary.totalConfusionCount} 回 · 混同率{" "}
+                  {pctText(selectedSummary.confusionRate)}
+                </p>
+                <h3 className="mt-4 text-sm font-semibold text-celestial-textMain">よく混同するConcept</h3>
+                {selectedSummary.targets.length === 0 ? (
+                  <p className="mt-2 text-sm text-celestial-textSub">
+                    この Concept では、別 Concept への混同はまだありません。
+                  </p>
+                ) : (
+                  <ol className="mt-2 space-y-3">
+                    {selectedSummary.targets.map((target, index) => {
+                      const name = formatConceptRef(target.selectedConceptId, titleById);
+                      return (
+                        <li
+                          key={target.selectedConceptId}
+                          className="border-b border-celestial-border/30 pb-3 last:border-0 last:pb-0"
+                        >
+                          <p className="text-sm text-celestial-textMain">
+                            {index + 1}. {name}
+                          </p>
+                          <p className="mt-1 text-sm tabular-nums text-celestial-textSub">
+                            {target.confusionCount}回 / {target.opportunityCount}回答
+                          </p>
+                          <p className="text-sm tabular-nums text-celestial-textMain">
+                            {pctText(target.confusionRate)}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </section>
+    </>
+  );
+};
 
 export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearningLogs }: Props) => {
   const [logs, setLogs] = useState<QuizAttemptLog[]>([]);
@@ -78,7 +290,10 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
   const deckStats = useMemo(() => computeDeckStats(logsInPeriod), [logsInPeriod]);
   const questionStats = useMemo(() => computeQuestionStats(logsInPeriod), [logsInPeriod]);
   const conceptStats = useMemo(() => computeConceptStats(logsInPeriod), [logsInPeriod]);
-  const confusionPairs = useMemo(() => computeConfusionPairs(logsInPeriod), [logsInPeriod]);
+  const confusionAnalysis = useMemo(
+    () => computeConfusionAnalysis(logsInPeriod),
+    [logsInPeriod]
+  );
   const recent = useMemo(() => recentLogsSorted(logsInPeriod, RECENT_LIMIT), [logsInPeriod]);
 
   const resetDateRange = () => {
@@ -471,54 +686,11 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
             </div>
           </section>
 
-          <section aria-labelledby="quiz-analysis-confusion-heading" className="space-y-3">
-            <h2 id="quiz-analysis-confusion-heading" className="text-sm font-semibold text-celestial-softGold">
-              誤答時の Concept 取り違え（簡易）
-            </h2>
-            <p className="text-xs text-celestial-textSub">
-              不正解のログだけを対象に、選択肢の linkedConceptId と正解肢の linkedConceptId の組み合わせを数えます。リンクが無い側は「未分類」として表示します。
-            </p>
-            {confusionPairs.length === 0 ? (
-              <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-3 text-sm text-celestial-textSub">
-                該当する不正解ログはまだありません。
-              </p>
-            ) : (
-              <div className="overflow-x-auto scrollbar-none rounded-xl border border-celestial-border/70 bg-nordic-navy/35 backdrop-blur-sm">
-                <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-                  <caption className="sr-only">誤答時に選んだ Concept と正解 Concept の組み合わせ別件数</caption>
-                  <thead>
-                    <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                      <th scope="col" className="px-4 py-3 font-medium">
-                        選んだ Concept
-                      </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
-                        正解 Concept
-                      </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
-                        件数
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {confusionPairs.map((p) => (
-                      <tr
-                        key={`${p.selectedConceptId ?? ""}-${p.correctConceptId ?? ""}`}
-                        className="border-b border-celestial-border/30 last:border-0"
-                      >
-                        <td className="px-4 py-3 text-celestial-textMain">
-                          {formatConceptRef(p.selectedConceptId, titleById)}
-                        </td>
-                        <td className="px-4 py-3 text-celestial-textMain">
-                          {formatConceptRef(p.correctConceptId, titleById)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums text-celestial-textMain">{p.count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          <ConfusionAnalysisSection
+            directedStats={confusionAnalysis.directedStats}
+            conceptSummaries={confusionAnalysis.conceptSummaries}
+            titleById={titleById}
+          />
 
           <section aria-labelledby="quiz-analysis-recent-heading" className="space-y-3">
             <h2 id="quiz-analysis-recent-heading" className="text-sm font-semibold text-celestial-softGold">

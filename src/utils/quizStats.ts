@@ -1,4 +1,5 @@
 import type { QuizAttemptLog } from "../types/quiz";
+import { computeDirectedConfusionStats, toConfusionPairCounts } from "./confusionAnalysis";
 import { resolveConceptIdFromLog } from "./quiz/resolveConceptIdFromLog";
 
 /**
@@ -309,29 +310,13 @@ export const computeConceptStats = (logs: QuizAttemptLog[]): ConceptStat[] => {
   return rows;
 };
 
-const pairKey = (a: string | null, b: string | null): string =>
-  `${a ?? ""}\u0000${b ?? ""}`;
-
-export const computeConfusionPairs = (logs: QuizAttemptLog[]): ConfusionPairStat[] => {
-  const map = new Map<string, ConfusionPairStat>();
-
-  for (const log of logs) {
-    if (log.correct) {
-      continue;
-    }
-    const selected = log.selectedLinkedConceptId ?? null;
-    const correct = log.correctLinkedConceptId ?? null;
-    const k = pairKey(selected, correct);
-    const cur = map.get(k);
-    if (cur) {
-      cur.count += 1;
-    } else {
-      map.set(k, { selectedConceptId: selected, correctConceptId: correct, count: 1 });
-    }
-  }
-
-  return [...map.values()].sort((a, b) => b.count - a.count);
-};
+/**
+ * 方向付き混同分析の compatibility wrapper。
+ * 独立した別集計ではなく、computeDirectedConfusionStats の confusionCount を count に写す。
+ * 不完全ログ（linkedConceptId 欠損）と self pair は有効な Concept pair に含めない。
+ */
+export const computeConfusionPairs = (logs: QuizAttemptLog[]): ConfusionPairStat[] =>
+  toConfusionPairCounts(computeDirectedConfusionStats(logs));
 
 export const recentLogsSorted = (logs: QuizAttemptLog[], limit: number): QuizAttemptLog[] =>
   [...logs].sort((a, b) => b.answeredAt.localeCompare(a.answeredAt)).slice(0, limit);
