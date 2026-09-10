@@ -11,6 +11,7 @@ import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 import { downloadBlob } from "../utils/downloadFile";
 import { buildLearningLogCsv, learningLogCsvFilename } from "../utils/quiz/learningLogExport";
 import { AISettingsSection } from "./AISettingsSection";
+import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const storage = getStorage();
@@ -200,9 +201,11 @@ export const SettingsPage = ({
       <header>
         <h2 className="text-lg font-semibold text-celestial-textMain">設定</h2>
         <p className="text-sm text-celestial-textSub">
-          バックアップ・復元、データエクスポート、ローカルAI、PWA運用状態を管理します。
+          外観、バックアップ・復元、データエクスポート、ローカルAI、PWA運用状態を管理します。
         </p>
       </header>
+
+      <AppearanceSettingsSection />
 
       <AISettingsSection />
 

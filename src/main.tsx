@@ -2,7 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import { App } from "./app/App";
+import { ThemeProvider, hydrateTheme } from "./theme";
 import "./index.css";
+
+hydrateTheme();
 
 registerSW({ immediate: true });
 
@@ -14,7 +17,9 @@ const boot = async () => {
     const { ConceptGraphConfusionHarness } = await import("./dev/ConceptGraphConfusionHarness");
     root.render(
       <React.StrictMode>
-        <ConceptGraphConfusionHarness />
+        <ThemeProvider>
+          <ConceptGraphConfusionHarness />
+        </ThemeProvider>
       </React.StrictMode>
     );
     return;
@@ -24,7 +29,9 @@ const boot = async () => {
     const { ConceptGraphPerformanceHarness } = await import("./dev/ConceptGraphPerformanceHarness");
     root.render(
       <React.StrictMode>
-        <ConceptGraphPerformanceHarness />
+        <ThemeProvider>
+          <ConceptGraphPerformanceHarness />
+        </ThemeProvider>
       </React.StrictMode>
     );
     return;
@@ -34,7 +41,9 @@ const boot = async () => {
     const { GraphWorkspaceE2eHarness } = await import("./dev/GraphWorkspaceE2eHarness");
     root.render(
       <React.StrictMode>
-        <GraphWorkspaceE2eHarness />
+        <ThemeProvider>
+          <GraphWorkspaceE2eHarness />
+        </ThemeProvider>
       </React.StrictMode>
     );
     return;
@@ -44,7 +53,9 @@ const boot = async () => {
     const { ListWorkspaceE2eHarness } = await import("./dev/ListWorkspaceE2eHarness");
     root.render(
       <React.StrictMode>
-        <ListWorkspaceE2eHarness />
+        <ThemeProvider>
+          <ListWorkspaceE2eHarness />
+        </ThemeProvider>
       </React.StrictMode>
     );
     return;
@@ -54,7 +65,9 @@ const boot = async () => {
     const { ConceptRelationsE2eHarness } = await import("./dev/ConceptRelationsE2eHarness");
     root.render(
       <React.StrictMode>
-        <ConceptRelationsE2eHarness />
+        <ThemeProvider>
+          <ConceptRelationsE2eHarness />
+        </ThemeProvider>
       </React.StrictMode>
     );
     return;
@@ -64,7 +77,9 @@ const boot = async () => {
     const { SkillTreeE2eHarness } = await import("./dev/SkillTreeE2eHarness");
     root.render(
       <React.StrictMode>
-        <SkillTreeE2eHarness />
+        <ThemeProvider>
+          <SkillTreeE2eHarness />
+        </ThemeProvider>
       </React.StrictMode>
     );
     return;
@@ -72,7 +87,9 @@ const boot = async () => {
 
   root.render(
     <React.StrictMode>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </React.StrictMode>
   );
 };

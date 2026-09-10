@@ -18,6 +18,11 @@ import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
 import { resolveQuizConceptDefinition } from "../utils/resolveQuizConceptDefinition";
 import { resolveQuizContextDefinition } from "../utils/resolveQuizContextDefinition";
+import {
+  quizPlayChoiceButtonClass,
+  quizPlayChoiceRadioClass,
+  quizPlayChoiceUsesSelectedTheme
+} from "../utils/quizPlayChoiceAppearance";
 import { AnswerReviewPanel, type AnswerReviewItem } from "./AnswerReviewPanel";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -751,18 +756,9 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 {visibleChoices.map((c) => {
                     const isSel = selectedChoiceId === c.id;
                     const isCorr = c.id === currentQuestion.correctChoiceId;
-                    let borderCls = "border-celestial-border/80 hover:border-celestial-gold/35";
-                    if (answered) {
-                      if (isCorr) {
-                        borderCls = "border-celestial-gold/60 bg-celestial-gold/10";
-                      } else if (isSel && !isCorr) {
-                        borderCls = "border-celestial-danger/45 bg-celestial-danger/5";
-                      } else {
-                        borderCls = "border-celestial-border/50 opacity-70";
-                      }
-                    } else if (isSel) {
-                      borderCls = "border-celestial-gold ring-2 ring-celestial-gold/35";
-                    }
+                    const choiceState = { answered, isSelected: isSel, isCorrectChoice: isCorr };
+                    const borderCls = quizPlayChoiceButtonClass(choiceState);
+                    const usesSelectedTheme = quizPlayChoiceUsesSelectedTheme(choiceState);
                     return (
                       <button
                         key={c.id}
@@ -771,12 +767,12 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                         aria-checked={isSel}
                         disabled={answered}
                         onClick={() => !answered && setSelectedChoiceId(c.id)}
-                        className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm text-celestial-textMain transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50 disabled:cursor-default ${borderCls}`}
+                        className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50 disabled:cursor-default ${
+                          usesSelectedTheme ? "" : "text-celestial-textMain"
+                        } ${borderCls}`}
                       >
                         <span
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
-                            isSel ? "border-celestial-gold bg-celestial-gold/20" : "border-celestial-border"
-                          }`}
+                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${quizPlayChoiceRadioClass(choiceState)}`}
                           aria-hidden
                         >
                           {isSel ? "●" : ""}

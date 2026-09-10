@@ -383,7 +383,7 @@ export const QuizDeckFormModal = ({
                   type="button"
                   className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
                     draft.visibility === v
-                      ? "border-celestial-gold bg-celestial-gold/15 text-celestial-textMain"
+                      ? "theme-selected"
                       : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
                   }`}
                   onClick={() => setDraft((d) => ({ ...d, visibility: v as QuizVisibility }))}

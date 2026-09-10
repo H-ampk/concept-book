@@ -6,8 +6,22 @@
   font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text-primary);
   background-color: var(--bg-main);
+  color-scheme: light;
+  /* ユーザー指定 4 色（JS が上書き）。light の標準値 */
+  --theme-background: #f5f0e8;
+  --theme-header: #587487;
+  --theme-header-deep: #4e6879;
+  --theme-header-text: #f9fbfc;
+  --theme-button: #5e7e93;
+  --theme-button-hover: #516f82;
+  --theme-button-active: #4a6272;
+  --theme-button-text: #f9fbfc;
+  --theme-button-selected: #8ca9ba;
+  --theme-button-selected-hover: #9bb6c6;
+  --theme-button-selected-text: #24313a;
+
   /* Danish Study Library — 生成り・紙面・青灰ブランド（氷色を抑えた暖みのある書斎） */
-  --bg-main: #f5f0e8;
+  --bg-main: var(--theme-background);
   --bg-main-soft: #faf6ef;
   --bg-muted: #efe8dd;
   --paper-bg: #fffdf8;
@@ -19,13 +33,20 @@
   --bg-input: var(--paper-bg);
   --overlay-bg: rgba(52, 58, 64, 0.38);
 
-  --header-gradient: linear-gradient(135deg, #587487 0%, #4e6879 100%);
+  --header-gradient: linear-gradient(135deg, var(--theme-header) 0%, var(--theme-header-deep) 100%);
 
   --card-face: linear-gradient(180deg, #fffdf8 0%, #fcf8f1 52%, #f8f1e7 100%);
   --card-face-hover: linear-gradient(180deg, #fffef9 0%, #faf4ea 100%);
-  --card-face-selected: linear-gradient(145deg, #5e7e93 0%, #516f82 100%);
-  /* 選択中カード hover：青灰を維持しつつわずかに明るく */
-  --card-face-selected-hover: linear-gradient(145deg, #6d8fa3 0%, #5f7f94 100%);
+  --card-face-selected: linear-gradient(
+    145deg,
+    var(--theme-button-selected) 0%,
+    var(--theme-button-selected-hover) 100%
+  );
+  --card-face-selected-hover: linear-gradient(
+    145deg,
+    var(--theme-button-selected-hover) 0%,
+    var(--theme-button-selected) 100%
+  );
   --detail-panel-face: linear-gradient(180deg, #fffdf8 0%, #faf6ef 100%);
 
   --text-primary: #24313a;
@@ -40,8 +61,8 @@
   --text-on-card-sub: rgba(249, 251, 252, 0.92);
   --text-on-card-muted: rgba(249, 251, 252, 0.78);
 
-  --brand-primary: #5e7e93;
-  --brand-primary-hover: #516f82;
+  --brand-primary: var(--theme-button);
+  --brand-primary-hover: var(--theme-button-hover);
   --brand-primary-soft: #dcd6cf;
   --accent-wood: #b89d7b;
   --accent-brass: #c5ae86;
@@ -49,7 +70,7 @@
   --accent-line-blue: #9aaeba;
   --accent-sage-soft: #c7d1c7;
 
-  --focus-ring: rgba(94, 126, 147, 0.38);
+  --focus-ring: color-mix(in srgb, var(--theme-button) 38%, transparent);
   --border-soft: rgba(128, 109, 86, 0.16);
   --border-blue-soft: rgba(91, 115, 133, 0.14);
   --border-mid: rgba(128, 109, 86, 0.22);
@@ -74,10 +95,10 @@
   --green-glow: rgba(94, 126, 147, 0.12);
   --green-glow-strong: rgba(94, 126, 147, 0.22);
 
-  --orange-action: var(--brand-primary);
-  --orange-action-hover: var(--brand-primary-hover);
-  --orange-action-active: #4a6272;
-  --orange-action-text: var(--text-on-dark);
+  --orange-action: var(--theme-button);
+  --orange-action-hover: var(--theme-button-hover);
+  --orange-action-active: var(--theme-button-active);
+  --orange-action-text: var(--theme-button-text);
   --orange-action-glow: rgba(94, 126, 147, 0.2);
 
   --glass-bg: rgba(255, 253, 248, 0.96);
@@ -109,6 +130,59 @@
   --neon: var(--green-neon);
   --neon-soft: var(--green-acid);
   --deep-emerald: var(--green-deep);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --theme-background: #182028;
+  --theme-header: #3a5060;
+  --theme-header-deep: #2f414e;
+  --theme-header-text: #f9fbfc;
+  --theme-button: #5e7e93;
+  --theme-button-hover: #6d8fa3;
+  --theme-button-active: #4a6272;
+  --theme-button-text: #f9fbfc;
+  --theme-button-selected: #8ca9ba;
+  --theme-button-selected-hover: #9bb6c6;
+  --theme-button-selected-text: #24313a;
+
+  --bg-main-soft: #1c262e;
+  --bg-muted: #151c22;
+  --paper-bg: #24313a;
+  --paper-warm: #1e2a32;
+  --panel-bg-opaque: #24313a;
+  --surface-bg: #24313a;
+  --overlay-bg: rgba(8, 12, 16, 0.58);
+
+  --card-face: linear-gradient(180deg, #2a3842 0%, #24313a 52%, #1e2a32 100%);
+  --card-face-hover: linear-gradient(180deg, #31444f 0%, #2a3842 100%);
+  --detail-panel-face: linear-gradient(180deg, #2a3842 0%, #24313a 100%);
+
+  --text-primary: #e8eef2;
+  --text-secondary: #a8b6be;
+  --text-muted: #8a969c;
+  --text-soft: rgba(232, 238, 242, 0.58);
+  --text-placeholder: #8a969c;
+  --text-disabled: rgba(168, 182, 190, 0.45);
+
+  --brand-primary-soft: #3a4650;
+  --border-soft: rgba(154, 174, 186, 0.16);
+  --border-blue-soft: rgba(140, 169, 186, 0.2);
+  --border-mid: rgba(154, 174, 186, 0.24);
+  --border-strong: rgba(154, 174, 186, 0.32);
+  --selected-card-border: rgba(140, 169, 186, 0.42);
+  --card-accent-line: rgba(140, 169, 186, 0.16);
+
+  --glass-bg: rgba(36, 49, 58, 0.96);
+  --glass-bg-hover: #2a3842;
+  --glass-bg-active: #24313a;
+  --shadow-panel: 0 8px 22px rgba(0, 0, 0, 0.28);
+  --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.24);
+  --shadow-header: 0 10px 28px rgba(0, 0, 0, 0.32);
+  --glass-shadow: var(--shadow-panel), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --glass-shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-shadow-active: var(--shadow-card);
+  --filter-panel-bg: var(--panel-bg-opaque);
 }
 
 /* ─── 禁術端末：静かなネオンの呼吸（常時は最小限・prefers-reduced-motion 対応） ─── */
@@ -177,13 +251,13 @@ body {
 /* ─── アプリヘッダー：デンマーク書斎・青灰（マット） ─── */
 .app-header-shell.app-header {
   background: var(--header-gradient);
-  border-bottom: 1px solid rgba(255, 253, 250, 0.12);
+  border-bottom: 1px solid color-mix(in srgb, var(--theme-header-text) 12%, transparent);
   box-shadow: var(--shadow-header);
-  color: var(--text-on-dark);
+  color: var(--theme-header-text);
 }
 
 .app-header-shell.app-header .ritual-title {
-  color: var(--text-on-dark);
+  color: var(--theme-header-text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
@@ -222,10 +296,10 @@ body {
 }
 
 .app-header-shell.app-header .header-nav-button.header-nav-button--active {
-  color: #fff;
+  color: var(--theme-header-text);
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
-  border-bottom-color: rgba(210, 231, 239, 0.55);
+  background: color-mix(in srgb, var(--theme-button-selected) 28%, transparent);
+  border-bottom-color: var(--theme-button-selected);
   box-shadow: none;
 }
 
@@ -1064,16 +1138,19 @@ body {
   font-weight: 600;
 }
 
-.concept-index-item-selected .concept-index-search-hit-label {
-  color: var(--text-secondary);
+.concept-index-item-selected .concept-index-search-hit-label,
+.concept-index-item-selected .concept-index-search-hit-text,
+.concept-index-item-selected .concept-index-learning,
+.concept-index-item-selected .concept-index-tag--muted {
+  color: color-mix(in srgb, var(--theme-button-selected-text) 78%, transparent);
 }
 
 .concept-index-item-selected .concept-search-mark {
-  background: rgba(125, 180, 210, 0.36);
+  background: color-mix(in srgb, var(--theme-button-selected-text) 22%, transparent);
 }
 
 .concept-index-item-selected {
-  background: rgba(91, 115, 133, 0.05);
+  background: var(--card-face-selected);
 }
 
 .concept-index-item-selected::before {
@@ -1084,16 +1161,17 @@ body {
   bottom: 0.45rem;
   width: 2px;
   border-radius: 1px;
-  background: rgba(91, 115, 133, 0.42);
+  background: var(--theme-button-selected-text);
+  opacity: 0.45;
 }
 
 .concept-index-item-selected .concept-index-item-title {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--theme-button-selected-text);
 }
 
 .concept-index-item-selected .concept-index-item-button:hover {
-  background: rgba(91, 115, 133, 0.06);
+  background: var(--card-face-selected-hover);
 }
 
 .concept-index-item .study-status-badge {
@@ -1107,7 +1185,7 @@ body {
 }
 
 .concept-index-item-selected .study-status-badge {
-  color: var(--text-primary) !important;
+  color: var(--theme-button-selected-text) !important;
 }
 
 .concept-index-groups {
@@ -1206,10 +1284,10 @@ body {
 }
 
 .index-filter-tab--active {
-  color: var(--text-primary);
+  color: var(--theme-button-selected-text);
   font-weight: 600;
-  background: rgba(91, 115, 133, 0.06);
-  border-bottom-color: rgba(91, 115, 133, 0.42);
+  background: var(--theme-button-selected);
+  border-bottom-color: var(--theme-button-selected);
 }
 
 .index-filter-chip {
@@ -1219,11 +1297,11 @@ body {
 }
 
 .index-filter-chip--active {
-  color: var(--text-primary);
+  color: var(--theme-button-selected-text);
   font-weight: 600;
-  background: rgba(91, 115, 133, 0.06);
+  background: var(--theme-button-selected);
   text-decoration: underline;
-  text-decoration-color: rgba(91, 115, 133, 0.35);
+  text-decoration-color: color-mix(in srgb, var(--theme-button-selected-text) 45%, transparent);
   text-underline-offset: 3px;
 }
 
@@ -1237,10 +1315,10 @@ body {
 }
 
 .index-filter-toggle--active {
-  color: var(--text-primary);
+  color: var(--theme-button-selected-text);
   font-weight: 600;
-  background: rgba(91, 115, 133, 0.06);
-  border-bottom-color: rgba(91, 115, 133, 0.42);
+  background: var(--theme-button-selected);
+  border-bottom-color: var(--theme-button-selected);
 }
 
 .detail-action-button {
@@ -1375,8 +1453,8 @@ body {
 
 .search-input {
   width: 100%;
-  border: 1px solid rgba(110, 140, 155, 0.22);
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-ice);
+  background: var(--bg-input);
   border-radius: 8px;
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
@@ -1410,8 +1488,8 @@ body {
 
 
 .bg-celestial-deepBlue {
-  background-image: linear-gradient(180deg, rgba(255, 253, 248, 0.95), rgba(248, 241, 231, 0.5));
-  background-color: rgba(252, 248, 241, 0.92);
+  background-image: linear-gradient(180deg, var(--paper-bg), color-mix(in srgb, var(--paper-warm) 50%, transparent));
+  background-color: var(--panel-bg-opaque);
 }
 
 .bg-radial-gradient {
@@ -1430,9 +1508,9 @@ body {
 
 /* 主要アクション：青灰ブランド + 生成り上の白文字 */
 .action-button {
-  background: linear-gradient(135deg, #5e7e93 0%, #516f82 100%);
-  color: var(--text-on-dark);
-  border: 1px solid rgba(255, 253, 250, 0.28);
+  background: linear-gradient(135deg, var(--theme-button) 0%, var(--theme-button-hover) 100%);
+  color: var(--theme-button-text);
+  border: 1px solid color-mix(in srgb, var(--theme-button-text) 28%, transparent);
   box-shadow: none;
   font-weight: 600;
   border-radius: 8px;
@@ -1440,14 +1518,15 @@ body {
 }
 
 .action-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #637f93 0%, #567487 100%);
-  border-color: rgba(255, 253, 250, 0.36);
+  background: var(--theme-button-hover);
+  border-color: color-mix(in srgb, var(--theme-button-text) 36%, transparent);
   box-shadow: none;
   transform: none;
   filter: none !important;
 }
 
 .action-button:active:not(:disabled) {
+  background: var(--theme-button-active);
   transform: none;
   box-shadow: none;
 }
@@ -1478,16 +1557,29 @@ body {
 }
 
 button.bg-celestial-gold {
-  background: linear-gradient(135deg, #5e7e93 0%, #516f82 100%);
-  color: var(--text-on-dark);
-  border: 1px solid rgba(255, 253, 250, 0.3);
+  background: linear-gradient(135deg, var(--theme-button) 0%, var(--theme-button-hover) 100%);
+  color: var(--theme-button-text);
+  border: 1px solid color-mix(in srgb, var(--theme-button-text) 30%, transparent);
   box-shadow: var(--shadow-card);
 }
 
 button.bg-celestial-gold:hover {
-  background: linear-gradient(135deg, #6a8ba0 0%, #5a7890 100%);
-  border-color: rgba(255, 253, 250, 0.42);
+  background: var(--theme-button-hover);
+  border-color: color-mix(in srgb, var(--theme-button-text) 42%, transparent);
   box-shadow: var(--glass-shadow-hover);
+}
+
+.theme-selected {
+  background: var(--theme-button-selected);
+  color: var(--theme-button-selected-text);
+  border-color: var(--theme-button-selected);
+}
+
+.theme-selected:hover,
+.theme-selected:hover:not(:disabled) {
+  background: var(--theme-button-selected-hover);
+  color: var(--theme-button-selected-text);
+  filter: none !important;
 }
 
 button:hover {
@@ -1505,7 +1597,8 @@ button:hover {
 .concept-index-item-button,
 .concept-index-group-toggle,
 .action-button,
-.search-input {
+.search-input,
+.theme-selected {
   box-shadow: none !important;
 }
 
@@ -1519,7 +1612,8 @@ button:hover {
 .index-text-button:hover,
 .concept-index-item-button:hover,
 .concept-index-group-toggle:hover,
-.action-button:hover:not(:disabled) {
+.action-button:hover:not(:disabled),
+.theme-selected:hover {
   filter: none !important;
 }
 
@@ -1766,7 +1860,7 @@ textarea::placeholder {
   select {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(255, 255, 255, 0.78) !important;
+    background: var(--bg-input) !important;
   }
 
   .tag-chip:hover,

@@ -1,71 +1,72 @@
 /** @type {import('tailwindcss').Config} */
+const withAlpha = (cssVar) =>
+  `color-mix(in srgb, var(${cssVar}) calc(<alpha-value> * 100%), transparent)`;
+
 module.exports = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        ink: "#24313A",
-        paper: "#FFFDF8",
-        accent: "#5E7E93",
+        ink: withAlpha("--text-primary"),
+        paper: withAlpha("--paper-bg"),
+        accent: withAlpha("--theme-button"),
         nordic: {
-          bg: "#F5F0E8",
-          bgAlt: "#FAF6EF",
-          muted: "#EFE8DD",
-          section: "rgba(128, 109, 86, 0.06)",
-          surface: "rgba(255, 253, 248, 0.94)",
-          card: "#FFFDF8",
-          cardHover: "#FCF8F1",
-          cardBorder: "rgba(128, 109, 86, 0.16)",
-          cardAction: "rgba(220, 214, 207, 0.65)",
-          cardActionHover: "rgba(220, 214, 207, 0.85)",
-          gold: "#9AAEBA",
-          border: "rgba(128, 109, 86, 0.16)",
-          textPrimary: "#24313A",
-          textSecondary: "#5F6D74",
-          textMuted: "#7B7770",
-          textDisabled: "rgba(110, 104, 96, 0.55)",
-          textOnDark: "#F9FBFC",
-          primary: "#DCD6CF",
-          accent: "#5E7E93",
-          sage: "#6C8AA0",
-          blue: "#5E7E93",
-          navy: "rgba(128, 109, 86, 0.1)",
-          statusGreenBg: "rgba(255, 253, 248, 0.16)",
-          statusGreenText: "#F9FBFC",
-          overlay: "rgba(52, 58, 64, 0.38)"
+          bg: withAlpha("--bg-main"),
+          bgAlt: withAlpha("--bg-main-soft"),
+          muted: withAlpha("--bg-muted"),
+          section: withAlpha("--border-soft"),
+          surface: withAlpha("--glass-bg"),
+          card: withAlpha("--bg-card"),
+          cardHover: withAlpha("--glass-bg-hover"),
+          cardBorder: withAlpha("--border-soft"),
+          cardAction: withAlpha("--brand-primary-soft"),
+          cardActionHover: withAlpha("--brand-primary-soft"),
+          gold: withAlpha("--accent-line-blue"),
+          border: withAlpha("--border-soft"),
+          textPrimary: withAlpha("--text-primary"),
+          textSecondary: withAlpha("--text-secondary"),
+          textMuted: withAlpha("--text-muted"),
+          textDisabled: withAlpha("--text-disabled"),
+          textOnDark: withAlpha("--theme-header-text"),
+          primary: withAlpha("--brand-primary-soft"),
+          accent: withAlpha("--theme-button"),
+          sage: withAlpha("--status-active"),
+          blue: withAlpha("--theme-button"),
+          navy: withAlpha("--border-soft"),
+          statusGreenBg: withAlpha("--theme-header-text"),
+          statusGreenText: withAlpha("--theme-header-text"),
+          overlay: withAlpha("--overlay-bg")
         },
         celestial: {
-          base: "#F5F0E8",
-          deepBlue: "#FCF8F1",
-          panel: "rgba(255, 253, 248, 0.96)",
-          panelHover: "#FFFDF8",
-          gold: "#5E7E93",
-          softGold: "#516F82",
-          textMain: "#24313A",
-          textSub: "rgba(95, 109, 116, 0.92)",
-          border: "rgba(128, 109, 86, 0.16)",
-          shadow:
-            "0 8px 22px rgba(88, 76, 62, 0.07), inset 0 1px 0 rgba(255, 253, 248, 0.8), inset 0 0 0 1px rgba(128, 109, 86, 0.06)",
-          emerald: "#516F82",
-          danger: "#E11D48",
-          onCard: "#F9FBFC",
-          onCardSub: "rgba(249, 251, 252, 0.92)",
-          onCardMuted: "rgba(249, 251, 252, 0.78)"
+          base: withAlpha("--bg-main"),
+          deepBlue: withAlpha("--panel-bg-opaque"),
+          panel: withAlpha("--glass-bg"),
+          panelHover: withAlpha("--glass-bg-hover"),
+          gold: withAlpha("--theme-button"),
+          softGold: withAlpha("--theme-button-hover"),
+          textMain: withAlpha("--text-primary"),
+          textSub: withAlpha("--text-secondary"),
+          border: withAlpha("--border-soft"),
+          shadow: "var(--glass-shadow)",
+          emerald: withAlpha("--theme-button-hover"),
+          danger: withAlpha("--danger-red"),
+          onCard: withAlpha("--text-on-card"),
+          onCardSub: withAlpha("--text-on-card-sub"),
+          onCardMuted: withAlpha("--text-on-card-muted")
         },
         action: {
-          DEFAULT: "#5E7E93",
-          hover: "#516F82",
-          active: "#4A6272",
-          text: "#F9FBFC",
-          glow: "rgba(94, 126, 147, 0.18)"
+          DEFAULT: withAlpha("--theme-button"),
+          hover: withAlpha("--theme-button-hover"),
+          active: withAlpha("--theme-button-active"),
+          text: withAlpha("--theme-button-text"),
+          glow: withAlpha("--focus-ring")
         }
       },
       boxShadow: {
-        quiet: "0 8px 22px rgba(88, 76, 62, 0.07)",
-        card: "0 6px 18px rgba(88, 76, 62, 0.065), inset 0 1px 0 rgba(255, 253, 248, 0.88)",
-        celestial:
-          "0 8px 22px rgba(88, 76, 62, 0.07), inset 0 1px 0 rgba(255, 253, 248, 0.8), inset 0 0 0 1px rgba(128, 109, 86, 0.06)",
-        mystic: "0 6px 18px rgba(88, 76, 62, 0.06), inset 0 0 0 1px rgba(128, 109, 86, 0.08)"
+        quiet: "var(--shadow-panel)",
+        card: "var(--shadow-card)",
+        celestial: "var(--glass-shadow)",
+        mystic: "var(--shadow-card)"
       },
       borderRadius: {
         "3xl": "14px"

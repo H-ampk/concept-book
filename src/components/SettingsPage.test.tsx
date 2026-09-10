@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "../theme";
 
 const { getQuizAttemptLogs, getAllConcepts } = vi.hoisted(() => ({
   getQuizAttemptLogs: vi.fn(async () => []),
@@ -28,12 +29,14 @@ describe("SettingsPage AI section", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     render(
-      <SettingsPage
-        onImported={vi.fn(async () => undefined)}
-        domainTags={[]}
-        domainColorMap={{}}
-        onChangeDomainColor={vi.fn()}
-      />
+      <ThemeProvider>
+        <SettingsPage
+          onImported={vi.fn(async () => undefined)}
+          domainTags={[]}
+          domainColorMap={{}}
+          onChangeDomainColor={vi.fn()}
+        />
+      </ThemeProvider>
     );
     expect(screen.getByRole("heading", { name: "AI機能" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "接続確認" })).toBeInTheDocument();

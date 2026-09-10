@@ -321,7 +321,7 @@ export const ConceptGraphView = ({
                 aria-pressed={viewMode === mode}
                 className={`rounded-md border px-2 py-1 text-xs ${
                   viewMode === mode
-                    ? "border-celestial-softGold bg-celestial-gold/15 text-celestial-softGold"
+                    ? "theme-selected"
                     : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
                 }`}
                 onClick={() => setViewMode(mode)}
@@ -338,7 +338,7 @@ export const ConceptGraphView = ({
                 aria-pressed={metricMode === mode}
                 className={`rounded-md border px-2 py-1 text-xs ${
                   metricMode === mode
-                    ? "border-celestial-softGold bg-celestial-gold/15 text-celestial-softGold"
+                    ? "theme-selected"
                     : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
                 }`}
                 onClick={() => setMetricMode(mode)}
@@ -356,7 +356,7 @@ export const ConceptGraphView = ({
                 aria-pressed={confusionMode === mode}
                 className={`rounded-md border px-2 py-1 text-xs ${
                   confusionMode === mode
-                    ? "border-celestial-softGold bg-celestial-gold/15 text-celestial-softGold"
+                    ? "theme-selected"
                     : "border-celestial-border text-celestial-textSub hover:bg-celestial-gold/10"
                 }`}
                 onClick={() => setConfusionMode(mode)}

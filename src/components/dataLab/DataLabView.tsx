@@ -199,7 +199,7 @@ export const DataLabView = ({
               onClick={() => setAnalysisTarget("learningLogs")}
               className={`rounded-lg px-3 py-2 text-sm transition ${
                 analysisTarget === "learningLogs"
-                  ? "bg-celestial-gold/20 text-celestial-softGold"
+                  ? "theme-selected"
                   : "text-celestial-textMain hover:bg-celestial-gold/10"
               }`}
               data-testid="data-lab-target-learning-logs"
@@ -212,7 +212,7 @@ export const DataLabView = ({
               onClick={() => setAnalysisTarget("concepts")}
               className={`rounded-lg px-3 py-2 text-sm transition ${
                 analysisTarget === "concepts"
-                  ? "bg-celestial-gold/20 text-celestial-softGold"
+                  ? "theme-selected"
                   : "text-celestial-textMain hover:bg-celestial-gold/10"
               }`}
               data-testid="data-lab-target-concepts"
