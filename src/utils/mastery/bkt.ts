@@ -37,3 +37,25 @@ export const calculateBktMastery = (
 
   return mastery;
 };
+
+/**
+ * BKT observation model により、次回正答確率 P(correct) を算出する純粋関数。
+ *
+ * P(correct) = P(L) × (1 - slipProbability) + (1 - P(L)) × guessProbability
+ *
+ * masteryProbability P(L) と nextCorrectProbability P(correct) は同一ではない。
+ * masteryProbability をそのまま「次回正答確率」として使ってはいけない。
+ *
+ * 履歴 0 件では initialMastery を prior として予測する（1回答目も予測可能）。
+ * 返値は常に 0 <= p <= 1。入力配列は破壊しない。
+ */
+export const calculateBktNextCorrectProbability = (
+  logs: QuizAttemptLog[],
+  parameters: BktParameters = DEFAULT_BKT_PARAMETERS
+): number => {
+  const masteryProbability = calculateBktMastery(logs, parameters);
+  const { guessProbability, slipProbability } = parameters;
+  const nextCorrectProbability =
+    masteryProbability * (1 - slipProbability) + (1 - masteryProbability) * guessProbability;
+  return clamp01(nextCorrectProbability);
+};
