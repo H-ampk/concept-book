@@ -36,7 +36,6 @@ export type ConceptStorage = {
     }
   ) => Promise<Concept | undefined>;
   deleteConcept: (id: string) => Promise<void>;
-  exportConcepts: () => Promise<Concept[]>;
   importConcepts: (
     concepts: Concept[],
     mode: "replace" | "merge"

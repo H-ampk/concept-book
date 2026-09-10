@@ -1068,10 +1068,6 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  async exportConcepts(): Promise<Concept[]> {
-    return this.getAllConcepts();
-  }
-
   async exportBackupData(options?: BackupExportOptions): Promise<BackupExportData> {
     const concepts = await this.getAllConcepts();
     const contextStorage = new ContextCardIndexedDBStorage();
