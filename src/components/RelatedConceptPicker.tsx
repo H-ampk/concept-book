@@ -4,6 +4,7 @@ import { suggestRelatedConcepts } from "../features/concepts/suggestRelatedConce
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { parseBulkRelatedConceptTitles } from "../utils/bulkRelatedConcepts";
 import { includesNormalized } from "../utils/search";
+import { AIRelatedConceptSuggestions } from "./AIRelatedConceptSuggestions";
 
 const RELATED_TITLE_SEARCH_MAX = 20;
 const RELATED_SUGGESTIONS_UI_MAX = 20;
@@ -14,6 +15,7 @@ type Props = {
   currentConceptId?: string;
   inputTitle: string;
   inputDefinition: string;
+  inputMyInterpretation?: string;
   inputTags: string[];
   onChange: (nextIds: string[]) => void;
   /** 一括追加（IndexedDB への新規作成などは親で実施） */
@@ -35,6 +37,7 @@ export const RelatedConceptPicker = ({
   currentConceptId,
   inputTitle,
   inputDefinition,
+  inputMyInterpretation = "",
   inputTags,
   onChange,
   onBulkAddTitles
@@ -268,6 +271,16 @@ export const RelatedConceptPicker = ({
           </ul>
         )}
       </div>
+
+      <AIRelatedConceptSuggestions
+        allConcepts={allConcepts}
+        selectedIds={selectedIds}
+        currentConceptId={currentConceptId}
+        inputTitle={inputTitle}
+        inputDefinition={inputDefinition}
+        inputMyInterpretation={inputMyInterpretation}
+        onAdd={addRelated}
+      />
 
       <div className="mb-2 border-t border-celestial-gold/30" />
 

@@ -31,10 +31,10 @@ afterEach(() => {
 });
 
 describe("Ollama timeout constants", () => {
-  it("接続は5〜10秒、chat/embedは60秒程度", () => {
+  it("接続は5〜10秒、chat/embedはモデル切り替えを含め3分以内", () => {
     expect(OLLAMA_CONNECTION_TIMEOUT_MS).toBeGreaterThanOrEqual(5_000);
     expect(OLLAMA_CONNECTION_TIMEOUT_MS).toBeLessThanOrEqual(10_000);
-    expect(OLLAMA_REQUEST_TIMEOUT_MS).toBe(60_000);
+    expect(OLLAMA_REQUEST_TIMEOUT_MS).toBe(180_000);
   });
 });
 

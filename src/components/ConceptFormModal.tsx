@@ -605,6 +605,7 @@ export const ConceptFormModal = ({
             currentConceptId={baseConcept?.id}
             inputTitle={form.title}
             inputDefinition={form.definition}
+            inputMyInterpretation={form.myInterpretation}
             inputTags={tagsState}
             onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
             onBulkAddTitles={handleAddBulkRelatedConcepts}

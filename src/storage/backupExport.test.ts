@@ -59,4 +59,12 @@ describe("applyBackupExportOptions / exportBackupData 相当", () => {
     expect(result).not.toHaveProperty("textModel");
     expect(result).not.toHaveProperty("embeddingModel");
   });
+
+  it("AI Embedding cache をバックアップデータへ混ぜない", () => {
+    const result = applyBackupExportOptions(sampleData());
+    expect(result).not.toHaveProperty("conceptEmbeddings");
+    expect(result).not.toHaveProperty("aiCache");
+    expect(result).not.toHaveProperty("embeddings");
+    expect(JSON.stringify(result)).not.toContain("concept-book-ai-cache");
+  });
 });
