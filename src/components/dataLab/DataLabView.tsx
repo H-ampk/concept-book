@@ -179,7 +179,7 @@ export const DataLabView = ({
   const isConceptMode = analysisTarget === "concepts";
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 px-1 sm:px-0">
+    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-6 px-6 lg:px-8">
       <section
         className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
         aria-labelledby="data-lab-title"

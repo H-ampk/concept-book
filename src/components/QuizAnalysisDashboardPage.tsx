@@ -304,7 +304,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
   const hasDateFilter = dateStart.trim() !== "" || dateEnd.trim() !== "";
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-1 sm:px-0">
+    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-8 px-6 lg:px-8">
       <section
         className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
         aria-labelledby="quiz-analysis-title"
