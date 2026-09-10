@@ -5,7 +5,9 @@ import {
   formatDataLabAccuracy,
   formatDataLabAverageResponseTime,
   formatDataLabDateTime,
-  formatDataLabMastery
+  formatDataLabDays,
+  formatDataLabMastery,
+  formatDataLabNullableCount
 } from "../../utils/dataLab/formatDataLabTable";
 import {
   sortDataLabTableRows,
@@ -28,6 +30,16 @@ const BASE_COLUMNS: { key: DataLabTableSortKey; label: string }[] = [
   { key: "lastAttemptAt", label: "最終学習日時" }
 ];
 
+const CONCEPT_MODEL_COLUMNS: { key: DataLabTableSortKey; label: string }[] = [
+  { key: "mastery", label: "BKT 理解度" },
+  { key: "pfaNextCorrectProbability", label: "PFA 次回正答確率" },
+  { key: "pfaSuccessCount", label: "PFA 成功数" },
+  { key: "pfaFailureCount", label: "PFA 失敗数" },
+  { key: "hlrRetentionProbability", label: "HLR 記憶保持率" },
+  { key: "hlrHalfLifeDays", label: "HLR 半減期" },
+  { key: "hlrElapsedDays", label: "HLR 経過日数" }
+];
+
 const columnsForGroupBy = (groupBy: DataLabGroupBy): { key: DataLabTableSortKey; label: string }[] => {
   if (groupBy !== "concept") {
     return BASE_COLUMNS;
@@ -35,12 +47,45 @@ const columnsForGroupBy = (groupBy: DataLabGroupBy): { key: DataLabTableSortKey;
   const accuracyIndex = BASE_COLUMNS.findIndex((column) => column.key === "accuracy");
   return [
     ...BASE_COLUMNS.slice(0, accuracyIndex + 1),
-    { key: "mastery", label: "理解度" },
+    ...CONCEPT_MODEL_COLUMNS,
     ...BASE_COLUMNS.slice(accuracyIndex + 1)
   ];
 };
 
 const UNSORTED: DataLabTableSortState = { key: null, direction: "asc" };
+
+const formatCell = (row: DataLabAggregateRow, key: DataLabTableSortKey): string => {
+  switch (key) {
+    case "label":
+      return row.label;
+    case "attemptCount":
+      return String(row.attemptCount);
+    case "correctCount":
+      return String(row.correctCount);
+    case "incorrectCount":
+      return String(row.incorrectCount);
+    case "accuracy":
+      return formatDataLabAccuracy(row.accuracy);
+    case "mastery":
+      return formatDataLabMastery(row.masteryProbability ?? null);
+    case "pfaNextCorrectProbability":
+      return formatDataLabAccuracy(row.pfaNextCorrectProbability ?? null);
+    case "pfaSuccessCount":
+      return formatDataLabNullableCount(row.pfaSuccessCount ?? null);
+    case "pfaFailureCount":
+      return formatDataLabNullableCount(row.pfaFailureCount ?? null);
+    case "hlrRetentionProbability":
+      return formatDataLabAccuracy(row.hlrRetentionProbability ?? null);
+    case "hlrHalfLifeDays":
+      return formatDataLabDays(row.hlrHalfLifeDays ?? null);
+    case "hlrElapsedDays":
+      return formatDataLabDays(row.hlrElapsedDays ?? null);
+    case "averageResponseTimeMs":
+      return formatDataLabAverageResponseTime(row.averageResponseTimeMs);
+    case "lastAttemptAt":
+      return formatDataLabDateTime(row.lastAttemptAt);
+  }
+};
 
 export const DataLabTable = ({ rows, groupBy }: Props) => {
   const [sort, setSort] = useState<DataLabTableSortState>(UNSORTED);
@@ -64,7 +109,7 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-auto rounded-xl border border-celestial-border/70 bg-nordic-navy/35">
-      <table className="w-full min-w-[52rem] border-collapse text-left text-sm" data-testid="data-lab-table">
+      <table className="w-full min-w-[72rem] border-collapse text-left text-sm" data-testid="data-lab-table">
         <thead>
           <tr className="border-b border-celestial-border/50 text-xs tracking-wide text-celestial-textSub">
             {columns.map((column) => {
@@ -96,30 +141,32 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
         <tbody>
           {sortedRows.map((row) => (
             <tr key={row.key} className="border-b border-celestial-border/30 last:border-0">
-              <th scope="row" className="max-w-[16rem] px-4 py-3 font-normal text-celestial-textMain">
-                <span className="break-words text-celestial-softGold">{row.label}</span>
-              </th>
-              <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">{row.attemptCount}</td>
-              <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">{row.correctCount}</td>
-              <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">{row.incorrectCount}</td>
-              <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
-                {formatDataLabAccuracy(row.accuracy)}
-              </td>
-              {groupBy === "concept" ? (
-                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
-                  {formatDataLabMastery(row.masteryProbability ?? null)}
-                </td>
-              ) : null}
-              <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
-                {formatDataLabAverageResponseTime(row.averageResponseTimeMs)}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
-                {row.lastAttemptAt ? (
-                  <time dateTime={row.lastAttemptAt}>{formatDataLabDateTime(row.lastAttemptAt)}</time>
-                ) : (
-                  formatDataLabDateTime(row.lastAttemptAt)
-                )}
-              </td>
+              {columns.map((column, index) => {
+                const content = formatCell(row, column.key);
+                const className =
+                  column.key === "label"
+                    ? "max-w-[16rem] px-4 py-3 font-normal text-celestial-textMain"
+                    : "whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain";
+                if (index === 0) {
+                  return (
+                    <th key={column.key} scope="row" className={className}>
+                      <span className="break-words text-celestial-softGold">{content}</span>
+                    </th>
+                  );
+                }
+                if (column.key === "lastAttemptAt" && row.lastAttemptAt) {
+                  return (
+                    <td key={column.key} className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                      <time dateTime={row.lastAttemptAt}>{content}</time>
+                    </td>
+                  );
+                }
+                return (
+                  <td key={column.key} className={className}>
+                    {content}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

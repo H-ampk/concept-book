@@ -4,6 +4,7 @@ import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode"
 import { DATA_LAB_GROUP_BY_CONTROL_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
 import {
   DATA_LAB_HISTOGRAM_AGGREGATION_DESCRIPTION,
+  DATA_LAB_LEARNING_MODEL_CURRENT_METRICS_NOTE,
   describeDataLabMetricAggregation
 } from "../../utils/dataLab/describeDataLabMetricAggregation";
 import {
@@ -236,7 +237,7 @@ export const DataLabResultsPanel = ({
             </p>
             {groupBy === "concept" ? (
               <p className="text-xs leading-relaxed text-celestial-textSub" data-testid="data-lab-mastery-note">
-                理解度は現在の全学習履歴から計算されます。
+                {DATA_LAB_LEARNING_MODEL_CURRENT_METRICS_NOTE}
               </p>
             ) : null}
             <div className="space-y-1" data-testid="data-lab-metric-aggregation-note">

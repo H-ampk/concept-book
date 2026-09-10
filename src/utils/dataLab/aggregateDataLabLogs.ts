@@ -16,6 +16,30 @@ export const DATA_LAB_CONCEPT_NONE_KEY = "__data-lab-concept-none__";
  */
 export const DATA_LAB_DOMAIN_NONE_KEY = "__data-lab-domain-none__";
 
+/** Concept 集計以外、または欠損時に使う学習モデル指標。0 とは区別する。 */
+export const DATA_LAB_EMPTY_LEARNING_MODEL_METRICS = {
+  masteryProbability: null,
+  pfaNextCorrectProbability: null,
+  pfaSuccessCount: null,
+  pfaFailureCount: null,
+  hlrRetentionProbability: null,
+  hlrHalfLifeDays: null,
+  hlrElapsedDays: null
+} as const;
+
+export type DataLabLearningModelMetrics = {
+  /** Concept 集計のみ。全学習履歴の BKT 現在理解度（0〜1）。欠損は null（0 ではない）。 */
+  masteryProbability: number | null;
+  /** Concept 集計のみ。全学習履歴の PFA 次回正答確率（0〜1）。理解度ではない。欠損は null。 */
+  pfaNextCorrectProbability: number | null;
+  pfaSuccessCount: number | null;
+  pfaFailureCount: number | null;
+  /** Concept 集計のみ。全学習履歴の HLR 記憶保持率（0〜1）。正答確率ではない。欠損は null。 */
+  hlrRetentionProbability: number | null;
+  hlrHalfLifeDays: number | null;
+  hlrElapsedDays: number | null;
+};
+
 export type DataLabAggregateRow = {
   groupBy: DataLabGroupBy;
   key: string;
@@ -24,8 +48,6 @@ export type DataLabAggregateRow = {
   correctCount: number;
   incorrectCount: number;
   accuracy: number | null;
-  /** Concept 集計のみ。全学習履歴の現在理解度（0〜1）。欠損は null（0 ではない）。 */
-  masteryProbability: number | null;
   averageResponseTimeMs: number | null;
   firstAttemptAt: string | null;
   lastAttemptAt: string | null;
@@ -34,7 +56,7 @@ export type DataLabAggregateRow = {
   deckId?: string | null;
   periodStart?: string | null;
   periodEnd?: string | null;
-};
+} & DataLabLearningModelMetrics;
 
 type BucketAcc = {
   attemptCount: number;
@@ -108,7 +130,7 @@ const toRow = (groupBy: DataLabGroupBy, key: string, bucket: BucketAcc): DataLab
     correctCount,
     incorrectCount: attemptCount - correctCount,
     accuracy: attemptCount > 0 ? correctCount / attemptCount : null,
-    masteryProbability: null,
+    ...DATA_LAB_EMPTY_LEARNING_MODEL_METRICS,
     averageResponseTimeMs: bucket.timeN > 0 ? bucket.timeSum / bucket.timeN : null,
     firstAttemptAt: bucket.firstAttemptAt,
     lastAttemptAt: bucket.lastAttemptAt,

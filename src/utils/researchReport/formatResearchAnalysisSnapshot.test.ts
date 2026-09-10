@@ -46,7 +46,7 @@ describe("formatResearchAnalysisSnapshotView", () => {
     expect(view.filterLabels).toEqual(["Concept: 保存時の概念名", "Deck: 保存時のデッキ名"]);
     expect(view.rowLabels).toEqual(["保存時の概念名"]);
     expect(view.scatterXLabel).toBe("平均回答時間");
-    expect(view.scatterYLabel).toBe("理解度");
+    expect(view.scatterYLabel).toBe("BKT 理解度");
     expect(view.groupByLabel).toBe("Concept");
     expect(view.metricLabel).toBe("正答率");
     expect(view.displayModeLabel).toBe("散布図");

@@ -2,6 +2,7 @@ import type { DataLabGroupBy } from "../../utils/dataLab/aggregateDataLabLogs";
 import { getDataLabMetricOptions, type DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import { DATA_LAB_DISPLAY_MODE_OPTIONS, type DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { DATA_LAB_GROUP_BY_OPTIONS } from "../../utils/dataLab/dataLabGroupByLabels";
+import { DATA_LAB_LEARNING_MODEL_CURRENT_METRICS_NOTE } from "../../utils/dataLab/describeDataLabMetricAggregation";
 import {
   DATA_LAB_BAR_CHART_LIMIT_OPTIONS,
   DATA_LAB_BAR_CHART_SORT_OPTIONS,
@@ -75,7 +76,7 @@ export const DataLabControlsPanel = ({
           </p>
           {groupBy === "concept" ? (
             <p className="text-xs leading-relaxed text-celestial-textSub">
-              理解度は現在の全学習履歴から計算されます。
+              {DATA_LAB_LEARNING_MODEL_CURRENT_METRICS_NOTE}
             </p>
           ) : null}
         </div>

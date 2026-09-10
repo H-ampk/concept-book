@@ -59,6 +59,24 @@ describe("toDataLabScatterPoints 指標", () => {
     expect(toDataLabScatterPoints([row({ masteryProbability: null })], "accuracy", "mastery")).toEqual([]);
     expect(toDataLabScatterPoints([row({ masteryProbability: 0 })], "mastery", "accuracy")[0]?.x).toBe(0);
   });
+
+  it("PFA を X、HLR を Y に利用し、null 点は除外する", () => {
+    const withModels = row({
+      masteryProbability: 0.2,
+      pfaNextCorrectProbability: 0.4,
+      hlrRetentionProbability: 0.6
+    });
+    expect(toDataLabScatterPoints([withModels], "mastery", "pfaNextCorrectProbability")[0]).toMatchObject({
+      x: 0.2,
+      y: 0.4
+    });
+    expect(toDataLabScatterPoints([row({ pfaNextCorrectProbability: null })], "pfaNextCorrectProbability", "accuracy")).toEqual(
+      []
+    );
+    expect(toDataLabScatterPoints([row({ pfaNextCorrectProbability: 0, accuracy: 0.5 })], "pfaNextCorrectProbability", "accuracy")[0]?.x).toBe(
+      0
+    );
+  });
 });
 
 describe("toDataLabScatterPoints 欠損と 0", () => {

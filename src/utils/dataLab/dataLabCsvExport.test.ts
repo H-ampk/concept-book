@@ -6,10 +6,13 @@ import type { DataLabAggregateRow, DataLabGroupBy } from "./aggregateDataLabLogs
 import {
   DATA_LAB_AGGREGATE_CSV_COLUMNS,
   DATA_LAB_LOG_CSV_COLUMNS,
+  DATA_LAB_PREDICTION_CSV_COLUMNS,
   buildDataLabAggregateCsv,
   buildDataLabLogCsv,
+  buildDataLabPredictionCsv,
   dataLabAggregateCsvFilename,
-  dataLabLogCsvFilename
+  dataLabLogCsvFilename,
+  dataLabPredictionCsvFilename
 } from "./dataLabCsvExport";
 
 const log = (overrides: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
@@ -248,6 +251,42 @@ describe("buildDataLabAggregateCsv", () => {
     expect((parseCsv(withNull)[1] ?? "").split(",")[masteryIndex]).toBe("");
   });
 
+  it("Concept の学習モデル指標を raw 数値で出し、表示用文字列や 0 埋めをしない", () => {
+    const withValue = buildDataLabAggregateCsv([
+      aggregateRow("concept", {
+        pfaNextCorrectProbability: 0.4,
+        pfaSuccessCount: 0,
+        pfaFailureCount: 3,
+        hlrRetentionProbability: 0.25,
+        hlrHalfLifeDays: 3.2,
+        hlrElapsedDays: 1.5
+      })
+    ]);
+    const withNull = buildDataLabAggregateCsv([
+      aggregateRow("concept", {
+        pfaNextCorrectProbability: null,
+        pfaSuccessCount: null,
+        pfaFailureCount: null,
+        hlrRetentionProbability: null,
+        hlrHalfLifeDays: null,
+        hlrElapsedDays: null
+      })
+    ]);
+    const valueCells = (parseCsv(withValue)[1] ?? "").split(",");
+    const nullCells = (parseCsv(withNull)[1] ?? "").split(",");
+    expect(valueCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("pfaNextCorrectProbability")]).toBe("0.4");
+    expect(valueCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("pfaSuccessCount")]).toBe("0");
+    expect(valueCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("pfaFailureCount")]).toBe("3");
+    expect(valueCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("hlrRetentionProbability")]).toBe("0.25");
+    expect(valueCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("hlrHalfLifeDays")]).toBe("3.2");
+    expect(valueCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("hlrElapsedDays")]).toBe("1.5");
+    expect(parseCsv(withValue)[1]).not.toContain("40%");
+    expect(parseCsv(withValue)[1]).not.toContain("3.2日");
+    expect(nullCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("pfaNextCorrectProbability")]).toBe("");
+    expect(nullCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("pfaSuccessCount")]).toBe("");
+    expect(nullCells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("hlrHalfLifeDays")]).toBe("");
+  });
+
   it("null の accuracy / 平均時間を空セルにし、0 や null 文字列にしない", () => {
     const csv = buildDataLabAggregateCsv([
       aggregateRow("domain", {
@@ -292,4 +331,49 @@ describe("Data Lab CSV ファイル名", () => {
       );
     }
   );
+
+  it("予測評価は conceptbook-datalab-predictions-YYYY-MM-DD.csv", () => {
+    expect(dataLabPredictionCsvFilename(now)).toBe("conceptbook-datalab-predictions-2026-09-07.csv");
+  });
+});
+
+describe("buildDataLabPredictionCsv", () => {
+  it("画面上の prediction points を raw 数値で出す", () => {
+    const csv = buildDataLabPredictionCsv([
+      {
+        model: "bkt",
+        conceptId: "concept-a",
+        attemptId: "C",
+        answeredAt: "2026-01-03T00:00:00.000Z",
+        predictedCorrectProbability: 0.34,
+        actualCorrect: true,
+        historyCount: 2
+      },
+      {
+        model: "pfa",
+        conceptId: "concept-a",
+        attemptId: "C",
+        answeredAt: "2026-01-03T00:00:00.000Z",
+        predictedCorrectProbability: 0,
+        actualCorrect: false,
+        historyCount: 2
+      }
+    ]);
+    expect(csv.startsWith(UTF8_BOM)).toBe(true);
+    const lines = parseCsv(csv);
+    expect(lines[0]).toBe(DATA_LAB_PREDICTION_CSV_COLUMNS.join(","));
+    expect(lines[1]).toContain("bkt");
+    expect(lines[1]).toContain("0.34");
+    expect(lines[1]).not.toContain("34%");
+    const header = lines[0]?.split(",") ?? [];
+    const actualIndex = header.indexOf("actualCorrect");
+    expect((lines[1] ?? "").split(",")[actualIndex]).toBe("1");
+    expect((lines[2] ?? "").split(",")[actualIndex]).toBe("0");
+    expect((lines[2] ?? "").split(",")[header.indexOf("predictedCorrectProbability")]).toBe("0");
+    expect((lines[1] ?? "").split(",")[header.indexOf("historyCount")]).toBe("2");
+  });
+
+  it("0件でも例外にならずヘッダーのみを返す", () => {
+    expect(parseCsv(buildDataLabPredictionCsv([]))[0]).toBe(DATA_LAB_PREDICTION_CSV_COLUMNS.join(","));
+  });
 });

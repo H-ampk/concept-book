@@ -72,6 +72,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByRole("heading", { name: "研究レポート" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "研究レポートに追加" })).toBeEnabled();
     expect(screen.getByRole("heading", { name: "分析結果" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "学習モデル評価" })).toBeInTheDocument();
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("集計軸: Concept");
     expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 2件");
     expect(screen.getByTestId("data-lab-table")).toBeInTheDocument();
@@ -466,8 +467,8 @@ describe("DataLabView (#89 / #90)", () => {
   });
 });
 
-describe("DataLabView 理解度 (#97)", () => {
-  it("Concept では理解度を選択でき、他の集計軸では出さない", async () => {
+describe("DataLabView 理解度 (#97 / #170)", () => {
+  it("Concept では学習モデル指標を選択でき、他の集計軸では出さない", async () => {
     const user = userEvent.setup();
     render(
       <DataLabView
@@ -480,16 +481,27 @@ describe("DataLabView 理解度 (#97)", () => {
       />
     );
 
-    expect(within(screen.getByLabelText("指標")).getByRole("option", { name: "理解度" })).toBeInTheDocument();
+    const metricSelect = screen.getByLabelText("指標");
+    expect(within(metricSelect).getByRole("option", { name: "BKT 理解度" })).toBeInTheDocument();
+    expect(within(metricSelect).getByRole("option", { name: "PFA 次回正答確率" })).toBeInTheDocument();
+    expect(within(metricSelect).getByRole("option", { name: "HLR 記憶保持率" })).toBeInTheDocument();
     expect(screen.getByTestId("data-lab-mastery-note")).toHaveTextContent(
-      "理解度は現在の全学習履歴から計算されます。"
+      "BKT: 学習済みである確率"
     );
-    expect(screen.getByRole("button", { name: "理解度で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByTestId("data-lab-mastery-note")).toHaveTextContent(
+      "PFA: 次回回答が正解する確率"
+    );
+    expect(screen.getByTestId("data-lab-mastery-note")).toHaveTextContent(
+      "HLR: 現時点で記憶が保持されている推定確率"
+    );
+    expect(screen.getByRole("button", { name: "BKT 理解度で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PFA 次回正答確率で並べ替え" })).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
-    expect(within(screen.getByLabelText("指標")).queryByRole("option", { name: "理解度" })).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("指標")).queryByRole("option", { name: "BKT 理解度" })).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("指標")).queryByRole("option", { name: "PFA 次回正答確率" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("data-lab-mastery-note")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "理解度で並べ替え" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "BKT 理解度で並べ替え" })).not.toBeInTheDocument();
   });
 
   it("理解度選択中に groupBy を変えても不正な指標が残らない", async () => {
@@ -515,13 +527,51 @@ describe("DataLabView 理解度 (#97)", () => {
     await user.selectOptions(screen.getByLabelText("Y軸"), "mastery");
     expect(screen.getByLabelText("X軸")).toHaveValue("averageResponseTimeMs");
     expect(screen.getByLabelText("Y軸")).toHaveValue("mastery");
-    expect(within(screen.getByLabelText("X軸")).getByRole("option", { name: "理解度" })).toBeDisabled();
+    expect(within(screen.getByLabelText("X軸")).getByRole("option", { name: "BKT 理解度" })).toBeDisabled();
     expect(within(screen.getByLabelText("Y軸")).getByRole("option", { name: "平均回答時間" })).toBeDisabled();
 
     await user.selectOptions(screen.getByLabelText("集計軸"), "domain");
     expect(screen.getByLabelText("X軸")).toHaveValue("averageResponseTimeMs");
     expect(screen.getByLabelText("Y軸")).toHaveValue("accuracy");
-    expect(within(screen.getByLabelText("X軸")).queryByRole("option", { name: "理解度" })).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("X軸")).queryByRole("option", { name: "BKT 理解度" })).not.toBeInTheDocument();
+  });
+
+  it("散布図で BKT と PFA を選べる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+    await user.selectOptions(screen.getByLabelText("表示"), "scatter");
+    await user.selectOptions(screen.getByLabelText("X軸"), "mastery");
+    await user.selectOptions(screen.getByLabelText("Y軸"), "pfaNextCorrectProbability");
+    expect(screen.getByLabelText("X軸")).toHaveValue("mastery");
+    expect(screen.getByLabelText("Y軸")).toHaveValue("pfaNextCorrectProbability");
+    expect(screen.getByTestId("data-lab-scatter-plot")).toBeInTheDocument();
+  });
+
+  it("棒グラフで学習モデル指標を選べる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+    await user.selectOptions(screen.getByLabelText("表示"), "bar");
+    await user.selectOptions(screen.getByLabelText("指標"), "pfaNextCorrectProbability");
+    expect(screen.getByLabelText("指標")).toHaveValue("pfaNextCorrectProbability");
+    expect(screen.getByTestId("data-lab-bar-chart")).toBeInTheDocument();
   });
 
   it("期間フィルタしても回答数は期間内、理解度は全ログになる", () => {
@@ -558,6 +608,71 @@ describe("DataLabView 理解度 (#97)", () => {
     );
     expect(cells[4]).toHaveTextContent(expected ?? "");
     expect(cells[4]).not.toHaveTextContent("0%");
+  });
+
+  it("学習モデル評価は全履歴から予測し、期間フィルタ後の対象だけ残す", () => {
+    const logs: QuizAttemptLog[] = [
+      log({
+        id: "A",
+        answeredAt: new Date(2026, 0, 1, 12).toISOString(),
+        correct: true
+      }),
+      log({
+        id: "B",
+        answeredAt: new Date(2026, 0, 2, 12).toISOString(),
+        correct: false
+      }),
+      log({
+        id: "C",
+        answeredAt: new Date(2026, 0, 3, 12).toISOString(),
+        correct: true
+      })
+    ];
+    render(
+      <DataLabView
+        logs={logs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: "学習モデル評価" })).toBeInTheDocument();
+    const summaryBefore = screen.getByTestId("data-lab-learning-model-summary");
+    expect(summaryBefore).toHaveTextContent("BKT");
+    expect(summaryBefore).toHaveTextContent("PFA");
+    expect(summaryBefore).not.toHaveTextContent("HLR");
+
+    fireEvent.change(screen.getByLabelText("開始日"), { target: { value: "2026-01-03" } });
+    fireEvent.change(screen.getByLabelText("終了日"), { target: { value: "2026-01-03" } });
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("1 / 3");
+
+    const summary = screen.getByTestId("data-lab-learning-model-summary");
+    const rows = within(summary).getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveTextContent("BKT");
+    expect(rows[0]).toHaveTextContent("1");
+    expect(rows[1]).toHaveTextContent("PFA");
+    expect(rows[1]).toHaveTextContent("1");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計結果");
+  });
+
+  it("予測評価データの CSV 対象を選べる", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+    await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "predictions");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("予測評価データ");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 4");
   });
 });
 
@@ -640,6 +755,7 @@ describe("DataLabView 概念データ (#28)", () => {
     expect(screen.getByTestId("data-lab-concept-disclaimer")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Filters" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "CSV エクスポート" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "学習モデル評価" })).not.toBeInTheDocument();
   });
 
   it("Concept フィルタで件数が変わり、0件表示とリセットができる", async () => {

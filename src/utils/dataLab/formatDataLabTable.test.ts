@@ -4,7 +4,10 @@ import {
   formatDataLabAccuracy,
   formatDataLabAverageResponseTime,
   formatDataLabDateTime,
-  formatDataLabMastery
+  formatDataLabDays,
+  formatDataLabEvaluationScore,
+  formatDataLabMastery,
+  formatDataLabNullableCount
 } from "./formatDataLabTable";
 
 describe("formatDataLabTable", () => {
@@ -18,6 +21,25 @@ describe("formatDataLabTable", () => {
     expect(formatDataLabMastery(0.821)).toBe("82%");
     expect(formatDataLabMastery(0)).toBe("0%");
     expect(formatDataLabMastery(null)).toBe("—");
+  });
+
+  it("日数は 0 と null を区別する", () => {
+    expect(formatDataLabDays(3.2)).toBe("3.2日");
+    expect(formatDataLabDays(3)).toBe("3日");
+    expect(formatDataLabDays(0)).toBe("0日");
+    expect(formatDataLabDays(null)).toBe("—");
+  });
+
+  it("件数は 0 と null を区別する", () => {
+    expect(formatDataLabNullableCount(0)).toBe("0");
+    expect(formatDataLabNullableCount(4)).toBe("4");
+    expect(formatDataLabNullableCount(null)).toBe("—");
+  });
+
+  it("評価スコアは 0 と null を区別する", () => {
+    expect(formatDataLabEvaluationScore(0)).toBe("0");
+    expect(formatDataLabEvaluationScore(null)).toBe("—");
+    expect(formatDataLabEvaluationScore(0.12345)).toBe("0.1235");
   });
 
   it("正答率の欠損は — にする", () => {

@@ -6,11 +6,12 @@ import {
   type DataLabGroupBy
 } from "../../utils/dataLab/aggregateDataLabLogs";
 import { aggregateDataLabConcepts } from "../../utils/dataLab/aggregateDataLabConcepts";
-import { attachDataLabConceptMastery } from "../../utils/dataLab/attachDataLabConceptMastery";
+import { attachDataLabConceptLearningModelMetrics } from "../../utils/dataLab/attachDataLabConceptLearningModelMetrics";
 import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { describeDataLabConceptFilters } from "../../utils/dataLab/describeDataLabConceptFilters";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
+import { filterLearningModelPredictionPointsByAttemptIds } from "../../utils/dataLab/filterLearningModelPredictionPointsByAttemptIds";
 import { sanitizeDataLabAnalysisMetrics } from "../../utils/dataLab/sanitizeDataLabMetrics";
 import type { DataLabBarChartLimit, DataLabBarChartSort } from "../../utils/dataLab/toDataLabBarChartRows";
 import {
@@ -24,7 +25,14 @@ import {
   type DataLabConceptFilters
 } from "../../utils/dataLab/filterDataLabConcepts";
 import { fillDataLabTimeSeries } from "../../utils/dataLab/fillDataLabTimeSeries";
+import { buildConceptHlrEstimateMap } from "../../utils/hlr/getConceptHlrEstimate";
+import { buildOneStepAheadPredictionSeries } from "../../utils/learningModelEvaluation/oneStepAhead";
+import {
+  createBktLearningModelPredictor,
+  createPfaLearningModelPredictor
+} from "../../utils/learningModelEvaluation/predictors";
 import { buildConceptMasteryMap } from "../../utils/mastery/getConceptMastery";
+import { buildConceptPfaPredictionMap } from "../../utils/pfa/getConceptPfaPrediction";
 import { OrnamentLine } from "../common/OrnamentLine";
 import { DataLabAddToResearchReportPanel } from "./DataLabAddToResearchReportPanel";
 import { DataLabConceptFiltersPanel } from "./DataLabConceptFiltersPanel";
@@ -32,7 +40,13 @@ import { DataLabConceptResultsPanel } from "./DataLabConceptResultsPanel";
 import { DataLabControlsPanel } from "./DataLabControlsPanel";
 import { DataLabExportPanel } from "./DataLabExportPanel";
 import { DataLabFiltersPanel } from "./DataLabFiltersPanel";
+import { DataLabLearningModelEvaluationPanel } from "./DataLabLearningModelEvaluationPanel";
 import { DataLabResultsPanel } from "./DataLabResultsPanel";
+
+const DATA_LAB_EVALUATION_PREDICTORS = [
+  createBktLearningModelPredictor(),
+  createPfaLearningModelPredictor()
+];
 
 export type DataLabAnalysisTarget = "learningLogs" | "concepts";
 
@@ -67,6 +81,7 @@ export const DataLabView = ({
   const [displayMode, setDisplayMode] = useState<DataLabDisplayMode>("table");
   const [barSort, setBarSort] = useState<DataLabBarChartSort>("valueDesc");
   const [barLimit, setBarLimit] = useState<DataLabBarChartLimit>(10);
+  const [modelNow] = useState(() => new Date());
 
   const conceptById = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
   const deckById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
@@ -91,6 +106,19 @@ export const DataLabView = ({
   );
 
   const masteryByConceptId = useMemo(() => buildConceptMasteryMap(logs), [logs]);
+  const pfaByConceptId = useMemo(() => buildConceptPfaPredictionMap(logs), [logs]);
+  const hlrByConceptId = useMemo(
+    () => buildConceptHlrEstimateMap(logs, { now: modelNow }),
+    [logs, modelNow]
+  );
+  const allPredictionPoints = useMemo(
+    () => buildOneStepAheadPredictionSeries(logs, DATA_LAB_EVALUATION_PREDICTORS),
+    [logs]
+  );
+  const filteredPredictionPoints = useMemo(() => {
+    const targetAttemptIds = new Set(filteredLogs.map((log) => log.id));
+    return filterLearningModelPredictionPointsByAttemptIds(allPredictionPoints, targetAttemptIds);
+  }, [allPredictionPoints, filteredLogs]);
 
   const aggregatedRows = useMemo(() => {
     const rows = aggregateDataLabLogs({
@@ -99,13 +127,27 @@ export const DataLabView = ({
       conceptById,
       deckById
     });
-    const withMastery = attachDataLabConceptMastery(rows, masteryByConceptId, conceptById);
-    return fillDataLabTimeSeries(withMastery, {
+    const withModels = attachDataLabConceptLearningModelMetrics(
+      rows,
+      { masteryByConceptId, pfaByConceptId, hlrByConceptId },
+      conceptById
+    );
+    return fillDataLabTimeSeries(withModels, {
       groupBy,
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo
     });
-  }, [filteredLogs, groupBy, conceptById, deckById, masteryByConceptId, filters.dateFrom, filters.dateTo]);
+  }, [
+    filteredLogs,
+    groupBy,
+    conceptById,
+    deckById,
+    masteryByConceptId,
+    pfaByConceptId,
+    hlrByConceptId,
+    filters.dateFrom,
+    filters.dateTo
+  ]);
 
   const handleGroupByChange = (nextGroupBy: DataLabGroupBy) => {
     const sanitized = sanitizeDataLabAnalysisMetrics({
@@ -273,6 +315,7 @@ export const DataLabView = ({
           <DataLabExportPanel
             filteredLogs={filteredLogs}
             aggregatedRows={aggregatedRows}
+            predictionPoints={filteredPredictionPoints}
             groupBy={groupBy}
             conceptById={conceptById}
             deckById={deckById}
@@ -303,6 +346,12 @@ export const DataLabView = ({
             aggregatedRows={aggregatedRows}
             onGoToQuizPlay={onGoToQuizPlay}
           />
+          {totalLogs > 0 ? (
+            <DataLabLearningModelEvaluationPanel
+              points={filteredPredictionPoints}
+              conceptById={conceptById}
+            />
+          ) : null}
         </>
       )}
     </div>

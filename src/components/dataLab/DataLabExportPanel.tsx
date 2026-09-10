@@ -5,17 +5,21 @@ import type { DataLabAggregateRow, DataLabGroupBy } from "../../utils/dataLab/ag
 import {
   buildDataLabAggregateCsv,
   buildDataLabLogCsv,
+  buildDataLabPredictionCsv,
   dataLabAggregateCsvFilename,
-  dataLabLogCsvFilename
+  dataLabLogCsvFilename,
+  dataLabPredictionCsvFilename
 } from "../../utils/dataLab/dataLabCsvExport";
 import { DATA_LAB_GROUP_BY_CONTROL_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
 import { downloadBlob } from "../../utils/downloadFile";
+import type { LearningModelPredictionPoint } from "../../utils/learningModelEvaluation/types";
 
-export type DataLabExportTarget = "logs" | "aggregate";
+export type DataLabExportTarget = "logs" | "aggregate" | "predictions";
 
 type Props = {
   filteredLogs: QuizAttemptLog[];
   aggregatedRows: DataLabAggregateRow[];
+  predictionPoints: LearningModelPredictionPoint[];
   groupBy: DataLabGroupBy;
   conceptById: Map<string, Concept>;
   deckById: Map<string, QuizDeck>;
@@ -27,25 +31,34 @@ const inputClass =
 export const DataLabExportPanel = ({
   filteredLogs,
   aggregatedRows,
+  predictionPoints,
   groupBy,
   conceptById,
   deckById
 }: Props) => {
   const [target, setTarget] = useState<DataLabExportTarget>("aggregate");
 
-  const rowCount = target === "logs" ? filteredLogs.length : aggregatedRows.length;
+  const rowCount =
+    target === "logs"
+      ? filteredLogs.length
+      : target === "predictions"
+        ? predictionPoints.length
+        : aggregatedRows.length;
   const canExport = rowCount > 0;
 
   const summary = useMemo(() => {
     if (target === "logs") {
       return { targetLabel: "フィルタ済みログ", count: filteredLogs.length };
     }
+    if (target === "predictions") {
+      return { targetLabel: "予測評価データ", count: predictionPoints.length };
+    }
     return {
       targetLabel: "集計結果",
       groupByLabel: DATA_LAB_GROUP_BY_CONTROL_LABELS[groupBy],
       count: aggregatedRows.length
     };
-  }, [aggregatedRows.length, filteredLogs.length, groupBy, target]);
+  }, [aggregatedRows.length, filteredLogs.length, groupBy, predictionPoints.length, target]);
 
   const handleSave = () => {
     if (!canExport) {
@@ -55,6 +68,14 @@ export const DataLabExportPanel = ({
       const csv = buildDataLabLogCsv(filteredLogs, conceptById, deckById);
       downloadBlob(
         dataLabLogCsvFilename(new Date()),
+        new Blob([csv], { type: "text/csv;charset=utf-8" })
+      );
+      return;
+    }
+    if (target === "predictions") {
+      const csv = buildDataLabPredictionCsv(predictionPoints);
+      downloadBlob(
+        dataLabPredictionCsvFilename(new Date()),
         new Blob([csv], { type: "text/csv;charset=utf-8" })
       );
       return;
@@ -77,7 +98,7 @@ export const DataLabExportPanel = ({
             CSV エクスポート
           </h2>
           <p className="text-xs text-celestial-textSub">
-            画面で使っているフィルタ済みログまたは集計結果を、そのまま CSV として保存します。
+            画面で使っているフィルタ済みログ、集計結果、または予測評価データを、そのまま CSV として保存します。
           </p>
         </div>
 
@@ -92,6 +113,7 @@ export const DataLabExportPanel = ({
             >
               <option value="aggregate">集計結果</option>
               <option value="logs">フィルタ済みログ</option>
+              <option value="predictions">予測評価データ</option>
             </select>
           </label>
         </div>

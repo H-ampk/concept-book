@@ -1,6 +1,7 @@
 import type { Concept } from "../../types/concept";
 import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
 import { buildCsv, localDateYmd, type CsvCellValue } from "../csv";
+import type { LearningModelPredictionPoint } from "../learningModelEvaluation/types";
 import type { DataLabAggregateRow, DataLabGroupBy } from "./aggregateDataLabLogs";
 import { getDataLabLogConceptId } from "./filterDataLabLogs";
 
@@ -28,6 +29,12 @@ export const DATA_LAB_AGGREGATE_CSV_COLUMNS = [
   "incorrectCount",
   "accuracy",
   "masteryProbability",
+  "pfaNextCorrectProbability",
+  "pfaSuccessCount",
+  "pfaFailureCount",
+  "hlrRetentionProbability",
+  "hlrHalfLifeDays",
+  "hlrElapsedDays",
   "averageResponseTimeMs",
   "firstAttemptAt",
   "lastAttemptAt",
@@ -38,8 +45,19 @@ export const DATA_LAB_AGGREGATE_CSV_COLUMNS = [
   "periodEnd"
 ] as const;
 
+export const DATA_LAB_PREDICTION_CSV_COLUMNS = [
+  "model",
+  "conceptId",
+  "attemptId",
+  "answeredAt",
+  "predictedCorrectProbability",
+  "actualCorrect",
+  "historyCount"
+] as const;
+
 export type DataLabLogCsvColumn = (typeof DATA_LAB_LOG_CSV_COLUMNS)[number];
 export type DataLabAggregateCsvColumn = (typeof DATA_LAB_AGGREGATE_CSV_COLUMNS)[number];
+export type DataLabPredictionCsvColumn = (typeof DATA_LAB_PREDICTION_CSV_COLUMNS)[number];
 
 const dataLabConceptName = (conceptId: string | null, conceptById: Map<string, Concept>): string => {
   if (!conceptId) {
@@ -127,6 +145,12 @@ export const dataLabAggregateToCsvCells = (
   incorrectCount: row.incorrectCount,
   accuracy: row.accuracy,
   masteryProbability: row.masteryProbability,
+  pfaNextCorrectProbability: row.pfaNextCorrectProbability,
+  pfaSuccessCount: row.pfaSuccessCount,
+  pfaFailureCount: row.pfaFailureCount,
+  hlrRetentionProbability: row.hlrRetentionProbability,
+  hlrHalfLifeDays: row.hlrHalfLifeDays,
+  hlrElapsedDays: row.hlrElapsedDays,
   averageResponseTimeMs: row.averageResponseTimeMs,
   firstAttemptAt: row.firstAttemptAt,
   lastAttemptAt: row.lastAttemptAt,
@@ -145,8 +169,31 @@ export const buildDataLabAggregateCsv = (aggregatedRows: DataLabAggregateRow[]):
   return buildCsv(DATA_LAB_AGGREGATE_CSV_COLUMNS, rows);
 };
 
+export const dataLabPredictionToCsvCells = (
+  point: LearningModelPredictionPoint
+): Record<DataLabPredictionCsvColumn, CsvCellValue> => ({
+  model: point.model,
+  conceptId: point.conceptId,
+  attemptId: point.attemptId,
+  answeredAt: point.answeredAt,
+  predictedCorrectProbability: point.predictedCorrectProbability,
+  actualCorrect: point.actualCorrect ? 1 : 0,
+  historyCount: point.historyCount
+});
+
+export const buildDataLabPredictionCsv = (points: LearningModelPredictionPoint[]): string => {
+  const rows = points.map((point) => {
+    const cells = dataLabPredictionToCsvCells(point);
+    return DATA_LAB_PREDICTION_CSV_COLUMNS.map((column) => cells[column]);
+  });
+  return buildCsv(DATA_LAB_PREDICTION_CSV_COLUMNS, rows);
+};
+
 export const dataLabLogCsvFilename = (now: Date): string =>
   `conceptbook-datalab-logs-${localDateYmd(now)}.csv`;
 
 export const dataLabAggregateCsvFilename = (groupBy: DataLabGroupBy, now: Date): string =>
   `conceptbook-datalab-${groupBy}-${localDateYmd(now)}.csv`;
+
+export const dataLabPredictionCsvFilename = (now: Date): string =>
+  `conceptbook-datalab-predictions-${localDateYmd(now)}.csv`;

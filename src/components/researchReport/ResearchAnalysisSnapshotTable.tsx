@@ -4,6 +4,7 @@ import {
   formatDataLabAccuracy,
   formatDataLabAverageResponseTime,
   formatDataLabDateTime,
+  formatDataLabDays,
   formatDataLabMastery
 } from "../../utils/dataLab/formatDataLabTable";
 
@@ -13,13 +14,13 @@ type Props = {
 };
 
 export const ResearchAnalysisSnapshotTable = ({ rows, groupBy }: Props) => {
-  const showMastery = groupBy === "concept";
+  const showModelMetrics = groupBy === "concept";
   const labelColumn = DATA_LAB_GROUP_BY_COLUMN_LABELS[groupBy];
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-auto rounded-xl border border-celestial-border/70 bg-nordic-navy/35">
       <table
-        className="w-full min-w-[52rem] border-collapse text-left text-sm"
+        className="w-full min-w-[64rem] border-collapse text-left text-sm"
         data-testid="research-analysis-snapshot-table"
       >
         <thead>
@@ -29,7 +30,14 @@ export const ResearchAnalysisSnapshotTable = ({ rows, groupBy }: Props) => {
             <th className="px-4 py-3 font-medium">正答数</th>
             <th className="px-4 py-3 font-medium">誤答数</th>
             <th className="px-4 py-3 font-medium">正答率</th>
-            {showMastery ? <th className="px-4 py-3 font-medium">理解度</th> : null}
+            {showModelMetrics ? (
+              <>
+                <th className="px-4 py-3 font-medium">BKT 理解度</th>
+                <th className="px-4 py-3 font-medium">PFA 次回正答確率</th>
+                <th className="px-4 py-3 font-medium">HLR 記憶保持率</th>
+                <th className="px-4 py-3 font-medium">HLR 半減期</th>
+              </>
+            ) : null}
             <th className="px-4 py-3 font-medium">平均回答時間</th>
             <th className="px-4 py-3 font-medium">最終学習日時</th>
           </tr>
@@ -42,8 +50,17 @@ export const ResearchAnalysisSnapshotTable = ({ rows, groupBy }: Props) => {
               <td className="px-4 py-2 tabular-nums">{row.correctCount}</td>
               <td className="px-4 py-2 tabular-nums">{row.incorrectCount}</td>
               <td className="px-4 py-2 tabular-nums">{formatDataLabAccuracy(row.accuracy)}</td>
-              {showMastery ? (
-                <td className="px-4 py-2 tabular-nums">{formatDataLabMastery(row.masteryProbability)}</td>
+              {showModelMetrics ? (
+                <>
+                  <td className="px-4 py-2 tabular-nums">{formatDataLabMastery(row.masteryProbability)}</td>
+                  <td className="px-4 py-2 tabular-nums">
+                    {formatDataLabAccuracy(row.pfaNextCorrectProbability ?? null)}
+                  </td>
+                  <td className="px-4 py-2 tabular-nums">
+                    {formatDataLabAccuracy(row.hlrRetentionProbability ?? null)}
+                  </td>
+                  <td className="px-4 py-2 tabular-nums">{formatDataLabDays(row.hlrHalfLifeDays ?? null)}</td>
+                </>
               ) : null}
               <td className="px-4 py-2 tabular-nums">
                 {formatDataLabAverageResponseTime(row.averageResponseTimeMs)}

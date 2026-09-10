@@ -1,4 +1,8 @@
-import type { DataLabAggregateRow, DataLabGroupBy } from "./aggregateDataLabLogs";
+import {
+  DATA_LAB_EMPTY_LEARNING_MODEL_METRICS,
+  type DataLabAggregateRow,
+  type DataLabGroupBy
+} from "./aggregateDataLabLogs";
 import {
   addLocalDays,
   addLocalMonths,
@@ -34,7 +38,7 @@ const emptyPeriodRow = (
   correctCount: 0,
   incorrectCount: 0,
   accuracy: null,
-  masteryProbability: null,
+  ...DATA_LAB_EMPTY_LEARNING_MODEL_METRICS,
   averageResponseTimeMs: null,
   firstAttemptAt: null,
   lastAttemptAt: null,

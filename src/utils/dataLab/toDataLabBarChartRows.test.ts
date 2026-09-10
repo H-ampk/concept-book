@@ -69,6 +69,18 @@ describe("toDataLabBarChartRows 指標", () => {
     expect(toDataLabBarChartRows(withMastery, "mastery", "original", "all")[0]?.value).toBe(0.821);
   });
 
+  it("PFA / HLR 指標を生数値のまま取得し、null は除外・0 は残す", () => {
+    const withModels = [
+      row({ key: "missing", pfaNextCorrectProbability: null, hlrHalfLifeDays: null }),
+      row({ key: "ok", pfaNextCorrectProbability: 0.4, hlrHalfLifeDays: 3.2 }),
+      row({ key: "zero", pfaNextCorrectProbability: 0, hlrHalfLifeDays: 0 })
+    ];
+    expect(toDataLabBarChartRows(withModels, "pfaNextCorrectProbability", "original", "all").map((item) => item.key)).toEqual(
+      ["ok", "zero"]
+    );
+    expect(toDataLabBarChartRows(withModels, "hlrHalfLifeDays", "original", "all")[1]?.value).toBe(0);
+  });
+
   it("平均回答時間を ms のまま取得する", () => {
     expect(toDataLabBarChartRows([sample], "averageResponseTimeMs", "original", "all")[0]?.value).toBe(4200);
   });

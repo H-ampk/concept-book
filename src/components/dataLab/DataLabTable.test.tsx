@@ -77,26 +77,84 @@ describe("DataLabTable", () => {
     expect(screen.getByRole("button", { name: "月で並べ替え" })).toBeInTheDocument();
   });
 
-  it("Concept 集計だけ理解度列を出し、百分率表示する", () => {
+  it("Concept 集計だけ学習モデル列を出し、百分率表示する", () => {
     const rows = [
       row({
         key: "alpha",
         label: "アルファ",
-        masteryProbability: 0.821
+        masteryProbability: 0.821,
+        pfaNextCorrectProbability: 0.5,
+        pfaSuccessCount: 2,
+        pfaFailureCount: 0,
+        hlrRetentionProbability: 0.4,
+        hlrHalfLifeDays: 3.2,
+        hlrElapsedDays: 1.5
       }),
       row({
         key: "missing",
         label: "欠損",
-        masteryProbability: null
+        masteryProbability: null,
+        pfaNextCorrectProbability: null,
+        pfaSuccessCount: null,
+        pfaFailureCount: null,
+        hlrRetentionProbability: null,
+        hlrHalfLifeDays: null,
+        hlrElapsedDays: null
       })
     ];
     const { rerender } = render(<DataLabTable rows={rows} groupBy="concept" />);
-    expect(screen.getByRole("button", { name: "理解度で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "BKT 理解度で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PFA 次回正答確率で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "HLR 記憶保持率で並べ替え" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "HLR 半減期で並べ替え" })).toBeInTheDocument();
     expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByText("40%")).toBeInTheDocument();
+    expect(screen.getByText("3.2日")).toBeInTheDocument();
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
 
     rerender(<DataLabTable rows={rows} groupBy="domain" />);
-    expect(screen.queryByRole("button", { name: "理解度で並べ替え" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "BKT 理解度で並べ替え" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "PFA 次回正答確率で並べ替え" })).not.toBeInTheDocument();
+  });
+
+  it("モデル指標の 0 と null を区別する", () => {
+    const rows = [
+      row({
+        key: "zero",
+        label: "ゼロ",
+        masteryProbability: 0,
+        pfaNextCorrectProbability: 0,
+        pfaSuccessCount: 0,
+        pfaFailureCount: 0,
+        hlrRetentionProbability: 0,
+        hlrHalfLifeDays: 0,
+        hlrElapsedDays: 0
+      }),
+      row({
+        key: "missing",
+        label: "欠損",
+        masteryProbability: null,
+        pfaNextCorrectProbability: null,
+        pfaSuccessCount: null,
+        pfaFailureCount: null,
+        hlrRetentionProbability: null,
+        hlrHalfLifeDays: null,
+        hlrElapsedDays: null
+      })
+    ];
+    render(<DataLabTable rows={rows} groupBy="concept" />);
+    const zeroRow = screen.getByText("ゼロ").closest("tr");
+    const missingRow = screen.getByText("欠損").closest("tr");
+    const zeroCells = within(zeroRow as HTMLElement).getAllByRole("cell").map((cell) => cell.textContent);
+    const missingCells = within(missingRow as HTMLElement).getAllByRole("cell").map((cell) => cell.textContent);
+    expect(zeroCells).toContain("0%");
+    expect(zeroCells).toContain("0日");
+    expect(zeroCells).toContain("0");
+    expect(zeroCells.some((cell) => cell === "—")).toBe(false);
+    expect(missingCells.filter((cell) => cell === "—").length).toBeGreaterThanOrEqual(7);
+    expect(missingCells.some((cell) => cell === "0%")).toBe(false);
+    expect(missingCells.some((cell) => cell === "0日")).toBe(false);
   });
 
   it("理解度を生数値でソートし、null は最後にする", async () => {
@@ -107,7 +165,7 @@ describe("DataLabTable", () => {
       row({ key: "missing", label: "欠損", masteryProbability: null })
     ];
     render(<DataLabTable rows={rows} groupBy="concept" />);
-    const header = screen.getByRole("button", { name: "理解度で並べ替え" });
+    const header = screen.getByRole("button", { name: "BKT 理解度で並べ替え" });
     await user.click(header);
     expect(labels()).toEqual(["中", "高", "欠損"]);
     await user.click(header);
@@ -119,7 +177,7 @@ describe("DataLabTable", () => {
     expect(screen.getByText("アルファ")).toBeInTheDocument();
     expect(screen.getByText("77.8%")).toBeInTheDocument();
     expect(screen.getByText("4.2秒")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(6);
+    expect(screen.getAllByText("—")).toHaveLength(24);
     expect(screen.getByText(shortDateTime("2026-09-01T12:00:00.000Z"))).toBeInTheDocument();
   });
 

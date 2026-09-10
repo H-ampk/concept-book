@@ -35,14 +35,31 @@ describe("dataLabChartMetrics", () => {
     expect(formatDataLabMetricValue("averageResponseTimeMs", 4200)).toBe("4.2秒");
   });
 
-  it("理解度 metric の raw value / label / domain を返す", () => {
-    expect(DATA_LAB_METRIC_LABELS.mastery).toBe("理解度");
+  it("BKT 理解度 metric の raw value / label / domain を返す", () => {
+    expect(DATA_LAB_METRIC_LABELS.mastery).toBe("BKT 理解度");
     expect(getDataLabMetricValue(row({ masteryProbability: 0.821 }), "mastery")).toBe(0.821);
     expect(getDataLabMetricYDomain("mastery")).toEqual([0, 1]);
     expect(getDataLabMetricAxisDomain("mastery")).toEqual([0, 1]);
-    expect(getDataLabMetricAxisLabel("mastery")).toBe("理解度（%）");
+    expect(getDataLabMetricAxisLabel("mastery")).toBe("BKT 理解度（%）");
     expect(getDataLabMetricOptions("concept").some((option) => option.value === "mastery")).toBe(true);
     expect(getDataLabMetricOptions("day").some((option) => option.value === "mastery")).toBe(false);
+  });
+
+  it("PFA / HLR 確率の domain は [0,1]、半減期・経過日数は [0,auto] である", () => {
+    expect(DATA_LAB_METRIC_LABELS.pfaNextCorrectProbability).toBe("PFA 次回正答確率");
+    expect(DATA_LAB_METRIC_LABELS.hlrRetentionProbability).toBe("HLR 記憶保持率");
+    expect(getDataLabMetricYDomain("pfaNextCorrectProbability")).toEqual([0, 1]);
+    expect(getDataLabMetricYDomain("hlrRetentionProbability")).toEqual([0, 1]);
+    expect(getDataLabMetricAxisDomain("hlrHalfLifeDays")).toEqual([0, "auto"]);
+    expect(getDataLabMetricAxisDomain("hlrElapsedDays")).toEqual([0, "auto"]);
+    expect(getDataLabMetricAxisLabel("pfaNextCorrectProbability")).toBe("PFA 次回正答確率（%）");
+    expect(getDataLabMetricAxisLabel("hlrHalfLifeDays")).toBe("HLR 半減期（日）");
+    expect(getDataLabMetricValue(row({ pfaNextCorrectProbability: 0.4 }), "pfaNextCorrectProbability")).toBe(0.4);
+    expect(getDataLabMetricValue(row({ hlrHalfLifeDays: 3.2 }), "hlrHalfLifeDays")).toBe(3.2);
+    expect(getDataLabMetricOptions("concept").some((option) => option.value === "pfaNextCorrectProbability")).toBe(true);
+    expect(getDataLabMetricOptions("concept").some((option) => option.value === "hlrElapsedDays")).toBe(true);
+    expect(getDataLabMetricOptions("domain").some((option) => option.value === "pfaNextCorrectProbability")).toBe(false);
+    expect(getDataLabMetricOptions("week").some((option) => option.value === "hlrHalfLifeDays")).toBe(false);
   });
 
   it("欠損値は 0 にせず — にする", () => {
@@ -53,6 +70,14 @@ describe("dataLabChartMetrics", () => {
     expect(getDataLabMetricValue(row({ accuracy: null }), "accuracy")).toBeNull();
     expect(getDataLabMetricValue(row({ masteryProbability: null }), "mastery")).toBeNull();
     expect(formatDataLabMetricValue("mastery", 0)).toBe("0%");
+    expect(formatDataLabMetricValue("pfaNextCorrectProbability", null)).toBe("—");
+    expect(formatDataLabMetricValue("pfaNextCorrectProbability", 0)).toBe("0%");
+    expect(formatDataLabMetricValue("hlrRetentionProbability", 0)).toBe("0%");
+    expect(formatDataLabMetricValue("hlrHalfLifeDays", null)).toBe("—");
+    expect(formatDataLabMetricValue("hlrHalfLifeDays", 0)).toBe("0日");
+    expect(formatDataLabMetricValue("hlrElapsedDays", 0)).toBe("0日");
+    expect(getDataLabMetricValue(row({ pfaNextCorrectProbability: null }), "pfaNextCorrectProbability")).toBeNull();
+    expect(getDataLabMetricValue(row({ hlrElapsedDays: 0 }), "hlrElapsedDays")).toBe(0);
   });
 
   it("正答率の Y 軸 domain は 0〜1 固定である", () => {

@@ -83,6 +83,20 @@ describe("sortDataLabTableRows", () => {
     expect(desc.map((item) => item.key)).toEqual(["b", "a", "c"]);
   });
 
+  it("PFA / HLR 指標を生数値でソートし、null は最後にする", () => {
+    const withModels = [
+      row({ key: "a", label: "低", pfaNextCorrectProbability: 0.2, hlrHalfLifeDays: 1 }),
+      row({ key: "b", label: "高", pfaNextCorrectProbability: 0.9, hlrHalfLifeDays: 8 }),
+      row({ key: "c", label: "欠損", pfaNextCorrectProbability: null, hlrHalfLifeDays: null })
+    ];
+    expect(sortDataLabTableRows(withModels, { key: "pfaNextCorrectProbability", direction: "asc" }).map((item) => item.key)).toEqual(
+      ["a", "b", "c"]
+    );
+    expect(sortDataLabTableRows(withModels, { key: "hlrHalfLifeDays", direction: "desc" }).map((item) => item.key)).toEqual(
+      ["b", "a", "c"]
+    );
+  });
+
   it("日時を日時値としてソートし、null は最後にする", () => {
     const desc = sortDataLabTableRows(rows, { key: "lastAttemptAt", direction: "desc" });
     expect(desc.map((item) => item.key)).toEqual(["a", "b", "c"]);

@@ -201,4 +201,14 @@ describe("toDataLabHistogramBins", () => {
     ];
     expect(validCount(rows, "mastery")).toBe(2);
   });
+
+  it("PFA / HLR の null を除外し、0 は含める", () => {
+    const rows = [
+      row({ key: "missing", pfaNextCorrectProbability: null, hlrHalfLifeDays: null }),
+      row({ key: "zero", pfaNextCorrectProbability: 0, hlrHalfLifeDays: 0 }),
+      row({ key: "ok", pfaNextCorrectProbability: 0.4, hlrHalfLifeDays: 3.2 })
+    ];
+    expect(validCount(rows, "pfaNextCorrectProbability")).toBe(2);
+    expect(validCount(rows, "hlrHalfLifeDays")).toBe(2);
+  });
 });

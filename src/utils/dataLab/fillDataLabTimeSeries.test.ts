@@ -64,6 +64,9 @@ const expectEmptyPeriod = (row: DataLabAggregateRow | undefined) => {
   expect(row?.correctCount).toBe(0);
   expect(row?.incorrectCount).toBe(0);
   expect(row?.accuracy).toBeNull();
+  expect(row?.masteryProbability).toBeNull();
+  expect(row?.pfaNextCorrectProbability).toBeNull();
+  expect(row?.hlrRetentionProbability).toBeNull();
   expect(row?.averageResponseTimeMs).toBeNull();
   expect(row?.firstAttemptAt).toBeNull();
   expect(row?.lastAttemptAt).toBeNull();

@@ -1,17 +1,20 @@
 import type { DataLabGroupBy } from "./aggregateDataLabLogs";
-import type { DataLabMetric } from "./dataLabChartMetrics";
+import { isDataLabConceptModelMetric, type DataLabMetric } from "./dataLabChartMetrics";
 
 export const DATA_LAB_FALLBACK_METRIC: DataLabMetric = "accuracy";
 export const DATA_LAB_SCATTER_SECONDARY_FALLBACK_METRIC: DataLabMetric = "averageResponseTimeMs";
 
-export const isDataLabMasteryMetricAvailable = (groupBy: DataLabGroupBy): boolean =>
+export const isDataLabConceptModelMetricAvailable = (groupBy: DataLabGroupBy): boolean =>
   groupBy === "concept";
+
+/** @deprecated isDataLabConceptModelMetricAvailable を使う */
+export const isDataLabMasteryMetricAvailable = isDataLabConceptModelMetricAvailable;
 
 export const coerceDataLabMetricForGroupBy = (
   metric: DataLabMetric,
   groupBy: DataLabGroupBy
 ): DataLabMetric => {
-  if (metric === "mastery" && !isDataLabMasteryMetricAvailable(groupBy)) {
+  if (isDataLabConceptModelMetric(metric) && !isDataLabConceptModelMetricAvailable(groupBy)) {
     return DATA_LAB_FALLBACK_METRIC;
   }
   return metric;
@@ -44,9 +47,9 @@ export const sanitizeDataLabAnalysisMetrics = ({
   let nextY = coerceDataLabMetricForGroupBy(scatterYMetric, groupBy);
 
   if (nextX === nextY) {
-    if (scatterXMetric === "mastery") {
+    if (isDataLabConceptModelMetric(scatterXMetric)) {
       nextX = scatterFallbackAvoiding(nextY);
-    } else if (scatterYMetric === "mastery") {
+    } else if (isDataLabConceptModelMetric(scatterYMetric)) {
       nextY = scatterFallbackAvoiding(nextX);
     }
   }
