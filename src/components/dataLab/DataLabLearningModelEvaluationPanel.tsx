@@ -196,11 +196,11 @@ export const DataLabLearningModelEvaluationPanel = ({ points, conceptById }: Pro
 
   return (
     <section
-      className="relative min-w-0 max-w-full overflow-hidden rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-8"
+      className="relative min-w-0 max-w-full overflow-hidden rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
       aria-labelledby="data-lab-learning-model-evaluation-title"
       data-testid="data-lab-learning-model-evaluation"
     >
-      <div className="relative z-[1] space-y-5">
+      <div className="relative z-[1] space-y-4">
         <div className="space-y-2">
           <h2 id="data-lab-learning-model-evaluation-title" className="text-sm font-semibold text-celestial-softGold">
             学習モデル評価
@@ -237,10 +237,10 @@ export const DataLabLearningModelEvaluationPanel = ({ points, conceptById }: Pro
             >
               <thead>
                 <tr className="border-b border-celestial-border/50 text-xs tracking-wide text-celestial-textSub">
-                  <th className="px-4 py-3 font-medium">モデル</th>
-                  <th className="px-4 py-3 font-medium">prediction数</th>
-                  <th className="px-4 py-3 font-medium">Brier score</th>
-                  <th className="px-4 py-3 font-medium">Log loss</th>
+                  <th className="px-3 py-2 font-medium">モデル</th>
+                  <th className="px-3 py-2 font-medium">prediction数</th>
+                  <th className="px-3 py-2 font-medium">Brier score</th>
+                  <th className="px-3 py-2 font-medium">Log loss</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,14 +248,14 @@ export const DataLabLearningModelEvaluationPanel = ({ points, conceptById }: Pro
                   const metrics = metricsByModel.get(model.id) ?? emptyMetrics();
                   return (
                     <tr key={model.id} className="border-b border-celestial-border/30 last:border-0">
-                      <th scope="row" className="px-4 py-3 font-normal text-celestial-textMain">
+                      <th scope="row" className="px-3 py-2 font-normal text-celestial-textMain">
                         {model.label}
                       </th>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{metrics.count}</td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">{metrics.count}</td>
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {formatDataLabEvaluationScore(metrics.brierScore)}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {formatDataLabEvaluationScore(metrics.logLoss)}
                       </td>
                     </tr>
@@ -300,25 +300,25 @@ export const DataLabLearningModelEvaluationPanel = ({ points, conceptById }: Pro
               >
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs tracking-wide text-celestial-textSub">
-                    <th className="px-4 py-3 font-medium">Concept</th>
-                    <th className="px-4 py-3 font-medium">prediction数</th>
-                    <th className="px-4 py-3 font-medium">Brier score</th>
-                    <th className="px-4 py-3 font-medium">Log loss</th>
+                    <th className="px-3 py-2 font-medium">Concept</th>
+                    <th className="px-3 py-2 font-medium">prediction数</th>
+                    <th className="px-3 py-2 font-medium">Brier score</th>
+                    <th className="px-3 py-2 font-medium">Log loss</th>
                   </tr>
                 </thead>
                 <tbody>
                   {conceptRows.map((row) => (
                     <tr key={row.conceptId} className="border-b border-celestial-border/30 last:border-0">
-                      <th scope="row" className="px-4 py-3 font-normal text-celestial-softGold">
+                      <th scope="row" className="px-3 py-2 font-normal text-celestial-softGold">
                         {row.label}
                       </th>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {formatDataLabNullableCount(row.metrics.count)}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {formatDataLabEvaluationScore(row.metrics.brierScore)}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {formatDataLabEvaluationScore(row.metrics.logLoss)}
                       </td>
                     </tr>

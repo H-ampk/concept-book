@@ -33,7 +33,7 @@ export const SavedResearchReportsPanel = ({
   };
 
   return (
-    <section className="space-y-4" aria-labelledby="saved-research-reports-heading">
+    <section className="space-y-3" aria-labelledby="saved-research-reports-heading">
       <div>
         <h2 id="saved-research-reports-heading" className="text-sm font-semibold text-celestial-softGold">
           保存済み研究レポート
@@ -66,7 +66,7 @@ export const SavedResearchReportsPanel = ({
           </label>
 
           {selected ? (
-            <div className="space-y-4" data-testid="saved-research-report-detail">
+            <div className="space-y-3" data-testid="saved-research-report-detail">
               <label className="block min-w-0 space-y-1.5">
                 <span className="text-xs font-medium text-celestial-textSub">タイトル</span>
                 <input

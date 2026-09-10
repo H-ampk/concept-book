@@ -122,7 +122,7 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
                   key={column.key}
                   scope="col"
                   aria-sort={ariaSort}
-                  className="sticky top-0 z-[1] bg-nordic-navy px-4 py-3 font-medium"
+                  className="sticky top-0 z-[1] bg-nordic-navy px-3 py-2 font-medium"
                 >
                   <button
                     type="button"
@@ -145,8 +145,8 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
                 const content = formatCell(row, column.key);
                 const className =
                   column.key === "label"
-                    ? "max-w-[16rem] px-4 py-3 font-normal text-celestial-textMain"
-                    : "whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain";
+                    ? "max-w-[16rem] px-3 py-2 font-normal text-celestial-textMain"
+                    : "whitespace-nowrap px-3 py-2 tabular-nums text-celestial-textMain";
                 if (index === 0) {
                   return (
                     <th key={column.key} scope="row" className={className}>
@@ -156,7 +156,7 @@ export const DataLabTable = ({ rows, groupBy }: Props) => {
                 }
                 if (column.key === "lastAttemptAt" && row.lastAttemptAt) {
                   return (
-                    <td key={column.key} className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                    <td key={column.key} className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
                       <time dateTime={row.lastAttemptAt}>{content}</time>
                     </td>
                   );

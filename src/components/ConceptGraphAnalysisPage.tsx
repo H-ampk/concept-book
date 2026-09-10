@@ -166,7 +166,7 @@ export const ConceptGraphAnalysisPage = ({
     focusConceptId && !loading ? (
       <section
         id="concept-graph-analysis-focus-banner"
-        className="rounded-xl border border-celestial-softGold/70 bg-celestial-gold/10 px-4 py-3"
+        className="rounded-xl border border-celestial-softGold/70 bg-celestial-gold/10 px-4 py-2.5"
         aria-labelledby="concept-graph-analysis-focus-heading"
       >
         <h2 id="concept-graph-analysis-focus-heading" className="text-sm font-semibold text-celestial-softGold">
@@ -182,14 +182,14 @@ export const ConceptGraphAnalysisPage = ({
     ) : null;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-1 sm:px-0">
+    <div className="mx-auto max-w-6xl space-y-4 px-1 sm:px-0">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="concept-graph-analysis-title"
       >
-        <div className="relative z-[1] space-y-5">
+        <div className="relative z-[1] space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 space-y-2">
               <h1 id="concept-graph-analysis-title" className="text-2xl font-semibold tracking-wide text-celestial-textMain md:text-3xl">
                 概念グラフ分析
@@ -219,7 +219,7 @@ export const ConceptGraphAnalysisPage = ({
         </p>
       ) : logs.length === 0 ? (
         <section
-          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-6 py-10 text-center backdrop-blur-sm"
+          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-5 py-8 text-center backdrop-blur-sm"
           aria-labelledby="concept-graph-analysis-empty-title"
         >
           <h2 id="concept-graph-analysis-empty-title" className="text-lg font-semibold text-celestial-softGold">
@@ -238,7 +238,7 @@ export const ConceptGraphAnalysisPage = ({
             <p className="text-xs text-celestial-textSub">
               未指定の項目は条件に含めません。日付は端末のローカル日の始端・終端で比較します。
             </p>
-            <div className="flex flex-col gap-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex flex-col gap-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
               <div>
                 <label htmlFor="concept-graph-date-start" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
                   開始日
@@ -280,7 +280,7 @@ export const ConceptGraphAnalysisPage = ({
 
           {logsInPeriod.length === 0 ? (
             <section
-              className="rounded-xl border border-celestial-border/60 bg-nordic-navy/35 px-5 py-8 text-center backdrop-blur-sm"
+              className="rounded-xl border border-celestial-border/60 bg-nordic-navy/35 px-4 py-6 text-center backdrop-blur-sm"
               aria-labelledby="concept-graph-period-empty-title"
             >
               <h2 id="concept-graph-period-empty-title" className="text-base font-semibold text-celestial-softGold">
@@ -292,7 +292,7 @@ export const ConceptGraphAnalysisPage = ({
               <button
                 type="button"
                 onClick={resetDateRange}
-                className="mt-5 header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+                className="mt-4 header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
               >
                 期間リセット
               </button>
@@ -338,7 +338,7 @@ export const ConceptGraphAnalysisPage = ({
 
               {!hasLinkedWrongAnswer ? (
                 <section
-                  className="rounded-xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/20 px-5 py-10 text-center backdrop-blur-sm"
+                  className="rounded-xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/20 px-4 py-8 text-center backdrop-blur-sm"
                   aria-labelledby="concept-graph-linked-empty-title"
                 >
                   <h2 id="concept-graph-linked-empty-title" className="text-base font-semibold text-celestial-softGold">
@@ -362,16 +362,16 @@ export const ConceptGraphAnalysisPage = ({
                     <caption className="sr-only">Concept 取り違えペア。件数の多い順</caption>
                     <thead>
                       <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           選んだ Concept
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium text-center">
+                        <th scope="col" className="px-3 py-2 font-medium text-center">
                           →
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           正解 Concept
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           件数
                         </th>
                       </tr>
@@ -379,7 +379,7 @@ export const ConceptGraphAnalysisPage = ({
                     <tbody>
                       {confusionEdges.map((e) => (
                         <tr key={`${e.selectedKey}\u0000${e.correctKey}`} className="border-b border-celestial-border/30 last:border-0">
-                          <td className="max-w-[220px] px-4 py-3 text-celestial-textMain">
+                          <td className="max-w-[220px] px-3 py-2 text-celestial-textMain">
                             <div className="flex flex-wrap items-start gap-2">
                               <span className="line-clamp-2" title={formatConceptGraphNodeLabel(e.selectedKey, titleById)}>
                                 {formatConceptGraphNodeLabel(e.selectedKey, titleById)}
@@ -391,10 +391,10 @@ export const ConceptGraphAnalysisPage = ({
                               />
                             </div>
                           </td>
-                          <td className="px-2 py-3 text-center text-celestial-gold/90" aria-hidden="true">
+                          <td className="px-2 py-2 text-center text-celestial-gold/90" aria-hidden="true">
                             →
                           </td>
-                          <td className="max-w-[220px] px-4 py-3 text-celestial-textMain">
+                          <td className="max-w-[220px] px-3 py-2 text-celestial-textMain">
                             <div className="flex flex-wrap items-start gap-2">
                               <span className="line-clamp-2" title={formatConceptGraphNodeLabel(e.correctKey, titleById)}>
                                 {formatConceptGraphNodeLabel(e.correctKey, titleById)}
@@ -406,7 +406,7 @@ export const ConceptGraphAnalysisPage = ({
                               />
                             </div>
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">{e.count}</td>
+                          <td className="whitespace-nowrap px-3 py-2 tabular-nums text-celestial-textMain">{e.count}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -426,19 +426,19 @@ export const ConceptGraphAnalysisPage = ({
                     <caption className="sr-only">Concept 別の混同サマリ</caption>
                     <thead>
                       <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           Concept
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           誤って選ばれた回数
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           正解として出た回数（誤答時）
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           関連する混同ペア数
                         </th>
-                        <th scope="col" className="px-4 py-3 font-medium">
+                        <th scope="col" className="px-3 py-2 font-medium">
                           最終出現
                         </th>
                       </tr>
@@ -453,7 +453,7 @@ export const ConceptGraphAnalysisPage = ({
                               : ""
                           }`}
                         >
-                          <th scope="row" className="max-w-[240px] px-4 py-3 font-normal text-celestial-softGold">
+                          <th scope="row" className="max-w-[240px] px-3 py-2 font-normal text-celestial-softGold">
                             <div className="flex flex-wrap items-start gap-2">
                               <span className="line-clamp-2" title={formatConceptGraphNodeLabel(row.conceptKey, titleById)}>
                                 {formatConceptGraphNodeLabel(row.conceptKey, titleById)}
@@ -465,10 +465,10 @@ export const ConceptGraphAnalysisPage = ({
                               />
                             </div>
                           </th>
-                          <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.chosenAsWrongCount}</td>
-                          <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.asCorrectInWrongCount}</td>
-                          <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.relatedPairCount}</td>
-                          <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                          <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.chosenAsWrongCount}</td>
+                          <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.asCorrectInWrongCount}</td>
+                          <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.relatedPairCount}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
                             {row.lastAppearanceAt ? (
                               <time dateTime={row.lastAppearanceAt}>{shortDateTime(row.lastAppearanceAt)}</time>
                             ) : (
@@ -489,7 +489,7 @@ export const ConceptGraphAnalysisPage = ({
                 <p className="text-xs text-celestial-textSub">
                   Concept ごとに、混同の相手と件数をカードで示します（本格的なグラフ描画は含みません）。
                 </p>
-                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
                   {nodeStats.map((row) => {
                     const partners = partnersByConcept.get(row.conceptKey) ?? [];
                     return (
@@ -529,7 +529,7 @@ export const ConceptGraphAnalysisPage = ({
                         {partners.length === 0 ? (
                           <p className="mt-3 text-xs text-celestial-textSub">接続する混同ペアがありません。</p>
                         ) : (
-                          <ul className="mt-4 space-y-2 border-t border-celestial-border/40 pt-3 text-xs">
+                          <ul className="mt-3 space-y-2 border-t border-celestial-border/40 pt-3 text-xs">
                             {partners.map((p, idx) => (
                               <li
                                 key={`${row.conceptKey}-${p.direction}-${p.partnerKey}-${idx}`}

@@ -188,12 +188,12 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
     isUsableReactionTimeMs(log.timeMs) ? formatSecondsFromMs(log.timeMs) : `${log.timeMs} ms（計測対象外）`;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-1 sm:px-0">
+    <div className="mx-auto max-w-6xl space-y-4 px-1 sm:px-0">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="learning-logs-title"
       >
-        <div className="relative z-[1] flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative z-[1] flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
             <h1 id="learning-logs-title" className="text-2xl font-semibold tracking-wide text-celestial-textMain md:text-3xl">
@@ -230,7 +230,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
         </p>
       ) : logs.length === 0 ? (
         <section
-          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-6 py-10 text-center backdrop-blur-sm"
+          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-5 py-8 text-center backdrop-blur-sm"
           aria-labelledby="learning-logs-empty-title"
         >
           <h2 id="learning-logs-empty-title" className="text-lg font-semibold text-celestial-softGold">
@@ -242,7 +242,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
           <button
             type="button"
             onClick={onGoToQuizPlay}
-            className="mt-6 header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-4 py-2.5 text-sm font-medium text-celestial-softGold hover:bg-celestial-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+            className="mt-4 header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-4 py-2.5 text-sm font-medium text-celestial-softGold hover:bg-celestial-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
             aria-label="クイズで学習の画面へ移動"
           >
             クイズで学習へ
@@ -288,12 +288,12 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
             </div>
           </section>
 
-          <section aria-labelledby="learning-logs-filters-heading" className="space-y-4">
+          <section aria-labelledby="learning-logs-filters-heading" className="space-y-3">
             <h2 id="learning-logs-filters-heading" className="text-sm font-semibold text-celestial-softGold">
               絞り込み
             </h2>
-            <div className="flex flex-col gap-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm">
-              <div className="space-y-2 border-b border-celestial-border/40 pb-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm">
+              <div className="space-y-2 border-b border-celestial-border/40 pb-3">
                 <p id="learning-logs-date-legend" className="text-xs font-medium text-celestial-textSub">
                   回答日時（answeredAt）
                 </p>
@@ -339,7 +339,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
+              <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
               <fieldset className="min-w-0 flex-1 border-0 p-0">
                 <legend className="mb-1.5 text-xs font-medium text-celestial-textSub">正誤</legend>
                 <div
@@ -424,7 +424,7 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
           </section>
 
           {filteredLogs.length === 0 ? (
-            <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-6 text-center text-sm text-celestial-textSub">
+            <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-5 text-center text-sm text-celestial-textSub">
               条件に一致するログがありません。フィルタをリセットするか、条件を変えてください。
             </p>
           ) : (
@@ -499,31 +499,31 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                   <caption className="sr-only">学習ログ。回答日時の新しい順</caption>
                   <thead>
                     <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         回答日時
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         学習元
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         問題文
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         選んだ選択肢
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         正解選択肢
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         正誤
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         反応時間
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         関連 Concept
                       </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
+                      <th scope="col" className="px-3 py-2 font-medium">
                         操作
                       </th>
                     </tr>
@@ -531,31 +531,31 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                   <tbody>
                     {filteredLogs.map((log) => (
                       <tr key={log.id} className="border-b border-celestial-border/30 last:border-0">
-                        <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                        <td className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
                           <time dateTime={log.answeredAt}>{shortDateTime(log.answeredAt)}</time>
                         </td>
-                        <td className="max-w-[160px] px-4 py-3 text-celestial-textMain">
+                        <td className="max-w-[160px] px-3 py-2 text-celestial-textMain">
                           <span className="line-clamp-2 text-celestial-softGold" title={formatDeckSourceLabel(log)}>
                             {formatDeckSourceLabel(log)}
                           </span>
                         </td>
-                        <td className="max-w-xs px-4 py-3 text-celestial-textMain">
+                        <td className="max-w-xs px-3 py-2 text-celestial-textMain">
                           <span className="line-clamp-2" title={questionTitleHint(log)}>
                             {log.questionPromptSnapshot}
                           </span>
                           <p className="mt-1 text-[11px] text-celestial-textSub">ID: {log.questionId}</p>
                         </td>
-                        <td className="max-w-[200px] px-4 py-3 text-celestial-textMain">
+                        <td className="max-w-[200px] px-3 py-2 text-celestial-textMain">
                           <span className="line-clamp-2" title={log.selectedChoiceTextSnapshot}>
                             {log.selectedChoiceTextSnapshot}
                           </span>
                         </td>
-                        <td className="max-w-[200px] px-4 py-3 text-celestial-textMain">
+                        <td className="max-w-[200px] px-3 py-2 text-celestial-textMain">
                           <span className="line-clamp-2" title={log.correctChoiceTextSnapshot}>
                             {log.correctChoiceTextSnapshot}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           {log.correct ? (
                             <span className="text-celestial-emerald">
                               正解<span className="sr-only">。正しい回答です。</span>
@@ -566,15 +566,15 @@ export const QuizLearningLogsPage = ({ onBack, onGoToQuizPlay, onGoToAnalysisDas
                             </span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
+                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-celestial-textMain">
                           {renderReaction(log)}
                         </td>
-                        <td className="max-w-[240px] px-4 py-3 text-celestial-textMain">
+                        <td className="max-w-[240px] px-3 py-2 text-celestial-textMain">
                           <span className="line-clamp-2" title={formatRelatedConceptSummary(log, titleById)}>
                             {formatRelatedConceptSummary(log, titleById)}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           <button
                             type="button"
                             onClick={() => void handleDeleteOne(log)}

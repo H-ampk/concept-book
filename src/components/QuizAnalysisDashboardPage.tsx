@@ -81,7 +81,7 @@ const ConfusionPairCard = ({
       <p className="mt-1 text-xs text-celestial-textSub">
         {correctName} を {selectedName} と誤答
       </p>
-      <dl className="mt-3 grid gap-2 text-sm">
+      <dl className="mt-2 grid gap-2 text-sm">
         <div>
           <dt className="text-xs text-celestial-textSub">全期間</dt>
           <dd className="tabular-nums text-celestial-textMain">
@@ -143,7 +143,7 @@ const ConfusionAnalysisSection = ({
           1 回の誤答も集計から消しません。ただし対象 Concept の回答数が少ない率には「データ少」を付け、回数・回答数・率を同時に表示します。
         </p>
         {directedStats.length === 0 ? (
-          <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-3 text-sm text-celestial-textSub">
+          <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-2.5 text-sm text-celestial-textSub">
             方向付きの Concept 混同はまだありません。正解と選択の両方に linkedConceptId がある誤答があると、ここに表示されます。
           </p>
         ) : (
@@ -170,11 +170,11 @@ const ConfusionAnalysisSection = ({
           正解 Concept を選ぶと、その Concept をどれと取り違えたかを回数の多い順に確認できます。同数なら混同率で並べます。
         </p>
         {conceptSummaries.length === 0 ? (
-          <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-3 text-sm text-celestial-textSub">
+          <p className="rounded-xl border border-celestial-border/50 bg-nordic-navy/30 px-4 py-2.5 text-sm text-celestial-textSub">
             正解の linkedConceptId がある回答がまだないため、Concept 単位の混同は表示できません。
           </p>
         ) : (
-          <div className="space-y-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm">
+          <div className="space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm">
             <div>
               <label
                 htmlFor="quiz-analysis-confusion-concept"
@@ -208,19 +208,19 @@ const ConfusionAnalysisSection = ({
                   {selectedSummary.totalConfusionCount} 回 · 混同率{" "}
                   {pctText(selectedSummary.confusionRate)}
                 </p>
-                <h3 className="mt-4 text-sm font-semibold text-celestial-textMain">よく混同するConcept</h3>
+                <h3 className="mt-3 text-sm font-semibold text-celestial-textMain">よく混同するConcept</h3>
                 {selectedSummary.targets.length === 0 ? (
                   <p className="mt-2 text-sm text-celestial-textSub">
                     この Concept では、別 Concept への混同はまだありません。
                   </p>
                 ) : (
-                  <ol className="mt-2 space-y-3">
+                  <ol className="mt-2 space-y-2">
                     {selectedSummary.targets.map((target, index) => {
                       const name = formatConceptRef(target.selectedConceptId, titleById);
                       return (
                         <li
                           key={target.selectedConceptId}
-                          className="border-b border-celestial-border/30 pb-3 last:border-0 last:pb-0"
+                          className="border-b border-celestial-border/30 pb-2 last:border-0 last:pb-0"
                         >
                           <p className="text-sm text-celestial-textMain">
                             {index + 1}. {name}
@@ -304,14 +304,14 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
   const hasDateFilter = dateStart.trim() !== "" || dateEnd.trim() !== "";
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-8 px-6 lg:px-8">
+    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-4 px-6 lg:px-8">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="quiz-analysis-title"
       >
-        <div className="relative z-[1] space-y-5">
+        <div className="relative z-[1] space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 space-y-2">
               <h1 id="quiz-analysis-title" className="text-2xl font-semibold tracking-wide text-celestial-textMain md:text-3xl">
                 分析ダッシュボード
@@ -348,7 +348,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
         </p>
       ) : logs.length === 0 ? (
         <section
-          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-6 py-10 text-center backdrop-blur-sm"
+          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-5 py-8 text-center backdrop-blur-sm"
           aria-labelledby="quiz-analysis-empty-title"
         >
           <h2 id="quiz-analysis-empty-title" className="text-lg font-semibold text-celestial-softGold">
@@ -360,7 +360,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
           <button
             type="button"
             onClick={onGoToQuizPlay}
-            className="mt-6 header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-4 py-2.5 text-sm font-medium text-celestial-softGold hover:bg-celestial-gold/20"
+            className="mt-4 header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-4 py-2.5 text-sm font-medium text-celestial-softGold hover:bg-celestial-gold/20"
             aria-label="クイズで学習の画面へ移動"
           >
             クイズで学習へ
@@ -375,7 +375,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
             <p className="text-xs text-celestial-textSub">
               未指定の項目は条件に含めません。日付は端末のローカル日（カレンダー日）の始端・終端で比較します。
             </p>
-            <div className="flex flex-col gap-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex flex-col gap-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
               <div>
                 <label htmlFor="quiz-analysis-date-start" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
                   開始日
@@ -429,7 +429,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
               <button
                 type="button"
                 onClick={resetDateRange}
-                className="mt-5 header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+                className="mt-4 header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
               >
                 期間リセット
               </button>
@@ -489,22 +489,22 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                 <caption className="sr-only">クイズ集別・自由学習別の回答数・正答率・平均反応時間・最終回答</caption>
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       学習元
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       回答数
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正解数
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正答率
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       平均反応時間
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       最終回答
                     </th>
                   </tr>
@@ -515,15 +515,15 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                       key={row.bucketKey}
                       className="border-b border-celestial-border/30 last:border-0"
                     >
-                      <th scope="row" className="max-w-[260px] px-4 py-3 font-normal text-celestial-textMain">
+                      <th scope="row" className="max-w-[260px] px-3 py-2 font-normal text-celestial-textMain">
                         <span className="line-clamp-2 text-celestial-softGold" title={row.displayName}>
                           {row.displayName}
                         </span>
                       </th>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.answerCount}</td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.correctCount}</td>
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.answerCount}</td>
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.correctCount}</td>
                       <td
-                        className={`px-4 py-3 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
+                        className={`px-3 py-2 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
                         title={`正答率 ${pctText(row.accuracy)}（正解 ${row.correctCount} / ${row.answerCount}）`}
                       >
                         {pctText(row.accuracy)}
@@ -531,10 +531,10 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                           。正解 {row.correctCount} 件、全 {row.answerCount} 件中。
                         </span>
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {row.averageTimeMs != null ? formatSecondsFromMs(row.averageTimeMs) : "—"}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                      <td className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
                         <time dateTime={row.lastAnsweredAt}>{shortDateTime(row.lastAnsweredAt)}</time>
                       </td>
                     </tr>
@@ -556,19 +556,19 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                 <caption className="sr-only">Concept 別の回答数・正答率・平均反応時間</caption>
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       Concept
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       回答数
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正解数
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正答率
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       平均反応時間
                     </th>
                   </tr>
@@ -581,15 +581,15 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                         key={row.bucketId ?? "__uncategorized__"}
                         className="border-b border-celestial-border/30 last:border-0"
                       >
-                        <th scope="row" className="max-w-[220px] px-4 py-3 font-normal text-celestial-textMain">
+                        <th scope="row" className="max-w-[220px] px-3 py-2 font-normal text-celestial-textMain">
                           <span className="line-clamp-2" title={name}>
                             {name}
                           </span>
                         </th>
-                        <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.attemptCount}</td>
-                        <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.correctCount}</td>
+                        <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.attemptCount}</td>
+                        <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.correctCount}</td>
                         <td
-                          className={`px-4 py-3 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
+                          className={`px-3 py-2 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
                           title={`正答率 ${pctText(row.accuracy)}（正解 ${row.correctCount} / ${row.attemptCount}）`}
                         >
                           {pctText(row.accuracy)}
@@ -597,7 +597,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                             。正解 {row.correctCount} 件、全 {row.attemptCount} 件中。
                           </span>
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                        <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                           {row.avgReactionTimeMs != null
                             ? formatSecondsFromMs(row.avgReactionTimeMs)
                             : "—"}
@@ -622,22 +622,22 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                 <caption className="sr-only">問題別の回答数・正答率・平均反応時間</caption>
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       問題文（スナップショット）
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       回答数
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正解数
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正答率
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       平均反応時間
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       最終回答
                     </th>
                   </tr>
@@ -650,7 +650,7 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                       : `ログ時点の問題文:\n${row.promptSnapshot}\n\n（このIDの問題は現在の一覧にありません）`;
                     return (
                     <tr key={row.questionId} className="border-b border-celestial-border/30 last:border-0">
-                      <th scope="row" className="max-w-md px-4 py-3 font-normal text-celestial-textMain">
+                      <th scope="row" className="max-w-md px-3 py-2 font-normal text-celestial-textMain">
                         <span className="line-clamp-2" title={titleHint}>
                           {row.promptSnapshot}
                         </span>
@@ -659,10 +659,10 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                           {currentQ ? "" : " · 現在の問題一覧に未登録"}
                         </p>
                       </th>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.attemptCount}</td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">{row.correctCount}</td>
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.attemptCount}</td>
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">{row.correctCount}</td>
                       <td
-                        className={`px-4 py-3 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
+                        className={`px-3 py-2 tabular-nums ${lowAccuracyClass(row.accuracy)}`}
                         title={`正答率 ${pctText(row.accuracy)}（正解 ${row.correctCount} / ${row.attemptCount}）`}
                       >
                         {pctText(row.accuracy)}
@@ -670,12 +670,12 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                           。正解 {row.correctCount} 件、全 {row.attemptCount} 件中。
                         </span>
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="px-3 py-2 tabular-nums text-celestial-textMain">
                         {row.avgReactionTimeMs != null
                           ? formatSecondsFromMs(row.avgReactionTimeMs)
                           : "—"}
                       </td>
-                      <td className="px-4 py-3 text-celestial-textMain">
+                      <td className="px-3 py-2 text-celestial-textMain">
                         {shortDateTime(row.lastAnsweredAt)}
                       </td>
                     </tr>
@@ -714,28 +714,28 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                 <caption className="sr-only">最近のクイズ回答ログ</caption>
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       回答日時
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       学習元
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       問題文
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       選んだ選択肢
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正解選択肢
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       正誤
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       反応時間
                     </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <th scope="col" className="px-3 py-2 font-medium">
                       関連 Concept
                     </th>
                   </tr>
@@ -743,30 +743,30 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                 <tbody>
                   {recent.map((log) => (
                     <tr key={log.id} className="border-b border-celestial-border/30 last:border-0">
-                      <td className="whitespace-nowrap px-4 py-3 text-celestial-textMain">
+                      <td className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
                         {shortDateTime(log.answeredAt)}
                       </td>
-                      <td className="max-w-[160px] px-4 py-3 text-celestial-textMain">
+                      <td className="max-w-[160px] px-3 py-2 text-celestial-textMain">
                         <span className="line-clamp-2 text-celestial-softGold" title={formatDeckSourceLabel(log)}>
                           {formatDeckSourceLabel(log)}
                         </span>
                       </td>
-                      <td className="max-w-xs px-4 py-3 text-celestial-textMain">
+                      <td className="max-w-xs px-3 py-2 text-celestial-textMain">
                         <span className="line-clamp-2" title={log.questionPromptSnapshot}>
                           {log.questionPromptSnapshot}
                         </span>
                       </td>
-                      <td className="max-w-[200px] px-4 py-3 text-celestial-textMain">
+                      <td className="max-w-[200px] px-3 py-2 text-celestial-textMain">
                         <span className="line-clamp-2" title={log.selectedChoiceTextSnapshot}>
                           {log.selectedChoiceTextSnapshot}
                         </span>
                       </td>
-                      <td className="max-w-[200px] px-4 py-3 text-celestial-textMain">
+                      <td className="max-w-[200px] px-3 py-2 text-celestial-textMain">
                         <span className="line-clamp-2" title={log.correctChoiceTextSnapshot}>
                           {log.correctChoiceTextSnapshot}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         {log.correct ? (
                           <span className="text-celestial-emerald">
                             正解<span className="sr-only">。正しい回答です。</span>
@@ -777,12 +777,12 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
                           </span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-celestial-textMain">
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums text-celestial-textMain">
                         {isUsableReactionTimeMs(log.timeMs)
                           ? formatSecondsFromMs(log.timeMs)
                           : `${log.timeMs} ms（計測対象外）`}
                       </td>
-                      <td className="max-w-[280px] px-4 py-3 text-celestial-textMain">
+                      <td className="max-w-[280px] px-3 py-2 text-celestial-textMain">
                         <span className="line-clamp-2" title={formatRelatedConceptSummary(log, titleById)}>
                           {formatRelatedConceptSummary(log, titleById)}
                         </span>

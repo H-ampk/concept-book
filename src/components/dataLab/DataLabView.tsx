@@ -179,12 +179,12 @@ export const DataLabView = ({
   const isConceptMode = analysisTarget === "concepts";
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-6 px-6 lg:px-8">
+    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-4 px-6 lg:px-8">
       <section
-        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="data-lab-title"
       >
-        <div className="relative z-[1] flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="relative z-[1] flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
             <h1 id="data-lab-title" className="text-2xl font-semibold tracking-wide text-celestial-textMain md:text-3xl">
@@ -198,8 +198,8 @@ export const DataLabView = ({
             <OrnamentLine variant="header" className="max-w-md opacity-80" />
           </div>
 
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-4 py-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-3 py-2.5">
               <p className="text-xs font-medium tracking-wide text-celestial-textSub">
                 {isConceptMode ? "対象 Concept" : "対象ログ"}
               </p>
@@ -226,7 +226,7 @@ export const DataLabView = ({
           </div>
         </div>
 
-        <div className="relative z-[1] mt-5 space-y-2" data-testid="data-lab-analysis-target">
+        <div className="relative z-[1] mt-4 space-y-2" data-testid="data-lab-analysis-target">
           <p className="text-xs font-medium text-celestial-textSub" id="data-lab-analysis-target-label">
             分析対象
           </p>

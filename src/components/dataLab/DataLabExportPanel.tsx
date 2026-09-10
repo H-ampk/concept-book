@@ -89,10 +89,10 @@ export const DataLabExportPanel = ({
 
   return (
     <section
-      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
       aria-labelledby="data-lab-export-title"
     >
-      <div className="relative z-[1] space-y-4">
+      <div className="relative z-[1] space-y-3">
         <div className="space-y-1">
           <h2 id="data-lab-export-title" className="text-sm font-semibold text-celestial-softGold">
             CSV エクスポート
@@ -119,7 +119,7 @@ export const DataLabExportPanel = ({
         </div>
 
         <div
-          className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-4 py-3 text-sm text-celestial-textMain"
+          className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-3 py-2.5 text-sm text-celestial-textMain"
           data-testid="data-lab-export-summary"
         >
           <p>出力対象: {summary.targetLabel}</p>

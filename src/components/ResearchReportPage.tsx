@@ -131,14 +131,14 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-1 sm:px-0">
+    <div className="mx-auto max-w-6xl space-y-4 px-1 sm:px-0">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="research-report-title"
       >
-        <div className="relative z-[1] space-y-5">
+        <div className="relative z-[1] space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 観測室</p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 space-y-2">
               <h1 id="research-report-title" className="text-2xl font-semibold tracking-wide text-celestial-textMain md:text-3xl">
                 研究レポート
@@ -165,7 +165,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
           読み込み中…
         </p>
       ) : (
-        <div className="rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6">
+        <div className="rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5">
         <SavedResearchReportsPanel
           reports={savedReports}
           onTitleChange={(reportId, title) => {
@@ -195,7 +195,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
 
       {loading ? null : logs.length === 0 ? (
         <section
-          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-6 py-10 text-center backdrop-blur-sm"
+          className="rounded-3xl border border-celestial-border/70 bg-nordic-navy/35 px-5 py-8 text-center backdrop-blur-sm"
           aria-labelledby="research-report-empty-title"
         >
           <h2 id="research-report-empty-title" className="text-lg font-semibold text-celestial-softGold">
@@ -207,7 +207,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
           <button
             type="button"
             onClick={onGoToQuizPlay}
-            className="mt-6 header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-4 py-2.5 text-sm font-medium text-celestial-softGold hover:bg-celestial-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+            className="mt-4 header-nav-button rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-4 py-2.5 text-sm font-medium text-celestial-softGold hover:bg-celestial-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
             aria-label="クイズで学習へ移動"
           >
             クイズで学習へ
@@ -220,7 +220,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
               回答日時（answeredAt）で期間を絞り込む
             </h2>
             <p className="text-xs text-celestial-textSub">{periodLabel}</p>
-            <div className="flex flex-col gap-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex flex-col gap-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
               <div>
                 <label htmlFor="research-report-date-start" className="mb-1.5 block text-xs font-medium text-celestial-textSub">
                   開始日
@@ -262,7 +262,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
 
           {logsInPeriod.length === 0 ? (
             <section
-              className="rounded-xl border border-celestial-border/60 bg-nordic-navy/35 px-5 py-8 text-center backdrop-blur-sm"
+              className="rounded-xl border border-celestial-border/60 bg-nordic-navy/35 px-4 py-6 text-center backdrop-blur-sm"
               aria-labelledby="research-report-period-empty-title"
             >
               <h2 id="research-report-period-empty-title" className="text-base font-semibold text-celestial-softGold">
@@ -274,7 +274,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
               <button
                 type="button"
                 onClick={resetDateRange}
-                className="mt-5 header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
+                className="mt-4 header-nav-button rounded-md border border-celestial-gold/50 bg-transparent px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55"
               >
                 期間リセット
               </button>
@@ -332,7 +332,7 @@ export const ResearchReportPage = ({ onBack, onGoToQuizPlay }: Props) => {
                 </div>
                 <div className="overflow-x-auto scrollbar-none rounded-xl border border-celestial-border/70 bg-nordic-navy/40 backdrop-blur-sm">
                   <pre
-                    className="max-h-[min(70vh,520px)] overflow-y-auto p-4 text-left text-xs leading-relaxed text-celestial-textMain sm:text-sm whitespace-pre-wrap break-words font-mono"
+                    className="max-h-[min(70vh,520px)] overflow-y-auto p-3 text-left text-xs leading-relaxed text-celestial-textMain sm:p-4 sm:text-sm whitespace-pre-wrap break-words font-mono"
                     tabIndex={0}
                   >
                     {markdown}

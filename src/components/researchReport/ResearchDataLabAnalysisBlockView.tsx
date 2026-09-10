@@ -15,7 +15,7 @@ export const ResearchDataLabAnalysisBlockView = ({ block, onCommentaryChange, on
 
   return (
     <article
-      className="space-y-4 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4"
+      className="space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/35 p-4"
       data-testid="research-analysis-block"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

@@ -26,7 +26,7 @@ const formatAverage = (value: number | null): string => {
 };
 
 const StatCard = ({ label, value, testId }: { label: string; value: string; testId?: string }) => (
-  <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-4 py-3">
+  <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 px-3 py-2.5">
     <p className="text-xs font-medium tracking-wide text-celestial-textSub">{label}</p>
     <p
       className="mt-1 text-xl font-semibold tabular-nums text-celestial-textMain"
@@ -49,7 +49,7 @@ const Section = ({
   note?: string;
 }) => (
   <section
-    className="space-y-3 rounded-2xl border border-celestial-border/50 bg-nordic-navy/30 p-4"
+    className="space-y-3 rounded-2xl border border-celestial-border/50 bg-nordic-navy/30 p-3 sm:p-4"
     data-testid={testId}
   >
     <div className="space-y-1">
@@ -72,7 +72,7 @@ export const DataLabConceptResultsPanel = ({
   if (totalConcepts === 0) {
     return (
       <section
-        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="data-lab-concept-results-title"
         data-testid="data-lab-concept-results"
       >
@@ -91,7 +91,7 @@ export const DataLabConceptResultsPanel = ({
   if (displayedConcepts === 0) {
     return (
       <section
-        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="data-lab-concept-results-title"
         data-testid="data-lab-concept-results"
       >
@@ -114,11 +114,11 @@ export const DataLabConceptResultsPanel = ({
 
   return (
     <section
-      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
       aria-labelledby="data-lab-concept-results-title"
       data-testid="data-lab-concept-results"
     >
-      <div className="relative z-[1] space-y-5">
+      <div className="relative z-[1] space-y-4">
         <div className="space-y-2">
           <h2 id="data-lab-concept-results-title" className="text-sm font-semibold text-celestial-softGold">
             概念データ集計

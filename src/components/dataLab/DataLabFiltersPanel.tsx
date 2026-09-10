@@ -123,10 +123,10 @@ export const DataLabFiltersPanel = ({ filters, onChange, concepts, decks, chips 
 
   return (
     <section
-      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
       aria-labelledby="data-lab-filters-title"
     >
-      <div className="relative z-[1] space-y-4">
+      <div className="relative z-[1] space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <h2 id="data-lab-filters-title" className="text-sm font-semibold text-celestial-softGold">

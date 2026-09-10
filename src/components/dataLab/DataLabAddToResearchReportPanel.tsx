@@ -139,10 +139,10 @@ export const DataLabAddToResearchReportPanel = ({
 
   return (
     <section
-      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+      className="relative min-w-0 max-w-full rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
       aria-labelledby="data-lab-research-report-title"
     >
-      <div className="relative z-[1] space-y-4">
+      <div className="relative z-[1] space-y-3">
         <div className="space-y-1">
           <h2 id="data-lab-research-report-title" className="text-sm font-semibold text-celestial-softGold">
             研究レポート
@@ -187,7 +187,7 @@ export const DataLabAddToResearchReportPanel = ({
               aria-labelledby="data-lab-add-report-title"
             >
               <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto scrollbar-none rounded-2xl border border-celestial-border bg-celestial-panel p-4 shadow-xl sm:p-5">
-                <header className="mb-4 flex items-start justify-between gap-2">
+                <header className="mb-3 flex items-start justify-between gap-2">
                   <div>
                     <h3 id="data-lab-add-report-title" className="text-lg font-semibold text-celestial-textMain">
                       研究レポートに追加
@@ -258,7 +258,7 @@ export const DataLabAddToResearchReportPanel = ({
                   </p>
                 ) : null}
 
-                <div className="mt-5 flex justify-end gap-2">
+                <div className="mt-4 flex justify-end gap-2">
                   <button
                     type="button"
                     className="rounded-md border border-celestial-border/60 px-3 py-2 text-sm text-celestial-textMain hover:border-celestial-gold/50"
