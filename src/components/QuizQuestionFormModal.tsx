@@ -15,6 +15,7 @@ import {
   replenishDistractorChoices
 } from "../utils/generateQuizChoicesFromContextCards";
 import { applyAutoLinkedConceptIdsToChoices, resolveChoiceConceptLink } from "../utils/quizConceptLink";
+import { ModalPortal } from "./common/ModalPortal";
 
 const storage = getStorage();
 const contextStorage = getContextStorage();
@@ -444,6 +445,7 @@ export const QuizQuestionFormModal = ({
   const title = mode === "create" ? "クイズを作成" : "クイズを編集";
 
   return (
+    <ModalPortal>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-3 py-6 sm:px-4"
       role="dialog"
@@ -768,5 +770,6 @@ export const QuizQuestionFormModal = ({
         </div>
       </form>
     </div>
+    </ModalPortal>
   );
 };

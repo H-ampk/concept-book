@@ -4,6 +4,7 @@ import type { Concept } from "../types/concept";
 import type { QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION } from "../types/quiz";
 import { nowIso, shortDateTime } from "../utils/date";
+import { ModalPortal } from "./common/ModalPortal";
 import { QuizQuestionFormModal } from "./QuizQuestionFormModal";
 
 const storage = getStorage();
@@ -298,6 +299,7 @@ export const QuizDeckFormModal = ({
   const availableToAdd = allQuestions.filter((q) => !deckIdSet.has(q.id));
 
   return (
+    <ModalPortal>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-2 py-6 sm:px-4"
       role="dialog"
@@ -580,5 +582,6 @@ export const QuizDeckFormModal = ({
         onSavedQuestion={(saved) => void onQuestionSavedWithPayload(saved)}
       />
     </div>
+    </ModalPortal>
   );
 };

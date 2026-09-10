@@ -10,6 +10,7 @@ import {
   type QuizDeckSyncResult
 } from "../utils/syncQuizDeckFromFilters";
 import { applyAutoLinkedConceptIdsToChoices } from "../utils/quizConceptLink";
+import { ModalPortal } from "./common/ModalPortal";
 
 const storage = getStorage();
 const contextStorage = getContextStorage();
@@ -104,6 +105,7 @@ export const QuizDeckSyncModal = ({ open, deck, concepts, allQuestions, onClose,
     [];
 
   return (
+    <ModalPortal>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-3 py-6 sm:px-4"
       role="dialog"
@@ -225,5 +227,6 @@ export const QuizDeckSyncModal = ({ open, deck, concepts, allQuestions, onClose,
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };

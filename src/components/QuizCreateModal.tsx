@@ -4,6 +4,7 @@ import type { QuizCreateSourceType, QuizQuestion } from "../types/quiz";
 import { QuizCreateSourceStep } from "./QuizCreateSourceStep";
 import { QuizSetFromContextCardPanel } from "./QuizSetFromContextCardPanel";
 import { QuizSetFromDomainTagPanel } from "./QuizSetFromDomainTagPanel";
+import { ModalPortal } from "./common/ModalPortal";
 
 export type QuizCreateInitialState = {
   sourceType: QuizCreateSourceType;
@@ -57,6 +58,7 @@ export const QuizCreateModal = ({
   };
 
   return (
+    <ModalPortal>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-3 py-6 sm:px-4"
       role="dialog"
@@ -106,5 +108,6 @@ export const QuizCreateModal = ({
         ) : null}
       </div>
     </div>
+    </ModalPortal>
   );
 };
