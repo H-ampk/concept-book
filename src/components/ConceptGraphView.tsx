@@ -8,6 +8,12 @@ import {
   getConceptGraphAccuracyLabel
 } from "../utils/conceptGraphAccuracy";
 import {
+  GRAPH_MASTERY_LEGEND_ITEMS,
+  getConceptGraphMasteryFill,
+  getConceptGraphMasteryLabel
+} from "../utils/conceptGraphMastery";
+import type { ConceptMastery } from "../utils/mastery/types";
+import {
   buildConfusionKnnEdges,
   buildConfusionProfiles,
   buildDirectConfusionEdges,
@@ -92,6 +98,7 @@ type Props = {
   selectedId?: string;
   onSelectConcept: (id: string) => void;
   conceptQuizStatsMap?: Map<string, ConceptQuizStats>;
+  conceptMasteryMap?: Map<string, ConceptMastery>;
   confusionPairs?: ConfusionPairStat[];
   confusionUniverseIds?: readonly string[];
 };
@@ -102,6 +109,7 @@ export const ConceptGraphView = ({
   selectedId,
   onSelectConcept,
   conceptQuizStatsMap,
+  conceptMasteryMap,
   confusionPairs,
   confusionUniverseIds
 }: Props) => {
@@ -410,6 +418,23 @@ export const ConceptGraphView = ({
               ))}
             </ul>
           )}
+          {metricMode === "mastery" && (
+            <ul
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-celestial-textSub"
+              aria-label="理解度の凡例"
+            >
+              {GRAPH_MASTERY_LEGEND_ITEMS.map((item) => (
+                <li key={item.state} className="flex items-center gap-1">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full border border-celestial-border"
+                    style={{ backgroundColor: item.fill }}
+                    aria-hidden="true"
+                  />
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -558,6 +583,7 @@ export const ConceptGraphView = ({
             const quizStats = conceptQuizStatsMap?.get(concept.id);
             const totalAttempts = quizStats?.totalAttempts ?? 0;
             const accuracy = quizStats?.accuracy ?? null;
+            const mastery = conceptMasteryMap?.get(concept.id);
             const radius = getConceptGraphNodeRadius({
               metricMode,
               totalAttempts,
@@ -578,24 +604,30 @@ export const ConceptGraphView = ({
             context.beginPath();
             context.arc(node.x, node.y, radius, 0, Math.PI * 2, false);
             context.fillStyle =
-              metricMode === "accuracy" ? getConceptGraphAccuracyFill(accuracy) : NODE_FILL_COLOR;
+              metricMode === "accuracy"
+                ? getConceptGraphAccuracyFill(accuracy)
+                : metricMode === "mastery"
+                  ? getConceptGraphMasteryFill(mastery)
+                  : NODE_FILL_COLOR;
             context.fill();
 
-            const displayedDomainCount = ringColors.length;
-            const segmentAngle = (Math.PI * 2) / displayedDomainCount;
-            for (let i = 0; i < displayedDomainCount; i += 1) {
-              context.beginPath();
-              context.arc(
-                node.x,
-                node.y,
-                domainRadius,
-                -Math.PI / 2 + i * segmentAngle,
-                -Math.PI / 2 + (i + 1) * segmentAngle,
-                false
-              );
-              context.strokeStyle = ringColors[i];
-              context.lineWidth = GRAPH_DOMAIN_RING_WIDTH;
-              context.stroke();
+            if (metricMode !== "mastery") {
+              const displayedDomainCount = ringColors.length;
+              const segmentAngle = (Math.PI * 2) / displayedDomainCount;
+              for (let i = 0; i < displayedDomainCount; i += 1) {
+                context.beginPath();
+                context.arc(
+                  node.x,
+                  node.y,
+                  domainRadius,
+                  -Math.PI / 2 + i * segmentAngle,
+                  -Math.PI / 2 + (i + 1) * segmentAngle,
+                  false
+                );
+                context.strokeStyle = ringColors[i];
+                context.lineWidth = GRAPH_DOMAIN_RING_WIDTH;
+                context.stroke();
+              }
             }
 
             if (concept.favorite || isSelected) {
@@ -641,13 +673,15 @@ export const ConceptGraphView = ({
             context.globalAlpha = labelStyle.opacity;
             context.fillText(labelText, labelX, labelY);
 
-            if (metricMode === "attempts" || metricMode === "accuracy") {
+            if (metricMode === "attempts" || metricMode === "accuracy" || metricMode === "mastery") {
               const showMetricLabel = isSelected || globalScale >= MEDIUM_LABEL_SCALE;
               if (showMetricLabel) {
                 const metricLabel =
                   metricMode === "attempts"
                     ? getConceptGraphAttemptLabel(totalAttempts)
-                    : getConceptGraphAccuracyLabel(accuracy);
+                    : metricMode === "accuracy"
+                      ? getConceptGraphAccuracyLabel(accuracy)
+                      : getConceptGraphMasteryLabel(mastery);
                 const metricFontSize = (isSelected ? 10 : 8) / safeScale;
                 const metricY = labelY + fontSize + 2 / safeScale;
                 context.font = `400 ${metricFontSize}px sans-serif`;

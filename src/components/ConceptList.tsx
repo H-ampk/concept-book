@@ -10,6 +10,11 @@ import {
 } from "../features/concepts/conceptSearch";
 import { getDisplayStatus } from "../utils/conceptStatus";
 import { colorToSoftTagStyle, getDomainTagColor } from "../utils/domainColors";
+import {
+  getConceptMasteryAccessibleLabel,
+  getConceptMasteryOverviewLabel
+} from "../utils/mastery/masteryPresentation";
+import type { ConceptMastery } from "../utils/mastery/types";
 import { splitHighlightedSegments } from "../utils/search";
 
 const LIST_GAP_PX = 0;
@@ -23,6 +28,7 @@ type Props = {
   selectedId?: string;
   domainColorMap: Record<string, string>;
   conceptQuizStatsText?: Map<string, string>;
+  conceptMasteryMap?: Map<string, ConceptMastery>;
   onSelect: (id: string) => void;
   cardRefs: React.RefObject<Map<string, HTMLElement>>;
   /** スマホ仮想スクロール時の縦方向の取り方（全体一覧 vs グループ内） */
@@ -52,6 +58,7 @@ function ConceptListItem({
   selectedId,
   domainColorMap,
   conceptQuizStatsText,
+  conceptMasteryMap,
   onSelect,
   outerRef,
   as = "li",
@@ -63,6 +70,7 @@ function ConceptListItem({
   selectedId?: string;
   domainColorMap: Record<string, string>;
   conceptQuizStatsText?: Map<string, string>;
+  conceptMasteryMap?: Map<string, ConceptMastery>;
   onSelect: (id: string) => void;
   outerRef?: React.RefCallback<HTMLElement>;
   as?: "li" | "div";
@@ -73,10 +81,18 @@ function ConceptListItem({
 }) {
   const selected = selectedId === concept.id;
   const Wrapper = as;
-  const learningStatusText = conceptQuizStatsText?.get(concept.id) ?? "未学習";
+  const mastery = conceptMasteryMap?.get(concept.id);
+  const masteryOverview = mastery ? getConceptMasteryOverviewLabel(mastery) : undefined;
+  const masteryAccessibleLabel = mastery ? getConceptMasteryAccessibleLabel(mastery) : undefined;
+  const learningStatusText =
+    masteryOverview ?? conceptQuizStatsText?.get(concept.id) ?? "未学習";
   const domainTags = concept.domainTags.slice(0, 2);
   const researchTags = concept.researchTags.slice(0, 2);
-  const hasMeta = domainTags.length > 0 || researchTags.length > 0 || learningStatusText !== "未学習";
+  const hasMeta =
+    domainTags.length > 0 ||
+    researchTags.length > 0 ||
+    mastery != null ||
+    learningStatusText !== "未学習";
   const primaryMatch = getPrimaryConceptSearchMatch(concept, searchQuery);
   const showSnippet = shouldShowSearchSnippet(primaryMatch);
   const snippetText = primaryMatch && showSnippet ? getSearchSnippetText(primaryMatch, searchQuery) : "";
@@ -133,7 +149,11 @@ function ConceptListItem({
                 {tag}
               </span>
             ))}
-            <span className="concept-index-learning" aria-label="クイズ学習状況">
+            <span
+              className="concept-index-learning"
+              aria-label={masteryAccessibleLabel ?? "クイズ学習状況"}
+              title={masteryAccessibleLabel}
+            >
               {learningStatusText}
             </span>
           </div>
@@ -158,6 +178,7 @@ export const ConceptList = ({
   selectedId,
   domainColorMap,
   conceptQuizStatsText,
+  conceptMasteryMap,
   onSelect,
   cardRefs,
   listLayout = "full",
@@ -225,6 +246,7 @@ export const ConceptList = ({
             selectedId={selectedId}
             domainColorMap={domainColorMap}
             conceptQuizStatsText={conceptQuizStatsText}
+            conceptMasteryMap={conceptMasteryMap}
             onSelect={onSelect}
             searchQuery={searchQuery}
             outerRef={(el) => {
@@ -271,6 +293,7 @@ export const ConceptList = ({
               selectedId={selectedId}
               domainColorMap={domainColorMap}
               conceptQuizStatsText={conceptQuizStatsText}
+              conceptMasteryMap={conceptMasteryMap}
               onSelect={onSelect}
               searchQuery={searchQuery}
               style={{

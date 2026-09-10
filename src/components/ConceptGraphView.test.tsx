@@ -74,7 +74,7 @@ describe("ConceptGraphView UI regressions (#104 / #106 / #107)", () => {
       expect(parseVisibleNodeCount()).toBe(250);
     });
 
-    it("通常 / 学習回数 / 正答率を切り替えられ、正答率のときだけ凡例が出る", async () => {
+    it("通常 / 学習回数 / 正答率 / 理解度を切り替えられ、凡例は混同しない", async () => {
       const user = userEvent.setup();
       const concepts = [makeConcept("a"), makeConcept("b")];
       renderGraph(concepts);
@@ -82,21 +82,35 @@ describe("ConceptGraphView UI regressions (#104 / #106 / #107)", () => {
 
       expect(screen.getByRole("button", { name: "通常" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("list", { name: "理解度の凡例" })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "正答率" }));
       expect(screen.getByRole("button", { name: "正答率" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("list", { name: "正答率の凡例" })).toHaveTextContent("未学習");
       expect(screen.getByRole("list", { name: "正答率の凡例" })).toHaveTextContent("0–25%");
+      expect(screen.queryByRole("list", { name: "理解度の凡例" })).not.toBeInTheDocument();
+      expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
+
+      await user.click(screen.getByRole("button", { name: "理解度" }));
+      expect(screen.getByRole("button", { name: "理解度" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("list", { name: "理解度の凡例" })).toHaveTextContent("未学習");
+      expect(screen.getByRole("list", { name: "理解度の凡例" })).toHaveTextContent("データ不足");
+      expect(screen.getByRole("list", { name: "理解度の凡例" })).toHaveTextContent("学習中");
+      expect(screen.getByRole("list", { name: "理解度の凡例" })).toHaveTextContent("理解が進んでいる");
+      expect(screen.getByRole("list", { name: "理解度の凡例" })).toHaveTextContent("おおむね理解");
+      expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
       expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
 
       await user.click(screen.getByRole("button", { name: "学習回数" }));
       expect(screen.getByRole("button", { name: "学習回数" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("list", { name: "理解度の凡例" })).not.toBeInTheDocument();
       expect(lastForceGraphProps.graphData).toBe(graphDataBefore);
 
       await user.click(screen.getByRole("button", { name: "通常" }));
       expect(screen.getByRole("button", { name: "通常" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.queryByRole("list", { name: "正答率の凡例" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("list", { name: "理解度の凡例" })).not.toBeInTheDocument();
     });
 
     it("混同表示は初期 OFF で、直接混同 / 混同近傍に切り替えても graphData identity を変えない", async () => {
@@ -368,7 +382,7 @@ const paintDomainRings = (
   options?: {
     selectedId?: string;
     domainColorMap?: Record<string, string>;
-    metricMode?: "attempts" | "accuracy";
+    metricMode?: "attempts" | "accuracy" | "mastery";
   }
 ) => {
   const domainColorMap = options?.domainColorMap ?? {};
@@ -388,7 +402,7 @@ const invokeNodeCanvas = async (
   options?: {
     selectedId?: string;
     domainColorMap?: Record<string, string>;
-    metricMode?: "attempts" | "accuracy";
+    metricMode?: "attempts" | "accuracy" | "mastery";
   }
 ) => {
   const domainColorMap = paintDomainRings(concept, options);
@@ -397,6 +411,9 @@ const invokeNodeCanvas = async (
   }
   if (options?.metricMode === "accuracy") {
     await userEvent.setup().click(screen.getByRole("button", { name: "正答率" }));
+  }
+  if (options?.metricMode === "mastery") {
+    await userEvent.setup().click(screen.getByRole("button", { name: "理解度" }));
   }
   const nodeCanvasObject = lastForceGraphProps.nodeCanvasObject;
   expect(nodeCanvasObject).toBeTypeOf("function");
@@ -542,5 +559,17 @@ describe("#142 複数分野カラー描画", () => {
     expect(domainStrokes.map((stroke) => stroke.strokeStyle)).toEqual(
       getDomainTagColors(concept.domainTags, colorMap)
     );
+  });
+
+  it("理解度モードでは分野リングを描画せず、選択リングは残せる", async () => {
+    const concept = makeConcept("a", [], false, ["AI", "教育"]);
+    const { domainStrokes, outerStrokes } = await invokeNodeCanvas(concept, {
+      selectedId: concept.id,
+      domainColorMap: colorMap,
+      metricMode: "mastery"
+    });
+    expect(domainStrokes).toHaveLength(0);
+    expect(outerStrokes).toHaveLength(1);
+    expect(outerStrokes[0]?.strokeStyle).toBe("#446878");
   });
 });

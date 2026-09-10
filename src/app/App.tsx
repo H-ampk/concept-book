@@ -27,7 +27,12 @@ import {
   buildConceptQuizStatsDisplayMap,
   buildConceptQuizStatsMap
 } from "../utils/quiz/getConceptQuizStats";
-import { getConceptMastery } from "../utils/mastery/getConceptMastery";
+import { buildConceptMasteryMapForConceptIds } from "../utils/mastery/getConceptMastery";
+import {
+  conceptMatchesMasteryOverviewFilter,
+  MASTERY_OVERVIEW_FILTER_OPTIONS,
+  type MasteryOverviewFilter
+} from "../utils/mastery/masteryPresentation";
 import { computeConfusionPairs } from "../utils/quizStats";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
@@ -161,6 +166,7 @@ export const App = () => {
   const [isFieldTagsExpanded, setIsFieldTagsExpanded] = useState(false);
   const [graphFiltersOpen, setGraphFiltersOpen] = useState(false);
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
+  const [masteryFilter, setMasteryFilter] = useState<MasteryOverviewFilter>("all");
   const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
   const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
     null
@@ -196,7 +202,8 @@ export const App = () => {
     selectedResearchTags,
     selectedStatuses,
     onlyFavorite,
-    listViewMode
+    listViewMode,
+    masteryFilter
   ]);
 
   const conceptMap = useMemo(() => buildConceptByIdMap(concepts), [concepts]);
@@ -204,9 +211,28 @@ export const App = () => {
   const selectedConcept = selectedId ? conceptMap.get(selectedId) : undefined;
   const showGraphDetailPanel = isGraphDetailPanelVisible(Boolean(selectedConcept), graphDetailOpen);
 
+  const conceptMasteryMap = useMemo(
+    () =>
+      buildConceptMasteryMapForConceptIds(
+        quizAttemptLogs,
+        concepts.map((concept) => concept.id)
+      ),
+    [quizAttemptLogs, concepts]
+  );
+
+  const masteryFilteredConcepts = useMemo(
+    () =>
+      masteryFilter === "all"
+        ? visibleConcepts
+        : visibleConcepts.filter((concept) =>
+            conceptMatchesMasteryOverviewFilter(conceptMasteryMap.get(concept.id), masteryFilter)
+          ),
+    [visibleConcepts, masteryFilter, conceptMasteryMap]
+  );
+
   const listSourceConcepts = useMemo(
-    () => visibleConcepts.slice(0, listDisplayLimit),
-    [visibleConcepts, listDisplayLimit]
+    () => masteryFilteredConcepts.slice(0, listDisplayLimit),
+    [masteryFilteredConcepts, listDisplayLimit]
   );
 
   const groupedSections = useMemo(() => {
@@ -243,10 +269,9 @@ export const App = () => {
     ? conceptQuizStatsText.get(selectedConcept.id) ?? "未学習"
     : undefined;
 
-  const selectedConceptMastery = useMemo(
-    () => (selectedConcept ? getConceptMastery(quizAttemptLogs, selectedConcept.id) : undefined),
-    [quizAttemptLogs, selectedConcept]
-  );
+  const selectedConceptMastery = selectedConcept
+    ? conceptMasteryMap.get(selectedConcept.id)
+    : undefined;
 
   const openCreate = () => {
     setEditingConcept(undefined);
@@ -316,7 +341,7 @@ export const App = () => {
     if (!concept) {
       return;
     }
-    const isVisible = visibleConcepts.some((item) => item.id === conceptId);
+    const isVisible = masteryFilteredConcepts.some((item) => item.id === conceptId);
     if (!isVisible) {
       const { filtersChanged, nextFilters } = planFiltersToRevealConcept(concept, {
         query,
@@ -331,6 +356,10 @@ export const App = () => {
         setSelectedResearchTags(nextFilters.selectedResearchTags);
         setSelectedStatuses(nextFilters.selectedStatuses);
         setOnlyFavorite(nextFilters.onlyFavorite);
+        setFeedback("対象の概念を表示するためフィルタを解除しました。");
+      }
+      if (masteryFilter !== "all") {
+        setMasteryFilter("all");
         setFeedback("対象の概念を表示するためフィルタを解除しました。");
       }
     }
@@ -562,6 +591,29 @@ export const App = () => {
               );
             })}
           </div>
+
+          {conceptMainTab !== "tree" && (
+            <div
+              className="flex flex-wrap items-center gap-1"
+              data-testid="mastery-overview-filter"
+            >
+              <span className="index-filter-label">理解度:</span>
+              {MASTERY_OVERVIEW_FILTER_OPTIONS.map(({ value, label }) => {
+                const active = masteryFilter === value;
+                return (
+                  <button
+                    key={`mastery-${value}`}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setMasteryFilter(value)}
+                    className={`index-filter-chip${active ? " index-filter-chip--active" : ""}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -580,19 +632,23 @@ export const App = () => {
             selectedId={selectedId}
             domainColorMap={domainColorMap}
             conceptQuizStatsText={conceptQuizStatsText}
+            conceptMasteryMap={conceptMasteryMap}
             onSelect={handleSelect}
             cardRefs={cardRefs}
             searchQuery={debouncedSearchQuery}
           />
-          {visibleConcepts.length > listDisplayLimit && (
+          {masteryFilteredConcepts.length > listDisplayLimit && (
             <div className="mt-3 flex flex-col items-center gap-2 px-1">
               <p className="text-xs text-nordic-textSecondary">
-                表示中 {Math.min(listDisplayLimit, visibleConcepts.length)} / {visibleConcepts.length} 件
+                表示中 {Math.min(listDisplayLimit, masteryFilteredConcepts.length)} /{" "}
+                {masteryFilteredConcepts.length} 件
               </p>
               <button
                 type="button"
                 className="index-text-button"
-                onClick={() => setListDisplayLimit((n) => Math.min(n + 100, visibleConcepts.length))}
+                onClick={() =>
+                  setListDisplayLimit((n) => Math.min(n + 100, masteryFilteredConcepts.length))
+                }
               >
                 さらに表示（+100件）
               </button>
@@ -774,11 +830,12 @@ export const App = () => {
                     detailOpen={showGraphDetailPanel}
                     graph={
                       <ConceptGraphView
-                        concepts={visibleConcepts}
+                        concepts={masteryFilteredConcepts}
                         domainColorMap={domainColorMap}
                         selectedId={selectedId}
                         onSelectConcept={handleGraphSelect}
                         conceptQuizStatsMap={conceptQuizStatsMap}
+                        conceptMasteryMap={conceptMasteryMap}
                         confusionPairs={confusionPairs}
                         confusionUniverseIds={confusionUniverseIds}
                       />

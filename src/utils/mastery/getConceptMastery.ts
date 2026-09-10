@@ -178,3 +178,23 @@ export const buildConceptMasteryMap = (
   }
   return map;
 };
+
+/**
+ * 指定した Concept ID をすべて含む mastery Map を生成する。
+ * ログがある ID は `buildConceptMasteryMap` の結果を使い、無い ID だけ unlearned を足す。
+ */
+export const buildConceptMasteryMapForConceptIds = (
+  logs: QuizAttemptLog[],
+  conceptIds: Iterable<string>,
+  options?: GetConceptMasteryOptions
+): Map<string, ConceptMastery> => {
+  const now = options?.now ?? new Date();
+  const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
+  const map = buildConceptMasteryMap(logs, { ...options, now, parameters });
+  for (const conceptId of conceptIds) {
+    if (!map.has(conceptId)) {
+      map.set(conceptId, emptyMastery(conceptId, parameters, now));
+    }
+  }
+  return map;
+};

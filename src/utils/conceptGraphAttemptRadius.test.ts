@@ -75,6 +75,19 @@ describe("getConceptGraphNodeRadius", () => {
       getConceptGraphNodeRadius({ metricMode: "accuracy", totalAttempts: 100, isFavorite: false })
     );
   });
+
+  it("理解度モードでは通常と同じサイズで、学習回数は影響しない", () => {
+    expect(
+      getConceptGraphNodeRadius({ metricMode: "mastery", totalAttempts: 100, isFavorite: false })
+    ).toBe(
+      getConceptGraphNodeRadius({ metricMode: "normal", totalAttempts: 100, isFavorite: false })
+    );
+    expect(
+      getConceptGraphNodeRadius({ metricMode: "mastery", totalAttempts: 100, isFavorite: false })
+    ).toBe(
+      getConceptGraphNodeRadius({ metricMode: "mastery", totalAttempts: 0, isFavorite: false })
+    );
+  });
 });
 
 describe("getConceptGraphAttemptLabel", () => {

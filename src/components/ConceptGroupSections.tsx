@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Concept } from "../types/concept";
+import type { ConceptMastery } from "../utils/mastery/types";
 import { ConceptList } from "./ConceptList";
 
 export type ListViewMode = "all" | "domain" | "research";
@@ -16,6 +17,7 @@ type Props = {
   selectedId?: string;
   domainColorMap: Record<string, string>;
   conceptQuizStatsText?: Map<string, string>;
+  conceptMasteryMap?: Map<string, ConceptMastery>;
   onSelect: (id: string) => void;
   cardRefs: React.RefObject<Map<string, HTMLElement>>;
   searchQuery?: string;
@@ -27,6 +29,7 @@ export const ConceptGroupSections = ({
   selectedId,
   domainColorMap,
   conceptQuizStatsText,
+  conceptMasteryMap,
   onSelect,
   cardRefs,
   searchQuery
@@ -62,6 +65,7 @@ export const ConceptGroupSections = ({
         selectedId={selectedId}
         domainColorMap={domainColorMap}
         conceptQuizStatsText={conceptQuizStatsText}
+        conceptMasteryMap={conceptMasteryMap}
         onSelect={onSelect}
         cardRefs={cardRefs}
         listLayout="full"
@@ -99,6 +103,7 @@ export const ConceptGroupSections = ({
                   selectedId={selectedId}
                   domainColorMap={domainColorMap}
                   conceptQuizStatsText={conceptQuizStatsText}
+                  conceptMasteryMap={conceptMasteryMap}
                   onSelect={onSelect}
                   cardRefs={cardRefs}
                   listLayout="grouped"

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../../types/quiz";
 import { calculateBktMastery } from "./bkt";
 import { DEFAULT_BKT_PARAMETERS } from "./constants";
-import { buildConceptMasteryMap, getConceptMastery } from "./getConceptMastery";
+import { buildConceptMasteryMap, buildConceptMasteryMapForConceptIds, getConceptMastery } from "./getConceptMastery";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 
 const baseLog = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
@@ -203,5 +203,61 @@ describe("getConceptMastery", () => {
     );
     expect(slow.masteryScore).toBe(fast.masteryScore);
     expect(slow.avgReactionTimeMs).not.toBe(fast.avgReactionTimeMs);
+  });
+});
+
+describe("buildConceptMasteryMapForConceptIds", () => {
+  const now = new Date("2026-01-15T00:00:00.000Z");
+
+  it("ログあり Concept は getConceptMastery と同じ mastery を持つ", () => {
+    const logs = [
+      baseLog({
+        id: "1",
+        questionConceptId: "learned",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "2",
+        questionConceptId: "learned",
+        correct: true,
+        answeredAt: "2026-01-02T00:00:00.000Z"
+      })
+    ];
+    const map = buildConceptMasteryMapForConceptIds(logs, ["learned"], { now });
+    expect(map.get("learned")).toEqual(getConceptMastery(logs, "learned", { now }));
+    expect(map.get("learned")?.attemptCount).toBe(2);
+  });
+
+  it("指定 ID にログがない場合も Map に unlearned として入る", () => {
+    const logs = [baseLog({ questionConceptId: "learned", correct: true })];
+    const map = buildConceptMasteryMapForConceptIds(logs, ["learned", "unseen"], { now });
+    const unseen = map.get("unseen");
+    expect(unseen?.state).toBe("unlearned");
+    expect(unseen?.attemptCount).toBe(0);
+    expect(unseen?.freshness).toBe("never");
+    expect(unseen?.confidence).toBe("none");
+    expect(map.has("learned")).toBe(true);
+  });
+
+  it("unresolved log は既存どおり無視する", () => {
+    const logs = [
+      baseLog({
+        selectedLinkedConceptId: "confused",
+        correct: false
+      })
+    ];
+    const map = buildConceptMasteryMapForConceptIds(logs, ["confused"], { now });
+    expect(map.get("confused")?.state).toBe("unlearned");
+    expect(map.get("confused")?.attemptCount).toBe(0);
+    expect(buildConceptMasteryMap(logs).size).toBe(0);
+  });
+
+  it("既存 buildConceptMasteryMap はログに無い ID を入れない", () => {
+    const logs = [baseLog({ questionConceptId: "learned", correct: true })];
+    const map = buildConceptMasteryMap(logs);
+    expect(map.has("learned")).toBe(true);
+    expect(map.has("unseen")).toBe(false);
+    expect(map.size).toBe(1);
   });
 });
