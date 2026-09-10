@@ -526,12 +526,12 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                                 ) : null}
                                 <span
                                   className={`rounded-[10px] px-2 py-0.5 text-xs ${
-                                    qd.visibility === "public"
+                                    qd.visibility === "shareable"
                                       ? "border border-celestial-gold/50 bg-celestial-gold/10 text-celestial-gold"
                                       : "border border-celestial-border text-celestial-textSub"
                                   }`}
                                 >
-                                  {qd.visibility === "public" ? "公開" : "非公開"}
+                                  {qd.visibility === "shareable" ? "公開" : "非公開"}
                                 </span>
                                 <span className="text-xs text-celestial-textSub">
                                   プール <span className="font-medium text-celestial-softGold">{pool.length}</span> 問

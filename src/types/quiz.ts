@@ -11,20 +11,21 @@
  *   }
  *
  * エクスポート:
- * - backup（自分用）: concepts / contextCards に加え、private / public の QuizQuestion・QuizDeck と
+ * - backup（自分用）: concepts / contextCards に加え、private / shareable の QuizQuestion・QuizDeck と
  *   quizAttemptLogs を含める。
- * - share（共有用）: public の QuizQuestion のみ含める想定。private の問題・quizAttemptLogs は
+ * - share（共有用）: shareable の QuizQuestion のみ含める想定。private の問題・quizAttemptLogs は
  *   デフォルトで除外（共有用 export では学習ログを扱わない）。
  *
  * インポート:
  * - quizQuestions / quizDecks / quizAttemptLogs が無い古いバックアップは空配列扱い。
  * - 古いデータで visibility が欠ける場合は private 扱いに正規化する。
+ * - 旧 visibility "public" は shareable に正規化する（共有ファイルとして Export 可能）。
  * - conceptId / linkedConceptId の参照先が無い場合はインポート時に参照を外す（Question 自体は保持）。
  * - QuizAttemptLog は履歴として immutable。同一 id は既存を優先し、重複は保存しない。
  */
 
-/** private: 非公開（自分用）。public: 共有・公開用エクスポートの対象にできるクイズ。 */
-export type QuizVisibility = "private" | "public";
+/** private: 非共有・自分用。shareable: 共有ファイルとして Export 可能。 */
+export type QuizVisibility = "private" | "shareable";
 
 export type QuizChoiceSourceStrategy =
   | "correct"
@@ -99,7 +100,7 @@ export interface QuizQuestion {
   choices: QuizChoice[];
   correctChoiceId: string;
   explanation?: string;
-  /** 公開 / 非公開。新規作成時の初期値は private を想定 */
+  /** 共有ファイルとして Export 可能 / 非共有。新規作成時の初期値は private を想定 */
   visibility: QuizVisibility;
   sortOrder?: number;
   /** クイズ問題スキーマのバージョン。新規は QUIZ_QUESTION_SCHEMA_VERSION を入れる想定 */
@@ -121,8 +122,8 @@ export const QUIZ_QUESTION_SCHEMA_VERSION = 1;
  * 自分用 ZIP / JSON バックアップには `quizDecks?: QuizDeck[]` を含める。
  * 古いバックアップで quizDecks が無い場合は空配列扱い。
  * questionIds に存在しない QuizQuestion ID はインポート時に除去する。
- * backup: private / public の QuizDeck を両方含める。
- * share: visibility === public の QuizDeck のみ（共有用。学習ログは含めない）。
+ * backup: private / shareable の QuizDeck を両方含める。
+ * share: visibility === shareable の QuizDeck のみ（共有用。学習ログは含めない）。
  *
  * --- 運用メモ ---
  * - Deck 削除時も QuizQuestion 本体は削除しない
@@ -146,7 +147,7 @@ export interface QuizDeck {
   domainTags?: string[];
   /** 含める QuizQuestion の ID。配列順を基本の出題順として扱う */
   questionIds: string[];
-  /** 公開 / 非公開。新規作成時の初期値は private を想定 */
+  /** 共有ファイルとして Export 可能 / 非共有。新規作成時の初期値は private を想定 */
   visibility: QuizVisibility;
   /** QuizDeck スキーマのバージョン。新規は QUIZ_DECK_SCHEMA_VERSION を入れる想定 */
   schemaVersion: number;

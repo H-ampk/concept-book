@@ -8,7 +8,7 @@ import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaCo
 import type { Concept, ConceptInput, ContextDefinition } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
-import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource, QuizVisibility } from "../types/quiz";
+import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource } from "../types/quiz";
 import type { ResearchReport } from "../types/researchReport";
 import {
   QUIZ_DECK_SCHEMA_VERSION,
@@ -21,6 +21,7 @@ import {
   planQuizAttemptLogImport
 } from "../utils/normalizeQuizAttemptLog";
 import { hydrateLegacyGenerationFilters } from "../utils/quiz/hydrateLegacyGenerationFilters";
+import { normalizeQuizVisibility } from "../utils/normalizeQuizVisibility";
 import {
   findExclusiveQuestionIds,
   findOrphanQuestionIds
@@ -127,12 +128,10 @@ const sanitizeConcept = (
   return { concept: normalized, migrated };
 };
 
-type StoredQuizQuestion = Partial<QuizQuestion> & {
+type StoredQuizQuestion = Omit<Partial<QuizQuestion>, "visibility"> & {
   choices?: unknown;
+  visibility?: unknown;
 };
-
-const isQuizVisibility = (v: unknown): v is QuizVisibility =>
-  v === "private" || v === "public";
 
 const isQuizQuestionSourceType = (v: unknown): v is QuizQuestionSource["type"] =>
   v === "contextualConceptCard" || v === "contextCard";
@@ -157,7 +156,8 @@ const normalizeQuizQuestionSource = (raw: unknown): QuizQuestionSource | undefin
   };
 };
 
-const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
+/** DB 読み出し・保存前の共通正規化。legacy visibility "public" もここで shareable にする */
+export const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
   const choices: QuizChoice[] = Array.isArray(raw.choices)
     ? raw.choices.map((c, index) => {
         const item = (c ?? {}) as Partial<QuizChoice>;
@@ -195,7 +195,7 @@ const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
       })
     : [];
 
-  const visibility: QuizVisibility = isQuizVisibility(raw.visibility) ? raw.visibility : "private";
+  const visibility = normalizeQuizVisibility(raw.visibility);
   const schemaVersion =
     typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
       ? raw.schemaVersion
@@ -222,7 +222,9 @@ const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => {
 
 type StoredQuizAttemptLog = Partial<QuizAttemptLog>;
 
-type StoredQuizDeck = Partial<QuizDeck>;
+type StoredQuizDeck = Omit<Partial<QuizDeck>, "visibility"> & {
+  visibility?: unknown;
+};
 
 const dedupeStringsPreserveOrder = (items: string[]): string[] => {
   const seen = new Set<string>();
@@ -259,8 +261,8 @@ const normalizeQuestionIds = (value: unknown): string[] => {
 };
 
 /** DB 読み出し・保存前の共通正規化（save 側で id / title の必須検証を行う） */
-const normalizeQuizDeck = (raw: StoredQuizDeck): QuizDeck => {
-  const visibility: QuizVisibility = isQuizVisibility(raw.visibility) ? raw.visibility : "private";
+export const normalizeQuizDeck = (raw: StoredQuizDeck): QuizDeck => {
+  const visibility = normalizeQuizVisibility(raw.visibility);
   const schemaVersion =
     typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
       ? raw.schemaVersion

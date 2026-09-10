@@ -251,7 +251,7 @@ export const QuizBuilderPage = ({
               >
                 <option value="all">すべて</option>
                 <option value="private">非公開のみ</option>
-                <option value="public">公開のみ</option>
+                <option value="shareable">公開のみ</option>
               </select>
             </label>
           </div>
@@ -300,12 +300,12 @@ export const QuizBuilderPage = ({
                         ) : null}
                         <span
                           className={`rounded-[10px] px-2 py-0.5 text-xs ${
-                            d.visibility === "public"
+                            d.visibility === "shareable"
                               ? "border border-celestial-gold/50 bg-celestial-gold/10 text-celestial-gold"
                               : "border border-celestial-border text-celestial-textSub"
                           }`}
                         >
-                          {d.visibility === "public" ? "公開" : "非公開"}
+                          {d.visibility === "shareable" ? "公開" : "非公開"}
                         </span>
                         <span className="text-xs text-celestial-textSub">問題 {d.questionIds.length} 問</span>
                         <span className="text-xs text-celestial-textSub">更新 {shortDateTime(d.updatedAt)}</span>

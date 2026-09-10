@@ -7,8 +7,7 @@ import type {
   QuizChoice,
   QuizDeck,
   QuizQuestion,
-  QuizQuestionSource,
-  QuizVisibility
+  QuizQuestionSource
 } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import {
@@ -20,6 +19,7 @@ import { nowIso } from "./date";
 import { normalizeRelatedIdList } from "./conceptRelations";
 import { extractBackupDomainColors } from "./domainColors";
 import { hydrateLegacyGenerationFilters } from "./quiz/hydrateLegacyGenerationFilters";
+import { normalizeQuizVisibility } from "./normalizeQuizVisibility";
 
 const conceptStatusSchema = z.enum(conceptStatusList);
 
@@ -87,8 +87,8 @@ const contextCardSchema = z.object({
 
 const contextCardArraySchema = z.array(contextCardSchema);
 
-/** ZIP / JSON バックアップ用。quizDecks / quizAttemptLogs は optional（旧バックアップ互換） */
-export const quizVisibilitySchema = z.enum(["private", "public"]);
+/** ZIP / JSON バックアップ用 canonical。raw の legacy "public" は normalizeQuizVisibility で shareable にする */
+export const quizVisibilitySchema = z.enum(["private", "shareable"]);
 
 const quizChoiceSourceStrategySchema = z.enum([
   "correct",
@@ -216,8 +216,7 @@ const normalizeQuizDeckItem = (item: unknown): QuizDeck | null => {
       : String(raw.description).trim();
   const dkRaw = typeof raw.deckKey === "string" ? raw.deckKey.trim() : "";
 
-  const visResult = quizVisibilitySchema.safeParse(raw.visibility);
-  const visibility: QuizVisibility = visResult.success ? visResult.data : "private";
+  const visibility = normalizeQuizVisibility(raw.visibility);
 
   const schemaVersion =
     typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
@@ -395,8 +394,7 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
     return null;
   }
 
-  const visResult = quizVisibilitySchema.safeParse(raw.visibility);
-  const visibility: QuizVisibility = visResult.success ? visResult.data : "private";
+  const visibility = normalizeQuizVisibility(raw.visibility);
 
   const schemaVersion =
     typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)

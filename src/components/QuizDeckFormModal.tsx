@@ -375,7 +375,7 @@ export const QuizDeckFormModal = ({
               {(
                 [
                   ["private", "非公開"],
-                  ["public", "公開"]
+                  ["shareable", "公開"]
                 ] as const
               ).map(([v, label]) => (
                 <button
@@ -486,7 +486,7 @@ export const QuizDeckFormModal = ({
                         )}
                         {q ? (
                           <p className="mt-1 text-[11px] text-celestial-textSub">
-                            更新 {shortDateTime(q.updatedAt)} · {q.visibility === "public" ? "公開" : "非公開"}
+                            更新 {shortDateTime(q.updatedAt)} · {q.visibility === "shareable" ? "公開" : "非公開"}
                           </p>
                         ) : null}
                       </div>
