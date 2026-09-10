@@ -304,7 +304,7 @@ export const QuizDeckFormModal = ({
       aria-modal="true"
       aria-labelledby="quiz-deck-form-title"
     >
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto scrollbar-none rounded-2xl border border-celestial-border bg-celestial-panel p-4 shadow-xl sm:p-6">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto scrollbar-none rounded-2xl border border-celestial-border bg-celestial-panel p-4 shadow-xl sm:p-5">
         <header className="mb-4 flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 id="quiz-deck-form-title" className="text-lg font-semibold text-celestial-textMain">
@@ -323,9 +323,9 @@ export const QuizDeckFormModal = ({
           </button>
         </header>
 
-        <div className="space-y-4 border-b border-celestial-border/50 pb-5">
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-celestial-textMain">クイズ集タイトル *</span>
+        <div className="space-y-3 border-b border-celestial-border/50 pb-4">
+          <label className="block space-y-1.5">
+            <span className="block text-sm font-medium text-celestial-textMain">クイズ集タイトル *</span>
             <input
               type="text"
               className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
@@ -335,8 +335,8 @@ export const QuizDeckFormModal = ({
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-celestial-textMain">説明（任意）</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm font-medium text-celestial-textMain">説明（任意）</span>
             <textarea
               className="min-h-[72px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
               value={draft.description ?? ""}
@@ -347,8 +347,8 @@ export const QuizDeckFormModal = ({
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-celestial-textMain">識別ID（任意）</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm font-medium text-celestial-textMain">識別ID（任意）</span>
             <input
               type="text"
               className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 font-mono text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
@@ -358,8 +358,8 @@ export const QuizDeckFormModal = ({
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-celestial-textMain">タグ（任意・カンマ区切り）</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm font-medium text-celestial-textMain">タグ（任意・カンマ区切り）</span>
             <input
               type="text"
               className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
@@ -369,8 +369,8 @@ export const QuizDeckFormModal = ({
             />
           </label>
 
-          <div>
-            <span className="mb-1 block text-sm font-medium text-celestial-textMain">公開設定</span>
+          <div className="space-y-1.5">
+            <span className="block text-sm font-medium text-celestial-textMain">公開設定</span>
             <div className="flex flex-wrap gap-2" role="group" aria-label="公開設定">
               {(
                 [
@@ -406,7 +406,7 @@ export const QuizDeckFormModal = ({
           </div>
         </div>
 
-        <section className="mt-5 space-y-3" aria-labelledby="deck-questions-heading">
+        <section className="mt-4 space-y-3" aria-labelledby="deck-questions-heading">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 id="deck-questions-heading" className="text-sm font-semibold text-celestial-softGold">
               このクイズ集の問題（出題順）
@@ -460,7 +460,7 @@ export const QuizDeckFormModal = ({
           ) : null}
 
           {draft.questionIds.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-celestial-border/70 bg-celestial-deepBlue/20 px-4 py-6 text-center text-sm text-celestial-textSub">
+            <p className="rounded-lg border border-dashed border-celestial-border/70 bg-celestial-deepBlue/20 px-4 py-5 text-center text-sm text-celestial-textSub">
               まだ問題がありません。「新しい問題を追加」または「既存の問題を追加」から登録できます。
             </p>
           ) : (
@@ -491,7 +491,7 @@ export const QuizDeckFormModal = ({
                         ) : null}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <button
                         type="button"
                         disabled={index === 0}
@@ -551,7 +551,7 @@ export const QuizDeckFormModal = ({
           )}
         </section>
 
-        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-celestial-border/50 pt-4">
+        <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-celestial-border/50 pt-4">
           <button
             type="button"
             className="rounded-lg border border-celestial-border px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"

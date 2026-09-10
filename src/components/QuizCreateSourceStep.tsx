@@ -41,7 +41,7 @@ export const QuizCreateSourceStep = ({ onSelect }: Props) => {
             <span className="block text-base font-semibold text-celestial-softGold group-hover:text-celestial-gold">
               {option.title}
             </span>
-            <span className="mt-2 block text-sm leading-relaxed text-celestial-textSub">
+            <span className="mt-1.5 block text-sm leading-relaxed text-celestial-textSub">
               {option.description}
             </span>
           </button>

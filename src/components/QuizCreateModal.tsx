@@ -66,7 +66,7 @@ export const QuizCreateModal = ({
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto scrollbar-none rounded-2xl border border-celestial-border bg-celestial-panel p-4 shadow-xl sm:p-5">
         {step === "source" ? (
           <div>
-            <div className="mb-4 flex justify-end">
+            <div className="mb-3 flex justify-end">
               <button
                 type="button"
                 className="rounded-md px-2 py-1 text-sm text-celestial-softGold hover:bg-celestial-gold/10"

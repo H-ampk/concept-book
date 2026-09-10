@@ -178,22 +178,22 @@ export const QuizBuilderPage = ({
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-1 sm:px-0">
+    <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="quiz-builder-title"
       >
-        <div className="relative z-[1] space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 実験室</p>
+        <div className="relative z-[1] space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 実験室</p>
               <h1 id="quiz-builder-title" className="text-xl font-semibold tracking-wide text-celestial-textMain sm:text-2xl">
                 クイズ作成
               </h1>
-              <p className="mt-1 max-w-2xl text-sm text-celestial-textSub">
+              <p className="max-w-2xl text-sm text-celestial-textSub">
                 分野・テーマごとのクイズ集（QuizDeck）を中心に、セットの中へ問題を追加・並べ替えします。問題は独立データとして保存され、複数のクイズ集に同じ問題を入れられます。
               </p>
-              <OrnamentLine variant="panel" />
+              <OrnamentLine variant="header" className="max-w-md opacity-80" />
             </div>
             <button
               type="button"
@@ -266,7 +266,7 @@ export const QuizBuilderPage = ({
           {loading ? (
             <p className="text-sm text-celestial-textSub">読み込み中…</p>
           ) : filteredDecks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/30 px-6 py-12 text-center">
+            <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/30 px-4 py-8 text-center">
               <p className="text-sm font-medium text-celestial-softGold">
                 {decks.length === 0 ? "まだクイズ集がありません" : "条件に一致するクイズ集がありません"}
               </p>
@@ -274,7 +274,7 @@ export const QuizBuilderPage = ({
                 テーマや試験単位でクイズ集を作り、その中に問題を追加していきます。
               </p>
               {decks.length === 0 ? (
-                <button type="button" onClick={openCreateDeck} className="action-button mt-6 rounded-lg px-4 py-2 text-sm">
+                <button type="button" onClick={openCreateDeck} className="action-button mt-4 rounded-lg px-4 py-2 text-sm">
                   新規クイズ集を作成
                 </button>
               ) : null}

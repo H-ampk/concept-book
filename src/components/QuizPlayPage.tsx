@@ -452,23 +452,23 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   }, [lastSessionQuestionIds, phase]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-1 sm:px-0">
+    <div className="mx-auto max-w-3xl space-y-4 px-1 sm:px-0">
       <section
-        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-5 shadow-celestial backdrop-blur-md decorated-card sm:p-6"
+        className="relative rounded-3xl border border-celestial-border bg-celestial-panel/90 p-4 shadow-celestial backdrop-blur-md decorated-card sm:p-5"
         aria-labelledby="quiz-play-title"
       >
-        <div className="relative z-[1] space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 演習場</p>
+        <div className="relative z-[1] space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 演習場</p>
               <h1 id="quiz-play-title" className="text-xl font-semibold tracking-wide text-celestial-textMain sm:text-2xl">
                 クイズで学習
               </h1>
-              <p className="mt-1 text-sm text-celestial-textSub">
+              <p className="text-sm text-celestial-textSub">
                 問題プールから学習状況に応じて最大 {QUIZ_SESSION_SIZE}{" "}
                 問を出題します（未学習・誤答・復習対象を優先）。選択肢が Concept にリンクしている場合、回答後に関連を表示します。
               </p>
-              <OrnamentLine variant="panel" />
+              <OrnamentLine variant="header" className="max-w-md opacity-80" />
             </div>
             <button
               type="button"
@@ -482,7 +482,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
           {loading ? (
             <p className="text-sm text-celestial-textSub">読み込み中…</p>
           ) : phase === "setup" ? (
-            <div className="space-y-8">
+            <div className="space-y-4">
               <div className="space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/30 p-4 backdrop-blur-sm">
                 <h2 className="text-sm font-semibold text-celestial-softGold">クイズ集から始める</h2>
                 <p className="text-xs text-celestial-textSub">
@@ -494,7 +494,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                   </p>
                 ) : null}
                 {quizDecks.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/25 px-4 py-8 text-center">
+                  <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/25 px-4 py-6 text-center">
                     <p className="text-sm text-celestial-softGold">まだクイズ集がありません</p>
                     <p className="mt-2 text-xs text-celestial-textSub">クイズ作成でクイズ集と問題を追加してください。</p>
                     <button
@@ -582,7 +582,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 )}
               </div>
 
-              <div className="space-y-4 rounded-xl border border-celestial-border/60 bg-nordic-navy/20 p-4 backdrop-blur-sm">
+              <div className="space-y-3 rounded-xl border border-celestial-border/60 bg-nordic-navy/20 p-4 backdrop-blur-sm">
                 <h2 className="text-sm font-semibold text-celestial-softGold">自由に学習する</h2>
                 <p className="text-xs text-celestial-textSub">
                   全問題から Concept で絞り込み、学習状況に応じて最大 {QUIZ_SESSION_SIZE} 問出題します。
@@ -611,7 +611,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                   問）
                 </p>
                 {playableFiltered.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/25 px-4 py-8 text-center">
+                  <div className="rounded-2xl border border-dashed border-celestial-border/80 bg-celestial-deepBlue/25 px-4 py-6 text-center">
                     <p className="text-sm text-celestial-softGold">出題できるクイズがありません</p>
                     <p className="mt-2 text-xs text-celestial-textSub">
                       クイズ作成で問題を追加するか、別の Concept で絞り込んでください。
@@ -632,7 +632,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
               </div>
             </div>
           ) : phase === "results" ? (
-            <div className="space-y-4 rounded-2xl border border-celestial-border bg-celestial-deepBlue/20 p-6">
+            <div className="space-y-3 rounded-2xl border border-celestial-border bg-celestial-deepBlue/20 p-4 sm:p-5">
               <p className="text-center text-lg font-semibold text-celestial-textMain">結果</p>
               {sessionDeckTitle ? (
                 <p className="text-center text-sm text-celestial-softGold">
@@ -677,7 +677,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 </div>
               ) : null}
 
-              <div className="flex flex-col items-center gap-2 pt-2">
+              <div className="flex flex-col items-center gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => void playAgain("all")}
@@ -711,7 +711,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
               </div>
             </div>
           ) : currentQuestion ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {sessionDeckTitle ? (
                 <p className="text-sm font-medium text-celestial-softGold">
                   クイズ集「{sessionDeckTitle}」
@@ -733,7 +733,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
               ) : null}
 
               <div
-                className={`rounded-2xl border p-5 shadow-[inset_0_0_0_1px_rgba(117,165,188,0.12)] ${
+                className={`rounded-2xl border p-4 shadow-[inset_0_0_0_1px_rgba(117,165,188,0.12)] ${
                   answered
                     ? isCorrect
                       ? "border-celestial-gold/55 bg-[rgba(117,165,188,0.08)] shadow-[0_0_28px_rgba(117,165,188,0.14)]"
@@ -800,7 +800,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                   回答する
                 </button>
               ) : (
-                <div className="space-y-4 rounded-2xl border border-celestial-border/60 bg-nordic-navy/35 p-4 backdrop-blur-sm">
+                <div className="space-y-3 rounded-2xl border border-celestial-border/60 bg-nordic-navy/35 p-4 backdrop-blur-sm">
                   <p
                     className={`text-center text-sm font-semibold ${isCorrect ? "text-celestial-gold" : "text-celestial-danger"}`}
                     role="status"

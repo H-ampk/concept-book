@@ -187,9 +187,9 @@ export const QuizSetFromContextCardPanel = ({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="md:col-span-2">
-          <span className="mb-1 block text-sm text-celestial-textMain">クイズ集名 *</span>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="space-y-1.5 md:col-span-2">
+          <span className="block text-sm text-celestial-textMain">クイズ集名 *</span>
           <input
             className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
             value={quizSetTitle}
@@ -199,8 +199,8 @@ export const QuizSetFromContextCardPanel = ({
         </label>
 
         {!initialContextCardId ? (
-          <label>
-            <span className="mb-1 block text-sm text-celestial-textMain">分野 *</span>
+          <label className="space-y-1.5">
+            <span className="block text-sm text-celestial-textMain">分野 *</span>
             <input
               className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
               value={targetDomainTag}
@@ -220,8 +220,8 @@ export const QuizSetFromContextCardPanel = ({
           </label>
         ) : null}
 
-        <label className={initialContextCardId ? "md:col-span-2" : ""}>
-          <span className="mb-1 block text-sm text-celestial-textMain">文脈カード *</span>
+        <label className={`space-y-1.5 ${initialContextCardId ? "md:col-span-2" : ""}`}>
+          <span className="block text-sm text-celestial-textMain">文脈カード *</span>
           {initialContextCardId ? (
             <p className="rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain">
               {selectedCard?.title ?? "読み込み中…"}

@@ -477,10 +477,10 @@ export const QuizQuestionFormModal = ({
           </p>
         )}
 
-        <div className="grid gap-4">
+        <div className="mt-3 grid gap-3">
           <div className="block space-y-2">
-            <label htmlFor="quiz-form-concept-search" className="block">
-              <span className="mb-1 block text-sm text-celestial-textMain">Conceptを検索</span>
+            <label htmlFor="quiz-form-concept-search" className="block space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">Conceptを検索</span>
               <input
                 id="quiz-form-concept-search"
                 type="search"
@@ -493,8 +493,8 @@ export const QuizQuestionFormModal = ({
                 aria-label="Conceptを検索（タイトル・分野タグで絞り込み）"
               />
             </label>
-            <label className="block">
-              <span className="mb-1 block text-sm text-celestial-textMain">問い全体の関連 Concept（任意）</span>
+            <label className="block space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">問い全体の関連 Concept（任意）</span>
               <select
                 id="quiz-form-related-concept"
                 className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
@@ -541,8 +541,8 @@ export const QuizQuestionFormModal = ({
               </p>
               {availableContextDefinitions.length > 0 ? (
                 <div className="mt-3 space-y-3">
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-celestial-textMain">出題する文脈別定義</span>
+                  <label className="block space-y-1.5">
+                    <span className="block text-xs text-celestial-textMain">出題する文脈別定義</span>
                     <select
                       className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
                       value={selectedContextDefId}
@@ -599,8 +599,8 @@ export const QuizQuestionFormModal = ({
             </section>
           ) : null}
 
-          <label className="block">
-            <span className="mb-1 block text-sm text-celestial-textMain">問題文 *</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm text-celestial-textMain">問題文 *</span>
             <textarea
               className="min-h-[100px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
               value={prompt}
@@ -692,8 +692,8 @@ export const QuizQuestionFormModal = ({
             </button>
           </fieldset>
 
-          <label className="block">
-            <span className="mb-1 block text-sm text-celestial-textMain">解説（任意）</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm text-celestial-textMain">解説（任意）</span>
             <textarea
               className="min-h-[72px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
               value={explanation}
@@ -702,8 +702,8 @@ export const QuizQuestionFormModal = ({
             />
           </label>
 
-          <div>
-            <span className="mb-1 block text-sm text-celestial-textMain" id="visibility-label">
+          <div className="space-y-1.5">
+            <span className="block text-sm text-celestial-textMain" id="visibility-label">
               公開設定
             </span>
             <div
@@ -736,8 +736,8 @@ export const QuizQuestionFormModal = ({
             </div>
           </div>
 
-          <label className="block">
-            <span className="mb-1 block text-sm text-celestial-textMain">表示順（任意・数値）</span>
+          <label className="block space-y-1.5">
+            <span className="block text-sm text-celestial-textMain">表示順（任意・数値）</span>
             <input
               type="number"
               className="w-full max-w-[200px] rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
@@ -748,9 +748,9 @@ export const QuizQuestionFormModal = ({
           </label>
         </div>
 
-        {error ? <p className="mt-4 text-sm text-celestial-danger">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-celestial-danger">{error}</p> : null}
 
-        <div className="mt-6 flex flex-wrap justify-end gap-2">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
             type="button"
             className="rounded-lg border border-celestial-border px-4 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"

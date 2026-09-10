@@ -276,9 +276,9 @@ export const QuizSetFromDomainTagPanel = ({
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="md:col-span-2">
-          <span className="mb-1 block text-sm text-celestial-textMain">クイズ集名 *</span>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="space-y-1.5 md:col-span-2">
+          <span className="block text-sm text-celestial-textMain">クイズ集名 *</span>
           <input
             className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
             value={quizSetTitle}
@@ -289,8 +289,8 @@ export const QuizSetFromDomainTagPanel = ({
 
         {!isSingleMode ? (
           <>
-            <label>
-              <span className="mb-1 block text-sm text-celestial-textMain">対象分野タグ *</span>
+            <label className="space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">対象分野タグ *</span>
               <input
                 className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
                 value={targetDomainTag}
@@ -305,8 +305,8 @@ export const QuizSetFromDomainTagPanel = ({
               </datalist>
             </label>
 
-            <label>
-              <span className="mb-1 block text-sm text-celestial-textMain">生成モード</span>
+            <label className="space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">生成モード</span>
               <select
                 className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
                 value={generationMode}
@@ -318,8 +318,8 @@ export const QuizSetFromDomainTagPanel = ({
               </select>
             </label>
 
-            <label>
-              <span className="mb-1 block text-sm text-celestial-textMain">問題数</span>
+            <label className="space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">問題数</span>
               <select
                 className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
                 value={questionLimit}
@@ -373,7 +373,7 @@ export const QuizSetFromDomainTagPanel = ({
       ) : null}
 
       {preview ? (
-        <section className="mt-2 space-y-4 rounded-xl border border-celestial-border/70 bg-celestial-deepBlue/30 p-4">
+        <section className="space-y-3 rounded-xl border border-celestial-border/70 bg-celestial-deepBlue/30 p-4">
           <h3 className="text-sm font-semibold text-celestial-textMain">生成プレビュー</h3>
           <div className="grid gap-2 text-sm text-celestial-textSub sm:grid-cols-2">
             <p>対象概念数: {preview.summary.targetConceptCount}</p>
