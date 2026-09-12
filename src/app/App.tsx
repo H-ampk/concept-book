@@ -28,6 +28,7 @@ import {
   buildConceptQuizStatsMap
 } from "../utils/quiz/getConceptQuizStats";
 import { buildConceptMasteryMapForConceptIds } from "../utils/mastery/getConceptMastery";
+import { getConceptMasteryHistory } from "../utils/mastery/getConceptMasteryHistory";
 import {
   conceptMatchesMasteryOverviewFilter,
   MASTERY_OVERVIEW_FILTER_OPTIONS,
@@ -273,6 +274,14 @@ export const App = () => {
     ? conceptMasteryMap.get(selectedConcept.id)
     : undefined;
 
+  const selectedConceptId = selectedConcept?.id;
+  const selectedConceptMasteryHistory = useMemo(() => {
+    if (!selectedConceptId) {
+      return undefined;
+    }
+    return getConceptMasteryHistory(quizAttemptLogs, selectedConceptId);
+  }, [quizAttemptLogs, selectedConceptId]);
+
   const openCreate = () => {
     setEditingConcept(undefined);
     setModalOpen(true);
@@ -293,6 +302,7 @@ export const App = () => {
     onToggleFavorite: (concept: Concept) => void toggleFavorite(concept),
     conceptQuizStatsText: selectedConceptQuizStatsText,
     conceptMastery: selectedConceptMastery,
+    conceptMasteryHistory: selectedConceptMasteryHistory,
     onCreateQuizFromContextualCard: (conceptId: string, contextDefinitionId: string) => {
       openQuizCreate({
         sourceType: "contextualConceptCard",

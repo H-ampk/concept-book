@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../../types/quiz";
-import { calculateBktMastery, calculateBktNextCorrectProbability } from "./bkt";
+import {
+  calculateBktMastery,
+  calculateBktMasteryAfterObservation,
+  calculateBktNextCorrectProbability
+} from "./bkt";
 import { DEFAULT_BKT_PARAMETERS } from "./constants";
 import type { BktParameters } from "./types";
 
@@ -91,5 +95,20 @@ describe("calculateBktNextCorrectProbability", () => {
     calculateBktNextCorrectProbability(logs);
     expect(logs).toEqual(snapshot);
     expect(logs[0].id).toBe("2");
+  });
+});
+
+describe("calculateBktMasteryAfterObservation", () => {
+  it("1回答分の更新を畳み込んだ結果が calculateBktMastery と一致する", () => {
+    const logs = [
+      baseLog({ id: "1", correct: true, answeredAt: "2026-01-01T00:00:00.000Z" }),
+      baseLog({ id: "2", correct: false, answeredAt: "2026-01-02T00:00:00.000Z" }),
+      baseLog({ id: "3", correct: true, answeredAt: "2026-01-03T00:00:00.000Z" })
+    ];
+    let folded = DEFAULT_BKT_PARAMETERS.initialMastery;
+    for (const log of logs) {
+      folded = calculateBktMasteryAfterObservation(folded, log.correct);
+    }
+    expect(calculateBktMastery(logs)).toBe(folded);
   });
 });

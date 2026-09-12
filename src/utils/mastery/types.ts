@@ -40,3 +40,26 @@ export type ConceptMastery = {
   recentResults: boolean[];
   avgReactionTimeMs: number | null;
 };
+
+/**
+ * 1回答直後の BKT Concept mastery。QuizAttemptLog から必要なときに再計算する派生点。
+ * IndexedDB には保存しない。
+ */
+export type ConceptMasteryPoint = {
+  conceptId: string;
+  /** 対象 Concept における 1 始まりの回答回数 */
+  attemptIndex: number;
+  answeredAt: string;
+  correct: boolean;
+  masteryProbability: number;
+  masteryScore: number;
+  previousMasteryProbability: number;
+  previousMasteryScore: number;
+  /** masteryScore の差分（今回 − 前回）。最初の回答の前回は initialMastery。 */
+  masteryDelta: number;
+  quizAttemptLogId: string;
+  questionId: string;
+  questionPromptSnapshot: string;
+  timeMs: number;
+  sessionId?: string;
+};

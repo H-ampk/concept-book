@@ -5,8 +5,9 @@ import { shortDateTime } from "../utils/date";
 import { getDisplayStatus } from "../utils/conceptStatus";
 import { StatusBadge } from "./StatusBadge";
 import { OrnamentLine } from "./common/OrnamentLine";
-import type { ConceptMastery } from "../utils/mastery/types";
+import type { ConceptMastery, ConceptMasteryPoint } from "../utils/mastery/types";
 import { toConceptMasteryDetailView } from "../utils/mastery/formatConceptMastery";
+import { ConceptMasteryHistoryChart } from "./mastery/ConceptMasteryHistoryChart";
 
 const storage = getStorage();
 
@@ -19,6 +20,7 @@ type Props = {
   domainColorMap: Record<string, string>;
   conceptQuizStatsText?: string;
   conceptMastery?: ConceptMastery;
+  conceptMasteryHistory?: ConceptMasteryPoint[];
   onSelectRelated: (id: string) => void;
   onEdit?: (concept: Concept) => void;
   onToggleFavorite?: (concept: Concept) => void;
@@ -137,6 +139,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   domainColorMap: _domainColorMap,
   conceptQuizStatsText,
   conceptMastery,
+  conceptMasteryHistory,
   onSelectRelated,
   onEdit,
   onToggleFavorite,
@@ -224,7 +227,13 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       </div>
 
       {conceptMastery ? (
-        <ConceptMasteryPanel mastery={conceptMastery} />
+        <>
+          <ConceptMasteryPanel mastery={conceptMastery} />
+          <ConceptMasteryHistoryChart
+            history={conceptMasteryHistory ?? []}
+            confidence={conceptMastery.confidence}
+          />
+        </>
       ) : conceptQuizStatsText ? (
         <div>
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">学習状況</h3>
