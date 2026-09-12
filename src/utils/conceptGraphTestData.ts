@@ -232,6 +232,7 @@ export const createGraphTestConcepts = (options: ConceptGraphTestDataOptions): C
       domainTags: domainTagsForIndex(index),
       researchTags: [],
       relatedIds,
+      prerequisiteIds: [],
       media: [],
       source: {
         book: "Performance Fixture",

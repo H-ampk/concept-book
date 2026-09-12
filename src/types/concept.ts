@@ -30,6 +30,15 @@ export type Concept = {
   domainTags: string[];
   researchTags: string[];
   relatedIds: string[];
+  /**
+   * この Concept を理解する前に必要な Concept ID。
+   *
+   * A.prerequisiteIds = ["B"]
+   * は
+   * B → A
+   * を意味する（B = prerequisite, A = dependent）。
+   */
+  prerequisiteIds: string[];
   /** メディア本体は IndexedDB の media ストア。ここは参照メタのみ */
   media?: ConceptMediaRef[];
   source: ConceptSource;
@@ -54,6 +63,7 @@ export const createEmptyConceptInput = (): ConceptInput => ({
   domainTags: [],
   researchTags: [],
   relatedIds: [],
+  prerequisiteIds: [],
   media: [],
   source: {
     book: "",

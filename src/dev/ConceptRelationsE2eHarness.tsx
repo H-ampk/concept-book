@@ -70,6 +70,7 @@ const toConcept = (record: RawConceptSeed): Concept => ({
   domainTags: [],
   researchTags: [],
   relatedIds: record.relatedIds,
+  prerequisiteIds: [],
   source: { book: "", page: "", author: null },
   notes: "",
   status: "draft",

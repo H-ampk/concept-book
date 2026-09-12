@@ -15,6 +15,11 @@ import { normalizeConceptTitle } from "../utils/normalizeConceptTitle";
 import type { ConceptMediaRef } from "../types/media";
 import { getStorage } from "../storage";
 import { RelatedConceptPicker } from "./RelatedConceptPicker";
+import { PrerequisiteConceptPicker } from "./PrerequisiteConceptPicker";
+import {
+  buildConceptPrerequisiteIndex,
+  collectReachableDependentIds
+} from "../utils/conceptPrerequisites";
 
 const storage = getStorage();
 
@@ -102,6 +107,18 @@ export const ConceptFormModal = ({
     [domainTagInput, form.contextDefinitions]
   );
 
+  const forbiddenPrerequisiteIds = useMemo(() => {
+    const selfId = baseConcept?.id;
+    if (!selfId) {
+      return new Set<string>();
+    }
+    const prospective = allConcepts.map((concept) =>
+      concept.id === selfId ? { ...concept, prerequisiteIds: form.prerequisiteIds } : concept
+    );
+    const index = buildConceptPrerequisiteIndex(prospective);
+    return collectReachableDependentIds(index, selfId);
+  }, [allConcepts, baseConcept?.id, form.prerequisiteIds]);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -119,6 +136,7 @@ export const ConceptFormModal = ({
         domainTags: baseConcept.domainTags,
         researchTags: baseConcept.researchTags,
         relatedIds: baseConcept.relatedIds,
+        prerequisiteIds: baseConcept.prerequisiteIds,
         media: baseConcept.media ?? [],
         source: baseConcept.source,
         notes: baseConcept.notes,
@@ -428,8 +446,8 @@ export const ConceptFormModal = ({
         await reloadConcepts?.();
       }
       onClose();
-    } catch {
-      setError("保存に失敗しました。");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存に失敗しました。");
     } finally {
       setSubmitting(false);
     }
@@ -609,6 +627,14 @@ export const ConceptFormModal = ({
             inputTags={tagsState}
             onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
             onBulkAddTitles={handleAddBulkRelatedConcepts}
+          />
+
+          <PrerequisiteConceptPicker
+            allConcepts={allConcepts}
+            selectedIds={form.prerequisiteIds}
+            currentConceptId={baseConcept?.id}
+            forbiddenIds={forbiddenPrerequisiteIds}
+            onChange={(nextIds) => setForm((prev) => ({ ...prev, prerequisiteIds: nextIds }))}
           />
 
           <div className="md:col-span-2 rounded-lg border border-celestial-gold/25 bg-celestial-deepBlue p-3">

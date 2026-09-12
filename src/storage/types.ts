@@ -30,6 +30,7 @@ export type ConceptStorage = {
     id: string,
     updates: Partial<ConceptInput> & {
       relatedIds?: string[];
+      prerequisiteIds?: string[];
       domainTags?: string[];
       researchTags?: string[];
       media?: ConceptMediaRef[];

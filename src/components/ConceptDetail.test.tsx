@@ -167,3 +167,55 @@ describe("ConceptDetail mastery history (#57)", () => {
     expect(screen.queryByText(/最新理解度41/)).not.toBeInTheDocument();
   });
 });
+
+describe("ConceptDetail prerequisites (#118)", () => {
+  const probability = concept({
+    id: "prob",
+    title: "確率",
+    prerequisiteIds: []
+  });
+  const bayes = concept({
+    id: "bayes",
+    title: "ベイズの定理",
+    prerequisiteIds: ["prob"]
+  });
+  const inference = concept({
+    id: "inf",
+    title: "ベイズ推論",
+    prerequisiteIds: ["bayes"]
+  });
+  const all = [probability, bayes, inference];
+  const conceptMap = new Map(all.map((item) => [item.id, item]));
+
+  const baseProps = {
+    conceptMap,
+    domainColorMap: {},
+    onSelectRelated: vi.fn(),
+    onRequestDelete: vi.fn(),
+    deleting: false
+  };
+
+  it("空の前提概念でも表示が崩れない", () => {
+    render(<ConceptDetail {...baseProps} concept={probability} />);
+    expect(screen.getByText("前提概念")).toBeInTheDocument();
+    expect(screen.getByText("前提概念なし")).toBeInTheDocument();
+    expect(screen.getByText("この概念を前提とする概念")).toBeInTheDocument();
+  });
+
+  it("前提概念と dependent Concept を表示する", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const onSelectRelated = vi.fn();
+    render(
+      <ConceptDetail
+        {...baseProps}
+        concept={bayes}
+        onSelectRelated={onSelectRelated}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+      />
+    );
+    expect(screen.getByRole("button", { name: "確率" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ベイズ推論" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "確率" }));
+    expect(onSelectRelated).toHaveBeenCalledWith("prob");
+  });
+});

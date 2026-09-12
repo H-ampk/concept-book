@@ -15,6 +15,7 @@ const stub = (id: string, relatedIds: string[]): Concept => ({
   domainTags: [],
   researchTags: [],
   relatedIds,
+  prerequisiteIds: [],
   source: { book: "", page: "", author: null },
   notes: "",
   status: "draft",

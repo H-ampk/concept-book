@@ -8,6 +8,7 @@ import { OrnamentLine } from "./common/OrnamentLine";
 import type { ConceptMastery, ConceptMasteryPoint } from "../utils/mastery/types";
 import { toConceptMasteryDetailView } from "../utils/mastery/formatConceptMastery";
 import { ConceptMasteryHistoryChart } from "./mastery/ConceptMasteryHistoryChart";
+import type { ConceptPrerequisiteIndex } from "../utils/conceptPrerequisites";
 
 const storage = getStorage();
 
@@ -27,6 +28,8 @@ type Props = {
   onCreateQuizFromContextualCard?: (conceptId: string, contextDefinitionId: string) => void;
   onRequestDelete: (concept: Concept) => void;
   deleting: boolean;
+  /** App 側で concepts から一度だけ構築した index。dependents 表示に使う */
+  prerequisiteIndex?: ConceptPrerequisiteIndex;
   /** 通常グラフ詳細からのみ渡す。渡されたときだけ「この概念を分析」を表示する */
   onOpenGraphAnalysis?: (conceptId: string) => void;
 };
@@ -146,6 +149,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   onCreateQuizFromContextualCard,
   onRequestDelete,
   deleting,
+  prerequisiteIndex,
   onOpenGraphAnalysis
 }, ref) => {
   if (!concept) {
@@ -166,6 +170,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
     );
   }
 
+  const dependentIds = prerequisiteIndex?.dependentsByConceptId.get(concept.id) ?? [];
   const contextDefinitions = (concept.contextDefinitions ?? []).filter((item) => {
     const context = (item.context ?? "").trim();
     const definition = (item.definition ?? "").trim();
@@ -350,6 +355,70 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
                     type="button"
                   >
                     {related.title}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">前提概念</h3>
+        {concept.prerequisiteIds.length === 0 ? (
+          <p className="text-sm text-nordic-textMuted">前提概念なし</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {concept.prerequisiteIds.map((prerequisiteId) => {
+              const prerequisite = conceptMap.get(prerequisiteId);
+              if (!prerequisite) {
+                return (
+                  <li key={prerequisiteId} className="text-xs text-amber-800">
+                    不明なID: {prerequisiteId}
+                  </li>
+                );
+              }
+              return (
+                <li key={prerequisiteId}>
+                  <button
+                    className="detail-related-link"
+                    onClick={() => onSelectRelated(prerequisiteId)}
+                    type="button"
+                  >
+                    {prerequisite.title}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
+          この概念を前提とする概念
+        </h3>
+        {(dependentIds.length === 0) ? (
+          <p className="text-sm text-nordic-textMuted">この概念を前提とする概念なし</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {dependentIds.map((dependentId) => {
+              const dependent = conceptMap.get(dependentId);
+              if (!dependent) {
+                return (
+                  <li key={dependentId} className="text-xs text-amber-800">
+                    不明なID: {dependentId}
+                  </li>
+                );
+              }
+              return (
+                <li key={dependentId}>
+                  <button
+                    className="detail-related-link"
+                    onClick={() => onSelectRelated(dependentId)}
+                    type="button"
+                  >
+                    {dependent.title}
                   </button>
                 </li>
               );

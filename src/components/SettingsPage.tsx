@@ -176,7 +176,9 @@ export const SettingsPage = ({
       if (error instanceof SyntaxError) {
         setMessage("インポートに失敗しました。JSONの構文が不正です。");
       } else {
-        setMessage("インポートに失敗しました。JSON形式を確認してください。");
+        setMessage(
+          `インポートに失敗しました。${error instanceof Error ? error.message : "JSON形式を確認してください。"}`
+        );
       }
     } finally {
       setBusy(false);

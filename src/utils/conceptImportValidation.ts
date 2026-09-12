@@ -17,6 +17,7 @@ import {
 import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 import { normalizeRelatedIdList } from "./conceptRelations";
+import { normalizePrerequisiteIdList } from "./conceptPrerequisites";
 import { extractBackupDomainColors } from "./domainColors";
 import { hydrateLegacyGenerationFilters } from "./quiz/hydrateLegacyGenerationFilters";
 import { normalizeQuizVisibility } from "./normalizeQuizVisibility";
@@ -53,6 +54,7 @@ const conceptSchema = z.object({
   domainTags: z.array(z.string()),
   researchTags: z.array(z.string()),
   relatedIds: z.array(z.string()),
+  prerequisiteIds: z.array(z.string()),
   media: z.array(conceptMediaRefSchema).optional(),
   source: conceptSourceSchema,
   notes: z.string(),
@@ -70,6 +72,12 @@ const conceptSchema = z.object({
 });
 
 const conceptArraySchema = z.array(conceptSchema);
+
+const backupConceptSchema = conceptSchema.extend({
+  prerequisiteIds: z.array(z.string()).optional()
+});
+
+const backupConceptArraySchema = z.array(backupConceptSchema);
 
 const contextCardSchema = z.object({
   id: z.string().min(1),
@@ -488,7 +496,7 @@ export const normalizeQuizQuestionsForBackupImport = (
 };
 
 const backupObjectSchema = z.object({
-  concepts: conceptArraySchema,
+  concepts: backupConceptArraySchema,
   contextCards: contextCardArraySchema.optional(),
   quizQuestions: z
     .unknown()
@@ -514,6 +522,7 @@ const rawConceptSchema = z
     researchTags: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
     relatedIds: z.array(z.string()).optional(),
+    prerequisiteIds: z.array(z.string()).optional(),
     media: z.array(z.unknown()).optional(),
     source: conceptSourceSchema.partial().optional(),
     notes: z.string().optional(),
@@ -566,6 +575,7 @@ const normalizeRawConcept = (raw: z.infer<typeof rawConceptSchema>): Concept => 
     domainTags: normalizedDomainTags,
     researchTags: raw.researchTags ?? [],
     relatedIds: normalizeRelatedIdList(raw.relatedIds ?? [], { selfId: raw.id }),
+    prerequisiteIds: normalizePrerequisiteIdList(raw.prerequisiteIds, { selfId: raw.id }),
     media: media.length > 0 ? media : undefined,
     source: {
       book: raw.source?.book ?? "",
@@ -666,7 +676,10 @@ export const validateBackupImportPayload = (
       success: true,
       concepts: backupResult.data.concepts.map((concept) => ({
         ...concept,
-        relatedIds: normalizeRelatedIdList(concept.relatedIds, { selfId: concept.id })
+        relatedIds: normalizeRelatedIdList(concept.relatedIds, { selfId: concept.id }),
+        prerequisiteIds: normalizePrerequisiteIdList(concept.prerequisiteIds, {
+          selfId: concept.id
+        })
       })),
       contextCards: backupResult.data.contextCards ?? [],
       quizQuestions: questions,

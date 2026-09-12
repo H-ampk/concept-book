@@ -10,6 +10,7 @@ const makeConcept = (id: string, title: string, relatedIds: string[] = []): Conc
   domainTags: ["検証"],
   researchTags: [],
   relatedIds,
+  prerequisiteIds: [],
   source: { book: "", page: "", author: null },
   notes: "",
   status: "active",

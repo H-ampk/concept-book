@@ -33,6 +33,13 @@ import {
   withRelatedIdAdded,
   withRelatedIdRemoved
 } from "../utils/conceptRelations";
+import {
+  normalizePrerequisiteIdList,
+  planConceptPrerequisiteImport,
+  prerequisiteIdsEqual,
+  resolvePrerequisiteIdsForCreate,
+  resolvePrerequisiteIdsForUpdate
+} from "../utils/conceptPrerequisites";
 import { applyBackupExportOptions } from "./backupExport";
 import type { BackupExportData, BackupExportOptions, ConceptStorage, ContextCardStorage } from "./types";
 
@@ -78,7 +85,7 @@ const normalizeContextDefinitions = (value: unknown): Concept["contextDefinition
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-const sanitizeConcept = (
+export const sanitizeConcept = (
   concept: StoredConcept
 ): {
   concept: Concept;
@@ -91,6 +98,8 @@ const sanitizeConcept = (
   const normalizedDomainTags = domainTags.length > 0 ? domainTags : legacyTags;
   const mediaNorm = normalizeMediaRefs(concept.media ?? []);
   const id = concept.id ?? createConceptId();
+  const missingPrerequisiteIds = !Array.isArray(concept.prerequisiteIds);
+  const prerequisiteIds = normalizePrerequisiteIdList(concept.prerequisiteIds, { selfId: id });
 
   const normalized: Concept = {
     id,
@@ -100,6 +109,7 @@ const sanitizeConcept = (
     domainTags: normalizedDomainTags,
     researchTags,
     relatedIds: normalizeRelatedIdList(concept.relatedIds, { selfId: id }),
+    prerequisiteIds,
     media: mediaNorm.length > 0 ? mediaNorm : undefined,
     source: {
       book: concept.source?.book ?? "",
@@ -123,7 +133,8 @@ const sanitizeConcept = (
   const migrated =
     hasLegacyTags ||
     concept.domainTags === undefined ||
-    concept.researchTags === undefined;
+    concept.researchTags === undefined ||
+    missingPrerequisiteIds;
 
   return { concept: normalized, migrated };
 };
@@ -579,6 +590,11 @@ export class IndexedDBStorage implements ConceptStorage {
         selfId: newId,
         existingIds
       });
+      const prerequisiteIds = resolvePrerequisiteIdsForCreate(
+        existingConcepts,
+        newId,
+        input.prerequisiteIds
+      );
       const concept: Concept = {
         ...input,
         id: newId,
@@ -589,6 +605,7 @@ export class IndexedDBStorage implements ConceptStorage {
           .map((tag) => tag.trim())
           .filter(Boolean),
         relatedIds,
+        prerequisiteIds,
         media: mediaNorm.length > 0 ? mediaNorm : undefined,
         createdAt: now,
         updatedAt: now
@@ -618,6 +635,7 @@ export class IndexedDBStorage implements ConceptStorage {
     id: string,
     updates: Partial<ConceptInput> & {
       relatedIds?: string[];
+      prerequisiteIds?: string[];
       domainTags?: string[];
       researchTags?: string[];
       media?: ConceptMediaRef[];
@@ -638,6 +656,19 @@ export class IndexedDBStorage implements ConceptStorage {
             })()
           : existing.media;
 
+      const needsAllConcepts =
+        updates.relatedIds !== undefined || updates.prerequisiteIds !== undefined;
+      const allConcepts = needsAllConcepts
+        ? ((await requestToPromise(store.getAll())) as StoredConcept[]).map(
+            (raw) => sanitizeConcept(raw).concept
+          )
+        : [existing];
+
+      const prerequisiteIds =
+        updates.prerequisiteIds !== undefined
+          ? resolvePrerequisiteIdsForUpdate(allConcepts, id, updates.prerequisiteIds)
+          : existing.prerequisiteIds;
+
       const updated: Concept = {
         ...existing,
         ...updates,
@@ -650,6 +681,7 @@ export class IndexedDBStorage implements ConceptStorage {
             ? updates.researchTags.map((tag) => tag.trim()).filter(Boolean)
             : existing.researchTags,
         relatedIds: existing.relatedIds,
+        prerequisiteIds,
         media: nextMedia,
         source: {
           book: updates.source?.book ?? existing.source.book,
@@ -660,8 +692,6 @@ export class IndexedDBStorage implements ConceptStorage {
       };
 
       if (updates.relatedIds !== undefined) {
-        const allRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
-        const allConcepts = allRaw.map((raw) => sanitizeConcept(raw).concept);
         const existingIds = new Set(allConcepts.map((item) => item.id));
         const newRelatedIds = normalizeRelatedIdList(updates.relatedIds, {
           selfId: id,
@@ -763,15 +793,26 @@ export class IndexedDBStorage implements ConceptStorage {
       await requestToPromise(store.delete(id));
 
       const all = (await requestToPromise(store.getAll())) as StoredConcept[];
-      const touched = all
-        .map((item) => sanitizeConcept(item).concept)
-        .filter((concept) => concept.relatedIds.includes(id));
+      const now = nowIso();
       await Promise.all(
-        touched.map(async (concept) => {
+        all.map(async (item) => {
+          const concept = sanitizeConcept(item).concept;
+          const relatedIds = withRelatedIdRemoved(concept.relatedIds, id);
+          const prerequisiteIds = normalizePrerequisiteIdList(
+            concept.prerequisiteIds.filter((prerequisiteId) => prerequisiteId !== id),
+            { selfId: concept.id }
+          );
+          if (
+            prerequisiteIdsEqual(relatedIds, concept.relatedIds) &&
+            prerequisiteIdsEqual(prerequisiteIds, concept.prerequisiteIds)
+          ) {
+            return;
+          }
           const next: Concept = {
             ...concept,
-            relatedIds: withRelatedIdRemoved(concept.relatedIds, id),
-            updatedAt: nowIso()
+            relatedIds,
+            prerequisiteIds,
+            updatedAt: now
           };
           await requestToPromise(store.put(next));
         })
@@ -1104,28 +1145,41 @@ export class IndexedDBStorage implements ConceptStorage {
       const store = getStore(STORE_CONCEPTS);
       let imported = 0;
       let skipped = 0;
-      if (mode === "replace") {
-        await requestToPromise(store.clear());
-      }
-
+      const incoming: Concept[] = [];
       for (const raw of concepts) {
         if (!raw?.id || !raw?.title) {
           skipped += 1;
           continue;
         }
-        const concept = sanitizeConcept(raw as StoredConcept).concept;
-        if (mode === "merge") {
-          const existing = (await requestToPromise(store.get(concept.id))) as Concept | undefined;
-          if (existing) {
-            const newer =
-              existing.updatedAt.localeCompare(concept.updatedAt) >= 0 ? existing : concept;
-            await requestToPromise(store.put(newer));
+        incoming.push(sanitizeConcept(raw as StoredConcept).concept);
+      }
+
+      const existingRaw =
+        mode === "merge" ? ((await requestToPromise(store.getAll())) as StoredConcept[]) : [];
+      const existing = existingRaw.map((raw) => sanitizeConcept(raw).concept);
+      const planned = planConceptPrerequisiteImport(existing, incoming, mode);
+      const incomingIds = new Set(incoming.map((concept) => concept.id));
+      const existingById = new Map(existing.map((concept) => [concept.id, concept]));
+
+      if (mode === "replace") {
+        await requestToPromise(store.clear());
+        for (const concept of planned) {
+          await requestToPromise(store.put(concept));
+          imported += 1;
+        }
+      } else {
+        for (const concept of planned) {
+          const wasIncoming = incomingIds.has(concept.id);
+          const previous = existingById.get(concept.id);
+          const prerequisiteChanged =
+            !previous || !prerequisiteIdsEqual(previous.prerequisiteIds, concept.prerequisiteIds);
+          if (wasIncoming || prerequisiteChanged) {
+            await requestToPromise(store.put(concept));
+          }
+          if (wasIncoming) {
             imported += 1;
-            continue;
           }
         }
-        await requestToPromise(store.put(concept));
-        imported += 1;
       }
 
       const allRaw = (await requestToPromise(store.getAll())) as StoredConcept[];

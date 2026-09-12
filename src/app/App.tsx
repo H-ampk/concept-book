@@ -21,6 +21,7 @@ import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus 
 import type { QuizAttemptLog } from "../types/quiz";
 import { buildContextualCardSourceId } from "../utils/quizQuestionSource";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
+import { buildConceptPrerequisiteIndex } from "../utils/conceptPrerequisites";
 import type { ConceptSaveOptions } from "../utils/conceptStatus";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import {
@@ -209,6 +210,7 @@ export const App = () => {
 
   const conceptMap = useMemo(() => buildConceptByIdMap(concepts), [concepts]);
   const conceptTitleIndex = useMemo(() => buildConceptByTitleMap(concepts), [concepts]);
+  const prerequisiteIndex = useMemo(() => buildConceptPrerequisiteIndex(concepts), [concepts]);
   const selectedConcept = selectedId ? conceptMap.get(selectedId) : undefined;
   const showGraphDetailPanel = isGraphDetailPanelVisible(Boolean(selectedConcept), graphDetailOpen);
 
@@ -678,6 +680,7 @@ export const App = () => {
             concept={selectedConcept}
             conceptMap={conceptMap}
             domainColorMap={domainColorMap}
+            prerequisiteIndex={prerequisiteIndex}
             {...conceptDetailActions}
             onRequestDelete={handleRequestDelete}
             deleting={deleting}
@@ -877,6 +880,7 @@ export const App = () => {
                           concept={selectedConcept}
                           conceptMap={conceptMap}
                           domainColorMap={domainColorMap}
+                          prerequisiteIndex={prerequisiteIndex}
                           {...conceptDetailActions}
                           onRequestDelete={handleRequestDelete}
                           deleting={deleting}
@@ -902,6 +906,7 @@ export const App = () => {
                         concept={selectedConcept}
                         conceptMap={conceptMap}
                         domainColorMap={domainColorMap}
+                        prerequisiteIndex={prerequisiteIndex}
                         {...conceptDetailActions}
                         onRequestDelete={handleRequestDelete}
                         deleting={deleting}
