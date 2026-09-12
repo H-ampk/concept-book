@@ -42,21 +42,27 @@ export const resolveChoiceConceptLink = (
   };
 };
 
-/** 保存直前: 各選択肢にテキスト一致による linkedConceptId を付与（ambiguous は付与しない） */
+/**
+ * 保存直前: 各選択肢にテキスト一致による linkedConceptId を付与（ambiguous は付与しない）。
+ * displayText / sourceConceptId 等の既存 Choice metadata は保持する。
+ * linkedConceptId だけはテキスト照合結果で再計算する（一意一致時のみ付与）。
+ */
 export const applyAutoLinkedConceptIdsToChoices = (
   choices: QuizChoice[],
   concepts: Concept[]
 ): QuizChoice[] =>
   choices.map((c) => {
     const resolved = resolveChoiceConceptLink(c.text.trim(), concepts);
-    const next: QuizChoice = { id: c.id, text: c.text };
+    const next: QuizChoice = { ...c };
     if (resolved.state === "linked" && resolved.linkedConceptId) {
       next.linkedConceptId = resolved.linkedConceptId;
+    } else {
+      delete next.linkedConceptId;
     }
     return next;
   });
 
-/** ZIP インポート後: 存在しない Concept を指す参照を外す */
+/** ZIP / JSON インポート後: 存在しない Concept を指す conceptId / linkedConceptId を外す */
 export const stripInvalidQuizReferences = (
   q: QuizQuestion,
   validConceptIds: Set<string>
@@ -67,15 +73,14 @@ export const stripInvalidQuizReferences = (
       : undefined;
 
   const choices: QuizChoice[] = q.choices.map((c) => {
-    const base: QuizChoice = { id: c.id, text: c.text };
-    if (
-      c.linkedConceptId &&
-      c.linkedConceptId.trim() &&
-      validConceptIds.has(c.linkedConceptId.trim())
-    ) {
-      base.linkedConceptId = c.linkedConceptId.trim();
+    const next: QuizChoice = { ...c };
+    const linkedId = c.linkedConceptId?.trim() ?? "";
+    if (linkedId && validConceptIds.has(linkedId)) {
+      next.linkedConceptId = linkedId;
+    } else {
+      delete next.linkedConceptId;
     }
-    return base;
+    return next;
   });
 
   return { ...q, conceptId, choices };

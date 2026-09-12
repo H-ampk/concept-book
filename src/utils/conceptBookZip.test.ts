@@ -129,3 +129,44 @@ describe("conceptBookZip QuizQuestion.source round-trip", () => {
     expect(result.quizQuestions[0]?.source).toEqual(source);
   });
 });
+
+describe("conceptBookZip QuizChoice metadata round-trip", () => {
+  it("ZIP export → parse → validate で Choice metadata が保持される", () => {
+    const choice = {
+      id: "a",
+      text: "オペラント条件づけ",
+      displayText: "○○条件づけ",
+      linkedConceptId: "c_operant",
+      sourceConceptId: "c_source",
+      contextDefinitionId: "ctx_1",
+      sourceStrategy: "same-context" as const
+    };
+    const json = JSON.stringify({
+      concepts: [],
+      contextCards: [],
+      quizQuestions: [
+        {
+          id: "question_1",
+          prompt: "問い",
+          choices: [choice, { id: "b", text: "古典的条件づけ" }],
+          correctChoiceId: "a",
+          visibility: "private",
+          schemaVersion: 1,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      quizDecks: []
+    });
+    const zipped = buildConceptBookZip(json, []);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const result = validateBackupImportPayload(JSON.parse(parsed.conceptsText));
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.quizQuestions[0]?.choices.find((c) => c.id === "a")).toEqual(choice);
+  });
+});
