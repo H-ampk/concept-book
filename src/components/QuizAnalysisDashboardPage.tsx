@@ -10,6 +10,7 @@ import {
   type DirectedConfusionStat
 } from "../utils/confusionAnalysis";
 import { shortDateTime } from "../utils/date";
+import { buildConceptMasteryMapForConceptIds } from "../utils/mastery/getConceptMastery";
 import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
 import {
   computeConceptStats,
@@ -23,7 +24,9 @@ import {
   isUsableReactionTimeMs,
   recentLogsSorted
 } from "../utils/quizStats";
+import { getGlobalReviewCandidates } from "../utils/review";
 import { OrnamentLine } from "./common/OrnamentLine";
+import { GlobalReviewCandidatesSection } from "./review/GlobalReviewCandidatesSection";
 
 const storage = getStorage();
 const RECENT_LIMIT = 20;
@@ -32,6 +35,7 @@ type Props = {
   onBack: () => void;
   onGoToQuizPlay: () => void;
   onGoToLearningLogs: () => void;
+  onOpenConcept?: (conceptId: string) => void;
 };
 
 const pctText = (rate: number): string => `${(rate * 100).toFixed(1)}%`;
@@ -245,7 +249,12 @@ const ConfusionAnalysisSection = ({
   );
 };
 
-export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearningLogs }: Props) => {
+export const QuizAnalysisDashboardPage = ({
+  onBack,
+  onGoToQuizPlay,
+  onGoToLearningLogs,
+  onOpenConcept
+}: Props) => {
   const [logs, setLogs] = useState<QuizAttemptLog[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -295,6 +304,29 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
     [logsInPeriod]
   );
   const recent = useMemo(() => recentLogsSorted(logsInPeriod, RECENT_LIMIT), [logsInPeriod]);
+
+  const reviewNow = useMemo(() => new Date(), [logs, concepts]);
+  const reviewMasteryByConceptId = useMemo(
+    () =>
+      buildConceptMasteryMapForConceptIds(
+        logs,
+        concepts.map((concept) => concept.id),
+        { now: reviewNow }
+      ),
+    [logs, concepts, reviewNow]
+  );
+  const reviewConfusionAnalysis = useMemo(() => computeConfusionAnalysis(logs), [logs]);
+  const reviewCandidates = useMemo(
+    () =>
+      getGlobalReviewCandidates({
+        concepts,
+        masteryByConceptId: reviewMasteryByConceptId,
+        confusionStats: reviewConfusionAnalysis.directedStats,
+        quizQuestions: questions,
+        now: reviewNow
+      }),
+    [concepts, reviewMasteryByConceptId, reviewConfusionAnalysis, questions, reviewNow]
+  );
 
   const resetDateRange = () => {
     setDateStart("");
@@ -368,6 +400,12 @@ export const QuizAnalysisDashboardPage = ({ onBack, onGoToQuizPlay, onGoToLearni
         </section>
       ) : (
         <>
+          <GlobalReviewCandidatesSection
+            candidates={reviewCandidates}
+            titleById={titleById}
+            onOpenConcept={onOpenConcept}
+          />
+
           <section aria-labelledby="quiz-analysis-date-heading" className="space-y-3">
             <h2 id="quiz-analysis-date-heading" className="text-sm font-semibold text-celestial-softGold">
               回答日時（answeredAt）で期間を絞り込む

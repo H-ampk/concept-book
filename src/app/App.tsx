@@ -800,6 +800,12 @@ export const App = () => {
               onBack={() => setScreen("concepts")}
               onGoToQuizPlay={() => setScreen("quiz-play")}
               onGoToLearningLogs={() => setScreen("learning-logs")}
+              onOpenConcept={(conceptId) => {
+                setScreen("concepts");
+                setConceptMainTab("list");
+                setSelectedId(conceptId);
+                setMobileDetail(true);
+              }}
             />
           ) : screen === "learning-logs" ? (
             <QuizLearningLogsPage

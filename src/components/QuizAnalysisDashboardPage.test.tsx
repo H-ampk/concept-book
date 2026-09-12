@@ -169,3 +169,52 @@ describe("QuizAnalysisDashboardPage 混同概念分析 (#26)", () => {
     });
   });
 });
+
+describe("QuizAnalysisDashboardPage 復習候補 (#58 Phase 1)", () => {
+  beforeEach(() => {
+    getQuizAttemptLogs.mockReset();
+    getAllConcepts.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizQuestions.mockResolvedValue([]);
+  });
+
+  it("苦手 Concept を理由つきで表示し、問題なしも残す", async () => {
+    getQuizAttemptLogs.mockResolvedValue([
+      log({
+        id: "1",
+        questionConceptId: "concept-a",
+        correct: true,
+        answeredAt: "2026-09-10T00:00:00.000Z"
+      }),
+      log({
+        id: "2",
+        questionConceptId: "concept-a",
+        correct: false,
+        answeredAt: "2026-09-11T00:00:00.000Z"
+      }),
+      log({
+        id: "3",
+        questionConceptId: "concept-a",
+        correct: false,
+        answeredAt: "2026-09-12T00:00:00.000Z"
+      })
+    ]);
+    getAllConcepts.mockResolvedValue([concept({ id: "concept-a", title: "社会的手抜き" })]);
+
+    render(
+      <QuizAnalysisDashboardPage
+        onBack={vi.fn()}
+        onGoToQuizPlay={vi.fn()}
+        onGoToLearningLogs={vi.fn()}
+      />
+    );
+
+    const card = await screen.findByTestId("review-candidate-concept-a");
+    expect(screen.getByRole("heading", { name: "今日の復習候補" })).toBeInTheDocument();
+    expect(card).toHaveTextContent("社会的手抜き");
+    expect(card).toHaveTextContent("優先度 高");
+    expect(card).toHaveTextContent("安定して正答できていません");
+    expect(card).toHaveTextContent("最近3回中2回誤答");
+    expect(card).toHaveTextContent("復習が必要ですが、対応する問題がありません");
+  });
+});
