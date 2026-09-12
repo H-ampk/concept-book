@@ -16,6 +16,7 @@ import {
 } from "../utils/generateQuizChoicesFromContextCards";
 import { applyAutoLinkedConceptIdsToChoices, resolveChoiceConceptLink } from "../utils/quizConceptLink";
 import { ModalPortal } from "./common/ModalPortal";
+import { QuizConceptPicker } from "./QuizConceptPicker";
 
 const storage = getStorage();
 const contextStorage = getContextStorage();
@@ -41,53 +42,6 @@ const createQuizQuestionId = (): string =>
 
 const createChoiceId = (): string =>
   `choice_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-const MAX_DOMAIN_TAGS_IN_LABEL = 3;
-
-const normalizeDomainTagsForLabel = (tags: string[]): string[] => {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const t of tags) {
-    const s = t.trim();
-    if (!s || seen.has(s)) {
-      continue;
-    }
-    seen.add(s);
-    out.push(s);
-  }
-  return out;
-};
-
-const normalizeConceptSearchNeedle = (raw: string): string =>
-  raw.trim().normalize("NFKC").toLowerCase();
-
-const conceptMatchesSearch = (concept: Concept, needle: string): boolean => {
-  if (!needle) {
-    return true;
-  }
-  if (normalizeConceptSearchNeedle(concept.title ?? "").includes(needle)) {
-    return true;
-  }
-  for (const tag of concept.domainTags ?? []) {
-    if (normalizeConceptSearchNeedle(tag).includes(needle)) {
-      return true;
-    }
-  }
-  return false;
-};
-
-/** ネイティブ select の option 表示用（保存値は concept.id のまま） */
-const formatConceptSelectLabel = (concept: Concept): string => {
-  const title = concept.title?.trim() ? concept.title.trim() : "無題のConcept";
-  const tags = normalizeDomainTagsForLabel(concept.domainTags ?? []);
-  if (tags.length === 0) {
-    return title;
-  }
-  const head = tags.slice(0, MAX_DOMAIN_TAGS_IN_LABEL);
-  const hidden = tags.length - head.length;
-  const inner = head.join(" / ") + (hidden > 0 ? ` +${hidden}` : "");
-  return `${title} 〔${inner}〕`;
-};
 
 const defaultChoices = (): QuizChoice[] => [
   { id: createChoiceId(), text: "" },
@@ -124,7 +78,6 @@ export const QuizQuestionFormModal = ({
   const [questionId, setQuestionId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conceptSearchQuery, setConceptSearchQuery] = useState("");
   const [contextCards, setContextCards] = useState<ContextCard[]>([]);
   const [selectedContextDefId, setSelectedContextDefId] = useState("");
   const [generationQuality, setGenerationQuality] = useState<QuizGenerationQuality | null>(null);
@@ -135,9 +88,10 @@ export const QuizQuestionFormModal = ({
       return;
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
+      if (e.key !== "Escape" || e.defaultPrevented) {
+        return;
       }
+      onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -168,7 +122,6 @@ export const QuizQuestionFormModal = ({
       setVisibility("private");
       setSortOrderInput("");
     }
-    setConceptSearchQuery("");
     setSelectedContextDefId("");
     setGenerationQuality(null);
     setGenerationWarnings([]);
@@ -339,32 +292,6 @@ export const QuizQuestionFormModal = ({
     return m;
   }, [choices, concepts]);
 
-  const conceptSearchNeedle = useMemo(
-    () => normalizeConceptSearchNeedle(conceptSearchQuery),
-    [conceptSearchQuery]
-  );
-
-  const matchedConcepts = useMemo(() => {
-    if (!conceptSearchNeedle) {
-      return concepts;
-    }
-    return concepts.filter((c) => conceptMatchesSearch(c, conceptSearchNeedle));
-  }, [concepts, conceptSearchNeedle]);
-
-  const conceptSelectOptions = useMemo(() => {
-    if (!conceptSearchNeedle) {
-      return concepts;
-    }
-    const matched = matchedConcepts;
-    if (conceptId.trim()) {
-      const sel = conceptById.get(conceptId.trim());
-      if (sel && !matched.some((c) => c.id === sel.id)) {
-        return [sel, ...matched];
-      }
-    }
-    return matched;
-  }, [concepts, conceptSearchNeedle, matchedConcepts, conceptId, conceptById]);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmedPrompt = prompt.trim();
@@ -480,60 +407,12 @@ export const QuizQuestionFormModal = ({
         )}
 
         <div className="mt-3 grid gap-3">
-          <div className="block space-y-2">
-            <label htmlFor="quiz-form-concept-search" className="block space-y-1.5">
-              <span className="block text-sm text-celestial-textMain">Conceptを検索</span>
-              <input
-                id="quiz-form-concept-search"
-                type="search"
-                autoComplete="off"
-                placeholder="Concept名・分野タグで検索"
-                value={conceptSearchQuery}
-                onChange={(e) => setConceptSearchQuery(e.target.value)}
-                disabled={concepts.length === 0}
-                className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Conceptを検索（タイトル・分野タグで絞り込み）"
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="block text-sm text-celestial-textMain">問い全体の関連 Concept（任意）</span>
-              <select
-                id="quiz-form-related-concept"
-                className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-                value={conceptId}
-                onChange={(e) => setConceptId(e.target.value)}
-                disabled={concepts.length === 0}
-              >
-                <option value="">なし</option>
-                {conceptSelectOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {formatConceptSelectLabel(c)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {concepts.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-celestial-textSub">
-                <span aria-live="polite">
-                  候補: <span className="tabular-nums text-celestial-textMain">{conceptSelectOptions.length}</span>件
-                  {conceptSearchNeedle ? (
-                    <>
-                      {" "}
-                      （一致: <span className="tabular-nums">{matchedConcepts.length}</span>件）
-                    </>
-                  ) : null}
-                </span>
-                {conceptSearchNeedle && matchedConcepts.length === 0 ? (
-                  <span className="text-amber-200/90" role="status">
-                    一致するConceptがありません
-                    {conceptId.trim() && conceptSelectOptions.some((c) => c.id === conceptId.trim())
-                      ? "（現在選択中のConceptを候補に表示しています）"
-                      : ""}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          <QuizConceptPicker
+            concepts={concepts}
+            value={conceptId}
+            onChange={setConceptId}
+            disabled={concepts.length === 0}
+          />
 
           {selectedConcept ? (
             <section className="rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-4">
