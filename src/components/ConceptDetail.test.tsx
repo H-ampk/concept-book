@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../types/concept";
@@ -213,9 +213,100 @@ describe("ConceptDetail prerequisites (#118)", () => {
         prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
       />
     );
-    expect(screen.getByRole("button", { name: "確率" })).toBeInTheDocument();
+    expect(within(screen.getByRole("heading", { name: "前提概念" }).closest("div") as HTMLElement).getByRole("button", { name: "確率" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ベイズ推論" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "確率" }));
+    await userEvent.click(
+      within(screen.getByRole("heading", { name: "前提概念" }).closest("div") as HTMLElement).getByRole(
+        "button",
+        { name: "確率" }
+      )
+    );
     expect(onSelectRelated).toHaveBeenCalledWith("prob");
+  });
+});
+
+describe("ConceptDetail learning sequence (#120)", () => {
+  const a = concept({ id: "a", title: "A" });
+  const b = concept({ id: "b", title: "B", prerequisiteIds: ["a"] });
+  const c = concept({ id: "c", title: "C", prerequisiteIds: ["b"] });
+  const all = [a, b, c];
+  const conceptMap = new Map(all.map((item) => [item.id, item]));
+
+  it("A → B → C の学習順序を表示し、クリックで既存 navigation に ID を渡す", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const onSelectRelated = vi.fn();
+    render(
+      <ConceptDetail
+        concept={c}
+        conceptMap={conceptMap}
+        domainColorMap={{}}
+        onSelectRelated={onSelectRelated}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+      />
+    );
+
+    const section = screen.getByTestId("concept-learning-sequence");
+    expect(section).toHaveTextContent("学習順序");
+    expect(section).toHaveTextContent("1.");
+    expect(section).toHaveTextContent("A");
+    expect(section).toHaveTextContent("2.");
+    expect(section).toHaveTextContent("B");
+    expect(section).toHaveTextContent("3.");
+    expect(section).toHaveTextContent("C");
+    expect(section).toHaveTextContent("2段階前の前提");
+    expect(section).toHaveTextContent("直接の前提");
+    expect(section).toHaveTextContent("学習対象");
+
+    await userEvent.click(within(section).getByRole("button", { name: "A" }));
+    expect(onSelectRelated).toHaveBeenCalledWith("a");
+  });
+
+  it("prerequisite なしでも現在の Concept を学習順序 1 件として表示する", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const solo = concept({ id: "solo", title: "単独概念" });
+    render(
+      <ConceptDetail
+        concept={solo}
+        conceptMap={new Map([[solo.id, solo]])}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex([solo])}
+      />
+    );
+
+    const section = screen.getByTestId("concept-learning-sequence");
+    expect(section).toHaveTextContent("学習順序");
+    expect(section).toHaveTextContent("1.");
+    expect(within(section).getByRole("button", { name: "単独概念" })).toBeInTheDocument();
+    expect(section).toHaveTextContent("学習対象");
+    expect(screen.queryByText("学習順序なし")).not.toBeInTheDocument();
+  });
+
+  it("cycle-detected では部分 sequence を出さず生成できない旨を表示する", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const cycleA = concept({ id: "ca", title: "循環A", prerequisiteIds: ["cc"] });
+    const cycleB = concept({ id: "cb", title: "循環B", prerequisiteIds: ["ca"] });
+    const cycleC = concept({ id: "cc", title: "循環C", prerequisiteIds: ["cb"] });
+    const cycleConcepts = [cycleA, cycleB, cycleC];
+    render(
+      <ConceptDetail
+        concept={cycleC}
+        conceptMap={new Map(cycleConcepts.map((item) => [item.id, item]))}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(cycleConcepts)}
+      />
+    );
+
+    const section = screen.getByTestId("concept-learning-sequence");
+    expect(section).toHaveTextContent("前提概念の循環があるため学習順序を生成できません。");
+    expect(within(section).queryByRole("button", { name: "循環A" })).not.toBeInTheDocument();
+    expect(within(section).queryByRole("list")).not.toBeInTheDocument();
   });
 });

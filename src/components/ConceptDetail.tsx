@@ -9,6 +9,11 @@ import type { ConceptMastery, ConceptMasteryPoint } from "../utils/mastery/types
 import { toConceptMasteryDetailView } from "../utils/mastery/formatConceptMastery";
 import { ConceptMasteryHistoryChart } from "./mastery/ConceptMasteryHistoryChart";
 import type { ConceptPrerequisiteIndex } from "../utils/conceptPrerequisites";
+import {
+  buildConceptLearningSequence,
+  formatPrerequisiteDepthLabel,
+  type ConceptLearningSequenceResult
+} from "../utils/learningSequence";
 
 const storage = getStorage();
 
@@ -101,6 +106,58 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
   );
 };
 
+const ConceptLearningSequenceSection = ({
+  result,
+  conceptMap,
+  onSelectRelated
+}: {
+  result: ConceptLearningSequenceResult;
+  conceptMap: Map<string, Concept>;
+  onSelectRelated: (id: string) => void;
+}) => {
+  if (result.status === "target-not-found") {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2" data-testid="concept-learning-sequence">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
+        学習順序
+      </h3>
+      {result.status === "cycle-detected" ? (
+        <p className="text-sm text-nordic-textSecondary">
+          前提概念の循環があるため学習順序を生成できません。
+        </p>
+      ) : (
+        <ol className="space-y-2">
+          {result.items.map((item, index) => {
+            const itemConcept = conceptMap.get(item.conceptId);
+            return (
+              <li key={item.conceptId} className="flex flex-wrap items-baseline gap-2">
+                <span className="text-sm text-nordic-textMuted">{index + 1}.</span>
+                {itemConcept ? (
+                  <button
+                    type="button"
+                    className="detail-related-link"
+                    onClick={() => onSelectRelated(item.conceptId)}
+                  >
+                    {itemConcept.title}
+                  </button>
+                ) : (
+                  <span className="text-xs text-amber-800">不明なID: {item.conceptId}</span>
+                )}
+                <span className="text-xs text-nordic-textMuted">
+                  {formatPrerequisiteDepthLabel(item)}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+};
+
 const ConceptMasteryPanel = ({ mastery }: { mastery: ConceptMastery }) => {
   const view = toConceptMasteryDetailView(mastery);
 
@@ -152,6 +209,17 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   prerequisiteIndex,
   onOpenGraphAnalysis
 }, ref) => {
+  const targetConceptId = concept?.id;
+  const learningSequence = useMemo(() => {
+    if (!targetConceptId || !prerequisiteIndex) {
+      return undefined;
+    }
+    return buildConceptLearningSequence({
+      targetConceptId,
+      prerequisiteIndex
+    });
+  }, [targetConceptId, prerequisiteIndex]);
+
   if (!concept) {
     return (
       <section className="concept-detail-panel concept-detail-empty w-full rounded-xl border border-nordic-border p-8">
@@ -426,6 +494,14 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
           </ul>
         )}
       </div>
+
+      {learningSequence ? (
+        <ConceptLearningSequenceSection
+          result={learningSequence}
+          conceptMap={conceptMap}
+          onSelectRelated={onSelectRelated}
+        />
+      ) : null}
 
       <div className="detail-meta-block">
         <p>
