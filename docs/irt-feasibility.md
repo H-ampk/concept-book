@@ -394,3 +394,9 @@ IRT 実装 Issue:
 - Finch, W. H., & French, B. F. (2019). A Comparison of Estimation Techniques for IRT Models With Small Samples. *Applied Measurement in Education, 32*(2), 77–96. https://doi.org/10.1080/08957347.2019.1577243
 - Proust-Lima, C., Philipps, V., Perrot, B., Blanchin, M., & Sébille, V. (2022). Modeling repeated self-reported outcome data: A continuous-time longitudinal Item Response Theory model. *Methods, 204*, 386–395. https://doi.org/10.1016/j.ymeth.2022.01.005
 - Linacre, J. M. (1994). Sample Size and Item Calibration or Person Measure Stability. *Rasch Measurement Transactions, 7*(4), 328. https://www.rasch.org/rmt/rmt74m.htm （補助資料。30 / 50 / 100 等は targeting と求める精度に依存する目安であり、絶対条件ではない）
+
+---
+
+## Related documents
+
+BKT / PFA / HLR の現行実装と one-step-ahead 評価は [learning-models.md](./learning-models.md) を参照。本調査の結論（IRT は導入しない）は変更しない。

@@ -5,6 +5,8 @@
 このドキュメントは、Concept Book の Harry Potter 風 UI 改修で導入・整理した装飾要素の役割をまとめたものです。  
 対象は **見た目の装飾レイヤー** であり、機能ロジック（検索、フィルタ、編集、選択、詳細表示など）は含みません。
 
+ユーザーが設定するライト / ダーク / 色（runtime theme）は装飾素材ではありません。そちらは [theme-system.md](./theme-system.md) を参照してください。
+
 ## Design Direction
 
 - 一覧カードは簡潔さを優先する
@@ -16,16 +18,22 @@
 
 ランタイムで **実際に参照されている** 装飾素材と役割:
 
-### Header ornament line
+### Header / panel ornament line
 
 - **画像:** `public/decorations/serpent-line.svg`
-- **実装:** `src/components/common/OrnamentLine.tsx` の `<img>`（`variant="header"`）
-- **利用箇所:** `src/app/App.tsx` のヘッダー（題字・ナビの装飾線として表示）
+- **実装:** `src/components/common/OrnamentLine.tsx` の `<img>`（`variant="header"` / `variant="panel"`）
+- **利用箇所:** `src/app/App.tsx` のヘッダー、詳細パネル、設定、Skill Tree、Lab 各画面の見出し装飾
 
 ### CSS-only moon emblem
 
 - **実装:** `src/app/App.tsx` の `DecorativeBackground` 内 `.moon-emblem` と、`src/index.css` の `.moon-ring` / `.moon-axis` など
 - **用途:** 固定的な月環モチーフ（画像ファイルではなく CSS の線・円で描画）
+
+### Empty-state / quiz result illustrations
+
+- `public/decorations/cup.png` — `ConceptDetail` の未選択（空）状態
+- `public/decorations/inu.png` — Quiz 正解時
+- `public/decorations/tanuki.png` — Quiz 不正解時
 
 ## Inactive / archived assets
 
@@ -44,7 +52,7 @@
 - ベース: 群青グラデーション（`DecorativeBackground` 内のレイヤー）
 - 補助: 星粒（`.star-field`）、天体図風ライン（`.astral-chart`）、左右フレーム（`.cathedral-frame`）、環境 HUD（`.cyber-ambient` / `.hud-global-ring`）など
 
-画像ファイルへの依存は **Active ornaments** に記載したものと、アーカイブ PNG を除き最小限とする。
+画像ファイルへの依存は **Active ornaments** に記載したものに限り、アーカイブ PNG はランタイムから参照しない。
 
 ## Maintenance note
 
@@ -135,6 +143,8 @@
 |---|---|---|
 | `OrnamentLine` | `src/components/common/OrnamentLine.tsx` | ヘッダー/主要パネルで共通装飾線（serpent-line.svg）を描画 |
 | `serpent-line.svg` | `public/decorations/` | OrnamentLine が参照するヘッダー／パネル装飾線 |
+| `cup.png` | `public/decorations/` | Concept 詳細の未選択イラスト |
+| `inu.png` / `tanuki.png` | `public/decorations/` | Quiz 正誤結果のイラスト |
 | `.ornament-line` | `src/index.css` | OrnamentLine の共通レイアウト（土台） |
 | `.ornament-line-header` | `src/index.css` | ヘッダー用の横長装飾線サイズと補助線 |
 | `.ornament-line-panel` | `src/index.css` | パネル用の短い装飾線サイズと補助線 |
@@ -161,3 +171,4 @@
 - 一覧カードへ主要パネル級の装飾を横展開しない
 - 一時デバッグスタイル（赤枠など）を残したままにしない
 - **無効化だけのフラグをコードに残さず、ドキュメントだけで「将来 ON にする」と書かない**
+- ユーザー設定可能なテーマ色の説明をここに重複させない（[theme-system.md](./theme-system.md)）
