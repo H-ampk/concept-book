@@ -21,6 +21,10 @@ import {
   type PersonalizedLearningSequenceReason,
   type SatisfiedPrerequisiteBoundary
 } from "../utils/learningSequence";
+import { getSelectedContextReviewCandidates } from "../utils/review";
+import { SelectedContextReviewCandidatesSection } from "./review/SelectedContextReviewCandidatesSection";
+
+const EMPTY_QUIZ_QUESTION_CONCEPT_IDS: ReadonlySet<string> = new Set();
 
 const storage = getStorage();
 
@@ -44,6 +48,8 @@ type Props = {
   prerequisiteIndex?: ConceptPrerequisiteIndex;
   /** App 側で一括構築した mastery map。personalized sequence 用 */
   conceptMasteryMap?: ReadonlyMap<string, ConceptMastery>;
+  /** QuizQuestion が紐づく Concept ID。selected-context review の出題可否に使う */
+  quizQuestionConceptIds?: ReadonlySet<string>;
   /** 通常グラフ詳細からのみ渡す。渡されたときだけ「この概念を分析」を表示する */
   onOpenGraphAnalysis?: (conceptId: string) => void;
 };
@@ -366,6 +372,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   deleting,
   prerequisiteIndex,
   conceptMasteryMap,
+  quizQuestionConceptIds,
   onOpenGraphAnalysis
 }, ref) => {
   const targetConceptId = concept?.id;
@@ -389,6 +396,16 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       fullSequence: learningSequence
     });
   }, [targetConceptId, prerequisiteIndex, conceptMasteryMap, learningSequence]);
+  const selectedContextReview = useMemo(() => {
+    if (!personalizedLearningSequence) {
+      return undefined;
+    }
+    return getSelectedContextReviewCandidates({
+      personalizedSequence: personalizedLearningSequence,
+      masteryByConceptId: conceptMasteryMap ?? new Map(),
+      quizQuestionConceptIds: quizQuestionConceptIds ?? EMPTY_QUIZ_QUESTION_CONCEPT_IDS
+    });
+  }, [personalizedLearningSequence, conceptMasteryMap, quizQuestionConceptIds]);
 
   if (!concept) {
     return (
@@ -669,6 +686,16 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         <ConceptLearningSequenceSection
           result={learningSequence}
           personalizedResult={personalizedLearningSequence}
+          conceptMap={conceptMap}
+          onSelectRelated={onSelectRelated}
+        />
+      ) : null}
+
+      {selectedContextReview ? (
+        <SelectedContextReviewCandidatesSection
+          targetTitle={concept.title}
+          hasDirectPrerequisites={concept.prerequisiteIds.length > 0}
+          result={selectedContextReview}
           conceptMap={conceptMap}
           onSelectRelated={onSelectRelated}
         />

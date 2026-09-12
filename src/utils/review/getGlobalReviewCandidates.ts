@@ -22,7 +22,7 @@ export type GetGlobalReviewCandidatesInput = {
 
 /**
  * global review 候補を抽出する。mastery / confusion は再集計せず、渡された派生データを読む。
- * weak-prerequisite は #118 / #121 接続まで生成しない。
+ * weak-prerequisite は selected-context 専用であり、ここでは生成しない。
  */
 export const getGlobalReviewCandidates = (
   input: GetGlobalReviewCandidatesInput

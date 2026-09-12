@@ -464,6 +464,7 @@ describe("ConceptDetail personalized learning sequence (#121)", () => {
     expect(within(personalized).queryByRole("button", { name: "A" })).not.toBeInTheDocument();
     expect(within(personalized).queryByRole("button", { name: "B" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("satisfied-prerequisite-boundaries")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("selected-context-review")).not.toBeInTheDocument();
   });
 
   it("前提が insufficient-data ならデータ不足と出し satisfied と誤認させない", async () => {
@@ -502,5 +503,191 @@ describe("ConceptDetail personalized learning sequence (#121)", () => {
     expect(personalized).toHaveTextContent("B");
     expect(screen.queryByTestId("satisfied-prerequisite-boundaries")).not.toBeInTheDocument();
     expect(personalized).not.toHaveTextContent("習得済みのため省略");
+  });
+});
+
+describe("ConceptDetail selected-context review (#58 Phase 2)", () => {
+  const a = concept({ id: "a", title: "A" });
+  const b = concept({ id: "b", title: "B", prerequisiteIds: ["a"] });
+  const target = concept({ id: "target", title: "Target", prerequisiteIds: ["b"] });
+  const all = [a, b, target];
+  const conceptMap = new Map(all.map((item) => [item.id, item]));
+
+  const sequenceMastery = (
+    conceptId: string,
+    overrides: Partial<ConceptMastery> = {}
+  ): ConceptMastery =>
+    mastery({
+      conceptId,
+      masteryProbability: 0.4,
+      masteryScore: 40,
+      state: "unlearned",
+      attemptCount: 0,
+      confidence: "none",
+      freshness: "never",
+      ...overrides
+    });
+
+  const renderTarget = async (
+    extras: {
+      conceptMasteryMap?: Map<string, ConceptMastery>;
+      quizQuestionConceptIds?: ReadonlySet<string>;
+      onSelectRelated?: ReturnType<typeof vi.fn>;
+    } = {}
+  ) => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const onSelectRelated = extras.onSelectRelated ?? vi.fn();
+    render(
+      <ConceptDetail
+        concept={target}
+        conceptMap={conceptMap}
+        domainColorMap={{}}
+        onSelectRelated={onSelectRelated}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+        conceptMasteryMap={extras.conceptMasteryMap}
+        quizQuestionConceptIds={extras.quizQuestionConceptIds}
+      />
+    );
+    return { onSelectRelated };
+  };
+
+  it("A が satisfied なら B だけを前提復習に出し、今日の復習候補とは分ける", async () => {
+    await renderTarget({
+      conceptMasteryMap: new Map([
+        ["a", sequenceMastery("a", { state: "mastered", confidence: "high", attemptCount: 8 })],
+        [
+          "b",
+          sequenceMastery("b", { state: "developing", confidence: "medium", attemptCount: 5 })
+        ],
+        ["target", sequenceMastery("target")]
+      ]),
+      quizQuestionConceptIds: new Set(["b"])
+    });
+
+    const section = screen.getByTestId("selected-context-review");
+    expect(section).toHaveTextContent("「Target」を学ぶための前提復習");
+    expect(section).toHaveTextContent("B");
+    expect(section).toHaveTextContent("前提としてまだ十分ではありません");
+    expect(within(section).queryByRole("button", { name: "A" })).not.toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "B" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "今日の復習候補" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("personalized-learning-sequence")).toHaveTextContent("あなた向け");
+  });
+
+  it("insufficient-data の前提はデータ不足と出し習得済みと表示しない", async () => {
+    await renderTarget({
+      conceptMasteryMap: new Map([
+        ["a", sequenceMastery("a", { state: "mastered", confidence: "high", attemptCount: 8 })],
+        [
+          "b",
+          sequenceMastery("b", {
+            state: "insufficient-data",
+            confidence: "low",
+            attemptCount: 2
+          })
+        ],
+        ["target", sequenceMastery("target")]
+      ]),
+      quizQuestionConceptIds: new Set(["b"])
+    });
+
+    const card = screen.getByTestId("selected-context-review-candidate-b");
+    expect(card).toHaveTextContent("B");
+    expect(card).toHaveTextContent("データ不足");
+    expect(card).not.toHaveTextContent("習得済み");
+    expect(card).toHaveTextContent("前提を満たしたと判断するにはデータが不足しています");
+  });
+
+  it("対応する問題がなければ警告を出し candidate は残す", async () => {
+    await renderTarget({
+      conceptMasteryMap: new Map([
+        ["a", sequenceMastery("a", { state: "mastered", confidence: "high", attemptCount: 8 })],
+        [
+          "b",
+          sequenceMastery("b", { state: "developing", confidence: "medium", attemptCount: 5 })
+        ],
+        ["target", sequenceMastery("target")]
+      ]),
+      quizQuestionConceptIds: new Set()
+    });
+
+    const card = screen.getByTestId("selected-context-review-candidate-b");
+    expect(card).toHaveTextContent("B");
+    expect(card).toHaveTextContent("復習が必要ですが、対応する問題がありません");
+  });
+
+  it("candidate をクリックすると onSelectRelated に prerequisite ID を渡す", async () => {
+    const onSelectRelated = vi.fn();
+    await renderTarget({
+      conceptMasteryMap: new Map([
+        ["a", sequenceMastery("a", { state: "mastered", confidence: "high", attemptCount: 8 })],
+        [
+          "b",
+          sequenceMastery("b", { state: "developing", confidence: "medium", attemptCount: 5 })
+        ],
+        ["target", sequenceMastery("target")]
+      ]),
+      quizQuestionConceptIds: new Set(["b"]),
+      onSelectRelated
+    });
+
+    await userEvent.click(
+      within(screen.getByTestId("selected-context-review")).getByRole("button", { name: "B" })
+    );
+    expect(onSelectRelated).toHaveBeenCalledWith("b");
+  });
+
+  it("前提がすべて satisfied なら空状態を出す", async () => {
+    await renderTarget({
+      conceptMasteryMap: new Map([
+        ["a", sequenceMastery("a", { state: "mastered", confidence: "high", attemptCount: 8 })],
+        ["b", sequenceMastery("b", { state: "mastered", confidence: "high", attemptCount: 8 })],
+        ["target", sequenceMastery("target")]
+      ])
+    });
+
+    const section = screen.getByTestId("selected-context-review");
+    expect(section).toHaveTextContent("前提は十分に満たされています");
+    expect(screen.queryByTestId("selected-context-review-candidate-a")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("selected-context-review-candidate-b")).not.toBeInTheDocument();
+  });
+
+  it("前提が無い Concept ではセクションを出さない", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const solo = concept({ id: "solo", title: "単独概念" });
+    render(
+      <ConceptDetail
+        concept={solo}
+        conceptMap={new Map([[solo.id, solo]])}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex([solo])}
+      />
+    );
+    expect(screen.queryByTestId("selected-context-review")).not.toBeInTheDocument();
+  });
+
+  it("cycle-detected では前提復習の部分候補を出さない", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const cycleA = concept({ id: "ca", title: "循環A", prerequisiteIds: ["cc"] });
+    const cycleB = concept({ id: "cb", title: "循環B", prerequisiteIds: ["ca"] });
+    const cycleC = concept({ id: "cc", title: "循環C", prerequisiteIds: ["cb"] });
+    const cycleConcepts = [cycleA, cycleB, cycleC];
+    render(
+      <ConceptDetail
+        concept={cycleC}
+        conceptMap={new Map(cycleConcepts.map((item) => [item.id, item]))}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(cycleConcepts)}
+      />
+    );
+    expect(screen.queryByTestId("selected-context-review")).not.toBeInTheDocument();
   });
 });

@@ -621,5 +621,8 @@ describe("getGlobalReviewCandidates / determinism", () => {
     });
     const types: string[] = candidates.flatMap((row) => row.reasons.map((reason) => reason.type));
     expect(types).not.toContain("weak-prerequisite");
+    expect(candidates.every((row) => row.reasons.every((reason) => reason.type !== "weak-prerequisite"))).toBe(
+      true
+    );
   });
 });

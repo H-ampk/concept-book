@@ -36,6 +36,7 @@ import {
   type MasteryOverviewFilter
 } from "../utils/mastery/masteryPresentation";
 import { computeConfusionPairs } from "../utils/quizStats";
+import { buildQuizQuestionConceptIdSet } from "../utils/review/buildQuizQuestionConceptIdSet";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
@@ -170,6 +171,9 @@ export const App = () => {
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
   const [masteryFilter, setMasteryFilter] = useState<MasteryOverviewFilter>("all");
   const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
+  const [quizQuestionConceptIds, setQuizQuestionConceptIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
   const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
     null
   );
@@ -186,15 +190,25 @@ export const App = () => {
     setQuizAttemptLogs(logs);
   }, []);
 
+  const reloadQuizQuestionConceptIds = useCallback(async () => {
+    const questions = await storage.getQuizQuestions();
+    setQuizQuestionConceptIds(buildQuizQuestionConceptIdSet(questions));
+  }, []);
+
   useEffect(() => {
     void reloadQuizAttemptLogs();
   }, [reloadQuizAttemptLogs]);
 
   useEffect(() => {
+    void reloadQuizQuestionConceptIds();
+  }, [reloadQuizQuestionConceptIds]);
+
+  useEffect(() => {
     if (screen === "concepts") {
       void reloadQuizAttemptLogs();
+      void reloadQuizQuestionConceptIds();
     }
-  }, [screen, reloadQuizAttemptLogs]);
+  }, [screen, reloadQuizAttemptLogs, reloadQuizQuestionConceptIds]);
 
   useEffect(() => {
     setListDisplayLimit(100);
@@ -305,6 +319,7 @@ export const App = () => {
     conceptQuizStatsText: selectedConceptQuizStatsText,
     conceptMastery: selectedConceptMastery,
     conceptMasteryMap,
+    quizQuestionConceptIds,
     conceptMasteryHistory: selectedConceptMasteryHistory,
     onCreateQuizFromContextualCard: (conceptId: string, contextDefinitionId: string) => {
       openQuizCreate({
