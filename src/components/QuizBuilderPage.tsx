@@ -204,56 +204,62 @@ export const QuizBuilderPage = ({
             </button>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/30 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
-            <button
-              type="button"
-              onClick={openCreateDeck}
-              className="action-button order-first rounded-lg px-4 py-2.5 text-sm sm:order-none"
-            >
-              新規クイズ集を作成
-            </button>
-            <button
-              type="button"
-              onClick={openCreateQuiz}
-              className="rounded-lg border border-celestial-gold/40 px-4 py-2.5 text-sm text-celestial-softGold hover:bg-celestial-gold/10 sm:order-none"
-            >
-              クイズを作成
-            </button>
-
-            <label className="block min-w-[160px] flex-1">
-              <span className="mb-1 block text-xs text-celestial-softGold">識別ID（deckKey）で絞り込み</span>
-              <input
-                type="search"
-                className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 font-mono text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-                value={deckKeyFilter}
-                onChange={(e) => setDeckKeyFilter(e.target.value)}
-                placeholder="部分一致…"
-              />
-            </label>
-
-            <label className="block min-w-[160px] flex-1">
-              <span className="mb-1 block text-xs text-celestial-softGold">タグ（部分一致）</span>
-              <input
-                type="search"
-                className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-                value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                placeholder="例: 社会心理"
-              />
-            </label>
-
-            <label className="block min-w-[140px]">
-              <span className="mb-1 block text-xs text-celestial-softGold">公開状態</span>
-              <select
-                className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-                value={visibilityFilter}
-                onChange={(e) => setVisibilityFilter(e.target.value as VisibilityFilter)}
+          <div className="min-w-0 space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/30 p-4 backdrop-blur-sm">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button
+                type="button"
+                onClick={openCreateDeck}
+                className="action-button rounded-lg px-4 py-2.5 text-sm"
               >
-                <option value="all">すべて</option>
-                <option value="private">非公開のみ</option>
-                <option value="shareable">公開のみ</option>
-              </select>
-            </label>
+                新規クイズ集を作成
+              </button>
+              <button
+                type="button"
+                onClick={openCreateQuiz}
+                className="rounded-lg border border-celestial-gold/40 px-4 py-2.5 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
+              >
+                クイズを作成
+              </button>
+            </div>
+
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(140px,auto)]">
+              <label className="min-w-0">
+                <span className="mb-1 block overflow-hidden text-ellipsis whitespace-nowrap text-xs text-celestial-softGold">
+                  識別ID（deckKey）で絞り込み
+                </span>
+                <input
+                  type="search"
+                  className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 font-mono text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                  value={deckKeyFilter}
+                  onChange={(e) => setDeckKeyFilter(e.target.value)}
+                  placeholder="部分一致…"
+                />
+              </label>
+
+              <label className="min-w-0">
+                <span className="mb-1 block text-xs text-celestial-softGold">タグ（部分一致）</span>
+                <input
+                  type="search"
+                  className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  placeholder="例: 社会心理"
+                />
+              </label>
+
+              <label className="min-w-0 sm:max-w-xs lg:max-w-none">
+                <span className="mb-1 block text-xs text-celestial-softGold">公開状態</span>
+                <select
+                  className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                  value={visibilityFilter}
+                  onChange={(e) => setVisibilityFilter(e.target.value as VisibilityFilter)}
+                >
+                  <option value="all">すべて</option>
+                  <option value="private">非公開のみ</option>
+                  <option value="shareable">公開のみ</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <QuizDataPanel
