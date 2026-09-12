@@ -83,6 +83,68 @@ type Props = {
   onGoToQuizBuilder: () => void;
 };
 
+const quizBackButtonClass =
+  "header-nav-button shrink-0 rounded-md border border-celestial-gold/50 bg-transparent text-celestial-softGold hover:bg-celestial-gold/10";
+
+const QuizPlaySetupHeader = ({ onBack }: { onBack: () => void }) => (
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="min-w-0 space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 演習場</p>
+      <h1 id="quiz-play-title" className="text-xl font-semibold tracking-wide text-celestial-textMain sm:text-2xl">
+        クイズで学習
+      </h1>
+      <p className="text-sm text-celestial-textSub">
+        問題プールから学習状況に応じて最大 {QUIZ_SESSION_SIZE}{" "}
+        問を出題します（未学習・誤答・復習対象を優先）。選択肢が Concept にリンクしている場合、回答後に関連を表示します。
+      </p>
+      <OrnamentLine variant="header" className="max-w-md opacity-80" />
+    </div>
+    <button
+      type="button"
+      onClick={onBack}
+      className={`${quizBackButtonClass} px-3 py-2 text-sm`}
+    >
+      戻る（概念へ）
+    </button>
+  </div>
+);
+
+const QuizPlaySessionHeader = ({
+  sessionDeckTitle,
+  index,
+  sessionLength,
+  onBack
+}: {
+  sessionDeckTitle: string | null;
+  index: number;
+  sessionLength: number;
+  onBack: () => void;
+}) => (
+  <header className="min-w-0 space-y-1">
+    <h1 id="quiz-play-title" className="sr-only">
+      クイズで学習
+    </h1>
+    {sessionDeckTitle ? (
+      <p className="min-w-0 break-words text-sm font-medium leading-snug text-celestial-softGold">
+        {sessionDeckTitle}
+      </p>
+    ) : null}
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <p className="min-w-0 text-xs leading-snug text-celestial-textSub">
+        問題 {index + 1} / {sessionLength}
+        {sessionDeckTitle ? (
+          <span className="sr-only">
+            。クイズ集「{sessionDeckTitle}」の {sessionLength} 問中 {index + 1} 問目です。
+          </span>
+        ) : null}
+      </p>
+      <button type="button" onClick={onBack} className={`${quizBackButtonClass} px-2.5 py-1 text-xs`}>
+        戻る
+      </button>
+    </div>
+  </header>
+);
+
 export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -458,31 +520,13 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
         aria-labelledby="quiz-play-title"
       >
         <div className="relative z-[1] space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-celestial-gold/80">Lab · 演習場</p>
-              <h1 id="quiz-play-title" className="text-xl font-semibold tracking-wide text-celestial-textMain sm:text-2xl">
-                クイズで学習
-              </h1>
-              <p className="text-sm text-celestial-textSub">
-                問題プールから学習状況に応じて最大 {QUIZ_SESSION_SIZE}{" "}
-                問を出題します（未学習・誤答・復習対象を優先）。選択肢が Concept にリンクしている場合、回答後に関連を表示します。
-              </p>
-              <OrnamentLine variant="header" className="max-w-md opacity-80" />
-            </div>
-            <button
-              type="button"
-              onClick={onBack}
-              className="header-nav-button shrink-0 rounded-md border border-celestial-gold/50 bg-transparent px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10"
-            >
-              戻る（概念へ）
-            </button>
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-celestial-textSub">読み込み中…</p>
-          ) : phase === "setup" ? (
+          {phase === "setup" ? (
             <div className="space-y-4">
+              <QuizPlaySetupHeader onBack={onBack} />
+              {loading ? (
+                <p className="text-sm text-celestial-textSub">読み込み中…</p>
+              ) : (
+                <>
               <div className="space-y-3 rounded-xl border border-celestial-border/70 bg-nordic-navy/30 p-4 backdrop-blur-sm">
                 <h2 className="text-sm font-semibold text-celestial-softGold">クイズ集から始める</h2>
                 <p className="text-xs text-celestial-textSub">
@@ -630,10 +674,19 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                   </button>
                 )}
               </div>
+                </>
+              )}
             </div>
           ) : phase === "results" ? (
             <div className="space-y-3 rounded-2xl border border-celestial-border bg-celestial-deepBlue/20 p-4 sm:p-5">
-              <p className="text-center text-lg font-semibold text-celestial-textMain">結果</p>
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <h1 id="quiz-play-title" className="min-w-0 text-lg font-semibold text-celestial-textMain">
+                  結果
+                </h1>
+                <button type="button" onClick={onBack} className={`${quizBackButtonClass} px-2.5 py-1 text-xs`}>
+                  戻る
+                </button>
+              </div>
               {sessionDeckTitle ? (
                 <p className="text-center text-sm text-celestial-softGold">
                   クイズ集「<span className="font-medium">{sessionDeckTitle}</span>」
@@ -711,23 +764,16 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
               </div>
             </div>
           ) : currentQuestion ? (
-            <div className="space-y-3">
-              {sessionDeckTitle ? (
-                <p className="text-sm font-medium text-celestial-softGold">
-                  クイズ集「{sessionDeckTitle}」
-                </p>
-              ) : null}
-              <p className="text-xs text-celestial-textSub">
-                問題 {index + 1} / {session.length}
-                {sessionDeckTitle ? (
-                  <span className="sr-only">
-                    。クイズ集「{sessionDeckTitle}」の {session.length} 問中 {index + 1} 問目です。
-                  </span>
-                ) : null}
-              </p>
+            <div className="space-y-2">
+              <QuizPlaySessionHeader
+                sessionDeckTitle={sessionDeckTitle}
+                index={index}
+                sessionLength={session.length}
+                onBack={onBack}
+              />
 
               {(current?.selectionReasons.length ?? 0) > 0 ? (
-                <p className="text-[11px] leading-relaxed text-celestial-textSub/70">
+                <p className="text-[11px] leading-snug text-celestial-textSub/70">
                   出題理由: {current!.selectionReasons.join("・")}
                 </p>
               ) : null}
