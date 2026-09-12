@@ -9,10 +9,17 @@ import type { ConceptMastery, ConceptMasteryPoint } from "../utils/mastery/types
 import { toConceptMasteryDetailView } from "../utils/mastery/formatConceptMastery";
 import { ConceptMasteryHistoryChart } from "./mastery/ConceptMasteryHistoryChart";
 import type { ConceptPrerequisiteIndex } from "../utils/conceptPrerequisites";
+import { MASTERY_CONFIDENCE_LABELS } from "../utils/mastery/constants";
 import {
   buildConceptLearningSequence,
+  buildPersonalizedConceptLearningSequence,
   formatPrerequisiteDepthLabel,
-  type ConceptLearningSequenceResult
+  type ConceptLearningSequenceItem,
+  type ConceptLearningSequenceResult,
+  type PersonalizedConceptLearningSequenceItem,
+  type PersonalizedConceptLearningSequenceResult,
+  type PersonalizedLearningSequenceReason,
+  type SatisfiedPrerequisiteBoundary
 } from "../utils/learningSequence";
 
 const storage = getStorage();
@@ -35,6 +42,8 @@ type Props = {
   deleting: boolean;
   /** App 側で concepts から一度だけ構築した index。dependents 表示に使う */
   prerequisiteIndex?: ConceptPrerequisiteIndex;
+  /** App 側で一括構築した mastery map。personalized sequence 用 */
+  conceptMasteryMap?: ReadonlyMap<string, ConceptMastery>;
   /** 通常グラフ詳細からのみ渡す。渡されたときだけ「この概念を分析」を表示する */
   onOpenGraphAnalysis?: (conceptId: string) => void;
 };
@@ -106,12 +115,144 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
   );
 };
 
+const personalizedReasonLabel = (reason: PersonalizedLearningSequenceReason): string => {
+  switch (reason) {
+    case "target":
+      return "学習対象";
+    case "needs-learning":
+      return "学習が必要";
+    case "insufficient-evidence":
+      return "データ不足";
+  }
+};
+
+const ConceptSequenceNavLabel = ({
+  conceptId,
+  conceptMap,
+  onSelectRelated
+}: {
+  conceptId: string;
+  conceptMap: Map<string, Concept>;
+  onSelectRelated: (id: string) => void;
+}) => {
+  const itemConcept = conceptMap.get(conceptId);
+  if (!itemConcept) {
+    return <span className="text-xs text-amber-800">不明なID: {conceptId}</span>;
+  }
+  return (
+    <button
+      type="button"
+      className="detail-related-link"
+      onClick={() => onSelectRelated(conceptId)}
+    >
+      {itemConcept.title}
+    </button>
+  );
+};
+
+const FullLearningSequenceList = ({
+  items,
+  conceptMap,
+  onSelectRelated
+}: {
+  items: ConceptLearningSequenceItem[];
+  conceptMap: Map<string, Concept>;
+  onSelectRelated: (id: string) => void;
+}) => (
+  <ol className="space-y-2">
+    {items.map((item, index) => (
+      <li key={item.conceptId} className="flex flex-wrap items-baseline gap-2">
+        <span className="text-sm text-nordic-textMuted">{index + 1}.</span>
+        <ConceptSequenceNavLabel
+          conceptId={item.conceptId}
+          conceptMap={conceptMap}
+          onSelectRelated={onSelectRelated}
+        />
+        <span className="text-xs text-nordic-textMuted">
+          {formatPrerequisiteDepthLabel(item)}
+        </span>
+      </li>
+    ))}
+  </ol>
+);
+
+const PersonalizedLearningSequenceList = ({
+  items,
+  conceptMap,
+  onSelectRelated
+}: {
+  items: PersonalizedConceptLearningSequenceItem[];
+  conceptMap: Map<string, Concept>;
+  onSelectRelated: (id: string) => void;
+}) => (
+  <ol className="space-y-2">
+    {items.map((item, index) => (
+      <li
+        key={item.conceptId}
+        className="flex flex-wrap items-baseline gap-2"
+        data-reason={item.reason}
+      >
+        <span className="text-sm text-nordic-textMuted">{index + 1}.</span>
+        <ConceptSequenceNavLabel
+          conceptId={item.conceptId}
+          conceptMap={conceptMap}
+          onSelectRelated={onSelectRelated}
+        />
+        <span className="text-xs text-nordic-textMuted">
+          {personalizedReasonLabel(item.reason)}
+        </span>
+      </li>
+    ))}
+  </ol>
+);
+
+const SatisfiedPrerequisiteBoundaryList = ({
+  boundaries,
+  conceptMap,
+  onSelectRelated
+}: {
+  boundaries: SatisfiedPrerequisiteBoundary[];
+  conceptMap: Map<string, Concept>;
+  onSelectRelated: (id: string) => void;
+}) => {
+  if (boundaries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2" data-testid="satisfied-prerequisite-boundaries">
+      <p className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
+        習得済みのため省略
+      </p>
+      <ul className="space-y-2">
+        {boundaries.map((boundary) => (
+          <li key={boundary.conceptId} className="flex flex-wrap items-baseline gap-2">
+            <span className="text-sm text-nordic-textMuted" aria-hidden="true">
+              ✓
+            </span>
+            <ConceptSequenceNavLabel
+              conceptId={boundary.conceptId}
+              conceptMap={conceptMap}
+              onSelectRelated={onSelectRelated}
+            />
+            <span className="text-xs text-nordic-textMuted">
+              習得済み / 信頼度 {MASTERY_CONFIDENCE_LABELS[boundary.confidence]}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 const ConceptLearningSequenceSection = ({
   result,
+  personalizedResult,
   conceptMap,
   onSelectRelated
 }: {
   result: ConceptLearningSequenceResult;
+  personalizedResult: PersonalizedConceptLearningSequenceResult;
   conceptMap: Map<string, Concept>;
   onSelectRelated: (id: string) => void;
 }) => {
@@ -119,40 +260,57 @@ const ConceptLearningSequenceSection = ({
     return null;
   }
 
+  const cycleDetected =
+    result.status === "cycle-detected" || personalizedResult.status === "cycle-detected";
+
   return (
-    <div className="space-y-2" data-testid="concept-learning-sequence">
+    <div className="space-y-3" data-testid="concept-learning-sequence">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
         学習順序
       </h3>
-      {result.status === "cycle-detected" ? (
+      {cycleDetected ? (
         <p className="text-sm text-nordic-textSecondary">
           前提概念の循環があるため学習順序を生成できません。
         </p>
       ) : (
-        <ol className="space-y-2">
-          {result.items.map((item, index) => {
-            const itemConcept = conceptMap.get(item.conceptId);
-            return (
-              <li key={item.conceptId} className="flex flex-wrap items-baseline gap-2">
-                <span className="text-sm text-nordic-textMuted">{index + 1}.</span>
-                {itemConcept ? (
-                  <button
-                    type="button"
-                    className="detail-related-link"
-                    onClick={() => onSelectRelated(item.conceptId)}
-                  >
-                    {itemConcept.title}
-                  </button>
-                ) : (
-                  <span className="text-xs text-amber-800">不明なID: {item.conceptId}</span>
-                )}
-                <span className="text-xs text-nordic-textMuted">
-                  {formatPrerequisiteDepthLabel(item)}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <>
+          <div className="space-y-2" data-testid="personalized-learning-sequence">
+            <p className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">
+              あなた向け
+            </p>
+            {personalizedResult.status === "ok" && personalizedResult.targetAlreadyMastered ? (
+              <p className="text-sm text-nordic-textSecondary" data-testid="target-already-mastered">
+                この概念は習得済みです。
+              </p>
+            ) : null}
+            {personalizedResult.status === "ok" ? (
+              <PersonalizedLearningSequenceList
+                items={personalizedResult.items}
+                conceptMap={conceptMap}
+                onSelectRelated={onSelectRelated}
+              />
+            ) : null}
+          </div>
+          {personalizedResult.status === "ok" ? (
+            <SatisfiedPrerequisiteBoundaryList
+              boundaries={personalizedResult.satisfiedBoundaries}
+              conceptMap={conceptMap}
+              onSelectRelated={onSelectRelated}
+            />
+          ) : null}
+          {result.status === "ok" ? (
+            <details className="space-y-2" data-testid="full-learning-sequence">
+              <summary className="cursor-pointer text-sm text-nordic-textSecondary">
+                すべての学習順序を見る
+              </summary>
+              <FullLearningSequenceList
+                items={result.items}
+                conceptMap={conceptMap}
+                onSelectRelated={onSelectRelated}
+              />
+            </details>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -207,6 +365,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   onRequestDelete,
   deleting,
   prerequisiteIndex,
+  conceptMasteryMap,
   onOpenGraphAnalysis
 }, ref) => {
   const targetConceptId = concept?.id;
@@ -219,6 +378,17 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
       prerequisiteIndex
     });
   }, [targetConceptId, prerequisiteIndex]);
+  const personalizedLearningSequence = useMemo(() => {
+    if (!targetConceptId || !prerequisiteIndex || !learningSequence) {
+      return undefined;
+    }
+    return buildPersonalizedConceptLearningSequence({
+      targetConceptId,
+      prerequisiteIndex,
+      masteryByConceptId: conceptMasteryMap ?? new Map(),
+      fullSequence: learningSequence
+    });
+  }, [targetConceptId, prerequisiteIndex, conceptMasteryMap, learningSequence]);
 
   if (!concept) {
     return (
@@ -495,9 +665,10 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         )}
       </div>
 
-      {learningSequence ? (
+      {learningSequence && personalizedLearningSequence ? (
         <ConceptLearningSequenceSection
           result={learningSequence}
+          personalizedResult={personalizedLearningSequence}
           conceptMap={conceptMap}
           onSelectRelated={onSelectRelated}
         />

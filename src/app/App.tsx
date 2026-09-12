@@ -304,6 +304,7 @@ export const App = () => {
     onToggleFavorite: (concept: Concept) => void toggleFavorite(concept),
     conceptQuizStatsText: selectedConceptQuizStatsText,
     conceptMastery: selectedConceptMastery,
+    conceptMasteryMap,
     conceptMasteryHistory: selectedConceptMasteryHistory,
     onCreateQuizFromContextualCard: (conceptId: string, contextDefinitionId: string) => {
       openQuizCreate({

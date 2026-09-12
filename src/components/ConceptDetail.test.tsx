@@ -249,18 +249,23 @@ describe("ConceptDetail learning sequence (#120)", () => {
 
     const section = screen.getByTestId("concept-learning-sequence");
     expect(section).toHaveTextContent("学習順序");
-    expect(section).toHaveTextContent("1.");
-    expect(section).toHaveTextContent("A");
-    expect(section).toHaveTextContent("2.");
-    expect(section).toHaveTextContent("B");
-    expect(section).toHaveTextContent("3.");
-    expect(section).toHaveTextContent("C");
-    expect(section).toHaveTextContent("2段階前の前提");
-    expect(section).toHaveTextContent("直接の前提");
-    expect(section).toHaveTextContent("学習対象");
+    const personalized = screen.getByTestId("personalized-learning-sequence");
+    expect(personalized).toHaveTextContent("あなた向け");
+    expect(personalized).toHaveTextContent("1.");
+    expect(personalized).toHaveTextContent("A");
+    expect(personalized).toHaveTextContent("2.");
+    expect(personalized).toHaveTextContent("B");
+    expect(personalized).toHaveTextContent("3.");
+    expect(personalized).toHaveTextContent("C");
 
-    await userEvent.click(within(section).getByRole("button", { name: "A" }));
+    await userEvent.click(within(personalized).getByRole("button", { name: "A" }));
     expect(onSelectRelated).toHaveBeenCalledWith("a");
+
+    await userEvent.click(screen.getByText("すべての学習順序を見る"));
+    const full = screen.getByTestId("full-learning-sequence");
+    expect(full).toHaveTextContent("2段階前の前提");
+    expect(full).toHaveTextContent("直接の前提");
+    expect(full).toHaveTextContent("学習対象");
   });
 
   it("prerequisite なしでも現在の Concept を学習順序 1 件として表示する", async () => {
@@ -278,11 +283,11 @@ describe("ConceptDetail learning sequence (#120)", () => {
       />
     );
 
-    const section = screen.getByTestId("concept-learning-sequence");
-    expect(section).toHaveTextContent("学習順序");
-    expect(section).toHaveTextContent("1.");
-    expect(within(section).getByRole("button", { name: "単独概念" })).toBeInTheDocument();
-    expect(section).toHaveTextContent("学習対象");
+    const personalized = screen.getByTestId("personalized-learning-sequence");
+    expect(screen.getByTestId("concept-learning-sequence")).toHaveTextContent("学習順序");
+    expect(personalized).toHaveTextContent("1.");
+    expect(within(personalized).getByRole("button", { name: "単独概念" })).toBeInTheDocument();
+    expect(personalized).toHaveTextContent("学習対象");
     expect(screen.queryByText("学習順序なし")).not.toBeInTheDocument();
   });
 
@@ -308,5 +313,194 @@ describe("ConceptDetail learning sequence (#120)", () => {
     expect(section).toHaveTextContent("前提概念の循環があるため学習順序を生成できません。");
     expect(within(section).queryByRole("button", { name: "循環A" })).not.toBeInTheDocument();
     expect(within(section).queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("personalized-learning-sequence")).not.toBeInTheDocument();
+  });
+});
+
+describe("ConceptDetail personalized learning sequence (#121)", () => {
+  const a = concept({ id: "a", title: "A" });
+  const b = concept({ id: "b", title: "B", prerequisiteIds: ["a"] });
+  const c = concept({ id: "c", title: "C", prerequisiteIds: ["b"] });
+  const all = [a, b, c];
+  const conceptMap = new Map(all.map((item) => [item.id, item]));
+
+  const sequenceMastery = (
+    conceptId: string,
+    overrides: Partial<ConceptMastery> = {}
+  ): ConceptMastery =>
+    mastery({
+      conceptId,
+      masteryProbability: 0.4,
+      masteryScore: 40,
+      state: "unlearned",
+      attemptCount: 0,
+      confidence: "none",
+      freshness: "never",
+      ...overrides
+    });
+
+  it("A → B → C で A が mastered ならあなた向けは B, C で A は省略", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    const onSelectRelated = vi.fn();
+    render(
+      <ConceptDetail
+        concept={c}
+        conceptMap={conceptMap}
+        domainColorMap={{}}
+        onSelectRelated={onSelectRelated}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+        conceptMasteryMap={
+          new Map([
+            [
+              "a",
+              sequenceMastery("a", {
+                state: "mastered",
+                confidence: "high",
+                masteryScore: 92,
+                attemptCount: 8
+              })
+            ],
+            [
+              "b",
+              sequenceMastery("b", {
+                state: "developing",
+                confidence: "medium",
+                masteryScore: 68,
+                attemptCount: 5
+              })
+            ],
+            ["c", sequenceMastery("c")]
+          ])
+        }
+      />
+    );
+
+    const personalized = screen.getByTestId("personalized-learning-sequence");
+    expect(personalized).toHaveTextContent("あなた向け");
+    expect(personalized).toHaveTextContent("1.");
+    expect(personalized).toHaveTextContent("B");
+    expect(personalized).toHaveTextContent("2.");
+    expect(personalized).toHaveTextContent("C");
+    expect(within(personalized).queryByRole("button", { name: "A" })).not.toBeInTheDocument();
+    expect(within(personalized).getByRole("button", { name: "B" })).toBeInTheDocument();
+
+    const omitted = screen.getByTestId("satisfied-prerequisite-boundaries");
+    expect(omitted).toHaveTextContent("習得済みのため省略");
+    expect(omitted).toHaveTextContent("A");
+    await userEvent.click(within(omitted).getByRole("button", { name: "A" }));
+    expect(onSelectRelated).toHaveBeenCalledWith("a");
+  });
+
+  it("すべての学習順序を開くと full sequence の A, B, C が残っている", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    render(
+      <ConceptDetail
+        concept={c}
+        conceptMap={conceptMap}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+        conceptMasteryMap={
+          new Map([
+            ["a", sequenceMastery("a", { state: "mastered", confidence: "high", attemptCount: 8 })],
+            [
+              "b",
+              sequenceMastery("b", { state: "developing", confidence: "medium", attemptCount: 5 })
+            ],
+            ["c", sequenceMastery("c")]
+          ])
+        }
+      />
+    );
+
+    await userEvent.click(screen.getByText("すべての学習順序を見る"));
+    const full = screen.getByTestId("full-learning-sequence");
+    expect(full).toHaveTextContent("1.");
+    expect(full).toHaveTextContent("A");
+    expect(full).toHaveTextContent("2.");
+    expect(full).toHaveTextContent("B");
+    expect(full).toHaveTextContent("3.");
+    expect(full).toHaveTextContent("C");
+    expect(within(full).getByRole("button", { name: "A" })).toBeInTheDocument();
+  });
+
+  it("target が mastered/high なら習得済みと target のみを出す", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    render(
+      <ConceptDetail
+        concept={c}
+        conceptMap={conceptMap}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+        conceptMasteryMap={
+          new Map([
+            ["a", sequenceMastery("a", { state: "unlearned", confidence: "none" })],
+            ["b", sequenceMastery("b", { state: "developing", confidence: "medium" })],
+            [
+              "c",
+              sequenceMastery("c", {
+                state: "mastered",
+                confidence: "high",
+                attemptCount: 8
+              })
+            ]
+          ])
+        }
+      />
+    );
+
+    expect(screen.getByTestId("target-already-mastered")).toHaveTextContent(
+      "この概念は習得済みです。"
+    );
+    const personalized = screen.getByTestId("personalized-learning-sequence");
+    expect(within(personalized).getByRole("button", { name: "C" })).toBeInTheDocument();
+    expect(within(personalized).queryByRole("button", { name: "A" })).not.toBeInTheDocument();
+    expect(within(personalized).queryByRole("button", { name: "B" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("satisfied-prerequisite-boundaries")).not.toBeInTheDocument();
+  });
+
+  it("前提が insufficient-data ならデータ不足と出し satisfied と誤認させない", async () => {
+    const { buildConceptPrerequisiteIndex } = await import("../utils/conceptPrerequisites");
+    render(
+      <ConceptDetail
+        concept={c}
+        conceptMap={conceptMap}
+        domainColorMap={{}}
+        onSelectRelated={vi.fn()}
+        onRequestDelete={vi.fn()}
+        deleting={false}
+        prerequisiteIndex={buildConceptPrerequisiteIndex(all)}
+        conceptMasteryMap={
+          new Map([
+            [
+              "a",
+              sequenceMastery("a"),
+            ],
+            [
+              "b",
+              sequenceMastery("b", {
+                state: "insufficient-data",
+                confidence: "low",
+                attemptCount: 2
+              })
+            ],
+            ["c", sequenceMastery("c")]
+          ])
+        }
+      />
+    );
+
+    const personalized = screen.getByTestId("personalized-learning-sequence");
+    expect(personalized).toHaveTextContent("データ不足");
+    expect(personalized).toHaveTextContent("B");
+    expect(screen.queryByTestId("satisfied-prerequisite-boundaries")).not.toBeInTheDocument();
+    expect(personalized).not.toHaveTextContent("習得済みのため省略");
   });
 });
