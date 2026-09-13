@@ -4,6 +4,10 @@ ConceptBook は、Concept の記録・整理から、関連概念、Concept Grap
 
 データは端末内の IndexedDB を source of truth とします。GitHub Pages はアプリ配信のみで、自動クラウド同期はありません。
 
+## Demo
+
+[ConceptBookを使ってみる](https://h-ampk.github.io/concept-book/)
+
 ## 主な機能
 
 ### Concept 管理
