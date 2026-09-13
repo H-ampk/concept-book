@@ -157,7 +157,7 @@ test.describe("Data Lab → research report persistence (#98)", () => {
     await expect(page.getByTestId("data-lab-table")).toContainText("E2E心理学概念");
     await expect(page.getByRole("button", { name: "研究レポートに追加" })).toBeEnabled();
 
-    await page.getByLabel("表示").selectOption("scatter");
+    await page.getByLabel("表示", { exact: true }).selectOption("scatter");
     await expect(page.getByTestId("data-lab-scatter-plot")).toBeVisible();
     await expect(page.getByTestId("data-lab-aggregate-summary")).toContainText("X軸: 平均回答時間");
     await expect(page.getByTestId("data-lab-aggregate-summary")).toContainText("Y軸: 正答率");
@@ -190,7 +190,7 @@ test.describe("Data Lab → research report persistence (#98)", () => {
     await expect(page.getByText("X 指標")).toBeVisible();
 
     await openLabRoute(page, "Data Lab");
-    await page.getByLabel("表示").selectOption("table");
+    await page.getByLabel("表示", { exact: true }).selectOption("table");
     await expect(page.getByTestId("data-lab-table")).toBeVisible();
     await page.getByRole("button", { name: "研究レポートに追加" }).click();
     await expect(addDialog).toBeVisible();
