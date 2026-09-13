@@ -195,7 +195,8 @@ ZIP と同じメタデータ（Concept、Context Card、Quiz、任意の学習�
 
 - 通常データは IndexedDB にローカル保存します。自動クラウド同期はありません。
 - GitHub Pages はアプリ配信です。公開 URL 上でもデータは閲覧者の端末内に残ります。
-- アプリ本体の `src` で `fetch()` を使うのは、Ollama client（`src/features/ai/providers/ollamaClient.ts`）です。axios / WebSocket による外部送信はありません。
+- ログインは任意です。未ログインでも従来どおりローカル機能を利用できます。認証の詳細は [authentication.md](docs/authentication.md) を参照してください。
+- アプリ本体の `src` で外部へ `fetch()` するのは、Ollama client（`src/features/ai/providers/ollamaClient.ts`）と、設定済みのときだけ Supabase Auth（Magic Link）です。axios / WebSocket による外部送信はありません。
 - AI が無効のときは、text / embedding provider は通信せずエラーを返します。接続確認もユーザー操作時のみです。
 - AI を有効にした場合、設定したローカル Ollama endpoint とだけ通信します。送信内容は関連候補用の Concept スナップショット（タイトル・定義・自分の解釈など）に限定し、メモ・出典・メディアは含めません。
 - PWA の Service Worker はキャッシュ目的です。同期 API ではありません。
@@ -206,6 +207,8 @@ ZIP と同じメタデータ（Concept、Context Card、Quiz、任意の学習�
 npm install
 npm run dev
 ```
+
+任意のクラウド認証（Supabase Auth / Magic Link）を使う場合は `.env.example` を `.env.local` にコピーし、Project URL と **publishable key** を設定します。未設定でもアプリは起動し、ローカル機能はそのまま使えます。secret key / service_role はフロントへ置かないでください。
 
 その他の script（`package.json`）:
 
@@ -225,6 +228,7 @@ Node.js の必須バージョンは repository の `package.json` には固定�
 
 - 公開URL形式: `https://<username>.github.io/concept-book/`
 - デプロイは `.github/workflows/deploy.yml` で `main` ブランチ push をトリガーに自動実行されます
+- 任意の Supabase Auth を有効にする場合は、Repository Variables に `VITE_SUPABASE_URL` と `VITE_SUPABASE_PUBLISHABLE_KEY` を設定します。未設定でも Pages の build は成功し、認証 UI のみ利用できません。
 
 ### 公開手順
 
@@ -255,6 +259,7 @@ npm run build
 - Recharts（Data Lab）
 - fflate（ZIP）
 - Zod（入力検証）
+- `@supabase/supabase-js`（任意の認証。未設定時は認証のみ unavailable）
 
 ## Documentation
 
@@ -265,6 +270,7 @@ npm run build
 - [Concept Graph 性能確認](docs/concept-graph-performance.md)
 - [テーマシステム](docs/theme-system.md)
 - [UI 装飾（Ornaments）](docs/ui-ornaments.md)
+- [認証（任意ログイン / ローカルファースト）](docs/authentication.md)
 
 開発履歴:
 

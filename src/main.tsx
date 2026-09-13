@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import { App } from "./app/App";
+import { AuthProvider } from "./auth";
 import { ThemeProvider, hydrateTheme } from "./theme";
 import "./index.css";
 
@@ -88,7 +89,9 @@ const boot = async () => {
   root.render(
     <React.StrictMode>
       <ThemeProvider>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </ThemeProvider>
     </React.StrictMode>
   );

@@ -12,6 +12,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "@tanstack/react-virtual": "^3.13.24",
     "fflate": "^0.8.2",
     "react": "^18.3.1",
