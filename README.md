@@ -220,7 +220,7 @@ npm run preview
 npm run test:e2e
 ```
 
-Node.js の必須バージョンは repository の `package.json` には固定していません。CI（`.github/workflows/`）は Node.js 20 で実行しています。
+Node.js 22 以上が必要です。CI（`.github/workflows/`）も Node.js 22 で実行します。
 
 ## GitHub Pages 公開
 
