@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { Concept } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
 import type {
@@ -50,6 +50,13 @@ const defaultChoices = (): QuizChoice[] => [
   { id: createChoiceId(), text: "" },
   { id: createChoiceId(), text: "" }
 ];
+
+const FormSection = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="space-y-3 rounded-xl border border-celestial-border/70 bg-celestial-deepBlue/30 p-4">
+    <h3 className="text-sm font-semibold tracking-wide text-celestial-softGold">{title}</h3>
+    {children}
+  </section>
+);
 
 type Props = {
   open: boolean;
@@ -424,295 +431,311 @@ export const QuizQuestionFormModal = ({
           </button>
         </header>
 
-        {concepts.length === 0 ? (
-          <p className="text-sm text-celestial-textSub">
-            概念がまだありません。選択肢と Concept タイトルの自動リンクは利用できませんが、クイズ自体は保存できます。
-          </p>
-        ) : (
-          <p className="text-xs text-celestial-textSub">
-            選択肢のテキストが Concept タイトルと一致（正規化後）すると、保存時に自動で Concept にリンクします。同名タイトルが複数ある場合はリンクしません。
-          </p>
-        )}
-
-        <div className="mt-3 grid gap-3">
-          <QuizConceptPicker
-            concepts={concepts}
-            value={conceptId}
-            onChange={setConceptId}
-            disabled={concepts.length === 0}
-          />
-
-          <div className="space-y-1.5">
-            <span className="block text-sm text-celestial-textMain" id="question-type-label">
-              問題形式
-            </span>
-            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="question-type-label">
-              <button
-                type="button"
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
-                  questionType === "multiple-choice"
-                    ? "theme-selected"
-                    : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
-                }`}
-                onClick={() => setQuestionType("multiple-choice")}
-              >
-                四択
-              </button>
-              <button
-                type="button"
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
-                  questionType === "free-response"
-                    ? "theme-selected"
-                    : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
-                }`}
-                onClick={() => setQuestionType("free-response")}
-              >
-                入力式
-              </button>
-            </div>
-          </div>
-
-          {selectedConcept && questionType === "multiple-choice" ? (
-            <section className="rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-4">
-              <h3 className="text-sm font-medium text-celestial-textMain">文脈別定義から選択肢を生成</h3>
-              <p className="mt-1 text-xs text-celestial-textSub">
-                概念の文脈別定義本文を選択肢として使い、表示時に概念名を「（＿＿）」へ置換します。
-              </p>
-              {availableContextDefinitions.length > 0 ? (
-                <div className="mt-3 space-y-3">
-                  <label className="block space-y-1.5">
-                    <span className="block text-xs text-celestial-textMain">出題する文脈別定義</span>
-                    <select
-                      className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
-                      value={selectedContextDefId}
-                      onChange={(e) => setSelectedContextDefId(e.target.value)}
-                    >
-                      {availableContextDefinitions.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.context.trim() || "文脈名未設定"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="action-button rounded-md px-3 py-1.5 text-xs"
-                      onClick={handleGenerateFromContext}
-                    >
-                      文脈別定義から生成
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-md border border-celestial-border px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
-                      onClick={() => handleReplenishChoices("same-domain")}
-                    >
-                      同じタグから補充
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-md border border-celestial-border px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
-                      onClick={() => handleReplenishChoices("random")}
-                    >
-                      ランダム補充
-                    </button>
-                  </div>
-                  {generationQuality ? (
-                    <p className="text-xs text-celestial-textSub">
-                      生成品質: <span className="text-celestial-textMain">{qualityLabelMap[generationQuality]}</span>
-                    </p>
-                  ) : null}
-                  {generationWarnings.length > 0 ? (
-                    <ul className="space-y-1 text-xs text-amber-200/90">
-                      {generationWarnings.map((warning) => (
-                        <li key={warning}>{warning}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-celestial-textSub">
-                  この Concept には本文のある文脈別定義がありません。概念編集画面で追加してください。
-                </p>
-              )}
-            </section>
-          ) : null}
-
-          <label className="block space-y-1.5">
-            <span className="block text-sm text-celestial-textMain">問題文 *</span>
-            <textarea
-              className="min-h-[100px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="問いを入力…"
+        <div className="mt-3 grid gap-4">
+          <FormSection title="基本設定">
+            <QuizConceptPicker
+              concepts={concepts}
+              value={conceptId}
+              onChange={setConceptId}
+              disabled={concepts.length === 0}
             />
-          </label>
 
-          {questionType === "free-response" ? (
-            <>
+            <div className="space-y-1.5">
+              <span className="block text-sm text-celestial-textMain" id="question-type-label">
+                問題形式
+              </span>
+              <div className="flex flex-wrap gap-2" role="group" aria-labelledby="question-type-label">
+                <button
+                  type="button"
+                  aria-pressed={questionType === "multiple-choice"}
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
+                    questionType === "multiple-choice"
+                      ? "theme-selected"
+                      : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
+                  }`}
+                  onClick={() => setQuestionType("multiple-choice")}
+                >
+                  四択
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={questionType === "free-response"}
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
+                    questionType === "free-response"
+                      ? "theme-selected"
+                      : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
+                  }`}
+                  onClick={() => setQuestionType("free-response")}
+                >
+                  入力式
+                </button>
+              </div>
+              <p className="text-xs leading-relaxed text-celestial-textSub">
+                {questionType === "multiple-choice"
+                  ? "選択肢から正解を選ぶ形式です。"
+                  : "回答を自分で入力し、模範解答を確認して自己評価する形式です。"}
+              </p>
+            </div>
+
             <label className="block space-y-1.5">
-              <span className="block text-sm text-celestial-textMain">模範解答 *</span>
+              <span className="block text-sm text-celestial-textMain">問題文 *</span>
               <textarea
                 className="min-h-[100px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-                value={referenceAnswer}
-                onChange={(e) => setReferenceAnswer(e.target.value)}
-                placeholder="自己評価時に表示する模範解答…"
-                aria-label="模範解答"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="問いを入力…"
               />
             </label>
-            <label className="block space-y-1.5">
-              <span className="block text-sm text-celestial-textMain">採点補助キーワード</span>
-              <textarea
-                className="min-h-[88px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-                value={keywordsText}
-                onChange={(e) => setKeywordsText(e.target.value)}
-                placeholder="1行に1つ入力してください"
-                aria-label="採点補助キーワード"
-              />
-              <span className="block text-xs text-celestial-textSub">
-                1行に1つ入力してください。キーワード一致だけで正解・不正解は決まりません。
-              </span>
-            </label>
-            </>
+          </FormSection>
+
+          {questionType === "free-response" ? (
+            <FormSection title="回答設定（入力式）">
+              <p className="text-xs leading-relaxed text-celestial-textSub">
+                回答後に模範解答と採点補助を表示し、学習者自身が結果を評価します。
+              </p>
+              <label className="block space-y-1.5">
+                <span className="block text-sm text-celestial-textMain">模範解答 *</span>
+                <textarea
+                  className="min-h-[100px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                  value={referenceAnswer}
+                  onChange={(e) => setReferenceAnswer(e.target.value)}
+                  placeholder="自己評価時に表示する模範解答…"
+                  aria-label="模範解答"
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="block text-sm text-celestial-textMain">採点補助キーワード</span>
+                <textarea
+                  className="min-h-[88px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                  value={keywordsText}
+                  onChange={(e) => setKeywordsText(e.target.value)}
+                  placeholder="1行に1つ入力してください"
+                  aria-label="採点補助キーワード"
+                />
+                <span className="block text-xs text-celestial-textSub">
+                  1行に1つ入力してください。キーワード一致だけで正解・不正解は決まりません。
+                </span>
+              </label>
+            </FormSection>
           ) : (
-          <fieldset className="min-w-0">
-            <legend className="mb-2 text-sm font-medium text-celestial-textMain">選択肢 *（2件以上）</legend>
-            <ul className="space-y-2">
-              {choices.map((c) => {
-                const link = choiceLinkById.get(c.id) ?? { state: "none" as const };
-                return (
-                  <li key={c.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <label className="flex items-start gap-2 rounded-lg border border-celestial-border/80 bg-celestial-deepBlue/50 p-2">
-                        <input
-                          type="radio"
-                          name="correctChoice"
-                          className="mt-1 shrink-0 border-celestial-border text-celestial-gold focus:ring-celestial-gold/50"
-                          checked={correctChoiceId === c.id}
-                          onChange={() => setCorrectChoiceId(c.id)}
-                          aria-label="この選択肢を正解にする"
-                        />
-                        {c.displayText !== undefined ? (
-                          <div className="min-w-0 flex-1 space-y-2">
-                            <input
-                              type="text"
-                              className="w-full rounded border border-celestial-border bg-celestial-deepBlue px-2 py-1 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
-                              value={c.displayText}
-                              onChange={(e) => updateChoiceDisplayText(c.id, e.target.value)}
-                              placeholder="表示用テキスト（概念名マスク済み）"
-                              aria-label="選択肢の表示用テキスト"
-                            />
-                            <p className="text-[11px] text-celestial-textSub">
-                              原文: {c.text}
-                              {c.sourceStrategy ? (
-                                <span className="ml-2">
-                                  由来: {sourceStrategyLabelMap[c.sourceStrategy]}
-                                </span>
-                              ) : null}
-                            </p>
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
-                            value={c.text}
-                            onChange={(e) => updateChoiceText(c.id, e.target.value)}
-                            placeholder="選択肢の本文（Concept タイトルと一致で自動リンク）"
-                            aria-label="選択肢の本文"
-                          />
-                        )}
+            <FormSection title="回答設定（四択）">
+              {concepts.length === 0 ? (
+                <p className="text-sm text-celestial-textSub">
+                  概念がまだありません。選択肢と Concept タイトルの自動リンクは利用できませんが、クイズ自体は保存できます。
+                </p>
+              ) : (
+                <p className="text-xs text-celestial-textSub">
+                  選択肢のテキストが Concept タイトルと一致（正規化後）すると、保存時に自動で Concept にリンクします。同名タイトルが複数ある場合はリンクしません。
+                </p>
+              )}
+
+              {selectedConcept ? (
+                <div className="rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-4">
+                  <h4 className="text-sm font-medium text-celestial-textMain">文脈別定義から選択肢を生成</h4>
+                  <p className="mt-1 text-xs text-celestial-textSub">
+                    概念の文脈別定義本文を選択肢として使い、表示時に概念名を「（＿＿）」へ置換します。
+                  </p>
+                  {availableContextDefinitions.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      <label className="block space-y-1.5">
+                        <span className="block text-xs text-celestial-textMain">出題する文脈別定義</span>
+                        <select
+                          className="w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain"
+                          value={selectedContextDefId}
+                          onChange={(e) => setSelectedContextDefId(e.target.value)}
+                        >
+                          {availableContextDefinitions.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.context.trim() || "文脈名未設定"}
+                            </option>
+                          ))}
+                        </select>
                       </label>
-                      <div className="pl-7 text-xs">
-                        {link.state === "linked" ? (
-                          <span className="inline-flex rounded-md border border-celestial-gold/35 bg-celestial-gold/10 px-2 py-0.5 text-celestial-softGold">
-                            Conceptリンク済み: {link.matchedTitle}
-                          </span>
-                        ) : null}
-                        {link.state === "none" && c.text.trim() ? (
-                          <span className="text-celestial-textSub">未リンク</span>
-                        ) : null}
-                        {link.state === "ambiguous" ? (
-                          <span className="text-celestial-danger">同名Conceptが複数あります</span>
-                        ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="action-button rounded-md px-3 py-1.5 text-xs"
+                          onClick={handleGenerateFromContext}
+                        >
+                          文脈別定義から生成
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md border border-celestial-border px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+                          onClick={() => handleReplenishChoices("same-domain")}
+                        >
+                          同じタグから補充
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md border border-celestial-border px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
+                          onClick={() => handleReplenishChoices("random")}
+                        >
+                          ランダム補充
+                        </button>
                       </div>
+                      {generationQuality ? (
+                        <p className="text-xs text-celestial-textSub">
+                          生成品質: <span className="text-celestial-textMain">{qualityLabelMap[generationQuality]}</span>
+                        </p>
+                      ) : null}
+                      {generationWarnings.length > 0 ? (
+                        <ul className="space-y-1 text-xs text-amber-200/90">
+                          {generationWarnings.map((warning) => (
+                            <li key={warning}>{warning}</li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 disabled:cursor-not-allowed disabled:opacity-40"
-                      onClick={() => removeChoice(c.id)}
-                      disabled={choices.length <= 2}
-                      aria-label="この選択肢を削除"
-                    >
-                      削除
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            <button
-              type="button"
-              className="mt-2 rounded-md border border-celestial-gold/40 px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50"
-              onClick={addChoice}
-            >
-              選択肢を追加
-            </button>
-          </fieldset>
+                  ) : (
+                    <p className="mt-2 text-xs text-celestial-textSub">
+                      この Concept には本文のある文脈別定義がありません。概念編集画面で追加してください。
+                    </p>
+                  )}
+                </div>
+              ) : null}
+
+              <fieldset className="min-w-0">
+                <legend className="mb-2 text-sm font-medium text-celestial-textMain">選択肢 *（2件以上）</legend>
+                <ul className="space-y-2">
+                  {choices.map((c) => {
+                    const link = choiceLinkById.get(c.id) ?? { state: "none" as const };
+                    return (
+                      <li key={c.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <label className="flex items-start gap-2 rounded-lg border border-celestial-border/80 bg-celestial-deepBlue/50 p-2">
+                            <input
+                              type="radio"
+                              name="correctChoice"
+                              className="mt-1 shrink-0 border-celestial-border text-celestial-gold focus:ring-celestial-gold/50"
+                              checked={correctChoiceId === c.id}
+                              onChange={() => setCorrectChoiceId(c.id)}
+                              aria-label="この選択肢を正解にする"
+                            />
+                            {c.displayText !== undefined ? (
+                              <div className="min-w-0 flex-1 space-y-2">
+                                <input
+                                  type="text"
+                                  className="w-full rounded border border-celestial-border bg-celestial-deepBlue px-2 py-1 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
+                                  value={c.displayText}
+                                  onChange={(e) => updateChoiceDisplayText(c.id, e.target.value)}
+                                  placeholder="表示用テキスト（概念名マスク済み）"
+                                  aria-label="選択肢の表示用テキスト"
+                                />
+                                <p className="text-[11px] text-celestial-textSub">
+                                  原文: {c.text}
+                                  {c.sourceStrategy ? (
+                                    <span className="ml-2">
+                                      由来: {sourceStrategyLabelMap[c.sourceStrategy]}
+                                    </span>
+                                  ) : null}
+                                </p>
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:border-celestial-gold/40 focus:outline-none"
+                                value={c.text}
+                                onChange={(e) => updateChoiceText(c.id, e.target.value)}
+                                placeholder="選択肢の本文（Concept タイトルと一致で自動リンク）"
+                                aria-label="選択肢の本文"
+                              />
+                            )}
+                          </label>
+                          <div className="pl-7 text-xs">
+                            {link.state === "linked" ? (
+                              <span className="inline-flex rounded-md border border-celestial-gold/35 bg-celestial-gold/10 px-2 py-0.5 text-celestial-softGold">
+                                Conceptリンク済み: {link.matchedTitle}
+                              </span>
+                            ) : null}
+                            {link.state === "none" && c.text.trim() ? (
+                              <span className="text-celestial-textSub">未リンク</span>
+                            ) : null}
+                            {link.state === "ambiguous" ? (
+                              <span className="text-celestial-danger">同名Conceptが複数あります</span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-md border border-celestial-border px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => removeChoice(c.id)}
+                          disabled={choices.length <= 2}
+                          aria-label="この選択肢を削除"
+                        >
+                          削除
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button
+                  type="button"
+                  className="mt-2 rounded-md border border-celestial-gold/40 px-3 py-1.5 text-xs text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50"
+                  onClick={addChoice}
+                >
+                  選択肢を追加
+                </button>
+              </fieldset>
+            </FormSection>
           )}
 
-          <label className="block space-y-1.5">
-            <span className="block text-sm text-celestial-textMain">解説（任意）</span>
-            <textarea
-              className="min-h-[72px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder="回答後に表示する解説…"
-            />
-          </label>
+          <FormSection title="補足設定">
+            <label className="block space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">解説（任意）</span>
+              <textarea
+                className="min-h-[72px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                placeholder="回答後に表示する解説…"
+              />
+            </label>
 
-          <div className="space-y-1.5">
-            <span className="block text-sm text-celestial-textMain" id="visibility-label">
-              公開設定
-            </span>
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-labelledby="visibility-label"
-            >
-              <button
-                type="button"
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
-                  visibility === "private"
-                    ? "theme-selected"
-                    : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
-                }`}
-                onClick={() => setVisibility("private")}
+            <div className="space-y-1.5">
+              <span className="block text-sm text-celestial-textMain" id="visibility-label">
+                公開設定
+              </span>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-labelledby="visibility-label"
               >
-                非公開
-              </button>
-              <button
-                type="button"
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
-                  visibility === "shareable"
-                    ? "theme-selected"
-                    : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
-                }`}
-                onClick={() => setVisibility("shareable")}
-              >
-                公開
-              </button>
+                <button
+                  type="button"
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
+                    visibility === "private"
+                      ? "theme-selected"
+                      : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
+                  }`}
+                  onClick={() => setVisibility("private")}
+                >
+                  非公開
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
+                    visibility === "shareable"
+                      ? "theme-selected"
+                      : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
+                  }`}
+                  onClick={() => setVisibility("shareable")}
+                >
+                  公開
+                </button>
+              </div>
             </div>
-          </div>
 
-          <label className="block space-y-1.5">
-            <span className="block text-sm text-celestial-textMain">表示順（任意・数値）</span>
-            <input
-              type="number"
-              className="w-full max-w-[200px] rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
-              value={sortOrderInput}
-              onChange={(e) => setSortOrderInput(e.target.value)}
-              placeholder="空欄で未指定"
-            />
-          </label>
+            <label className="block space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">表示順（任意・数値）</span>
+              <input
+                type="number"
+                className="w-full max-w-[200px] rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                value={sortOrderInput}
+                onChange={(e) => setSortOrderInput(e.target.value)}
+                placeholder="空欄で未指定"
+              />
+            </label>
+          </FormSection>
         </div>
 
         {error ? <p className="mt-3 text-sm text-celestial-danger">{error}</p> : null}
