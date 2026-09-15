@@ -31,6 +31,7 @@ const mastery = (overrides: Partial<ConceptMastery> = {}): ConceptMastery => ({
 
 const question = (overrides: Partial<QuizQuestion> = {}): QuizQuestion => ({
   id: "q-1",
+  questionType: "multiple-choice",
   prompt: "問い",
   choices: [
     { id: "a", text: "A" },

@@ -106,6 +106,7 @@ function toQuizQuestion(
     id: createQuizQuestionId(),
     conceptId: concept.id,
     ...(source ? { source } : {}),
+    questionType: "multiple-choice",
     prompt: result.prompt,
     choices: result.choices.map((choice) => ({
       id: choice.id,

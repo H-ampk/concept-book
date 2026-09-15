@@ -12,6 +12,7 @@ import { filterLearningModelPredictionPointsByAttemptIds } from "./filterLearnin
 const log = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
   id: "log-1",
   questionId: "q1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "問い",
   selectedChoiceId: "c1",
   selectedChoiceTextSnapshot: "選択",

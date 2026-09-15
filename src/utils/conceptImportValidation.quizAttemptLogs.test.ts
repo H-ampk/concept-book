@@ -12,6 +12,7 @@ const baseBackup = {
 const validLog = (id: string): QuizAttemptLog => ({
   id,
   questionId: "q1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "問い",
   selectedChoiceId: "c1",
   selectedChoiceTextSnapshot: "選択",

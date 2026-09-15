@@ -14,6 +14,7 @@ import {
   isValidImportedQuizAttemptLog,
   normalizeQuizAttemptLog
 } from "./normalizeQuizAttemptLog";
+import { resolveQuizQuestionType } from "./quiz/quizQuestionType";
 import { deriveConceptStatus } from "./conceptStatus";
 import { nowIso } from "./date";
 import { normalizeRelatedIdList } from "./conceptRelations";
@@ -126,20 +127,51 @@ export const quizQuestionSourceSchema = z.object({
   fieldName: z.string().min(1).optional()
 });
 
-export const quizQuestionSchema = z.object({
-  id: z.string().min(1),
-  conceptId: z.string().min(1).optional(),
-  source: quizQuestionSourceSchema.optional(),
-  prompt: z.string().min(1),
-  choices: z.array(quizChoiceSchema),
-  correctChoiceId: z.string().min(1),
-  explanation: z.string().optional(),
-  visibility: quizVisibilitySchema,
-  sortOrder: z.number().optional(),
-  schemaVersion: z.number(),
-  createdAt: z.string().min(1),
-  updatedAt: z.string().min(1)
-});
+export const quizQuestionTypeSchema = z.enum(["multiple-choice", "free-response"]);
+
+export const quizQuestionSchema = z
+  .object({
+    id: z.string().min(1),
+    conceptId: z.string().min(1).optional(),
+    source: quizQuestionSourceSchema.optional(),
+    questionType: quizQuestionTypeSchema,
+    prompt: z.string().min(1),
+    choices: z.array(quizChoiceSchema),
+    correctChoiceId: z.string(),
+    referenceAnswer: z.string().optional(),
+    explanation: z.string().optional(),
+    visibility: quizVisibilitySchema,
+    sortOrder: z.number().optional(),
+    schemaVersion: z.number(),
+    createdAt: z.string().min(1),
+    updatedAt: z.string().min(1)
+  })
+  .superRefine((question, ctx) => {
+    if (question.questionType === "free-response") {
+      if (!question.referenceAnswer?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "free-response には模範解答が必要です",
+          path: ["referenceAnswer"]
+        });
+      }
+      return;
+    }
+    if (question.choices.length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "四択問題は選択肢が2件以上必要です",
+        path: ["choices"]
+      });
+    }
+    if (!question.correctChoiceId || !question.choices.some((c) => c.id === question.correctChoiceId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "正解選択肢が choices 内にありません",
+        path: ["correctChoiceId"]
+      });
+    }
+  });
 
 /** バックアップ JSON 内の QuizDeck 検証用（正規化後の最終形） */
 const quizDeckGenerationSummarySchema = z.object({
@@ -382,23 +414,37 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
     return null;
   }
 
+  const questionType = resolveQuizQuestionType(raw.questionType);
+  const referenceAnswerRaw =
+    raw.referenceAnswer === undefined || raw.referenceAnswer === null
+      ? undefined
+      : String(raw.referenceAnswer);
+  const referenceAnswer = referenceAnswerRaw?.trim() ? referenceAnswerRaw : undefined;
+
   if (!Array.isArray(raw.choices)) {
-    return null;
+    if (questionType !== "free-response") {
+      return null;
+    }
   }
   const choices: QuizChoice[] = [];
-  for (const entry of raw.choices) {
+  for (const entry of Array.isArray(raw.choices) ? raw.choices : []) {
     const c = normalizeQuizChoiceEntry(entry);
     if (!c) {
       return null;
     }
     choices.push(c);
   }
-  if (choices.length < 2) {
-    return null;
-  }
 
   const correctChoiceId = typeof raw.correctChoiceId === "string" ? raw.correctChoiceId.trim() : "";
-  if (!correctChoiceId || !choices.some((c) => c.id === correctChoiceId)) {
+  if (questionType === "multiple-choice") {
+    if (choices.length < 2) {
+      return null;
+    }
+    if (!correctChoiceId || !choices.some((c) => c.id === correctChoiceId)) {
+      return null;
+    }
+  }
+  if (questionType === "free-response" && !referenceAnswer) {
     return null;
   }
 
@@ -424,6 +470,7 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
 
   const candidate: QuizQuestion = {
     id,
+    questionType,
     prompt,
     choices,
     correctChoiceId,
@@ -434,6 +481,9 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
     createdAt,
     updatedAt
   };
+  if (referenceAnswer) {
+    candidate.referenceAnswer = referenceAnswer;
+  }
   if (conceptId) {
     candidate.conceptId = conceptId;
   }

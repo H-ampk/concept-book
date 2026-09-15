@@ -35,6 +35,7 @@ const metadataChoice = (overrides: Partial<QuizChoice> = {}): QuizChoice => ({
 
 const question = (overrides: Partial<QuizQuestion> = {}): QuizQuestion => ({
   id: "q_meta",
+  questionType: "multiple-choice",
   prompt: "問い",
   choices: [metadataChoice(), { id: "b", text: "古典的条件づけ" }],
   correctChoiceId: "a",

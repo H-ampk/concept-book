@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../types/quiz";
-import { planQuizAttemptLogImport } from "./normalizeQuizAttemptLog";
+import { normalizeQuizAttemptLog, planQuizAttemptLogImport } from "./normalizeQuizAttemptLog";
 
 const log = (id: string): QuizAttemptLog => ({
   id,
   questionId: "q1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "問い",
   selectedChoiceId: "c1",
   selectedChoiceTextSnapshot: "選択",
@@ -58,5 +59,25 @@ describe("planQuizAttemptLogImport", () => {
     expect(toSave[0]?.id).toBe("log_a");
     expect(toSave[0]?.timeMs).toBe(10);
     expect(skipped).toBe(1);
+  });
+});
+
+describe("normalizeQuizAttemptLog free-response", () => {
+  it("correct 自己評価は correct=true を保持する", () => {
+    const normalized = normalizeQuizAttemptLog({
+      ...log("log_ok"),
+      questionType: "free-response",
+      selectedChoiceId: "",
+      correctChoiceId: "",
+      userAnswerTextSnapshot: "答え",
+      referenceAnswerSnapshot: "模範",
+      selfEvaluation: "correct",
+      correct: true
+    });
+    expect(normalized.questionType).toBe("free-response");
+    expect(normalized.selfEvaluation).toBe("correct");
+    expect(normalized.correct).toBe(true);
+    expect(normalized.userAnswerTextSnapshot).toBe("答え");
+    expect(normalized.referenceAnswerSnapshot).toBe("模範");
   });
 });

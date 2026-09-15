@@ -1,4 +1,5 @@
-import type { QuizChoice, QuizDeck, QuizQuestion } from "../../types/quiz";
+import type { QuizChoice, QuizDeck, QuizQuestion, QuizSelfEvaluation } from "../../types/quiz";
+import { isFreeResponseQuestion, resolveQuizQuestionType } from "./quizQuestionType";
 import { calculateQuestionWeight } from "./calculateQuestionWeight";
 import { buildQuestionQuizStatsMap, getQuestionQuizStats, type QuestionQuizStats } from "./getQuestionQuizStats";
 import { getQuestionSelectionReasons, type QuestionSelectionReason } from "./getQuestionSelectionReasons";
@@ -17,6 +18,7 @@ export type WrongAnswerRecord = {
   selectedText: string;
   correctText: string;
   selectionReasons?: QuestionSelectionReason[];
+  selfEvaluation?: QuizSelfEvaluation;
 };
 
 export type BuildQuizSessionOptions = {
@@ -31,6 +33,9 @@ export type BuildQuizSessionOptions = {
 const isPlayableQuestion = (q: QuizQuestion): boolean => {
   if (!q.prompt?.trim()) {
     return false;
+  }
+  if (resolveQuizQuestionType(q.questionType) === "free-response") {
+    return Boolean(q.referenceAnswer?.trim());
   }
   const withText = q.choices.filter((c) => c.text.trim().length > 0);
   if (withText.length < 2) {
@@ -71,11 +76,13 @@ function toSessionQuestions(
 ): SessionQuestion[] {
   const shuffledOrder = shuffleArray(questions);
   return shuffledOrder.map((question) => {
-    const withText = question.choices.filter((c) => c.text.trim().length > 0);
     const stats = getQuestionQuizStats(statsMap, question.id);
+    const shuffledChoices = isFreeResponseQuestion(question)
+      ? []
+      : shuffleArray(question.choices.filter((c) => c.text.trim().length > 0));
     return {
       question,
-      shuffledChoices: shuffleArray(withText),
+      shuffledChoices,
       selectionReasons: getQuestionSelectionReasons(stats, {
         now,
         questionCreatedAt: question.createdAt

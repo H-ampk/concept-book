@@ -46,6 +46,7 @@ const concepts: Concept[] = [
 const existingQuestion: QuizQuestion = {
   id: "q1",
   conceptId: "bayes",
+  questionType: "multiple-choice",
   prompt: "既存の問題",
   choices: [
     { id: "ch1", text: "選択肢A" },
@@ -142,6 +143,38 @@ describe("QuizQuestionFormModal concept picker", () => {
     const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
     expect(payload.conceptId).toBeUndefined();
   });
+
+  it("入力式を選ぶと選択肢UIを隠し、模範解答必須で保存する", async () => {
+    const user = userEvent.setup();
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="create"
+        concepts={concepts}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "入力式" }));
+    expect(screen.queryByText("選択肢 *（2件以上）")).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("問いを入力…"), "教師あり学習とは？");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(saveQuizQuestion).not.toHaveBeenCalled();
+    expect(screen.getByText("模範解答を入力してください。")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("模範解答"), "ラベル付きデータで学習する");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.questionType).toBe("free-response");
+    expect(payload.choices).toEqual([]);
+    expect(payload.correctChoiceId).toBe("");
+    expect(payload.referenceAnswer).toBe("ラベル付きデータで学習する");
+  });
+
 
   it("候補が開いている Escape では Modal を閉じず、もう一度 Escape で閉じる", async () => {
     const user = userEvent.setup();

@@ -1,14 +1,22 @@
 import type { QuizAttemptLog } from "../types/quiz";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION } from "../types/quiz";
 import { nowIso } from "./date";
+import {
+  isValidQuizSelfEvaluation,
+  resolveQuizQuestionType
+} from "./quiz/quizQuestionType";
 
-export const isValidImportedQuizAttemptLog = (log: QuizAttemptLog): boolean =>
-  Boolean(
-    log.id.trim() &&
-      log.questionId.trim() &&
-      log.selectedChoiceId.trim() &&
-      log.correctChoiceId.trim()
-  );
+export const isValidImportedQuizAttemptLog = (log: QuizAttemptLog): boolean => {
+  if (!log.id.trim() || !log.questionId.trim()) {
+    return false;
+  }
+  if (resolveQuizQuestionType(log.questionType) === "free-response") {
+    return Boolean(
+      (log.userAnswerTextSnapshot ?? "").trim() && isValidQuizSelfEvaluation(log.selfEvaluation)
+    );
+  }
+  return Boolean(log.selectedChoiceId.trim() && log.correctChoiceId.trim());
+};
 
 export const normalizeQuizAttemptLog = (raw: Partial<QuizAttemptLog>): QuizAttemptLog => {
   const timeMsRaw = raw.timeMs;
@@ -26,12 +34,19 @@ export const normalizeQuizAttemptLog = (raw: Partial<QuizAttemptLog>): QuizAttem
   const corrLink = raw.correctLinkedConceptId?.toString().trim();
   const did = raw.deckId?.toString().trim();
   const dts = raw.deckTitleSnapshot?.toString().trim();
+  const questionType = resolveQuizQuestionType(raw.questionType);
+  const userAnswer = raw.userAnswerTextSnapshot?.toString();
+  const referenceAnswer = raw.referenceAnswerSnapshot?.toString();
+  const selfEvaluation = isValidQuizSelfEvaluation(raw.selfEvaluation)
+    ? raw.selfEvaluation
+    : undefined;
 
   return {
     id: raw.id?.toString() ?? "",
     ...(sid ? { sessionId: sid } : {}),
     ...(cid ? { conceptId: cid } : {}),
     questionId: raw.questionId?.toString() ?? "",
+    questionType,
     questionPromptSnapshot: raw.questionPromptSnapshot?.toString() ?? "",
     ...(qcid ? { questionConceptId: qcid } : {}),
     selectedChoiceId: raw.selectedChoiceId?.toString() ?? "",
@@ -42,6 +57,9 @@ export const normalizeQuizAttemptLog = (raw: Partial<QuizAttemptLog>): QuizAttem
     ...(corrLink ? { correctLinkedConceptId: corrLink } : {}),
     ...(did ? { deckId: did } : {}),
     ...(dts ? { deckTitleSnapshot: dts } : {}),
+    ...(userAnswer !== undefined ? { userAnswerTextSnapshot: userAnswer } : {}),
+    ...(referenceAnswer !== undefined ? { referenceAnswerSnapshot: referenceAnswer } : {}),
+    ...(selfEvaluation ? { selfEvaluation } : {}),
     correct: Boolean(raw.correct),
     startedAt: raw.startedAt?.toString() ?? nowIso(),
     answeredAt: raw.answeredAt?.toString() ?? nowIso(),

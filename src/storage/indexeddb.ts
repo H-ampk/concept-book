@@ -9,6 +9,7 @@ import type { Concept, ConceptInput, ContextDefinition } from "../types/concept"
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource } from "../types/quiz";
+import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
 import type { ResearchReport } from "../types/researchReport";
 import {
   QUIZ_DECK_SCHEMA_VERSION,
@@ -220,14 +221,22 @@ export const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => 
 
   const cidRaw = raw.conceptId?.toString().trim();
   const source = normalizeQuizQuestionSource((raw as { source?: unknown }).source);
+  const questionType = resolveQuizQuestionType((raw as { questionType?: unknown }).questionType);
+  const referenceAnswerRaw = (raw as { referenceAnswer?: unknown }).referenceAnswer;
+  const referenceAnswer =
+    referenceAnswerRaw !== undefined && referenceAnswerRaw !== null
+      ? String(referenceAnswerRaw)
+      : undefined;
 
   return {
     id: raw.id?.toString() ?? "",
     ...(cidRaw ? { conceptId: cidRaw } : {}),
     ...(source ? { source } : {}),
+    questionType,
     prompt: raw.prompt?.toString() ?? "",
     choices,
     correctChoiceId: raw.correctChoiceId?.toString() ?? "",
+    ...(referenceAnswer !== undefined ? { referenceAnswer } : {}),
     explanation: raw.explanation !== undefined ? raw.explanation.toString() : undefined,
     visibility,
     sortOrder: typeof raw.sortOrder === "number" && Number.isFinite(raw.sortOrder) ? raw.sortOrder : undefined,

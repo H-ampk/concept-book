@@ -267,6 +267,7 @@ function buildQuestionForCandidate(
     id: createQuizQuestionId(),
     conceptId: target.concept.id,
     source,
+    questionType: "multiple-choice",
     prompt: buildMaskedPromptText(
       target.contextDefinition.definition,
       target.concept.title

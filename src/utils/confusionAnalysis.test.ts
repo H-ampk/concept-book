@@ -16,6 +16,7 @@ import { computeConfusionPairs } from "./quizStats";
 const log = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
   id: "log-1",
   questionId: "q-1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "prompt",
   selectedChoiceId: "choice-selected",
   selectedChoiceTextSnapshot: "選んだ",

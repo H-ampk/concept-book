@@ -8,6 +8,7 @@ import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 const baseLog = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
   id: "log-1",
   questionId: "q-1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "prompt",
   selectedChoiceId: "a",
   selectedChoiceTextSnapshot: "A",

@@ -4,6 +4,7 @@ import type { Concept } from "../types/concept";
 import type { QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION } from "../types/quiz";
 import { nowIso, shortDateTime } from "../utils/date";
+import { quizQuestionTypeLabel, resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
 import { ModalPortal } from "./common/ModalPortal";
 import { QuizQuestionFormModal } from "./QuizQuestionFormModal";
 
@@ -446,7 +447,12 @@ export const QuizDeckFormModal = ({
                       key={q.id}
                       className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-celestial-border/40 bg-celestial-deepBlue/30 px-3 py-2"
                     >
-                      <p className="min-w-0 flex-1 text-xs text-celestial-textMain line-clamp-2">{q.prompt}</p>
+                      <p className="min-w-0 flex-1 text-xs text-celestial-textMain line-clamp-2">
+                        <span className="mr-1 text-[10px] text-celestial-softGold">
+                          {quizQuestionTypeLabel(resolveQuizQuestionType(q.questionType))}
+                        </span>
+                        {q.prompt}
+                      </p>
                       <button
                         type="button"
                         className="shrink-0 rounded border border-celestial-gold/40 px-2 py-1 text-xs text-celestial-softGold hover:bg-celestial-gold/10"
@@ -488,7 +494,8 @@ export const QuizDeckFormModal = ({
                         )}
                         {q ? (
                           <p className="mt-1 text-[11px] text-celestial-textSub">
-                            更新 {shortDateTime(q.updatedAt)} · {q.visibility === "shareable" ? "公開" : "非公開"}
+                            更新 {shortDateTime(q.updatedAt)} · {q.visibility === "shareable" ? "公開" : "非公開"} ·{" "}
+                            {quizQuestionTypeLabel(resolveQuizQuestionType(q.questionType))}
                           </p>
                         ) : null}
                       </div>

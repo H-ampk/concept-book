@@ -14,6 +14,7 @@ const iso = "2026-01-01T00:00:00.000Z";
 
 const baseQuestion = (): QuizQuestion => ({
   id: "question_1",
+  questionType: "multiple-choice",
   prompt: "問い",
   choices: [
     { id: "a", text: "A" },

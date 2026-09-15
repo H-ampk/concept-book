@@ -35,6 +35,7 @@ const contextCard = (id: string, extras: Partial<ContextCard> = {}): ContextCard
 
 const question = (id: string, extras: Partial<QuizQuestion> = {}): QuizQuestion => ({
   id,
+  questionType: "multiple-choice",
   prompt: extras.prompt ?? id,
   choices: [
     { id: "a", text: "A" },
@@ -62,6 +63,7 @@ const deck = (id: string, questionIds: string[], extras: Partial<QuizDeck> = {})
 const log = (id: string, questionId: string, extras: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
   id,
   questionId,
+  questionType: "multiple-choice",
   questionPromptSnapshot: "q",
   selectedChoiceId: "a",
   selectedChoiceTextSnapshot: "A",

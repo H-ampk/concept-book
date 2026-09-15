@@ -5,6 +5,7 @@ import type {
   QuizChoice,
   QuizGenerationQuality,
   QuizQuestion,
+  QuizQuestionType,
   QuizVisibility
 } from "../types/quiz";
 import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
@@ -15,6 +16,7 @@ import {
   replenishDistractorChoices
 } from "../utils/generateQuizChoicesFromContextCards";
 import { applyAutoLinkedConceptIdsToChoices, resolveChoiceConceptLink } from "../utils/quizConceptLink";
+import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
 import { ModalPortal } from "./common/ModalPortal";
 import { QuizConceptPicker } from "./QuizConceptPicker";
 
@@ -69,9 +71,11 @@ export const QuizQuestionFormModal = ({
   onSavedQuestion
 }: Props) => {
   const [conceptId, setConceptId] = useState("");
+  const [questionType, setQuestionType] = useState<QuizQuestionType>("multiple-choice");
   const [prompt, setPrompt] = useState("");
   const [choices, setChoices] = useState<QuizChoice[]>(defaultChoices);
   const [correctChoiceId, setCorrectChoiceId] = useState("");
+  const [referenceAnswer, setReferenceAnswer] = useState("");
   const [explanation, setExplanation] = useState("");
   const [visibility, setVisibility] = useState<QuizVisibility>("private");
   const [sortOrderInput, setSortOrderInput] = useState("");
@@ -105,9 +109,11 @@ export const QuizQuestionFormModal = ({
     if (mode === "edit" && question) {
       setQuestionId(question.id);
       setConceptId(question.conceptId ?? "");
+      setQuestionType(resolveQuizQuestionType(question.questionType));
       setPrompt(question.prompt);
       setChoices(question.choices.length > 0 ? question.choices.map((c) => ({ ...c })) : defaultChoices());
       setCorrectChoiceId(question.correctChoiceId);
+      setReferenceAnswer(question.referenceAnswer ?? "");
       setExplanation(question.explanation ?? "");
       setVisibility(question.visibility);
       setSortOrderInput(question.sortOrder !== undefined ? String(question.sortOrder) : "");
@@ -115,9 +121,11 @@ export const QuizQuestionFormModal = ({
       const ch = defaultChoices();
       setQuestionId(createQuizQuestionId());
       setConceptId("");
+      setQuestionType("multiple-choice");
       setPrompt("");
       setChoices(ch);
       setCorrectChoiceId(ch[0]?.id ?? "");
+      setReferenceAnswer("");
       setExplanation("");
       setVisibility("private");
       setSortOrderInput("");
@@ -295,6 +303,7 @@ export const QuizQuestionFormModal = ({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmedPrompt = prompt.trim();
+    const trimmedReferenceAnswer = referenceAnswer.trim();
     const cleanedChoices = choices
       .map((c) => {
         const text = c.text.trim();
@@ -320,13 +329,20 @@ export const QuizQuestionFormModal = ({
       setError("問題文を入力してください。");
       return;
     }
-    if (cleanedChoices.length < 2) {
-      setError("選択肢は2件以上、それぞれ本文を入力してください。");
-      return;
-    }
-    if (!cleanedChoices.some((c) => c.id === correctChoiceId)) {
-      setError("正解となる選択肢を選んでください。");
-      return;
+    if (questionType === "free-response") {
+      if (!trimmedReferenceAnswer) {
+        setError("模範解答を入力してください。");
+        return;
+      }
+    } else {
+      if (cleanedChoices.length < 2) {
+        setError("選択肢は2件以上、それぞれ本文を入力してください。");
+        return;
+      }
+      if (!cleanedChoices.some((c) => c.id === correctChoiceId)) {
+        setError("正解となる選択肢を選んでください。");
+        return;
+      }
     }
 
     const sortOrderParsed = sortOrderInput.trim() === "" ? undefined : Number(sortOrderInput);
@@ -337,9 +353,10 @@ export const QuizQuestionFormModal = ({
 
     const payload: QuizQuestion = {
       id: questionId,
+      questionType,
       prompt: trimmedPrompt,
-      choices: choicesWithLinks,
-      correctChoiceId,
+      choices: questionType === "free-response" ? [] : choicesWithLinks,
+      correctChoiceId: questionType === "free-response" ? "" : correctChoiceId,
       explanation: explanation.trim() || undefined,
       visibility,
       sortOrder,
@@ -347,6 +364,9 @@ export const QuizQuestionFormModal = ({
       createdAt: mode === "edit" && question ? question.createdAt : nowIso(),
       updatedAt: nowIso()
     };
+    if (questionType === "free-response") {
+      payload.referenceAnswer = trimmedReferenceAnswer;
+    }
     if (conceptId.trim()) {
       payload.conceptId = conceptId.trim();
     }
@@ -414,7 +434,37 @@ export const QuizQuestionFormModal = ({
             disabled={concepts.length === 0}
           />
 
-          {selectedConcept ? (
+          <div className="space-y-1.5">
+            <span className="block text-sm text-celestial-textMain" id="question-type-label">
+              問題形式
+            </span>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="question-type-label">
+              <button
+                type="button"
+                className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
+                  questionType === "multiple-choice"
+                    ? "theme-selected"
+                    : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
+                }`}
+                onClick={() => setQuestionType("multiple-choice")}
+              >
+                四択
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 ${
+                  questionType === "free-response"
+                    ? "theme-selected"
+                    : "border-celestial-border text-celestial-softGold hover:bg-celestial-gold/10"
+                }`}
+                onClick={() => setQuestionType("free-response")}
+              >
+                入力式
+              </button>
+            </div>
+          </div>
+
+          {selectedConcept && questionType === "multiple-choice" ? (
             <section className="rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-4">
               <h3 className="text-sm font-medium text-celestial-textMain">文脈別定義から選択肢を生成</h3>
               <p className="mt-1 text-xs text-celestial-textSub">
@@ -490,6 +540,18 @@ export const QuizQuestionFormModal = ({
             />
           </label>
 
+          {questionType === "free-response" ? (
+            <label className="block space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">模範解答 *</span>
+              <textarea
+                className="min-h-[100px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                value={referenceAnswer}
+                onChange={(e) => setReferenceAnswer(e.target.value)}
+                placeholder="自己評価時に表示する模範解答…"
+                aria-label="模範解答"
+              />
+            </label>
+          ) : (
           <fieldset className="min-w-0">
             <legend className="mb-2 text-sm font-medium text-celestial-textMain">選択肢 *（2件以上）</legend>
             <ul className="space-y-2">
@@ -572,6 +634,7 @@ export const QuizQuestionFormModal = ({
               選択肢を追加
             </button>
           </fieldset>
+          )}
 
           <label className="block space-y-1.5">
             <span className="block text-sm text-celestial-textMain">解説（任意）</span>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
-import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion } from "../types/quiz";
+import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizSelfEvaluation } from "../types/quiz";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION } from "../types/quiz";
 import {
   buildQuizSession,
@@ -13,6 +13,11 @@ import {
 } from "../utils/quiz/buildQuizSession";
 import { resolveQuestionConceptId } from "../utils/quiz/resolveQuestionConceptId";
 import { QUIZ_SESSION_SIZE } from "../utils/quiz/shuffle";
+import {
+  isFreeResponseQuestion,
+  selfEvaluationLabel,
+  selfEvaluationToCorrect
+} from "../utils/quiz/quizQuestionType";
 import { collectReferencedQuestionIds } from "../utils/quiz/quizDataCleanup";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
@@ -158,6 +163,9 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const [index, setIndex] = useState(0);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [freeResponseDraft, setFreeResponseDraft] = useState("");
+  const [freeResponseRevealed, setFreeResponseRevealed] = useState(false);
+  const [selfEvaluation, setSelfEvaluation] = useState<QuizSelfEvaluation | null>(null);
   const [answerSaveStatus, setAnswerSaveStatus] = useState<AnswerSaveStatus>("idle");
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswerRecord[]>([]);
@@ -172,6 +180,12 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const sessionIdRef = useRef<string | null>(null);
   const questionTimingRef = useRef<{ startedAtIso: string; startMs: number } | null>(null);
   const answerSaveInFlightRef = useRef(false);
+
+  const resetFreeResponseState = () => {
+    setFreeResponseDraft("");
+    setFreeResponseRevealed(false);
+    setSelfEvaluation(null);
+  };
 
   const resetAnswerSaveState = () => {
     answerSaveInFlightRef.current = false;
@@ -235,10 +249,13 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
 
   const current = session[index];
   const currentQuestion = current?.question;
+  const isCurrentFreeResponse = currentQuestion ? isFreeResponseQuestion(currentQuestion) : false;
   const selectedChoice = current?.shuffledChoices.find((c) => c.id === selectedChoiceId) ?? null;
   const correctChoice =
     current?.shuffledChoices.find((c) => c.id === currentQuestion?.correctChoiceId) ?? null;
-  const isCorrect = answered && selectedChoiceId === currentQuestion?.correctChoiceId;
+  const isCorrect = isCurrentFreeResponse
+    ? answered && selfEvaluation === "correct"
+    : answered && selectedChoiceId === currentQuestion?.correctChoiceId;
 
   const visibleChoices = current?.shuffledChoices ?? [];
 
@@ -281,6 +298,9 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
       startedAtIso: new Date(ms).toISOString(),
       startMs: ms
     };
+    setFreeResponseDraft("");
+    setFreeResponseRevealed(false);
+    setSelfEvaluation(null);
   }, [phase, index, currentQuestion?.id]);
 
   const choicesLocked = answered || answerSaveStatus === "saving";
@@ -309,6 +329,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setIndex(0);
     setSelectedChoiceId(null);
     setAnswered(false);
+    resetFreeResponseState();
     resetAnswerSaveState();
     setCorrectCount(0);
     setWrongAnswers([]);
@@ -437,6 +458,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     const log: QuizAttemptLog = {
       id: `qlog_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
       questionId: currentQuestion.id,
+      questionType: "multiple-choice",
       questionPromptSnapshot: currentQuestion.prompt,
       selectedChoiceId: sel.id,
       selectedChoiceTextSnapshot: sel.text,
@@ -499,6 +521,106 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     answerSaveInFlightRef.current = false;
   };
 
+  const revealFreeResponse = () => {
+    if (!currentQuestion || !isCurrentFreeResponse || answered || freeResponseRevealed) {
+      return;
+    }
+    if (!freeResponseDraft.trim()) {
+      return;
+    }
+    setFreeResponseRevealed(true);
+  };
+
+  const submitFreeResponseSelfEvaluation = async (evaluation: QuizSelfEvaluation) => {
+    if (!currentQuestion || !current || !isCurrentFreeResponse || answered || !freeResponseRevealed) {
+      return;
+    }
+    if (answerSaveInFlightRef.current) {
+      return;
+    }
+    const userAnswer = freeResponseDraft.trim();
+    const reference = (currentQuestion.referenceAnswer ?? "").trim();
+    if (!userAnswer) {
+      return;
+    }
+    answerSaveInFlightRef.current = true;
+    setAnswerSaveStatus("saving");
+
+    const endMs = Date.now();
+    const timing = questionTimingRef.current;
+    const answeredAtIso = new Date(endMs).toISOString();
+    const startedAtIso = timing?.startedAtIso ?? answeredAtIso;
+    let timeMs = timing ? endMs - timing.startMs : 0;
+    if (!Number.isFinite(timeMs) || timeMs < 0) {
+      timeMs = 0;
+    }
+
+    const isAnswerCorrect = selfEvaluationToCorrect(evaluation);
+    const log: QuizAttemptLog = {
+      id: `qlog_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+      questionId: currentQuestion.id,
+      questionType: "free-response",
+      questionPromptSnapshot: currentQuestion.prompt,
+      selectedChoiceId: "",
+      selectedChoiceTextSnapshot: "",
+      correctChoiceId: "",
+      correctChoiceTextSnapshot: "",
+      userAnswerTextSnapshot: userAnswer,
+      referenceAnswerSnapshot: reference,
+      selfEvaluation: evaluation,
+      correct: isAnswerCorrect,
+      startedAt: startedAtIso,
+      answeredAt: answeredAtIso,
+      timeMs,
+      schemaVersion: QUIZ_ATTEMPT_LOG_SCHEMA_VERSION
+    };
+    if (sessionIdRef.current) {
+      log.sessionId = sessionIdRef.current;
+    }
+    const promptConceptId = resolveQuestionConceptId(currentQuestion);
+    if (promptConceptId) {
+      log.conceptId = promptConceptId;
+      log.questionConceptId = promptConceptId;
+    }
+    if (sessionDeckId) {
+      log.deckId = sessionDeckId;
+      const snap = sessionDeckTitle?.trim();
+      if (snap) {
+        log.deckTitleSnapshot = snap;
+      }
+    }
+
+    try {
+      await storage.saveQuizAttemptLog(log);
+    } catch (err) {
+      console.warn("[QuizPlayPage] QuizAttemptLog の保存に失敗しました。", err);
+      answerSaveInFlightRef.current = false;
+      setAnswerSaveStatus("error");
+      return;
+    }
+
+    setAttemptLogs((prev) => [...prev, log]);
+    setSelfEvaluation(evaluation);
+    setAnswered(true);
+    setAnswerSaveStatus("idle");
+    if (isAnswerCorrect) {
+      setCorrectCount((n) => n + 1);
+    } else {
+      setWrongAnswers((prev) => [
+        ...prev,
+        {
+          question: currentQuestion,
+          selectedChoiceId: "",
+          selectedText: userAnswer,
+          correctText: reference,
+          selectionReasons: current.selectionReasons,
+          selfEvaluation: evaluation
+        }
+      ]);
+    }
+    answerSaveInFlightRef.current = false;
+  };
+
   const goNext = () => {
     if (!currentQuestion) {
       return;
@@ -510,6 +632,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setIndex((i) => i + 1);
     setSelectedChoiceId(null);
     setAnswered(false);
+    resetFreeResponseState();
     resetAnswerSaveState();
   };
 
@@ -525,6 +648,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setIndex(0);
     setSelectedChoiceId(null);
     setAnswered(false);
+    resetFreeResponseState();
     resetAnswerSaveState();
     setCorrectCount(0);
     setWrongAnswers([]);
@@ -747,8 +871,14 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                           あなたの解答: <span className="text-celestial-danger">{wa.selectedText}</span>
                         </p>
                         <p className="text-xs text-celestial-textSub">
-                          正解: <span className="text-celestial-gold">{wa.correctText}</span>
+                          {wa.selfEvaluation ? "模範解答" : "正解"}:{" "}
+                          <span className="text-celestial-gold">{wa.correctText}</span>
                         </p>
+                        {wa.selfEvaluation ? (
+                          <p className="mt-1 text-xs text-celestial-textSub">
+                            自己評価: {selfEvaluationLabel(wa.selfEvaluation)}
+                          </p>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -817,6 +947,92 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 </p>
               </div>
 
+              {isCurrentFreeResponse ? (
+                <div className="space-y-3">
+                  {!freeResponseRevealed ? (
+                    <>
+                      <label className="block space-y-1.5">
+                        <span className="block text-sm text-celestial-softGold">回答</span>
+                        <textarea
+                          className="min-h-[120px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                          value={freeResponseDraft}
+                          onChange={(e) => setFreeResponseDraft(e.target.value)}
+                          placeholder="回答を入力"
+                          aria-label="回答"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={revealFreeResponse}
+                        disabled={!freeResponseDraft.trim()}
+                        className="action-button rounded-lg px-5 py-2.5 text-sm disabled:opacity-50"
+                      >
+                        回答する
+                      </button>
+                    </>
+                  ) : (
+                    <div className="space-y-3 rounded-2xl border border-celestial-border/60 bg-nordic-navy/35 p-4 backdrop-blur-sm">
+                      <div>
+                        <p className="mb-1 text-xs font-medium text-celestial-softGold">あなたの回答</p>
+                        <p className="whitespace-pre-wrap text-sm text-celestial-textMain">{freeResponseDraft.trim()}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-medium text-celestial-softGold">模範解答</p>
+                        <p className="whitespace-pre-wrap text-sm text-celestial-textMain">
+                          {(currentQuestion.referenceAnswer ?? "").trim()}
+                        </p>
+                      </div>
+                      {answerSaveStatus === "error" ? (
+                        <p
+                          className="rounded-lg border border-amber-500/40 bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95"
+                          role="alert"
+                        >
+                          回答を保存できませんでした。保存領域の状態を確認して、もう一度お試しください。
+                        </p>
+                      ) : null}
+                      {!answered ? (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-celestial-textMain" id="self-eval-label">
+                            自己評価
+                          </p>
+                          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="self-eval-label">
+                            {(
+                              [
+                                ["incorrect", "不正解"],
+                                ["partial", "部分的に正解"],
+                                ["correct", "正解"]
+                              ] as const
+                            ).map(([value, label]) => (
+                              <button
+                                key={value}
+                                type="button"
+                                disabled={answerSaveStatus === "saving"}
+                                onClick={() => void submitFreeResponseSelfEvaluation(value)}
+                                className="rounded-lg border border-celestial-border px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 disabled:opacity-50"
+                              >
+                                {answerSaveStatus === "saving" ? "保存中…" : label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p
+                            className={`text-center text-sm font-semibold ${isCorrect ? "text-celestial-gold" : "text-celestial-danger"}`}
+                            role="status"
+                          >
+                            自己評価: {selfEvaluation ? selfEvaluationLabel(selfEvaluation) : ""}
+                          </p>
+                          <button type="button" onClick={goNext} className="action-button rounded-lg px-5 py-2 text-sm">
+                            {index + 1 >= session.length ? "結果を見る" : "次の問題へ"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
               <div
                 className="space-y-2 outline-none"
                 role="radiogroup"
@@ -930,6 +1146,8 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                     {index + 1 >= session.length ? "結果を見る" : "次の問題へ"}
                   </button>
                 </div>
+              )}
+                </>
               )}
             </div>
           ) : null}

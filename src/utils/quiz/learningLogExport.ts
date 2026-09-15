@@ -27,7 +27,11 @@ export const LEARNING_LOG_CSV_COLUMNS = [
   "correctLinkedConceptTitleCurrent",
   "deckId",
   "deckTitle",
-  "schemaVersion"
+  "schemaVersion",
+  "questionType",
+  "userAnswerText",
+  "referenceAnswer",
+  "selfEvaluation"
 ] as const;
 
 export type LearningLogCsvColumn = (typeof LEARNING_LOG_CSV_COLUMNS)[number];
@@ -68,7 +72,11 @@ export const learningLogToCsvRow = (
   correctLinkedConceptTitleCurrent: currentTitle(log.correctLinkedConceptId, conceptTitles),
   deckId: optionalText(log.deckId),
   deckTitle: optionalText(log.deckTitleSnapshot),
-  schemaVersion: log.schemaVersion
+  schemaVersion: log.schemaVersion,
+  questionType: log.questionType,
+  userAnswerText: optionalText(log.userAnswerTextSnapshot),
+  referenceAnswer: optionalText(log.referenceAnswerSnapshot),
+  selfEvaluation: optionalText(log.selfEvaluation)
 });
 
 export const buildLearningLogCsv = (

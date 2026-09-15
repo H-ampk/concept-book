@@ -53,6 +53,10 @@ export type QuizQuestionSource = {
   fieldName?: string;
 };
 
+export type QuizQuestionType = "multiple-choice" | "free-response";
+
+export type QuizSelfEvaluation = "incorrect" | "partial" | "correct";
+
 /** 出題時のフィルタ（source がない古い問題は分野別・全体出題では従来通り対象） */
 export type QuizSessionFilter = {
   fieldTag?: string;
@@ -96,9 +100,16 @@ export interface QuizQuestion {
   conceptId?: string;
   /** 作成元の出典情報（古いデータには無い場合あり） */
   source?: QuizQuestionSource;
+  /** 旧データに無い場合は読み込み時 multiple-choice に正規化する */
+  questionType: QuizQuestionType;
   prompt: string;
   choices: QuizChoice[];
   correctChoiceId: string;
+  /**
+   * free-response の模範解答。
+   * 完全一致による自動採点には使用しない。
+   */
+  referenceAnswer?: string;
   explanation?: string;
   /** 共有ファイルとして Export 可能 / 非共有。新規作成時の初期値は private を想定 */
   visibility: QuizVisibility;
@@ -110,7 +121,7 @@ export interface QuizQuestion {
 }
 
 /** 将来のマイグレーション・検証・新規レコードの schemaVersion 初期値 */
-export const QUIZ_QUESTION_SCHEMA_VERSION = 1;
+export const QUIZ_QUESTION_SCHEMA_VERSION = 2;
 
 /**
  * 複数の QuizQuestion をまとめたクイズ集（「この分野のセット」「復習デッキ」など）。
@@ -180,6 +191,8 @@ export interface QuizAttemptLog {
   /** 集計対象の概念 ID（出題概念） */
   conceptId?: string;
   questionId: string;
+  /** 旧データに無い場合は読み込み時 multiple-choice に正規化する */
+  questionType: QuizQuestionType;
   /** 回答時点の問題文スナップショット */
   questionPromptSnapshot: string;
   /** 回答時点の Question.conceptId */
@@ -191,6 +204,12 @@ export interface QuizAttemptLog {
   correctChoiceTextSnapshot: string;
   correctLinkedConceptId?: string;
   correct: boolean;
+  /** free-response の入力本文（回答当時） */
+  userAnswerTextSnapshot?: string;
+  /** free-response の模範解答（回答当時。後日編集されても履歴を残す） */
+  referenceAnswerSnapshot?: string;
+  /** free-response の自己評価。partial は correct=false に射影するが値自体は保持する */
+  selfEvaluation?: QuizSelfEvaluation;
   startedAt: string;
   answeredAt: string;
   /** 表示開始から回答までの経過（ミリ秒） */
@@ -202,4 +221,4 @@ export interface QuizAttemptLog {
   schemaVersion: number;
 }
 
-export const QUIZ_ATTEMPT_LOG_SCHEMA_VERSION = 1;
+export const QUIZ_ATTEMPT_LOG_SCHEMA_VERSION = 2;

@@ -36,6 +36,7 @@ import { QuizPlayPage } from "./QuizPlayPage";
 
 const question = (overrides: Partial<QuizQuestion> = {}): QuizQuestion => ({
   id: "q1",
+  questionType: "multiple-choice",
   prompt: "オペラント条件づけの提唱者は誰ですか？",
   choices: [
     { id: "c1", text: "スキナー" },
@@ -279,3 +280,68 @@ describe("QuizPlayPage 回答ログ保存 (#156)", () => {
     expect(screen.getByText(/間違えた問題（1 問）/)).toBeInTheDocument();
   });
 });
+
+describe("QuizPlayPage free-response", () => {
+  beforeEach(() => {
+    getAllConcepts.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizDecks.mockReset();
+    getQuizAttemptLogs.mockReset();
+    saveQuizAttemptLog.mockReset();
+    setupPlayableStorage(
+      [
+        question({
+          id: "q-fr",
+          questionType: "free-response",
+          prompt: "教師あり学習とは何ですか？",
+          choices: [],
+          correctChoiceId: "",
+          referenceAnswer: "入力データと正解ラベルの組を用いて学習する手法"
+        })
+      ],
+      deck({ questionIds: ["q-fr"] })
+    );
+  });
+
+  it("入力 → 回答する → 模範解答と自己評価 → partial でログ保存する", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    expect(await screen.findByText("教師あり学習とは何ですか？")).toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "選択肢" })).not.toBeInTheDocument();
+
+    const submit = screen.getByRole("button", { name: "回答する" });
+    expect(submit).toBeDisabled();
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(submit);
+
+    expect(saveQuizAttemptLog).not.toHaveBeenCalled();
+    expect(screen.getByText("あなたの回答")).toBeInTheDocument();
+    expect(screen.getByText("ラベル付きデータを使う方法")).toBeInTheDocument();
+    expect(screen.getByText("模範解答")).toBeInTheDocument();
+    expect(screen.getByText("入力データと正解ラベルの組を用いて学習する手法")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "不正解" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "部分的に正解" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "正解" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "部分的に正解" }));
+    await waitFor(() => {
+      expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+    });
+    const log = saveQuizAttemptLog.mock.calls[0]?.[0];
+    expect(log.questionType).toBe("free-response");
+    expect(log.userAnswerTextSnapshot).toBe("ラベル付きデータを使う方法");
+    expect(log.referenceAnswerSnapshot).toBe("入力データと正解ラベルの組を用いて学習する手法");
+    expect(log.selfEvaluation).toBe("partial");
+    expect(log.correct).toBe(false);
+    expect(log.selectedChoiceId).toBe("");
+    expect(log.correctChoiceId).toBe("");
+
+    await user.click(screen.getByRole("button", { name: "結果を見る" }));
+    expect(await screen.findByRole("heading", { name: "結果" })).toBeInTheDocument();
+    expect(screen.getByText("0%")).toBeInTheDocument();
+    expect(screen.getByText(/間違えた問題（1 問）/)).toBeInTheDocument();
+    expect(screen.getByText("自己評価: 部分的に正解")).toBeInTheDocument();
+  });
+});
+

@@ -11,6 +11,7 @@ const atLocal = (ymd: string, hours = 12, minutes = 0, seconds = 0, ms = 0): str
 const log = (overrides: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
   id: "log-1",
   questionId: "q1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "問い",
   selectedChoiceId: "c1",
   selectedChoiceTextSnapshot: "選択",

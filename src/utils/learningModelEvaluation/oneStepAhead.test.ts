@@ -17,6 +17,7 @@ import type { LearningModelPredictor } from "./types";
 const baseLog = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
   id: "log-1",
   questionId: "q-1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "prompt",
   selectedChoiceId: "a",
   selectedChoiceTextSnapshot: "A",

@@ -33,6 +33,7 @@ const fullChoice = (overrides: Partial<QuizChoice> = {}): QuizChoice => ({
 
 const questionWithChoices = (choices: QuizChoice[]): QuizQuestion => ({
   id: "q1",
+  questionType: "multiple-choice",
   prompt: "問い",
   choices,
   correctChoiceId: choices[0]?.id ?? "choice_a",

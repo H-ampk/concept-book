@@ -170,3 +170,62 @@ describe("conceptBookZip QuizChoice metadata round-trip", () => {
     expect(result.quizQuestions[0]?.choices.find((c) => c.id === "a")).toEqual(choice);
   });
 });
+
+describe("conceptBookZip free-response round-trip", () => {
+  it("ZIP export → parse → validate で入力式 Question / Log の新フィールドが保持される", () => {
+    const json = JSON.stringify({
+      concepts: [],
+      contextCards: [],
+      quizQuestions: [
+        {
+          id: "q_fr",
+          questionType: "free-response",
+          prompt: "教師あり学習とは？",
+          choices: [],
+          correctChoiceId: "",
+          referenceAnswer: "ラベル付きデータで学習する",
+          visibility: "private",
+          schemaVersion: 2,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      quizDecks: [],
+      quizAttemptLogs: [
+        {
+          id: "log_fr",
+          questionId: "q_fr",
+          questionType: "free-response",
+          questionPromptSnapshot: "教師あり学習とは？",
+          selectedChoiceId: "",
+          selectedChoiceTextSnapshot: "",
+          correctChoiceId: "",
+          correctChoiceTextSnapshot: "",
+          userAnswerTextSnapshot: "自分の答え",
+          referenceAnswerSnapshot: "ラベル付きデータで学習する",
+          selfEvaluation: "incorrect",
+          correct: false,
+          startedAt: "2026-01-01T00:00:00.000Z",
+          answeredAt: "2026-01-01T00:00:01.000Z",
+          timeMs: 12,
+          schemaVersion: 2
+        }
+      ]
+    });
+    const zipped = buildConceptBookZip(json, []);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const result = validateBackupImportPayload(JSON.parse(parsed.conceptsText));
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.quizQuestions[0]?.questionType).toBe("free-response");
+    expect(result.quizQuestions[0]?.referenceAnswer).toBe("ラベル付きデータで学習する");
+    expect(result.quizAttemptLogs[0]?.selfEvaluation).toBe("incorrect");
+    expect(result.quizAttemptLogs[0]?.userAnswerTextSnapshot).toBe("自分の答え");
+    expect(result.quizAttemptLogs[0]?.referenceAnswerSnapshot).toBe("ラベル付きデータで学習する");
+  });
+});
+

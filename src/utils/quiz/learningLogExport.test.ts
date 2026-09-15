@@ -13,6 +13,7 @@ const baseLog = (overrides: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
   sessionId: "sess_1",
   conceptId: "concept_a",
   questionId: "q1",
+  questionType: "multiple-choice",
   questionPromptSnapshot: "問い",
   questionConceptId: "concept_q",
   selectedChoiceId: "c1",
@@ -135,6 +136,23 @@ describe("buildLearningLogCsv", () => {
   it("timeSecondsがtimeMsから正しく生成される", () => {
     expect(learningLogToCsvRow(baseLog({ timeMs: 1500 }), new Map()).timeSeconds).toBe(1.5);
     expect(learningLogToCsvRow(baseLog({ timeMs: 0 }), new Map()).timeSeconds).toBe(0);
+  });
+
+  it("free-response の追加列を既存列の後に出す", () => {
+    const row = learningLogToCsvRow(
+      baseLog({
+        questionType: "free-response",
+        userAnswerTextSnapshot: "自分の答え",
+        referenceAnswerSnapshot: "模範",
+        selfEvaluation: "correct"
+      }),
+      new Map()
+    );
+    expect(row.questionType).toBe("free-response");
+    expect(row.userAnswerText).toBe("自分の答え");
+    expect(row.referenceAnswer).toBe("模範");
+    expect(row.selfEvaluation).toBe("correct");
+    expect(LEARNING_LOG_CSV_COLUMNS.slice(0, 4)).toEqual(["logId", "sessionId", "startedAt", "answeredAt"]);
   });
 });
 
