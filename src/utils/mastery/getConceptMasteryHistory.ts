@@ -1,12 +1,14 @@
 import type { QuizAttemptLog } from "../../types/quiz";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
-import { calculateBktMastery, calculateBktMasteryAfterObservation } from "./bkt";
-import { DEFAULT_BKT_PARAMETERS } from "./constants";
+import { calculateBktMastery, calculateBktMasteryAfterEvidence } from "./bkt";
+import { DEFAULT_BKT_PARAMETERS, DEFAULT_FREE_RESPONSE_BKT_EVIDENCE } from "./constants";
 import { toConceptMasteryScore } from "./formatConceptMastery";
-import type { BktParameters, ConceptMasteryPoint } from "./types";
+import { resolveBktEvidence } from "./resolveBktEvidence";
+import type { BktParameters, ConceptMasteryPoint, FreeResponseBktEvidenceParameters } from "./types";
 
 export type GetConceptMasteryHistoryOptions = {
   parameters?: BktParameters;
+  evidenceParameters?: FreeResponseBktEvidenceParameters;
 };
 
 /**
@@ -20,17 +22,19 @@ export const getConceptMasteryHistory = (
   options?: GetConceptMasteryHistoryOptions
 ): ConceptMasteryPoint[] => {
   const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
+  const evidenceParameters = options?.evidenceParameters ?? DEFAULT_FREE_RESPONSE_BKT_EVIDENCE;
   const conceptLogs = logs.filter((log) => resolveConceptIdFromLog(log) === conceptId);
   const ordered = [...conceptLogs].sort((a, b) => a.answeredAt.localeCompare(b.answeredAt));
 
-  let mastery = calculateBktMastery([], parameters);
+  let mastery = calculateBktMastery([], parameters, evidenceParameters);
   const points: ConceptMasteryPoint[] = [];
 
   for (let index = 0; index < ordered.length; index += 1) {
     const log = ordered[index];
     const previousMasteryProbability = mastery;
     const previousMasteryScore = toConceptMasteryScore(previousMasteryProbability);
-    mastery = calculateBktMasteryAfterObservation(mastery, log.correct, parameters);
+    const evidence = resolveBktEvidence(log, { parameters, evidenceParameters });
+    mastery = calculateBktMasteryAfterEvidence(mastery, evidence.likelihood, parameters.learnProbability);
     const masteryScore = toConceptMasteryScore(mastery);
 
     const point: ConceptMasteryPoint = {
@@ -46,10 +50,16 @@ export const getConceptMasteryHistory = (
       quizAttemptLogId: log.id,
       questionId: log.questionId,
       questionPromptSnapshot: log.questionPromptSnapshot,
-      timeMs: log.timeMs
+      timeMs: log.timeMs,
+      questionType: evidence.questionType,
+      evidenceKind: evidence.kind,
+      observationOutcome: evidence.outcome
     };
     if (log.sessionId) {
       point.sessionId = log.sessionId;
+    }
+    if (evidence.selfEvaluation) {
+      point.selfEvaluation = evidence.selfEvaluation;
     }
     points.push(point);
   }

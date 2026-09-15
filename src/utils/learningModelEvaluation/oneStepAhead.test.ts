@@ -133,6 +133,39 @@ describe("buildOneStepAheadPredictionSeries", () => {
     });
   });
 
+  it("mixed question type では target の形式で observation model を選び、target 自身は history に入れない", () => {
+    const first = baseLog({
+      id: "mc",
+      questionConceptId: "concept-a",
+      questionType: "multiple-choice",
+      correct: true,
+      answeredAt: "2026-01-01T00:00:00.000Z"
+    });
+    const second = baseLog({
+      id: "fr",
+      questionConceptId: "concept-a",
+      questionType: "free-response",
+      correct: true,
+      selfEvaluation: "correct",
+      answeredAt: "2026-01-02T00:00:00.000Z"
+    });
+    const points = buildOneStepAheadPredictionSeries([first, second], [createBktLearningModelPredictor()]);
+    expect(points).toHaveLength(2);
+    expect(points[0].predictedCorrectProbability).toBe(calculateBktNextCorrectProbability([]));
+    expect(points[1].historyCount).toBe(1);
+    expect(points[1].predictedCorrectProbability).toBe(
+      calculateBktNextCorrectProbability([first], DEFAULT_BKT_PARAMETERS, {
+        targetQuestionType: "free-response"
+      })
+    );
+    expect(points[1].predictedCorrectProbability).not.toBe(calculateBktNextCorrectProbability([first]));
+    expect(points[1].predictedCorrectProbability).not.toBe(
+      calculateBktNextCorrectProbability([first, second], DEFAULT_BKT_PARAMETERS, {
+        targetQuestionType: "free-response"
+      })
+    );
+  });
+
   it("target 自身が predictor history に入っていない", () => {
     const logs = [
       baseLog({ id: "a", questionConceptId: "concept-a", answeredAt: "2026-01-01T00:00:00.000Z" }),
@@ -143,8 +176,9 @@ describe("buildOneStepAheadPredictionSeries", () => {
     buildOneStepAheadPredictionSeries(logs, [spy]);
     const targets = ["a", "b", "c"];
     spy.predictNextCorrectProbability.mock.calls.forEach((call, index) => {
-      const history = (call[0] as { historyLogs: QuizAttemptLog[] }).historyLogs;
-      expect(history.map((log) => log.id)).not.toContain(targets[index]);
+      const args = call[0] as { historyLogs: QuizAttemptLog[]; targetLog?: QuizAttemptLog };
+      expect(args.historyLogs.map((log) => log.id)).not.toContain(targets[index]);
+      expect(args.targetLog?.id).toBe(targets[index]);
     });
   });
 
@@ -448,6 +482,49 @@ describe("createBktLearningModelPredictor", () => {
       expect(Number.isFinite(probability)).toBe(true);
     }
   });
+
+  it("target が multiple-choice なら従来の observation model", () => {
+    const history = [baseLog({ id: "1", questionConceptId: "concept-a", correct: true })];
+    const targetLog = baseLog({
+      id: "target",
+      questionConceptId: "concept-a",
+      questionType: "multiple-choice",
+      correct: false
+    });
+    const predicted = createBktLearningModelPredictor().predictNextCorrectProbability({
+      conceptId: "concept-a",
+      historyLogs: history,
+      targetLog
+    });
+    expect(predicted).toBe(
+      calculateBktNextCorrectProbability(history, DEFAULT_BKT_PARAMETERS, {
+        targetQuestionType: "multiple-choice"
+      })
+    );
+    expect(predicted).toBe(calculateBktNextCorrectProbability(history));
+  });
+
+  it("target が free-response なら recall correct probability を使う", () => {
+    const history = [baseLog({ id: "1", questionConceptId: "concept-a", correct: true })];
+    const targetLog = baseLog({
+      id: "target",
+      questionConceptId: "concept-a",
+      questionType: "free-response",
+      correct: true,
+      selfEvaluation: "correct"
+    });
+    const predicted = createBktLearningModelPredictor().predictNextCorrectProbability({
+      conceptId: "concept-a",
+      historyLogs: history,
+      targetLog
+    });
+    expect(predicted).toBe(
+      calculateBktNextCorrectProbability(history, DEFAULT_BKT_PARAMETERS, {
+        targetQuestionType: "free-response"
+      })
+    );
+    expect(predicted).not.toBe(calculateBktNextCorrectProbability(history));
+  });
 });
 
 describe("createPfaLearningModelPredictor", () => {
@@ -504,5 +581,27 @@ describe("createPfaLearningModelPredictor", () => {
       expect(probability).toBeLessThanOrEqual(1);
       expect(Number.isFinite(probability)).toBe(true);
     }
+  });
+
+  it("targetLog を無視して既存の PFA 予測を返す", () => {
+    const history = [
+      baseLog({ id: "1", questionConceptId: "concept-a", correct: true }),
+      baseLog({ id: "2", questionConceptId: "concept-a", correct: false })
+    ];
+    const targetLog = baseLog({
+      id: "target",
+      questionConceptId: "concept-a",
+      questionType: "free-response",
+      correct: true,
+      selfEvaluation: "correct"
+    });
+    const predictor = createPfaLearningModelPredictor();
+    expect(
+      predictor.predictNextCorrectProbability({
+        conceptId: "concept-a",
+        historyLogs: history,
+        targetLog
+      })
+    ).toBe(getConceptPfaPrediction(history, "concept-a").nextCorrectProbability);
   });
 });

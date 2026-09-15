@@ -4,6 +4,7 @@ import type { BktParameters } from "../mastery/types";
 import { DEFAULT_PFA_PARAMETERS } from "../pfa/constants";
 import { getConceptPfaPrediction } from "../pfa/getConceptPfaPrediction";
 import type { PfaParameters } from "../pfa/types";
+import { resolveQuizQuestionType } from "../quiz/quizQuestionType";
 import type { LearningModelPredictor } from "./types";
 
 export const BKT_LEARNING_MODEL_ID = "bkt";
@@ -15,13 +16,17 @@ export const PFA_LEARNING_MODEL_ID = "pfa";
  * masteryProbability P(L) ではなく、observation model による
  * nextCorrectProbability P(correct) を返す。
  * 履歴 0 件でも initialMastery を prior として予測する。
+ * targetLog.questionType で recognition / recall の observation model を選ぶ。
+ * targetLog が無い場合は multiple-choice（既存互換）。
  */
 export const createBktLearningModelPredictor = (
   parameters: BktParameters = DEFAULT_BKT_PARAMETERS
 ): LearningModelPredictor => ({
   id: BKT_LEARNING_MODEL_ID,
-  predictNextCorrectProbability({ historyLogs }) {
-    return calculateBktNextCorrectProbability(historyLogs, parameters);
+  predictNextCorrectProbability({ historyLogs, targetLog }) {
+    return calculateBktNextCorrectProbability(historyLogs, parameters, {
+      targetQuestionType: resolveQuizQuestionType(targetLog?.questionType)
+    });
   }
 });
 

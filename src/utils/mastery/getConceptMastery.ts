@@ -2,10 +2,11 @@ import type { QuizAttemptLog } from "../../types/quiz";
 import { isUsableReactionTimeMs } from "../quizStats";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 import { calculateBktMastery } from "./bkt";
-import { DEFAULT_BKT_PARAMETERS, RECENT_RESULTS_LIMIT } from "./constants";
+import { DEFAULT_BKT_PARAMETERS, DEFAULT_FREE_RESPONSE_BKT_EVIDENCE, RECENT_RESULTS_LIMIT } from "./constants";
 import type {
   BktParameters,
   ConceptMastery,
+  FreeResponseBktEvidenceParameters,
   MasteryConfidence,
   MasteryFreshness,
   MasteryState
@@ -16,6 +17,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export type GetConceptMasteryOptions = {
   now?: Date;
   parameters?: BktParameters;
+  evidenceParameters?: FreeResponseBktEvidenceParameters;
 };
 
 const confidenceFromAttemptCount = (attemptCount: number): MasteryConfidence => {
@@ -102,6 +104,7 @@ const buildMasteryFromLogs = (
 ): ConceptMastery => {
   const now = options?.now ?? new Date();
   const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
+  const evidenceParameters = options?.evidenceParameters ?? DEFAULT_FREE_RESPONSE_BKT_EVIDENCE;
 
   if (conceptLogs.length === 0) {
     return emptyMastery(conceptId, parameters, now);
@@ -112,7 +115,7 @@ const buildMasteryFromLogs = (
   const correctCount = ordered.filter((log) => log.correct).length;
   const incorrectCount = attemptCount - correctCount;
   const lastAnsweredAt = ordered[ordered.length - 1].answeredAt;
-  const masteryProbability = calculateBktMastery(ordered, parameters);
+  const masteryProbability = calculateBktMastery(ordered, parameters, evidenceParameters);
   const masteryScore = Math.round(masteryProbability * 100);
   const confidence = confidenceFromAttemptCount(attemptCount);
   const recentResults = ordered.slice(-RECENT_RESULTS_LIMIT).map((log) => log.correct);

@@ -31,6 +31,8 @@ export type LearningModelPredictor = {
   predictNextCorrectProbability(args: {
     conceptId: string;
     historyLogs: QuizAttemptLog[];
+    /** 現在予測対象になっている回答。target 自身は historyLogs に含めない。 */
+    targetLog?: QuizAttemptLog;
   }): number | null;
 };
 

@@ -24,6 +24,9 @@ const point = (overrides: Partial<ConceptMasteryPoint> = {}): ConceptMasteryPoin
   questionId: "q-1",
   questionPromptSnapshot: "○○とは何か？",
   timeMs: 4200,
+  questionType: "multiple-choice",
+  evidenceKind: "recognition",
+  observationOutcome: "correct",
   ...overrides
 });
 

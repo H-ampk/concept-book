@@ -205,6 +205,57 @@ describe("getConceptMastery", () => {
     expect(slow.masteryScore).toBe(fast.masteryScore);
     expect(slow.avgReactionTimeMs).not.toBe(fast.avgReactionTimeMs);
   });
+
+  it("multiple-choice only の masteryProbability は evidence-aware BKT と一致する", () => {
+    const logs = [
+      baseLog({
+        id: "1",
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "2",
+        questionConceptId: "c",
+        correct: false,
+        answeredAt: "2026-01-02T00:00:00.000Z"
+      })
+    ];
+    expect(getConceptMastery(logs, "c").masteryProbability).toBe(calculateBktMastery(logs));
+  });
+
+  it("mixed question type でも masteryProbability は evidence-aware calculation と一致する", () => {
+    const logs = [
+      baseLog({
+        id: "1",
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "2",
+        questionConceptId: "c",
+        questionType: "free-response",
+        correct: false,
+        selfEvaluation: "partial",
+        answeredAt: "2026-01-02T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "3",
+        questionConceptId: "c",
+        questionType: "free-response",
+        correct: true,
+        selfEvaluation: "correct",
+        answeredAt: "2026-01-03T00:00:00.000Z"
+      })
+    ];
+    const mastery = getConceptMastery(logs, "c");
+    expect(mastery.masteryProbability).toBe(calculateBktMastery(logs));
+    expect(mastery.correctCount).toBe(2);
+    expect(mastery.incorrectCount).toBe(1);
+    expect(mastery.accuracy).toBeCloseTo(2 / 3);
+    expect(mastery.recentResults).toEqual([true, false, true]);
+  });
 });
 
 describe("buildConceptMasteryMapForConceptIds", () => {

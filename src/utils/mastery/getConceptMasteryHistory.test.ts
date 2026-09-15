@@ -289,4 +289,55 @@ describe("getConceptMasteryHistory", () => {
     expect(getConceptMasteryHistory(logs, "c")[0].sessionId).toBe("session-1");
     expect(getConceptMasteryHistory([baseLog({ questionConceptId: "c" })], "c")[0].sessionId).toBeUndefined();
   });
+
+  it("mixed logs の最終 mastery が calculateBktMastery と一致し evidence metadata が入る", () => {
+    const logs = [
+      baseLog({
+        id: "mc-correct",
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "fr-partial",
+        questionConceptId: "c",
+        questionType: "free-response",
+        correct: false,
+        selfEvaluation: "partial",
+        answeredAt: "2026-01-02T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "fr-correct",
+        questionConceptId: "c",
+        questionType: "free-response",
+        correct: true,
+        selfEvaluation: "correct",
+        answeredAt: "2026-01-03T00:00:00.000Z"
+      })
+    ];
+    const history = getConceptMasteryHistory(logs, "c");
+    expect(history).toHaveLength(3);
+    expect(history.at(-1)?.masteryProbability).toBe(calculateBktMastery(logs));
+    expect(history.at(-1)?.masteryProbability).toBe(getConceptMastery(logs, "c").masteryProbability);
+
+    expect(history[0]).toMatchObject({
+      questionType: "multiple-choice",
+      evidenceKind: "recognition",
+      observationOutcome: "correct"
+    });
+    expect(history[0].selfEvaluation).toBeUndefined();
+    expect(history[1]).toMatchObject({
+      questionType: "free-response",
+      evidenceKind: "recall",
+      observationOutcome: "partial",
+      selfEvaluation: "partial",
+      correct: false
+    });
+    expect(history[2]).toMatchObject({
+      questionType: "free-response",
+      evidenceKind: "recall",
+      observationOutcome: "correct",
+      selfEvaluation: "correct"
+    });
+  });
 });

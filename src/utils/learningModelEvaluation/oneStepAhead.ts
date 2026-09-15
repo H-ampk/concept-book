@@ -113,7 +113,8 @@ export const buildOneStepAheadPredictionSeries = (
         const predicted = toValidPredictedProbability(
           predictor.predictNextCorrectProbability({
             conceptId: item.conceptId,
-            historyLogs
+            historyLogs,
+            targetLog: item.log
           })
         );
         if (predicted === null) {
