@@ -25,8 +25,8 @@ const FIXTURE_COUNTS: Record<FixtureKind, number> = {
 const REPEAT_COUNT = 8;
 
 /**
- * current main を 8 回実測し、完全一致した値。
- * 将来の微小差用に小さな tolerance を明示する（実測のばらつきは 0）。
+ * Issue #144 時点（直下中央揃え）と Issue #151 改善後の実測。
+ * 8 回評価で完全一致。将来の微小差用に小さな tolerance を明示する（実測のばらつきは 0）。
  */
 const BASELINE: Record<
   FixtureKind,
@@ -36,42 +36,42 @@ const BASELINE: Record<
     far: {
       nodeNodeOverlapCount: 0,
       labelNodeOverlapCount: 0,
-      labelLabelOverlapCount: 3,
-      totalOverlapCount: 3
+      labelLabelOverlapCount: 0,
+      totalOverlapCount: 0
     },
     medium: {
       nodeNodeOverlapCount: 0,
-      labelNodeOverlapCount: 4,
-      labelLabelOverlapCount: 5,
-      totalOverlapCount: 9
+      labelNodeOverlapCount: 0,
+      labelLabelOverlapCount: 0,
+      totalOverlapCount: 0
     }
   },
   medium: {
     far: {
       nodeNodeOverlapCount: 0,
-      labelNodeOverlapCount: 5,
-      labelLabelOverlapCount: 1,
-      totalOverlapCount: 6
+      labelNodeOverlapCount: 0,
+      labelLabelOverlapCount: 0,
+      totalOverlapCount: 0
     },
     medium: {
       nodeNodeOverlapCount: 0,
-      labelNodeOverlapCount: 9,
-      labelLabelOverlapCount: 7,
-      totalOverlapCount: 16
+      labelNodeOverlapCount: 0,
+      labelLabelOverlapCount: 0,
+      totalOverlapCount: 0
     }
   },
   initial200: {
     far: {
       nodeNodeOverlapCount: 0,
-      labelNodeOverlapCount: 33,
-      labelLabelOverlapCount: 22,
-      totalOverlapCount: 55
+      labelNodeOverlapCount: 0,
+      labelLabelOverlapCount: 0,
+      totalOverlapCount: 0
     },
     medium: {
       nodeNodeOverlapCount: 0,
-      labelNodeOverlapCount: 79,
-      labelLabelOverlapCount: 56,
-      totalOverlapCount: 135
+      labelNodeOverlapCount: 5,
+      labelLabelOverlapCount: 2,
+      totalOverlapCount: 7
     }
   }
 };
@@ -111,7 +111,7 @@ const expectWithinBaseline = (
 
 describe("concept graph overlap baseline", () => {
   it.each(["small", "medium", "initial200"] as const)(
-    "%s fixture は 8 回同値で、current main baseline を超えない",
+    "%s fixture は 8 回同値で、Issue #151 baseline を超えない",
     (kind) => {
       const samples = Array.from({ length: REPEAT_COUNT }, () => {
         const { concepts, selectedId } = createFixture(kind);

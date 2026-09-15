@@ -63,13 +63,14 @@ describe("getConceptGraphOverlapMetrics 固定座標", () => {
   });
 
   it("label-node が重なる", () => {
-    const concepts = [makeConcept("a", "AAAAAAAAAAAA"), makeConcept("b", "B")];
+    const concepts = Array.from({ length: 16 }, (_, i) => makeConcept(`n${i}`, "AAAAAAAAAAAA"));
     const metrics = getConceptGraphOverlapMetrics({
       concepts,
-      positions: [
-        { id: "a", x: 0, y: 0 },
-        { id: "b", x: 0, y: 18 }
-      ],
+      positions: concepts.map((concept, index) => ({
+        id: concept.id,
+        x: (index % 4) * 8,
+        y: Math.floor(index / 4) * 8
+      })),
       globalScale: MEDIUM_SCALE
     });
     expect(metrics.labelNodeOverlapCount).toBeGreaterThan(0);
@@ -88,16 +89,13 @@ describe("getConceptGraphOverlapMetrics 固定座標", () => {
   });
 
   it("label-label が重なる", () => {
-    const concepts = [makeConcept("a", "AAAAAAAAAAAA"), makeConcept("b", "BBBBBBBBBBBB")];
+    const concepts = Array.from({ length: 16 }, (_, i) => makeConcept(`n${i}`, "AAAAAAAAAAAA"));
     const metrics = getConceptGraphOverlapMetrics({
       concepts,
-      positions: [
-        { id: "a", x: 0, y: 0 },
-        { id: "b", x: 4, y: 0 }
-      ],
+      positions: concepts.map((concept) => ({ id: concept.id, x: 0, y: 0 })),
       globalScale: MEDIUM_SCALE
     });
-    expect(metrics.labelLabelOverlapCount).toBe(1);
+    expect(metrics.labelLabelOverlapCount).toBeGreaterThan(0);
   });
 
   it("far 長文が短縮される", () => {
@@ -157,33 +155,34 @@ describe("getConceptGraphOverlapMetrics 固定座標", () => {
 
 describe("overlap metric は悪化を検出できる", () => {
   it("同一点付近の bad layout は node-node / label-node / label-label が増える", () => {
-    const concepts = [
-      makeConcept("a", LONG_TITLE),
-      makeConcept("b", LONG_TITLE),
-      makeConcept("c", LONG_TITLE)
-    ];
+    const crowded = Array.from({ length: 16 }, (_, i) => makeConcept(`n${i}`, LONG_TITLE));
     const good = getConceptGraphOverlapMetrics({
-      concepts,
-      positions: [
-        { id: "a", x: 0, y: 0 },
-        { id: "b", x: 120, y: 0 },
-        { id: "c", x: 0, y: 120 }
-      ],
+      concepts: crowded,
+      positions: crowded.map((concept, index) => ({
+        id: concept.id,
+        x: (index % 4) * 120,
+        y: Math.floor(index / 4) * 120
+      })),
       globalScale: MEDIUM_SCALE
     });
-    const bad = getConceptGraphOverlapMetrics({
-      concepts,
-      positions: [
-        { id: "a", x: 0, y: 0 },
-        { id: "b", x: 0.4, y: 0.2 },
-        { id: "c", x: 0, y: 11 }
-      ],
+    const tight = getConceptGraphOverlapMetrics({
+      concepts: crowded,
+      positions: crowded.map((concept, index) => ({
+        id: concept.id,
+        x: (index % 4) * 8,
+        y: Math.floor(index / 4) * 8
+      })),
+      globalScale: MEDIUM_SCALE
+    });
+    const stacked = getConceptGraphOverlapMetrics({
+      concepts: crowded,
+      positions: crowded.map((concept) => ({ id: concept.id, x: 0, y: 0 })),
       globalScale: MEDIUM_SCALE
     });
 
-    expect(bad.nodeNodeOverlapCount).toBeGreaterThan(good.nodeNodeOverlapCount);
-    expect(bad.labelNodeOverlapCount).toBeGreaterThan(good.labelNodeOverlapCount);
-    expect(bad.labelLabelOverlapCount).toBeGreaterThan(good.labelLabelOverlapCount);
+    expect(stacked.nodeNodeOverlapCount).toBeGreaterThan(good.nodeNodeOverlapCount);
+    expect(tight.labelNodeOverlapCount).toBeGreaterThan(good.labelNodeOverlapCount);
+    expect(stacked.labelLabelOverlapCount).toBeGreaterThan(good.labelLabelOverlapCount);
   });
 });
 

@@ -48,9 +48,18 @@ import {
   MEDIUM_LABEL_SCALE
 } from "../utils/conceptGraphLod";
 import {
+  estimateConceptGraphLabelScreenWidth
+} from "../utils/conceptGraphOverlap";
+import {
+  getConceptGraphMetricLabelAnchor,
+  getIndependentConceptGraphLabelPlacement,
+  placeConceptGraphLabels,
+  type ConceptGraphLabelLayoutNode,
+  type ConceptGraphLabelPlacement
+} from "../utils/conceptGraphLabelPlacement";
+import {
   getConceptGraphNodeGeometry,
-  GRAPH_DOMAIN_RING_WIDTH,
-  GRAPH_LABEL_NODE_GAP
+  GRAPH_DOMAIN_RING_WIDTH
 } from "../utils/conceptGraphNodeGeometry";
 import { getConceptGraphSimulationConfig } from "../utils/conceptGraphSimulation";
 import { createConceptGraphTopologySnapshot } from "../utils/conceptGraphTopology";
@@ -257,6 +266,7 @@ export const ConceptGraphView = ({
   const visibleDirectConfusionEdgesRef = useRef<DirectConfusionEdge[]>(visibleDirectConfusionEdges);
   visibleDirectConfusionEdgesRef.current = visibleDirectConfusionEdges;
   const visibleConfusionKnnEdgesRef = useRef<ConfusionKnnEdge[]>(visibleConfusionKnnEdges);
+  const labelPlacementsRef = useRef<Map<string, ConceptGraphLabelPlacement>>(new Map());
   visibleConfusionKnnEdgesRef.current = visibleConfusionKnnEdges;
 
   const simulationConfig = useMemo(
@@ -488,6 +498,57 @@ export const ConceptGraphView = ({
           onEngineStop={handleEngineStop}
           onNodeClick={(node) => onSelectConcept((node as GraphNode).id)}
           onRenderFramePre={(context, globalScale) => {
+            const layoutNodes: ConceptGraphLabelLayoutNode[] = [];
+            for (const simNode of graphData.nodes as GraphSimNode[]) {
+              const concept = displayedConceptById.get(simNode.id);
+              if (!concept || simNode.x == null || simNode.y == null) {
+                continue;
+              }
+              const isSelected = selectedId === concept.id;
+              const quizStats = conceptQuizStatsMap?.get(concept.id);
+              const totalAttempts = quizStats?.totalAttempts ?? 0;
+              const radius = getConceptGraphNodeRadius({
+                metricMode,
+                totalAttempts,
+                isFavorite: concept.favorite
+              });
+              const geometry = getConceptGraphNodeGeometry({
+                nodeRadius: radius,
+                isSelected,
+                isFavorite: concept.favorite
+              });
+              const labelStyle = getConceptGraphLabelStyle({
+                globalScale,
+                isSelected,
+                isFavorite: concept.favorite
+              });
+              const labelText = getConceptGraphLabelText({
+                title: concept.title,
+                globalScale,
+                isSelected,
+                isFavorite: concept.favorite
+              });
+              layoutNodes.push({
+                id: concept.id,
+                nodeX: simNode.x,
+                nodeY: simNode.y,
+                visualRadius: geometry.visualRadius,
+                labelOffset: geometry.labelOffset,
+                textWidth: estimateConceptGraphLabelScreenWidth(
+                  labelText,
+                  labelStyle.screenFontSize
+                ),
+                screenFontSize: labelStyle.screenFontSize,
+                halo: getConceptGraphLabelHaloScreenWidth({
+                  isSelected,
+                  isFavorite: concept.favorite
+                }),
+                isSelected,
+                isFavorite: concept.favorite
+              });
+            }
+            labelPlacementsRef.current = placeConceptGraphLabels(layoutNodes, globalScale);
+
             const mode = confusionModeRef.current;
             if (mode === "off") {
               return;
@@ -656,22 +717,27 @@ export const ConceptGraphView = ({
               isSelected,
               isFavorite: concept.favorite
             }) / safeScale;
-            const labelX = node.x;
-            const labelY = node.y + labelOffset + GRAPH_LABEL_NODE_GAP;
+            const placement =
+              labelPlacementsRef.current.get(node.id) ??
+              getIndependentConceptGraphLabelPlacement({
+                nodeX: node.x,
+                nodeY: node.y,
+                labelOffset
+              });
 
             context.save();
             context.font = `${labelStyle.fontWeight} ${fontSize}px sans-serif`;
-            context.textAlign = "center";
-            context.textBaseline = "top";
+            context.textAlign = placement.textAlign;
+            context.textBaseline = placement.textBaseline;
             context.lineJoin = "round";
             context.miterLimit = 2;
             context.lineWidth = haloWidth;
             context.strokeStyle = LABEL_HALO_COLOR;
             context.fillStyle = "#1f2d34";
             context.globalAlpha = Math.min(1, labelStyle.opacity + 0.2);
-            context.strokeText(labelText, labelX, labelY);
+            context.strokeText(labelText, placement.x, placement.y);
             context.globalAlpha = labelStyle.opacity;
-            context.fillText(labelText, labelX, labelY);
+            context.fillText(labelText, placement.x, placement.y);
 
             if (metricMode === "attempts" || metricMode === "accuracy" || metricMode === "mastery") {
               const showMetricLabel = isSelected || globalScale >= MEDIUM_LABEL_SCALE;
@@ -683,13 +749,19 @@ export const ConceptGraphView = ({
                       ? getConceptGraphAccuracyLabel(accuracy)
                       : getConceptGraphMasteryLabel(mastery);
                 const metricFontSize = (isSelected ? 10 : 8) / safeScale;
-                const metricY = labelY + fontSize + 2 / safeScale;
+                const metricAnchor = getConceptGraphMetricLabelAnchor({
+                  placement,
+                  titleScreenFontSize: labelStyle.screenFontSize,
+                  globalScale: safeScale
+                });
                 context.font = `400 ${metricFontSize}px sans-serif`;
+                context.textAlign = metricAnchor.textAlign;
+                context.textBaseline = metricAnchor.textBaseline;
                 context.lineWidth = haloWidth;
                 context.globalAlpha = Math.min(1, labelStyle.opacity + 0.2);
-                context.strokeText(metricLabel, labelX, metricY);
+                context.strokeText(metricLabel, metricAnchor.x, metricAnchor.y);
                 context.globalAlpha = labelStyle.opacity;
-                context.fillText(metricLabel, labelX, metricY);
+                context.fillText(metricLabel, metricAnchor.x, metricAnchor.y);
               }
             }
 

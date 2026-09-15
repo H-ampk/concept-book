@@ -90,9 +90,11 @@ Harness には生成 Concept 数、filter 後 Concept 数、edge 数、seed、av
 - [ ] 2-hop へ変更する
 - [ ] 操作可能
 
-### LOD / ラベル（Issue #108）
+### LOD / ラベル（Issue #108 / #151）
 
-ラベルは間引かず、**表示中の全 Concept** に何らかのラベル文字列を描画する。遠景の通常タイトルだけ先頭 12 文字 + `…` に省略し、`strokeText` ハローで関連線と文字を分ける。ラベル背景矩形・位置分散・collision detection・leader line は使わない。
+ラベルは間引かず、**表示中の全 Concept** に何らかのラベル文字列を描画する。遠景の通常タイトルだけ先頭 12 文字 + `…` に省略し、`strokeText` ハローで関連線と文字を分ける。ラベル背景矩形・leader line は使わない。
+
+Issue #108 時点ではラベル位置分散と collision detection も使っていなかった。Issue #151 以降は、font / LOD は変えず、**決定的な外側方向 + 近傍セルのみ参照する greedy placement** で label ↔ node / label ↔ label の重なりを減らす。production の frame ごとに全 node の O(n²) pair scan は入れない。
 
 #### far (`globalScale < 0.8`)
 
@@ -179,16 +181,31 @@ CI で FPS や描画ミリ秒の固定閾値は使いません。
 - simulation が無期限に継続しない
 - 10,000 件全部描画は完了条件ではない
 
-## ノード・ラベル重なりの回帰評価（Issue #144）
+## ノード・ラベル重なりの回帰評価（Issue #144 / #151）
 
-目的は **collision avoidance の実装ではない**。current main の配置について node ↔ node / label ↔ node / label ↔ label の重なり件数を定量化し、simulation / node size / label size / LOD / force 設定などを変えたときに **明確な悪化** を Vitest で検出する。
+Issue #144 の目的は **collision avoidance の実装ではなかった**。current main の配置について node ↔ node / label ↔ node / label ↔ label の重なり件数を定量化し、simulation / node size / label size / LOD / force 設定などを変えたときに **明確な悪化** を Vitest で検出する。
+
+Issue #151 では、同じ評価器を保ったまま **label placement だけ** を変更した。font size / opacity / weight / halo / far の省略文字数は変えていない。
 
 `overlap count = 0` は要求しない。pixel-perfect な見た目再現でもない。
+
+### Issue #151 の placement
+
+描画（`ConceptGraphView`）と overlap 評価（`conceptGraphOverlap.ts`）は同じ `placeConceptGraphLabels()` を使う。
+
+採用方式:
+
+1. グラフ原点（force center）から見て **外側へ逃げる** 8 方向を preferred とする（`atan2`、決定的。`Math.random()` なし）。
+2. それでも不足するため、**固定 8 候補** を preferred から順に評価する deterministic greedy。
+3. 処理順は selected → favorite → それ以外（同一優先度は Concept ID）。
+4. 衝突判定は spatial hash（近傍セルのみ）。候補は常に置き、label を消さない。
+
+production の計算量はおおよそ `O(n × 8 × 近傍数)`。Issue #144 の O(n²) pair scan は test / evaluation 専用のまま。
 
 ### bounds の近似
 
 - ノード: production と同じ `getConceptGraphNodeGeometry()` の `visualRadius`（core + domain ring + selected/favorite outer ring）を使い、screen-space の円同士で判定する。
-- ラベル: `getConceptGraphLabelStyle` / `getConceptGraphLabelText` / `getConceptGraphLabelHaloScreenWidth` を再利用する。文字幅は Canvas `measureText()` ではなく `文字種 × screenFontSize × 固定係数`（ASCII 0.6、CJK/全角 1.0）。ハロー幅は矩形 padding に含める。
+- ラベル: `getConceptGraphLabelStyle` / `getConceptGraphLabelText` / `getConceptGraphLabelHaloScreenWidth` を再利用する。文字幅は Canvas `measureText()` ではなく `文字種 × screenFontSize × 固定係数`（ASCII 0.6、CJK/全角 1.0）。ハロー幅は矩形 padding に含める。矩形は `getConceptGraphLabelScreenBounds()` が `textAlign` / `textBaseline` に合わせて生成する。
 - 評価空間: simulation の x/y に `globalScale` を掛けた screen-space。
 
 ### overlap の定義
@@ -221,7 +238,7 @@ Vitest 内で `d3-force-3d@3.0.6`（lock と互換の devDependency）を使い�
 - `randomSource` を d3 と同じ LCG、seed = 1 に固定
 - `simulation.stop()` のあと `tick(cooldownTicks)` のみ（時間ベースの cooldown は使わない）
 
-### current main baseline（8 回実測、毎回同値）
+### Issue #144 時点の baseline（直下中央揃え、8 回実測、毎回同値）
 
 | fixture | scale | node-node | label-node | label-label |
 | --- | --- | --- | --- | --- |
@@ -231,6 +248,19 @@ Vitest 内で `d3-force-3d@3.0.6`（lock と互換の devDependency）を使い�
 | medium 50 | medium 1.0 | 0 | 9 | 7 |
 | initial200 | far 0.79 | 0 | 33 | 22 |
 | initial200 | medium 1.0 | 0 | 79 | 56 |
+
+### Issue #151 以降の baseline（label placement 変更後、8 回実測、毎回同値）
+
+| fixture | scale | node-node | label-node | label-label |
+| --- | --- | --- | --- | --- |
+| small 15 | far 0.79 | 0 | 0 | 0 |
+| small 15 | medium 1.0 | 0 | 0 | 0 |
+| medium 50 | far 0.79 | 0 | 0 | 0 |
+| medium 50 | medium 1.0 | 0 | 0 | 0 |
+| initial200 | far 0.79 | 0 | 0 | 0 |
+| initial200 | medium 1.0 | 0 | 5 | 2 |
+
+initial200 / medium は label-node 79→5、label-label 56→2。node-node は 0 のまま。
 
 8 回とも完全一致したため、実測ばらつきによる margin は不要。将来の軽微な実装差用に明示的 tolerance を小さく置く。
 

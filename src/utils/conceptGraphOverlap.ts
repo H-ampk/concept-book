@@ -6,9 +6,12 @@ import {
   getConceptGraphLabelText
 } from "./conceptGraphLod";
 import {
-  getConceptGraphNodeGeometry,
-  GRAPH_LABEL_NODE_GAP
-} from "./conceptGraphNodeGeometry";
+  getConceptGraphLabelScreenBounds,
+  placeConceptGraphLabels,
+  type ConceptGraphLabelLayoutNode,
+  type ConceptGraphLabelRect
+} from "./conceptGraphLabelPlacement";
+import { getConceptGraphNodeGeometry } from "./conceptGraphNodeGeometry";
 
 export type ConceptGraphOverlapMetrics = {
   nodeNodeOverlapCount: number;
@@ -38,13 +41,7 @@ type Circle = {
   radius: number;
 };
 
-type Rect = {
-  id: string;
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-};
+type Rect = ConceptGraphLabelRect;
 
 /** CI のフォント差を避ける決定的な文字幅係数。 */
 export const LABEL_ASCII_WIDTH_FACTOR = 0.6;
@@ -106,6 +103,7 @@ export const getConceptGraphOverlapItems = ({
   const positionById = new Map(positions.map((position) => [position.id, position]));
   const nodes: Circle[] = [];
   const labels: Rect[] = [];
+  const layoutNodes: ConceptGraphLabelLayoutNode[] = [];
 
   for (const concept of concepts) {
     const position = positionById.get(concept.id);
@@ -148,17 +146,36 @@ export const getConceptGraphOverlapItems = ({
       isFavorite: concept.favorite
     });
     const textWidth = estimateConceptGraphLabelScreenWidth(labelText, labelStyle.screenFontSize);
-    const width = textWidth + halo;
-    const height = labelStyle.screenFontSize + halo;
-    const labelTop =
-      screenY + (geometry.labelOffset + GRAPH_LABEL_NODE_GAP) * globalScale - halo / 2;
-    labels.push({
+    layoutNodes.push({
       id: concept.id,
-      left: screenX - width / 2,
-      top: labelTop,
-      right: screenX + width / 2,
-      bottom: labelTop + height
+      nodeX: position.x,
+      nodeY: position.y,
+      visualRadius: geometry.visualRadius,
+      labelOffset: geometry.labelOffset,
+      textWidth,
+      screenFontSize: labelStyle.screenFontSize,
+      halo,
+      isSelected,
+      isFavorite: concept.favorite
     });
+  }
+
+  const placements = placeConceptGraphLabels(layoutNodes, globalScale);
+  for (const layoutNode of layoutNodes) {
+    const placement = placements.get(layoutNode.id);
+    if (!placement) {
+      continue;
+    }
+    labels.push(
+      getConceptGraphLabelScreenBounds({
+        id: layoutNode.id,
+        placement,
+        textWidth: layoutNode.textWidth,
+        screenFontSize: layoutNode.screenFontSize,
+        halo: layoutNode.halo,
+        globalScale
+      })
+    );
   }
 
   return { nodes, labels };
