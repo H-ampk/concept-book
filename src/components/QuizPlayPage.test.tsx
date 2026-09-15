@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   QUIZ_DECK_SCHEMA_VERSION,
   QUIZ_QUESTION_SCHEMA_VERSION,
@@ -165,5 +165,117 @@ describe("QuizPlayPage 導入 UI 整理 (#174)", () => {
     expect(screen.getByRole("button", { name: "クイズ作成へ" })).toBeInTheDocument();
     expect(screen.getByText(/もう .* 問解く/)).toBeInTheDocument();
     assertSetupIntroHidden();
+  });
+});
+
+describe("QuizPlayPage 回答ログ保存 (#156)", () => {
+  beforeEach(() => {
+    getAllConcepts.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizDecks.mockReset();
+    getQuizAttemptLogs.mockReset();
+    saveQuizAttemptLog.mockReset();
+    setupPlayableStorage([question()], deck());
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("保存成功後に回答が確定し、feedback と結果へ進める", async () => {
+    const user = await startDeckSession();
+
+    await user.click(screen.getByRole("radio", { name: "スキナー" }));
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("正解");
+    expect(screen.getByAltText("正解時の犬イラスト")).toBeInTheDocument();
+    expect(screen.getByText("解説")).toBeInTheDocument();
+    expect(screen.getByText("定義の確認")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "結果を見る" })).toBeInTheDocument();
+    expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "結果を見る" }));
+    expect(await screen.findByRole("heading", { name: "結果" })).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+  });
+
+  it("保存失敗時は回答を確定せず、エラーを表示して再試行できる", async () => {
+    saveQuizAttemptLog.mockRejectedValueOnce(new Error("indexeddb write failed"));
+    const user = await startDeckSession();
+
+    await user.click(screen.getByRole("radio", { name: "スキナー" }));
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("回答を保存できませんでした。");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByText("定義の確認")).not.toBeInTheDocument();
+    expect(screen.queryByText("解説")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "結果を見る" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "次の問題へ" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "もう一度保存する" })).toBeEnabled();
+    expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "もう一度保存する" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("正解");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(saveQuizAttemptLog).toHaveBeenCalledTimes(2);
+
+    await user.click(screen.getByRole("button", { name: "結果を見る" }));
+    expect(await screen.findByRole("heading", { name: "結果" })).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.queryByText(/間違えた問題/)).not.toBeInTheDocument();
+  });
+
+  it("保存中は回答ボタンを無効化し、保存処理を重複実行しない", async () => {
+    let resolveSave: (() => void) | undefined;
+    saveQuizAttemptLog.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        })
+    );
+    const user = await startDeckSession();
+
+    await user.click(screen.getByRole("radio", { name: "パブロフ" }));
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    const savingButton = await screen.findByRole("button", { name: "保存中…" });
+    expect(savingButton).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "スキナー" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "パブロフ" })).toBeDisabled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "結果を見る" })).not.toBeInTheDocument();
+
+    await user.click(savingButton);
+    expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+
+    resolveSave?.();
+    expect(await screen.findByRole("status")).toHaveTextContent("不正解");
+    expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+  });
+
+  it("保存失敗後に再試行するまでスコアへ反映しない", async () => {
+    saveQuizAttemptLog.mockRejectedValueOnce(new Error("indexeddb write failed"));
+    const user = await startDeckSession();
+
+    await user.click(screen.getByRole("radio", { name: "パブロフ" }));
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    saveQuizAttemptLog.mockResolvedValueOnce(undefined);
+    await user.click(screen.getByRole("button", { name: "もう一度保存する" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("不正解");
+    await user.click(screen.getByRole("button", { name: "結果を見る" }));
+
+    expect(await screen.findByRole("heading", { name: "結果" })).toBeInTheDocument();
+    expect(screen.getByText("0%")).toBeInTheDocument();
+    expect(screen.getByText(/間違えた問題（1 問）/)).toBeInTheDocument();
   });
 });

@@ -77,6 +77,7 @@ const sortDeck = (items: QuizQuestion[]): QuizQuestion[] =>
 
 type Phase = "setup" | "play" | "results";
 type PlayAgainMode = "all" | "remaining";
+type AnswerSaveStatus = "idle" | "saving" | "error";
 
 type Props = {
   onBack: () => void;
@@ -157,6 +158,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const [index, setIndex] = useState(0);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [answerSaveStatus, setAnswerSaveStatus] = useState<AnswerSaveStatus>("idle");
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswerRecord[]>([]);
   /** クイズ集モードのときセット。自由学習では null */
@@ -169,6 +171,12 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const sessionPoolRef = useRef<QuizQuestion[]>([]);
   const sessionIdRef = useRef<string | null>(null);
   const questionTimingRef = useRef<{ startedAtIso: string; startMs: number } | null>(null);
+  const answerSaveInFlightRef = useRef(false);
+
+  const resetAnswerSaveState = () => {
+    answerSaveInFlightRef.current = false;
+    setAnswerSaveStatus("idle");
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -275,8 +283,10 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     };
   }, [phase, index, currentQuestion?.id]);
 
+  const choicesLocked = answered || answerSaveStatus === "saving";
+
   const onChoicesKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (answered || visibleChoices.length === 0) {
+    if (choicesLocked || visibleChoices.length === 0) {
       return;
     }
     const i = visibleChoices.findIndex((c) => c.id === selectedChoiceId);
@@ -299,6 +309,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setIndex(0);
     setSelectedChoiceId(null);
     setAnswered(false);
+    resetAnswerSaveState();
     setCorrectCount(0);
     setWrongAnswers([]);
     setPhase("play");
@@ -397,8 +408,11 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     beginSession(buildWithFreshStats(sessionPoolRef.current.length > 0 ? sessionPoolRef.current : playableFiltered));
   };
 
-  const submitAnswer = () => {
-    if (!selectedChoiceId || !currentQuestion || !current) {
+  const submitAnswer = async () => {
+    if (!selectedChoiceId || !currentQuestion || !current || answered) {
+      return;
+    }
+    if (answerSaveInFlightRef.current) {
       return;
     }
     const sel = current.shuffledChoices.find((c) => c.id === selectedChoiceId);
@@ -406,6 +420,8 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     if (!sel || !corr) {
       return;
     }
+    answerSaveInFlightRef.current = true;
+    setAnswerSaveStatus("saving");
 
     const endMs = Date.now();
     const timing = questionTimingRef.current;
@@ -454,12 +470,18 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
       }
     }
 
-    void storage.saveQuizAttemptLog(log).catch((err) => {
+    try {
+      await storage.saveQuizAttemptLog(log);
+    } catch (err) {
       console.warn("[QuizPlayPage] QuizAttemptLog の保存に失敗しました。", err);
-    });
-    setAttemptLogs((prev) => [...prev, log]);
+      answerSaveInFlightRef.current = false;
+      setAnswerSaveStatus("error");
+      return;
+    }
 
+    setAttemptLogs((prev) => [...prev, log]);
     setAnswered(true);
+    setAnswerSaveStatus("idle");
     if (isAnswerCorrect) {
       setCorrectCount((n) => n + 1);
     } else {
@@ -474,6 +496,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
         }
       ]);
     }
+    answerSaveInFlightRef.current = false;
   };
 
   const goNext = () => {
@@ -487,6 +510,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setIndex((i) => i + 1);
     setSelectedChoiceId(null);
     setAnswered(false);
+    resetAnswerSaveState();
   };
 
   const restart = () => {
@@ -501,6 +525,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setIndex(0);
     setSelectedChoiceId(null);
     setAnswered(false);
+    resetAnswerSaveState();
     setCorrectCount(0);
     setWrongAnswers([]);
   };
@@ -796,7 +821,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                 className="space-y-2 outline-none"
                 role="radiogroup"
                 aria-label="選択肢"
-                tabIndex={answered ? -1 : 0}
+                tabIndex={choicesLocked ? -1 : 0}
                 onKeyDown={onChoicesKeyDown}
               >
                 {visibleChoices.map((c) => {
@@ -811,8 +836,8 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                         type="button"
                         role="radio"
                         aria-checked={isSel}
-                        disabled={answered}
-                        onClick={() => !answered && setSelectedChoiceId(c.id)}
+                        disabled={choicesLocked}
+                        onClick={() => !choicesLocked && setSelectedChoiceId(c.id)}
                         className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/50 disabled:cursor-default ${
                           usesSelectedTheme ? "" : "text-celestial-textMain"
                         } ${borderCls}`}
@@ -837,14 +862,28 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
               </div>
 
               {!answered ? (
-                <button
-                  type="button"
-                  onClick={submitAnswer}
-                  disabled={!selectedChoiceId}
-                  className="action-button rounded-lg px-5 py-2.5 text-sm disabled:opacity-50"
-                >
-                  回答する
-                </button>
+                <div className="space-y-3">
+                  {answerSaveStatus === "error" ? (
+                    <p
+                      className="rounded-lg border border-amber-500/40 bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95"
+                      role="alert"
+                    >
+                      回答を保存できませんでした。保存領域の状態を確認して、もう一度お試しください。
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void submitAnswer()}
+                    disabled={!selectedChoiceId || answerSaveStatus === "saving"}
+                    className="action-button rounded-lg px-5 py-2.5 text-sm disabled:opacity-50"
+                  >
+                    {answerSaveStatus === "saving"
+                      ? "保存中…"
+                      : answerSaveStatus === "error"
+                        ? "もう一度保存する"
+                        : "回答する"}
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-3 rounded-2xl border border-celestial-border/60 bg-nordic-navy/35 p-4 backdrop-blur-sm">
                   <p
