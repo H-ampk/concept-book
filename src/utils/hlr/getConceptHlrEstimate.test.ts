@@ -644,6 +644,38 @@ describe("BKT との独立性", () => {
   });
 });
 
+describe("HLR invalid timestamp eligibility", () => {
+  it("Invalid timestamp log は counts / study day / lastAnsweredAt / 推定に影響しない", () => {
+    const valid = [
+      baseLog({
+        id: "1",
+        questionConceptId: "concept-a",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "2",
+        questionConceptId: "concept-a",
+        correct: false,
+        answeredAt: "2026-01-03T00:00:00.000Z"
+      })
+    ];
+    const withInvalid = [
+      ...valid,
+      baseLog({
+        id: "bad",
+        questionConceptId: "concept-a",
+        correct: true,
+        answeredAt: "not-a-date"
+      })
+    ];
+    const nowAt = now("2026-01-05T00:00:00.000Z");
+    expect(getConceptHlrEstimate(withInvalid, "concept-a", { now: nowAt })).toEqual(
+      getConceptHlrEstimate(valid, "concept-a", { now: nowAt })
+    );
+  });
+});
+
 describe("DEFAULT_HLR_PARAMETERS", () => {
   it("provisional な Leitner-derived baseline であり ConceptBook 推定値ではない", () => {
     expect(DEFAULT_HLR_PARAMETERS).toEqual({

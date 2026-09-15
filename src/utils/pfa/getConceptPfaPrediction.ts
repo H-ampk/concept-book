@@ -1,5 +1,9 @@
 import type { QuizAttemptLog } from "../../types/quiz";
-import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
+import {
+  groupNormalizedEventsByConceptId,
+  normalizeLearningModelEvents,
+  type NormalizedLearningModelEvent
+} from "../learningModel/normalizeQuizAttemptLogs";
 import { DEFAULT_PFA_PARAMETERS } from "./constants";
 import { calculatePfaNextCorrectProbability } from "./pfa";
 import type { PfaParameters, PfaPrediction } from "./types";
@@ -8,11 +12,13 @@ export type GetConceptPfaPredictionOptions = {
   parameters?: PfaParameters;
 };
 
-const countSuccessAndFailure = (conceptLogs: QuizAttemptLog[]): { successCount: number; failureCount: number } => {
+const countSuccessAndFailure = (
+  events: NormalizedLearningModelEvent[]
+): { successCount: number; failureCount: number } => {
   let successCount = 0;
   let failureCount = 0;
-  for (const log of conceptLogs) {
-    if (log.correct) {
+  for (const event of events) {
+    if (event.log.correct) {
       successCount += 1;
     } else {
       failureCount += 1;
@@ -21,13 +27,13 @@ const countSuccessAndFailure = (conceptLogs: QuizAttemptLog[]): { successCount: 
   return { successCount, failureCount };
 };
 
-const buildPredictionFromLogs = (
+const buildPredictionFromEvents = (
   conceptId: string,
-  conceptLogs: QuizAttemptLog[],
+  events: NormalizedLearningModelEvent[],
   options?: GetConceptPfaPredictionOptions
 ): PfaPrediction => {
   const parameters = options?.parameters ?? DEFAULT_PFA_PARAMETERS;
-  const { successCount, failureCount } = countSuccessAndFailure(conceptLogs);
+  const { successCount, failureCount } = countSuccessAndFailure(events);
   return {
     conceptId,
     nextCorrectProbability: calculatePfaNextCorrectProbability(successCount, failureCount, parameters),
@@ -38,7 +44,7 @@ const buildPredictionFromLogs = (
 
 /**
  * 指定 Concept の次回正答確率を QuizAttemptLog から導出する。
- * resolveConceptIdFromLog() で帰属する。入力配列は破壊しない。回答順には依存しない。
+ * 共通 eligible events で帰属する。入力配列は破壊しない。回答順には依存しない。
  * 対象ログが 0 件でも successCount=0 / failureCount=0 として sigmoid(intercept) を返す。
  */
 export const getConceptPfaPrediction = (
@@ -46,8 +52,8 @@ export const getConceptPfaPrediction = (
   conceptId: string,
   options?: GetConceptPfaPredictionOptions
 ): PfaPrediction => {
-  const conceptLogs = logs.filter((log) => resolveConceptIdFromLog(log) === conceptId);
-  return buildPredictionFromLogs(conceptId, conceptLogs, options);
+  const events = normalizeLearningModelEvents(logs).filter((event) => event.conceptId === conceptId);
+  return buildPredictionFromEvents(conceptId, events, options);
 };
 
 /**
@@ -58,23 +64,11 @@ export const buildConceptPfaPredictionMap = (
   logs: QuizAttemptLog[],
   options?: GetConceptPfaPredictionOptions
 ): Map<string, PfaPrediction> => {
-  const grouped = new Map<string, QuizAttemptLog[]>();
-  for (const log of logs) {
-    const conceptId = resolveConceptIdFromLog(log);
-    if (!conceptId) {
-      continue;
-    }
-    const bucket = grouped.get(conceptId);
-    if (bucket) {
-      bucket.push(log);
-    } else {
-      grouped.set(conceptId, [log]);
-    }
-  }
+  const grouped = groupNormalizedEventsByConceptId(normalizeLearningModelEvents(logs));
 
   const map = new Map<string, PfaPrediction>();
-  for (const [conceptId, conceptLogs] of grouped) {
-    map.set(conceptId, buildPredictionFromLogs(conceptId, conceptLogs, options));
+  for (const [conceptId, events] of grouped) {
+    map.set(conceptId, buildPredictionFromEvents(conceptId, events, options));
   }
   return map;
 };

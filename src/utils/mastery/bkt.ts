@@ -1,4 +1,8 @@
 import type { QuizAttemptLog, QuizQuestionType } from "../../types/quiz";
+import {
+  logsFromNormalizedSequence,
+  normalizeQuizAttemptLogSequence
+} from "../learningModel/normalizeQuizAttemptLogs";
 import { DEFAULT_BKT_PARAMETERS, DEFAULT_FREE_RESPONSE_BKT_EVIDENCE } from "./constants";
 import {
   getBktCorrectObservationLikelihood,
@@ -82,7 +86,7 @@ export const calculateBktMasteryAfterLog = (
 
 /**
  * Bayesian Knowledge Tracing により習得確率 P(L) を推定する純粋関数。
- * 入力配列は破壊しない。answeredAt 昇順で観測を処理する。
+ * 入力配列は破壊しない。Invalid Date を除外し、実時刻 timeMs ASC → id ASC で観測する。
  *
  * 四択は recognition（guess / slip）、入力式は recall（selfEvaluation の 3 状態）として観測する。
  * masteryProbability は真の理解度ではなく、回答履歴に基づく習得状態の推定値である。
@@ -94,7 +98,7 @@ export const calculateBktMastery = (
 ): number => {
   let mastery = clamp01(parameters.initialMastery);
 
-  const ordered = [...logs].sort((a, b) => a.answeredAt.localeCompare(b.answeredAt));
+  const ordered = logsFromNormalizedSequence(normalizeQuizAttemptLogSequence(logs));
 
   for (const log of ordered) {
     mastery = calculateBktMasteryAfterLog(mastery, log, parameters, evidenceParameters);

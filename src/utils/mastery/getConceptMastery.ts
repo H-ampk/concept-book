@@ -1,6 +1,10 @@
 import type { QuizAttemptLog } from "../../types/quiz";
+import {
+  groupNormalizedEventsByConceptId,
+  normalizeLearningModelEvents,
+  type NormalizedLearningModelEvent
+} from "../learningModel/normalizeQuizAttemptLogs";
 import { isUsableReactionTimeMs } from "../quizStats";
-import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 import { calculateBktMastery } from "./bkt";
 import { DEFAULT_BKT_PARAMETERS, DEFAULT_FREE_RESPONSE_BKT_EVIDENCE, RECENT_RESULTS_LIMIT } from "./constants";
 import type {
@@ -97,20 +101,20 @@ const emptyMastery = (
   };
 };
 
-const buildMasteryFromLogs = (
+const buildMasteryFromEvents = (
   conceptId: string,
-  conceptLogs: QuizAttemptLog[],
+  events: NormalizedLearningModelEvent[],
   options?: GetConceptMasteryOptions
 ): ConceptMastery => {
   const now = options?.now ?? new Date();
   const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
   const evidenceParameters = options?.evidenceParameters ?? DEFAULT_FREE_RESPONSE_BKT_EVIDENCE;
 
-  if (conceptLogs.length === 0) {
+  if (events.length === 0) {
     return emptyMastery(conceptId, parameters, now);
   }
 
-  const ordered = [...conceptLogs].sort((a, b) => a.answeredAt.localeCompare(b.answeredAt));
+  const ordered = events.map((event) => event.log);
   const attemptCount = ordered.length;
   const correctCount = ordered.filter((log) => log.correct).length;
   const incorrectCount = attemptCount - correctCount;
@@ -152,8 +156,8 @@ export const getConceptMastery = (
   conceptId: string,
   options?: GetConceptMasteryOptions
 ): ConceptMastery => {
-  const conceptLogs = logs.filter((log) => resolveConceptIdFromLog(log) === conceptId);
-  return buildMasteryFromLogs(conceptId, conceptLogs, options);
+  const events = normalizeLearningModelEvents(logs).filter((event) => event.conceptId === conceptId);
+  return buildMasteryFromEvents(conceptId, events, options);
 };
 
 /** ログに現れる Concept ごとの mastery を一括生成する。 */
@@ -161,23 +165,11 @@ export const buildConceptMasteryMap = (
   logs: QuizAttemptLog[],
   options?: GetConceptMasteryOptions
 ): Map<string, ConceptMastery> => {
-  const grouped = new Map<string, QuizAttemptLog[]>();
-  for (const log of logs) {
-    const conceptId = resolveConceptIdFromLog(log);
-    if (!conceptId) {
-      continue;
-    }
-    const bucket = grouped.get(conceptId);
-    if (bucket) {
-      bucket.push(log);
-    } else {
-      grouped.set(conceptId, [log]);
-    }
-  }
+  const grouped = groupNormalizedEventsByConceptId(normalizeLearningModelEvents(logs));
 
   const map = new Map<string, ConceptMastery>();
-  for (const [conceptId, conceptLogs] of grouped) {
-    map.set(conceptId, buildMasteryFromLogs(conceptId, conceptLogs, options));
+  for (const [conceptId, events] of grouped) {
+    map.set(conceptId, buildMasteryFromEvents(conceptId, events, options));
   }
   return map;
 };

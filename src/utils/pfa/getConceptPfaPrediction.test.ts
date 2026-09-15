@@ -377,6 +377,30 @@ describe("buildConceptPfaPredictionMap", () => {
   });
 });
 
+describe("PFA invalid timestamp eligibility", () => {
+  it("Invalid timestamp log は success / failure / nextCorrectProbability に影響しない", () => {
+    const valid = [
+      baseLog({ id: "1", questionConceptId: "concept-a", correct: true }),
+      baseLog({ id: "2", questionConceptId: "concept-a", correct: false })
+    ];
+    const withInvalid = [
+      ...valid,
+      baseLog({
+        id: "bad",
+        questionConceptId: "concept-a",
+        correct: true,
+        answeredAt: "not-a-date"
+      })
+    ];
+    expect(getConceptPfaPrediction(withInvalid, "concept-a")).toEqual(
+      getConceptPfaPrediction(valid, "concept-a")
+    );
+    expect(buildConceptPfaPredictionMap(withInvalid).get("concept-a")).toEqual(
+      getConceptPfaPrediction(valid, "concept-a")
+    );
+  });
+});
+
 describe("DEFAULT_PFA_PARAMETERS", () => {
   it("provisional な初期デフォルト値を持つ", () => {
     expect(DEFAULT_PFA_PARAMETERS).toEqual({

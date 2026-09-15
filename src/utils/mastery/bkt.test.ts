@@ -277,6 +277,48 @@ describe("evidence-aware BKT", () => {
     expect(shuffled[0].id).toBe("3");
   });
 
+  it("timezone offset が異なるログでも実時刻順に観測する", () => {
+    const laterZ = baseLog({
+      id: "later",
+      correct: false,
+      answeredAt: "2026-01-01T04:00:00.000Z"
+    });
+    const earlierOffset = baseLog({
+      id: "earlier",
+      correct: true,
+      answeredAt: "2026-01-01T12:00:00+09:00"
+    });
+    const chronological = [
+      baseLog({
+        id: "earlier-utc",
+        correct: true,
+        answeredAt: "2026-01-01T03:00:00.000Z"
+      }),
+      laterZ
+    ];
+    expect(calculateBktMastery([laterZ, earlierOffset])).toBe(calculateBktMastery(chronological));
+  });
+
+  it("同一実時刻は id 順で決定的になり入力配列順に依存しない", () => {
+    const a = baseLog({
+      id: "a",
+      correct: true,
+      answeredAt: "2026-01-01T03:00:00.000Z"
+    });
+    const b = baseLog({
+      id: "b",
+      correct: false,
+      answeredAt: "2026-01-01T12:00:00+09:00"
+    });
+    expect(calculateBktMastery([a, b])).toBe(calculateBktMastery([b, a]));
+  });
+
+  it("Invalid timestamp は観測から除外する", () => {
+    const valid = baseLog({ id: "valid", correct: true, answeredAt: "2026-01-01T00:00:00.000Z" });
+    const invalid = baseLog({ id: "invalid", correct: false, answeredAt: "not-a-date" });
+    expect(calculateBktMastery([valid, invalid])).toBe(calculateBktMastery([valid]));
+  });
+
   it("custom BktParameters を渡した場合も multiple-choice はその guess / slip を使う", () => {
     const custom: BktParameters = {
       initialMastery: 0.5,

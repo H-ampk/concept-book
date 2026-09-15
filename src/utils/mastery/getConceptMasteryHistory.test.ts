@@ -341,4 +341,60 @@ describe("getConceptMasteryHistory", () => {
       selfEvaluation: "correct"
     });
   });
+
+  it("timezone offset 混在時は timeMs → id 順になる", () => {
+    const logs = [
+      baseLog({
+        id: "c",
+        questionConceptId: "c",
+        answeredAt: "2026-01-01T04:00:00.000Z"
+      }),
+      baseLog({
+        id: "b",
+        questionConceptId: "c",
+        answeredAt: "2026-01-01T12:00:00+09:00"
+      }),
+      baseLog({
+        id: "a",
+        questionConceptId: "c",
+        answeredAt: "2026-01-01T03:00:00.000Z"
+      })
+    ];
+    expect(getConceptMasteryHistory(logs, "c").map((point) => point.quizAttemptLogId)).toEqual(["a", "b", "c"]);
+  });
+
+  it("同一 timestamp の入力配列順を逆転しても history が同じになる", () => {
+    const a = baseLog({
+      id: "a",
+      questionConceptId: "c",
+      correct: true,
+      answeredAt: "2026-01-01T03:00:00.000Z"
+    });
+    const b = baseLog({
+      id: "b",
+      questionConceptId: "c",
+      correct: false,
+      answeredAt: "2026-01-01T12:00:00+09:00"
+    });
+    expect(getConceptMasteryHistory([a, b], "c")).toEqual(getConceptMasteryHistory([b, a], "c"));
+  });
+
+  it("Invalid timestamp の point を作らない", () => {
+    const logs = [
+      baseLog({
+        id: "valid",
+        questionConceptId: "c",
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "invalid",
+        questionConceptId: "c",
+        answeredAt: "not-a-date"
+      })
+    ];
+    const history = getConceptMasteryHistory(logs, "c");
+    expect(history).toHaveLength(1);
+    expect(history[0].quizAttemptLogId).toBe("valid");
+    expect(history[0].attemptIndex).toBe(1);
+  });
 });

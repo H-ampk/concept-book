@@ -285,6 +285,51 @@ describe("buildOneStepAheadPredictionSeries", () => {
     expect(historyIdsOf(spy.predictNextCorrectProbability, 2).sort()).toEqual(["a", "b"]);
   });
 
+  it("timezone offset が同等な時刻は同じ timestamp group とし互いを history に入れない", () => {
+    const utc = baseLog({
+      id: "a",
+      questionConceptId: "concept-a",
+      answeredAt: "2026-01-01T03:00:00.000Z",
+      correct: true
+    });
+    const offset = baseLog({
+      id: "b",
+      questionConceptId: "concept-a",
+      answeredAt: "2026-01-01T12:00:00+09:00",
+      correct: false
+    });
+    const spy = createSpyPredictor("spy");
+    const points = buildOneStepAheadPredictionSeries([offset, utc], [spy]);
+    expect(points.map((point) => point.attemptId)).toEqual(["a", "b"]);
+    expect(historyIdsOf(spy.predictNextCorrectProbability, 0)).toEqual([]);
+    expect(historyIdsOf(spy.predictNextCorrectProbability, 1)).toEqual([]);
+  });
+
+  it("同一 timestamp の event は id 順になり入力逆転でも series が同じ", () => {
+    const a = baseLog({
+      id: "a",
+      questionConceptId: "concept-a",
+      answeredAt: "2026-01-01T03:00:00.000Z",
+      correct: true
+    });
+    const b = baseLog({
+      id: "b",
+      questionConceptId: "concept-a",
+      answeredAt: "2026-01-01T12:00:00+09:00",
+      correct: false
+    });
+    const predictors = [createBktLearningModelPredictor(), createPfaLearningModelPredictor()];
+    expect(buildOneStepAheadPredictionSeries([b, a], predictors)).toEqual(
+      buildOneStepAheadPredictionSeries([a, b], predictors)
+    );
+    expect(buildOneStepAheadPredictionSeries([b, a], predictors).map((point) => point.attemptId)).toEqual([
+      "a",
+      "a",
+      "b",
+      "b"
+    ]);
+  });
+
   it("不正 answeredAt を target / history に利用しない", () => {
     const validPast = baseLog({
       id: "past",

@@ -271,6 +271,83 @@ describe("getConceptMastery", () => {
     expect(mastery.accuracy).toBeCloseTo(2 / 3);
     expect(mastery.recentResults).toEqual([true, false, true]);
   });
+
+  it("Invalid timestamp log は counts / mastery に影響しない", () => {
+    const valid = [
+      baseLog({
+        id: "a",
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "2026-01-01T03:00:00.000Z"
+      }),
+      baseLog({
+        id: "b",
+        questionConceptId: "c",
+        correct: false,
+        answeredAt: "2026-01-01T12:00:00+09:00"
+      })
+    ];
+    const withInvalid = [
+      ...valid,
+      baseLog({
+        id: "bad",
+        questionConceptId: "c",
+        correct: false,
+        answeredAt: "not-a-date"
+      })
+    ];
+    const mastery = getConceptMastery(withInvalid, "c");
+    const expected = getConceptMastery(valid, "c");
+    expect(mastery.attemptCount).toBe(2);
+    expect(mastery.correctCount).toBe(1);
+    expect(mastery.incorrectCount).toBe(1);
+    expect(mastery.accuracy).toBe(expected.accuracy);
+    expect(mastery.confidence).toBe(expected.confidence);
+    expect(mastery.recentResults).toEqual(expected.recentResults);
+    expect(mastery.lastAnsweredAt).toBe(expected.lastAnsweredAt);
+    expect(mastery.masteryProbability).toBe(expected.masteryProbability);
+    expect(mastery.masteryProbability).toBe(calculateBktMastery(valid));
+  });
+
+  it("timezone offset / 同一 timestamp の順序は timeMs → id に従う", () => {
+    const a = baseLog({
+      id: "a",
+      questionConceptId: "c",
+      correct: true,
+      answeredAt: "2026-01-01T03:00:00.000Z"
+    });
+    const b = baseLog({
+      id: "b",
+      questionConceptId: "c",
+      correct: false,
+      answeredAt: "2026-01-01T12:00:00+09:00"
+    });
+    const later = baseLog({
+      id: "c",
+      questionConceptId: "c",
+      correct: true,
+      answeredAt: "2026-01-01T04:00:00.000Z"
+    });
+    const mastery = getConceptMastery([later, b, a], "c");
+    expect(mastery.recentResults).toEqual([true, false, true]);
+    expect(mastery.lastAnsweredAt).toBe("2026-01-01T04:00:00.000Z");
+    expect(getConceptMastery([a, b, later], "c")).toEqual(mastery);
+  });
+
+  it("Invalid timestamp しかない Concept は回答 0 件として扱う", () => {
+    const logs = [
+      baseLog({
+        id: "bad",
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "not-a-date"
+      })
+    ];
+    const mastery = getConceptMastery(logs, "c");
+    expect(mastery.attemptCount).toBe(0);
+    expect(mastery.state).toBe("unlearned");
+    expect(buildConceptMasteryMap(logs).size).toBe(0);
+  });
 });
 
 describe("buildConceptMasteryMapForConceptIds", () => {

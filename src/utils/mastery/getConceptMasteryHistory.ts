@@ -1,5 +1,5 @@
 import type { QuizAttemptLog } from "../../types/quiz";
-import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
+import { normalizeLearningModelEvents } from "../learningModel/normalizeQuizAttemptLogs";
 import { calculateBktMastery, calculateBktMasteryAfterEvidence } from "./bkt";
 import { DEFAULT_BKT_PARAMETERS, DEFAULT_FREE_RESPONSE_BKT_EVIDENCE } from "./constants";
 import { toConceptMasteryScore } from "./formatConceptMastery";
@@ -13,7 +13,7 @@ export type GetConceptMasteryHistoryOptions = {
 
 /**
  * 指定 Concept の BKT mastery 履歴を QuizAttemptLog から 1 回の時系列走査で再構成する。
- * resolveConceptIdFromLog() で帰属し、answeredAt 昇順で処理する。入力配列は破壊しない。
+ * 共通 learning-model event 正規化で帰属し、timeMs ASC → id ASC で処理する。入力配列は破壊しない。
  * 時間経過だけでは減衰させない。回答が存在した時点だけ点を作る。
  */
 export const getConceptMasteryHistory = (
@@ -23,14 +23,13 @@ export const getConceptMasteryHistory = (
 ): ConceptMasteryPoint[] => {
   const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
   const evidenceParameters = options?.evidenceParameters ?? DEFAULT_FREE_RESPONSE_BKT_EVIDENCE;
-  const conceptLogs = logs.filter((log) => resolveConceptIdFromLog(log) === conceptId);
-  const ordered = [...conceptLogs].sort((a, b) => a.answeredAt.localeCompare(b.answeredAt));
+  const ordered = normalizeLearningModelEvents(logs).filter((event) => event.conceptId === conceptId);
 
   let mastery = calculateBktMastery([], parameters, evidenceParameters);
   const points: ConceptMasteryPoint[] = [];
 
   for (let index = 0; index < ordered.length; index += 1) {
-    const log = ordered[index];
+    const log = ordered[index].log;
     const previousMasteryProbability = mastery;
     const previousMasteryScore = toConceptMasteryScore(previousMasteryProbability);
     const evidence = resolveBktEvidence(log, { parameters, evidenceParameters });
