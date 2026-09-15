@@ -29,6 +29,12 @@ import {
   quizPlayChoiceRadioClass,
   quizPlayChoiceUsesSelectedTheme
 } from "../utils/quizPlayChoiceAppearance";
+import { getAITextProvider, loadAISettings, type AISettings } from "../features/ai";
+import {
+  describeFreeResponseGradingAIError,
+  gradeFreeResponseWithAI,
+  type FreeResponseAIGrade
+} from "../features/ai/quizGrading";
 import { AnswerReviewPanel, type AnswerReviewItem } from "./AnswerReviewPanel";
 import { OrnamentLine } from "./common/OrnamentLine";
 
@@ -84,6 +90,7 @@ const sortDeck = (items: QuizQuestion[]): QuizQuestion[] =>
 type Phase = "setup" | "play" | "results";
 type PlayAgainMode = "all" | "remaining";
 type AnswerSaveStatus = "idle" | "saving" | "error";
+type AIGradingStatus = "idle" | "loading" | "success" | "error";
 
 type Props = {
   onBack: () => void;
@@ -181,11 +188,23 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const sessionIdRef = useRef<string | null>(null);
   const questionTimingRef = useRef<{ startedAtIso: string; startMs: number } | null>(null);
   const answerSaveInFlightRef = useRef(false);
+  const aiGradingRequestIdRef = useRef(0);
+  const [aiGradingStatus, setAIGradingStatus] = useState<AIGradingStatus>("idle");
+  const [aiGrade, setAIGrade] = useState<FreeResponseAIGrade | null>(null);
+  const [aiGradingError, setAIGradingError] = useState<string | null>(null);
+
+  const resetAIGradingState = () => {
+    aiGradingRequestIdRef.current += 1;
+    setAIGradingStatus("idle");
+    setAIGrade(null);
+    setAIGradingError(null);
+  };
 
   const resetFreeResponseState = () => {
     setFreeResponseDraft("");
     setFreeResponseRevealed(false);
     setSelfEvaluation(null);
+    resetAIGradingState();
   };
 
   const resetAnswerSaveState = () => {
@@ -258,6 +277,8 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     currentQuestion.keywords.length > 0
       ? matchFreeResponseKeywords(freeResponseDraft, currentQuestion.keywords)
       : null;
+  const aiSettingsForGrading: AISettings | null =
+    isCurrentFreeResponse && freeResponseRevealed ? loadAISettings() : null;
   const selectedChoice = current?.shuffledChoices.find((c) => c.id === selectedChoiceId) ?? null;
   const correctChoice =
     current?.shuffledChoices.find((c) => c.id === currentQuestion?.correctChoiceId) ?? null;
@@ -539,6 +560,47 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     setFreeResponseRevealed(true);
   };
 
+  const requestFreeResponseAIGrading = async () => {
+    if (
+      !currentQuestion ||
+      !isCurrentFreeResponse ||
+      !freeResponseRevealed ||
+      answered ||
+      aiGradingStatus === "loading"
+    ) {
+      return;
+    }
+    const settings = loadAISettings();
+    if (!settings.enabled) {
+      return;
+    }
+    const requestId = aiGradingRequestIdRef.current + 1;
+    aiGradingRequestIdRef.current = requestId;
+    setAIGradingStatus("loading");
+    setAIGrade(null);
+    setAIGradingError(null);
+    try {
+      const result = await gradeFreeResponseWithAI({
+        questionPrompt: currentQuestion.prompt,
+        userAnswer: freeResponseDraft.trim(),
+        referenceAnswer: (currentQuestion.referenceAnswer ?? "").trim(),
+        provider: getAITextProvider(settings)
+      });
+      if (aiGradingRequestIdRef.current !== requestId) {
+        return;
+      }
+      setAIGrade(result);
+      setAIGradingStatus("success");
+    } catch (error) {
+      if (aiGradingRequestIdRef.current !== requestId) {
+        return;
+      }
+      setAIGrade(null);
+      setAIGradingError(describeFreeResponseGradingAIError(error));
+      setAIGradingStatus("error");
+    }
+  };
+
   const submitFreeResponseSelfEvaluation = async (evaluation: QuizSelfEvaluation) => {
     if (!currentQuestion || !current || !isCurrentFreeResponse || answered || !freeResponseRevealed) {
       return;
@@ -546,6 +608,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     if (answerSaveInFlightRef.current) {
       return;
     }
+    aiGradingRequestIdRef.current += 1;
     const userAnswer = freeResponseDraft.trim();
     const reference = (currentQuestion.referenceAnswer ?? "").trim();
     if (!userAnswer) {
@@ -1023,6 +1086,83 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                           <p className="text-xs text-celestial-textSub">
                             これは自己評価の参考情報です。キーワード一致だけで正解・不正解は決まりません。
                           </p>
+                        </div>
+                      ) : null}
+                      {aiSettingsForGrading ? (
+                        <div
+                          className="space-y-2 rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-3"
+                          data-testid="ai-grading-guidance"
+                        >
+                          <p className="text-sm font-medium text-celestial-textMain">AI採点補助（任意）</p>
+                          {aiSettingsForGrading.enabled ? (
+                            <>
+                              {aiGradingStatus !== "success" ? (
+                                <>
+                                  <p className="text-sm text-celestial-textSub">
+                                    AIに、問題文・あなたの回答・模範解答を送信して意味的な一致を確認できます。
+                                  </p>
+                                  <p className="text-xs text-celestial-textSub">
+                                    実行すると、問題文・あなたの回答・模範解答を設定済みのAI
+                                    Providerへ送信します。
+                                  </p>
+                                  <p className="text-xs text-celestial-textSub">
+                                    送信先: {aiSettingsForGrading.baseUrl}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    disabled={aiGradingStatus === "loading" || answered}
+                                    onClick={() => void requestFreeResponseAIGrading()}
+                                    className="rounded-lg border border-celestial-gold/50 px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    AIに採点補助を依頼
+                                  </button>
+                                </>
+                              ) : null}
+                              {aiGradingStatus === "loading" ? (
+                                <p className="text-sm text-celestial-textSub" role="status">
+                                  AIが回答を確認中…
+                                </p>
+                              ) : null}
+                              {aiGradingStatus === "error" && aiGradingError ? (
+                                <p className="whitespace-pre-wrap text-sm text-celestial-danger" role="alert">
+                                  {aiGradingError}
+                                </p>
+                              ) : null}
+                              {aiGradingStatus === "success" && aiGrade ? (
+                                <div className="space-y-2">
+                                  <p className="text-sm font-medium text-celestial-textMain">AI採点補助</p>
+                                  <div>
+                                    <p className="mb-1 text-xs font-medium text-celestial-softGold">判定</p>
+                                    <p className="text-sm text-celestial-textMain">
+                                      {selfEvaluationLabel(aiGrade.evaluation)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="mb-1 text-xs font-medium text-celestial-softGold">理由</p>
+                                    <p className="whitespace-pre-wrap text-sm text-celestial-textMain">
+                                      {aiGrade.reason}
+                                    </p>
+                                  </div>
+                                  {!answered ? (
+                                    <button
+                                      type="button"
+                                      disabled={answerSaveStatus === "saving"}
+                                      onClick={() =>
+                                        void submitFreeResponseSelfEvaluation(aiGrade.evaluation)
+                                      }
+                                      className="rounded-lg border border-celestial-gold/50 px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 disabled:opacity-50"
+                                    >
+                                      この判定を自己評価に採用
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <p className="text-sm text-celestial-textSub">
+                              AI採点補助はAI設定が有効な場合のみ利用できます。自己評価はこのまま利用できます。
+                            </p>
+                          )}
                         </div>
                       ) : null}
                       {answerSaveStatus === "error" ? (

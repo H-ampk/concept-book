@@ -13,13 +13,15 @@ const {
   getQuizQuestions,
   getQuizDecks,
   getQuizAttemptLogs,
-  saveQuizAttemptLog
+  saveQuizAttemptLog,
+  generateAIText
 } = vi.hoisted(() => ({
   getAllConcepts: vi.fn(),
   getQuizQuestions: vi.fn(),
   getQuizDecks: vi.fn(),
   getQuizAttemptLogs: vi.fn(),
-  saveQuizAttemptLog: vi.fn()
+  saveQuizAttemptLog: vi.fn(),
+  generateAIText: vi.fn()
 }));
 
 vi.mock("../storage", () => ({
@@ -32,6 +34,15 @@ vi.mock("../storage", () => ({
   })
 }));
 
+vi.mock("../features/ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../features/ai")>();
+  return {
+    ...actual,
+    getAITextProvider: () => ({ generate: generateAIText })
+  };
+});
+
+import { AI_SETTINGS_STORAGE_KEY, DEFAULT_AI_SETTINGS } from "../features/ai";
 import { QuizPlayPage } from "./QuizPlayPage";
 
 const question = (overrides: Partial<QuizQuestion> = {}): QuizQuestion => ({
@@ -420,6 +431,248 @@ describe("QuizPlayPage free-response keyword guidance", () => {
     expect(log.selfEvaluation).toBe("partial");
     expect(log.correct).toBe(false);
     expect(log.matchedKeywords).toBeUndefined();
+  });
+});
+
+const enableAISettings = (baseUrl = "http://localhost:11434") => {
+  localStorage.setItem(
+    AI_SETTINGS_STORAGE_KEY,
+    JSON.stringify({
+      ...DEFAULT_AI_SETTINGS,
+      enabled: true,
+      baseUrl
+    })
+  );
+};
+
+const freeResponseQuestion = (overrides: Partial<QuizQuestion> = {}): QuizQuestion =>
+  question({
+    id: "q-fr-ai",
+    questionType: "free-response",
+    prompt: "教師あり学習とは何ですか？",
+    choices: [],
+    correctChoiceId: "",
+    referenceAnswer: "入力データと正解ラベルの組を用いて学習する手法",
+    ...overrides
+  });
+
+describe("QuizPlayPage free-response AI grading", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    generateAIText.mockReset();
+    getAllConcepts.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizDecks.mockReset();
+    getQuizAttemptLogs.mockReset();
+    saveQuizAttemptLog.mockReset();
+    setupPlayableStorage([freeResponseQuestion()], deck({ questionIds: ["q-fr-ai"] }));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("AI設定 disabled では Provider を呼ばず自己評価できる", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(
+      screen.getByText("AI採点補助はAI設定が有効な場合のみ利用できます。自己評価はこのまま利用できます。")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "AIに採点補助を依頼" })).not.toBeInTheDocument();
+    expect(generateAIText).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "部分的に正解" }));
+    await waitFor(() => {
+      expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+    });
+    expect(saveQuizAttemptLog.mock.calls[0]?.[0].selfEvaluation).toBe("partial");
+  });
+
+  it("回答するだけでは provider.generate を呼ばない", async () => {
+    enableAISettings();
+    generateAIText.mockResolvedValue({
+      text: JSON.stringify({ evaluation: "correct", reason: "一致" })
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(generateAIText).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "AIに採点補助を依頼" })).toBeInTheDocument();
+  });
+
+  it("request button 前に送信内容の説明を表示する", async () => {
+    enableAISettings("http://localhost:11434");
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(
+      screen.getByText(/問題文・あなたの回答・模範解答を設定済みのAI Providerへ送信します/)
+    ).toBeInTheDocument();
+    expect(screen.getByText("送信先: http://localhost:11434")).toBeInTheDocument();
+  });
+
+  it("AI依頼成功で判定と理由を表示し、自動保存しない", async () => {
+    enableAISettings();
+    generateAIText.mockResolvedValue({
+      text: JSON.stringify({
+        evaluation: "correct",
+        reason: "本質的に一致しています。"
+      })
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.click(screen.getByRole("button", { name: "AIに採点補助を依頼" }));
+
+    expect(await screen.findByText("判定")).toBeInTheDocument();
+    expect(screen.getByText("本質的に一致しています。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "この判定を自己評価に採用" })).toBeInTheDocument();
+    expect(saveQuizAttemptLog).not.toHaveBeenCalled();
+    expect(generateAIText).toHaveBeenCalledTimes(1);
+  });
+
+  it("LLM判定を採用すると selfEvaluation が保存される", async () => {
+    enableAISettings();
+    generateAIText.mockResolvedValue({
+      text: JSON.stringify({
+        evaluation: "partial",
+        reason: "重要な要素が不足しています。"
+      })
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.click(screen.getByRole("button", { name: "AIに採点補助を依頼" }));
+    await user.click(await screen.findByRole("button", { name: "この判定を自己評価に採用" }));
+
+    await waitFor(() => {
+      expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+    });
+    expect(saveQuizAttemptLog.mock.calls[0]?.[0].selfEvaluation).toBe("partial");
+    expect(saveQuizAttemptLog.mock.calls[0]?.[0].correct).toBe(false);
+    expect(saveQuizAttemptLog.mock.calls[0]?.[0].aiEvaluation).toBeUndefined();
+  });
+
+  it("LLM判定が partial でもユーザーが正解を選べる", async () => {
+    enableAISettings();
+    generateAIText.mockResolvedValue({
+      text: JSON.stringify({
+        evaluation: "partial",
+        reason: "重要な要素が不足しています。"
+      })
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.click(screen.getByRole("button", { name: "AIに採点補助を依頼" }));
+    expect(await screen.findByText("重要な要素が不足しています。")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "正解" }));
+
+    await waitFor(() => {
+      expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+    });
+    const log = saveQuizAttemptLog.mock.calls[0]?.[0];
+    expect(log.selfEvaluation).toBe("correct");
+    expect(log.correct).toBe(true);
+  });
+
+  it("error 時も自己評価ボタンが使え、保存できる", async () => {
+    enableAISettings();
+    generateAIText.mockRejectedValue(new Error("provider failed"));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.click(screen.getByRole("button", { name: "AIに採点補助を依頼" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("AI採点補助を利用できませんでした。");
+    expect(screen.getByRole("button", { name: "不正解" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "部分的に正解" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "正解" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "不正解" }));
+    await waitFor(() => {
+      expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+    });
+    expect(saveQuizAttemptLog.mock.calls[0]?.[0].selfEvaluation).toBe("incorrect");
+  });
+
+  it("keyword guidance と AI採点補助と自己評価が共存する", async () => {
+    enableAISettings();
+    setupPlayableStorage(
+      [
+        freeResponseQuestion({
+          id: "q-fr-ai-kw",
+          keywords: ["正解ラベル", "入力", "学習"]
+        })
+      ],
+      deck({ questionIds: ["q-fr-ai-kw"] })
+    );
+    generateAIText.mockResolvedValue({
+      text: JSON.stringify({ evaluation: "partial", reason: "不足があります。" })
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "入力データを使って学習する方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(screen.getByText("採点補助")).toBeInTheDocument();
+    expect(screen.getByText("AI採点補助（任意）")).toBeInTheDocument();
+    expect(screen.getByText("自己評価")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "AIに採点補助を依頼" }));
+    expect(await screen.findByText("不足があります。")).toBeInTheDocument();
+    expect(screen.getByText("採点補助")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "部分的に正解" })).toBeInTheDocument();
+  });
+
+  it("次問題へ移ると前問題の AI判定・理由・error が残らない", async () => {
+    enableAISettings();
+    setupPlayableStorage(
+      [
+        freeResponseQuestion({ id: "q-fr-1", prompt: "問題1" }),
+        freeResponseQuestion({ id: "q-fr-2", prompt: "問題2", referenceAnswer: "別の模範解答" })
+      ],
+      deck({ questionIds: ["q-fr-1", "q-fr-2"] })
+    );
+    generateAIText.mockResolvedValue({
+      text: JSON.stringify({ evaluation: "partial", reason: "前の問題の理由" })
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    expect(await screen.findByText(/問題 1 \/ 2/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("回答"), "回答1");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.click(screen.getByRole("button", { name: "AIに採点補助を依頼" }));
+    expect(await screen.findByText("前の問題の理由")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "部分的に正解" }));
+    await user.click(await screen.findByRole("button", { name: "次の問題へ" }));
+
+    expect(await screen.findByText(/問題 2 \/ 2/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("回答"), "回答2");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    expect(screen.queryByText("前の問題の理由")).not.toBeInTheDocument();
+    expect(screen.queryByText("AIが回答を確認中…")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AIに採点補助を依頼" })).toBeInTheDocument();
   });
 });
 
