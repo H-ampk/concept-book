@@ -41,7 +41,13 @@ import {
   resolvePrerequisiteIdsForUpdate
 } from "../utils/conceptPrerequisites";
 import { applyBackupExportOptions } from "./backupExport";
-import type { BackupExportData, BackupExportOptions, ConceptStorage, ContextCardStorage } from "./types";
+import type {
+  BackupExportData,
+  BackupExportOptions,
+  BackupImportOptions,
+  ConceptStorage,
+  ContextCardStorage
+} from "./types";
 
 const DB_NAME = "concept-book-db";
 const DB_VERSION = 8;
@@ -1311,7 +1317,8 @@ export class IndexedDBStorage implements ConceptStorage {
       quizAttemptLogs: QuizAttemptLog[];
       quizAttemptLogParseSkipped: number;
     },
-    mode: "replace" | "merge"
+    mode: "replace" | "merge",
+    options?: BackupImportOptions
   ): Promise<{
     importedConcepts: number;
     skippedConcepts: number;
@@ -1324,7 +1331,14 @@ export class IndexedDBStorage implements ConceptStorage {
     importedQuizAttemptLogs: number;
     skippedQuizAttemptLogs: number;
   }> {
-    const conceptResult = await this.importConcepts(data.concepts, mode);
+    const stripMediaRefs = mode === "replace" && options?.preserveMediaReferences !== true;
+    const conceptsForImport = stripMediaRefs
+      ? data.concepts.map((concept) => ({
+          ...concept,
+          media: undefined
+        }))
+      : data.concepts;
+    const conceptResult = await this.importConcepts(conceptsForImport, mode);
     const contextStorage = new ContextCardIndexedDBStorage();
     const contextCardResult = await contextStorage.importContextCards(data.contextCards, mode);
 
@@ -1341,6 +1355,12 @@ export class IndexedDBStorage implements ConceptStorage {
 
     const logResult = await this.importQuizAttemptLogs(data.quizAttemptLogs, mode);
     const skippedQuizAttemptLogs = data.quizAttemptLogParseSkipped + logResult.skipped;
+
+    if (stripMediaRefs) {
+      await withTransaction([STORE_MEDIA], "readwrite", async (getStore) => {
+        await requestToPromise(getStore(STORE_MEDIA).clear());
+      });
+    }
 
     return {
       importedConcepts: conceptResult.imported,
@@ -1588,7 +1608,8 @@ export class IndexedDBStorage implements ConceptStorage {
         quizAttemptLogs: validation.quizAttemptLogs,
         quizAttemptLogParseSkipped: validation.quizAttemptLogParseSkipped
       },
-      mode
+      mode,
+      { preserveMediaReferences: true }
     );
 
     let importedMedia = 0;

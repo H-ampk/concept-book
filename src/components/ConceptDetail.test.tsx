@@ -76,6 +76,26 @@ describe("ConceptDetail (#22)", () => {
     await userEvent.click(screen.getByRole("button", { name: "この概念を分析" }));
     expect(onOpen).toHaveBeenCalledWith("c1");
   });
+
+  it("blob が無い media は読み込み後に欠落表示になり、読み込み中のまま残らない", async () => {
+    render(
+      <ConceptDetail
+        {...baseProps}
+        concept={concept({
+          media: [
+            {
+              id: "media_missing",
+              kind: "image",
+              fileName: "missing.png",
+              sortOrder: 0
+            }
+          ]
+        })}
+      />
+    );
+    expect(await screen.findByText("メディア本体が見つかりません。")).toBeInTheDocument();
+    expect(screen.queryByText("読み込み中…")).not.toBeInTheDocument();
+  });
 });
 
 describe("ConceptDetail mastery history (#57)", () => {

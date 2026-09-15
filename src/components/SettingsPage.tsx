@@ -291,6 +291,8 @@ export const SettingsPage = ({
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">JSONインポート</h3>
         <p className="mb-2 text-xs text-celestial-textSub">
           信頼できるバックアップファイルのみを取り込んでください。内容検証は最小限です。
+          JSONには画像・動画本体は含まれません。replace では既存の添付メディア本体と JSON
+          内のメディア参照は復元されません。メディアを含めて復元する場合は ZIP を利用してください。
         </p>
         <label className="mb-2 block text-sm text-celestial-textMain">
           取り込みモード

@@ -54,8 +54,14 @@ type Props = {
   onOpenGraphAnalysis?: (conceptId: string) => void;
 };
 
+type MediaLoadState =
+  | { status: "loading" }
+  | { status: "ready"; url: string }
+  | { status: "missing" }
+  | { status: "error" };
+
 const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
-  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [loadStates, setLoadStates] = useState<Record<string, MediaLoadState>>({});
   const revokeRef = useRef<string[]>([]);
   const idKey = useMemo(
     () =>
@@ -70,20 +76,37 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
     revokeRef.current.forEach((u) => URL.revokeObjectURL(u));
     revokeRef.current = [];
     let cancelled = false;
+    const sorted = [...(concept.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+    const initial: Record<string, MediaLoadState> = {};
+    for (const ref of sorted) {
+      initial[ref.id] = { status: "loading" };
+    }
+    setLoadStates(initial);
+
     const load = async () => {
-      const next: Record<string, string> = {};
-      const sorted = [...(concept.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+      const next: Record<string, MediaLoadState> = {};
       for (const ref of sorted) {
-        const blob = await storage.getMediaBlob(ref.id);
-        if (cancelled || !blob) {
-          continue;
+        try {
+          const blob = await storage.getMediaBlob(ref.id);
+          if (cancelled) {
+            return;
+          }
+          if (!blob) {
+            next[ref.id] = { status: "missing" };
+            continue;
+          }
+          const u = URL.createObjectURL(blob);
+          revokeRef.current.push(u);
+          next[ref.id] = { status: "ready", url: u };
+        } catch {
+          if (cancelled) {
+            return;
+          }
+          next[ref.id] = { status: "error" };
         }
-        const u = URL.createObjectURL(blob);
-        revokeRef.current.push(u);
-        next[ref.id] = u;
       }
       if (!cancelled) {
-        setUrls(next);
+        setLoadStates(next);
       }
     };
     void load();
@@ -103,19 +126,26 @@ const ConceptMediaGallery = ({ concept }: { concept: Concept }) => {
     <div className="space-y-2">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-nordic-textMuted">添付メディア</h3>
       <ul className="space-y-3">
-        {sorted.map((ref) => (
+        {sorted.map((ref) => {
+          const state = loadStates[ref.id] ?? { status: "loading" as const };
+          return (
             <li key={ref.id} className="detail-media-item">
             {ref.caption && <p className="mb-1 text-xs text-nordic-textSecondary">{ref.caption}</p>}
             <p className="mb-1 text-xs text-nordic-textMuted">{ref.fileName}</p>
-            {ref.kind === "image" && urls[ref.id] ? (
-              <img src={urls[ref.id]} alt={ref.caption ?? ref.fileName} className="max-h-64 w-full rounded object-contain" />
-            ) : ref.kind === "video" && urls[ref.id] ? (
-              <video src={urls[ref.id]} controls className="max-h-72 w-full rounded bg-black" playsInline />
+            {state.status === "ready" && ref.kind === "image" ? (
+              <img src={state.url} alt={ref.caption ?? ref.fileName} className="max-h-64 w-full rounded object-contain" />
+            ) : state.status === "ready" && ref.kind === "video" ? (
+              <video src={state.url} controls className="max-h-72 w-full rounded bg-black" playsInline />
+            ) : state.status === "missing" ? (
+              <p className="text-xs text-nordic-textMuted">メディア本体が見つかりません。</p>
+            ) : state.status === "error" ? (
+              <p className="text-xs text-nordic-textMuted">メディアを読み込めませんでした。</p>
             ) : (
               <p className="text-xs text-nordic-textMuted">読み込み中…</p>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

@@ -17,6 +17,14 @@ export type BackupExportOptions = {
   includeQuizAttemptLogs?: boolean;
 };
 
+/**
+ * JSON backup import 向け。ZIP package から内部呼び出しするときは
+ * preserveMediaReferences: true を明示し、Concept の media 参照を残す。
+ */
+export type BackupImportOptions = {
+  preserveMediaReferences?: boolean;
+};
+
 // Security note for future sync backends:
 // - Keep this interface storage-agnostic so UI never talks directly to remote APIs.
 // - When adding cloud sync, enforce auth + transport encryption (HTTPS/TLS) at implementation level.
@@ -53,7 +61,8 @@ export type ConceptStorage = {
       quizAttemptLogs: QuizAttemptLog[];
       quizAttemptLogParseSkipped: number;
     },
-    mode: "replace" | "merge"
+    mode: "replace" | "merge",
+    options?: BackupImportOptions
   ) => Promise<{
     importedConcepts: number;
     skippedConcepts: number;
