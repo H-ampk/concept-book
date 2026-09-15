@@ -192,7 +192,8 @@ describe("JSON backup round-trip QuizQuestion.source", () => {
           contextCards: [] as ContextCard[],
           quizQuestions: [original],
           quizDecks: [],
-          quizAttemptLogs: []
+          quizAttemptLogs: [],
+          researchReports: []
         } satisfies BackupExportData)
       )
     ) as unknown;

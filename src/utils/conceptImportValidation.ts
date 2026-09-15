@@ -10,6 +10,7 @@ import type {
   QuizQuestionSource
 } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import type { ResearchReport } from "../types/researchReport";
 import { normalizeFreeResponseKeywords } from "./quiz/freeResponseKeywordMatch";
 import {
   isValidImportedQuizAttemptLog,
@@ -551,6 +552,138 @@ export const normalizeQuizQuestionsForBackupImport = (
   return { questions, skipped };
 };
 
+const dataLabCorrectnessSchema = z.enum(["all", "correct", "incorrect"]);
+const dataLabGroupBySchema = z.enum(["concept", "domain", "deck", "day", "week", "month"]);
+const dataLabMetricSchema = z.enum([
+  "attemptCount",
+  "correctCount",
+  "incorrectCount",
+  "accuracy",
+  "mastery",
+  "pfaNextCorrectProbability",
+  "hlrRetentionProbability",
+  "hlrHalfLifeDays",
+  "hlrElapsedDays",
+  "averageResponseTimeMs"
+]);
+const dataLabDisplayModeSchema = z.enum(["table", "line", "bar", "scatter", "histogram"]);
+const dataLabBarSortSchema = z.enum(["valueDesc", "valueAsc", "name", "original"]);
+const dataLabBarLimitSchema = z.union([z.literal(10), z.literal(20), z.literal(50), z.literal("all")]);
+
+const dataLabFiltersSchema = z
+  .object({
+    dateFrom: z.string(),
+    dateTo: z.string(),
+    conceptIds: z.array(z.string()),
+    domainTags: z.array(z.string()),
+    deckIds: z.array(z.string()),
+    correctness: dataLabCorrectnessSchema
+  })
+  .passthrough();
+
+const dataLabFilterChipSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string()
+  })
+  .passthrough();
+
+const dataLabAggregateRowSchema = z
+  .object({
+    groupBy: dataLabGroupBySchema,
+    key: z.string(),
+    label: z.string(),
+    attemptCount: z.number(),
+    correctCount: z.number(),
+    incorrectCount: z.number(),
+    accuracy: z.number().nullable(),
+    averageResponseTimeMs: z.number().nullable(),
+    firstAttemptAt: z.string().nullable(),
+    lastAttemptAt: z.string().nullable(),
+    conceptId: z.string().nullable().optional(),
+    domainTag: z.string().nullable().optional(),
+    deckId: z.string().nullable().optional(),
+    periodStart: z.string().nullable().optional(),
+    periodEnd: z.string().nullable().optional(),
+    masteryProbability: z.number().nullable(),
+    pfaNextCorrectProbability: z.number().nullable(),
+    pfaSuccessCount: z.number().nullable(),
+    pfaFailureCount: z.number().nullable(),
+    hlrRetentionProbability: z.number().nullable(),
+    hlrHalfLifeDays: z.number().nullable(),
+    hlrElapsedDays: z.number().nullable()
+  })
+  .passthrough();
+
+const dataLabAnalysisSnapshotSchema = z
+  .object({
+    schemaVersion: z.number(),
+    createdAt: z.string().min(1),
+    source: z.literal("data-lab"),
+    filters: dataLabFiltersSchema,
+    filterChips: z.array(dataLabFilterChipSchema),
+    filterLabels: z.array(z.string()),
+    groupBy: dataLabGroupBySchema,
+    metric: dataLabMetricSchema,
+    scatterXMetric: dataLabMetricSchema.optional(),
+    scatterYMetric: dataLabMetricSchema.optional(),
+    displayMode: dataLabDisplayModeSchema,
+    barSort: dataLabBarSortSchema.optional(),
+    barLimit: dataLabBarLimitSchema.optional(),
+    sourceLogCount: z.number(),
+    rows: z.array(dataLabAggregateRowSchema),
+    totalRowCount: z.number(),
+    savedRowCount: z.number(),
+    truncated: z.boolean()
+  })
+  .passthrough();
+
+const researchReportBlockSchema = z
+  .object({
+    id: z.string().min(1),
+    type: z.literal("data-lab-analysis"),
+    snapshot: dataLabAnalysisSnapshotSchema,
+    commentary: z.string()
+  })
+  .passthrough();
+
+export const researchReportSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string(),
+    blocks: z.array(researchReportBlockSchema),
+    createdAt: z.string().min(1),
+    updatedAt: z.string().min(1)
+  })
+  .passthrough();
+
+export const normalizeResearchReportsForBackupImport = (
+  input: unknown | undefined
+): { reports: ResearchReport[]; skipped: number } => {
+  if (input === undefined) {
+    return { reports: [], skipped: 0 };
+  }
+  if (!Array.isArray(input)) {
+    return { reports: [], skipped: 0 };
+  }
+  const reports: ResearchReport[] = [];
+  let skipped = 0;
+  for (const item of input) {
+    const parsed = researchReportSchema.safeParse(item);
+    if (!parsed.success) {
+      skipped += 1;
+      continue;
+    }
+    reports.push(parsed.data as ResearchReport);
+  }
+  return { reports, skipped };
+};
+
+const backupHasResearchReportsField = (payload: unknown): boolean =>
+  payload !== null &&
+  typeof payload === "object" &&
+  Object.prototype.hasOwnProperty.call(payload, "researchReports");
+
 const backupObjectSchema = z.object({
   concepts: backupConceptArraySchema,
   contextCards: contextCardArraySchema.optional(),
@@ -565,7 +698,8 @@ const backupObjectSchema = z.object({
   quizAttemptLogs: z
     .unknown()
     .optional()
-    .transform((v) => (Array.isArray(v) ? v : undefined))
+    .transform((v) => (Array.isArray(v) ? v : undefined)),
+  researchReports: z.unknown().optional()
 });
 
 const rawConceptSchema = z
@@ -713,6 +847,9 @@ export type BackupImportValidationSuccess = {
   quizDeckParseSkipped: number;
   quizAttemptLogs: QuizAttemptLog[];
   quizAttemptLogParseSkipped: number;
+  researchReports: ResearchReport[];
+  researchReportsPresent: boolean;
+  researchReportParseSkipped: number;
   domainColors?: Record<string, string>;
 };
 
@@ -726,6 +863,16 @@ export const validateBackupImportPayload = (
     const { decks, skipped: deckSkipped } = normalizeQuizDecksForBackupImport(backupResult.data.quizDecks);
     const { logs, skipped: logSkipped } = normalizeQuizAttemptLogsForBackupImport(
       backupResult.data.quizAttemptLogs
+    );
+    const researchReportsPresent = backupHasResearchReportsField(payload);
+    if (researchReportsPresent && !Array.isArray((payload as { researchReports: unknown }).researchReports)) {
+      return {
+        success: false,
+        errorMessage: "JSON形式が不正です（researchReports: 配列である必要があります。）。"
+      };
+    }
+    const { reports, skipped: reportSkipped } = normalizeResearchReportsForBackupImport(
+      researchReportsPresent ? (payload as { researchReports: unknown }).researchReports : undefined
     );
     const domainColors = extractBackupDomainColors(payload);
     return {
@@ -744,6 +891,9 @@ export const validateBackupImportPayload = (
       quizDeckParseSkipped: deckSkipped,
       quizAttemptLogs: logs,
       quizAttemptLogParseSkipped: logSkipped,
+      researchReports: reports,
+      researchReportsPresent,
+      researchReportParseSkipped: reportSkipped,
       ...(domainColors !== undefined ? { domainColors } : {})
     };
   }
@@ -760,7 +910,10 @@ export const validateBackupImportPayload = (
       quizDecks: [],
       quizDeckParseSkipped: 0,
       quizAttemptLogs: [],
-      quizAttemptLogParseSkipped: 0
+      quizAttemptLogParseSkipped: 0,
+      researchReports: [],
+      researchReportsPresent: false,
+      researchReportParseSkipped: 0
     };
   }
   return legacyResult;

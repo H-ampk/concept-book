@@ -10,6 +10,7 @@ export type BackupExportData = {
   quizQuestions: QuizQuestion[];
   quizDecks: QuizDeck[];
   quizAttemptLogs: QuizAttemptLog[];
+  researchReports: ResearchReport[];
 };
 
 /** 省略時・true は従来どおり学習ログ全件を含む完全バックアップ */
@@ -60,6 +61,9 @@ export type ConceptStorage = {
       quizDeckParseSkipped: number;
       quizAttemptLogs: QuizAttemptLog[];
       quizAttemptLogParseSkipped: number;
+      /** フィールドなしは旧形式。空配列は新形式の0件バックアップ。 */
+      researchReports?: ResearchReport[];
+      researchReportParseSkipped?: number;
     },
     mode: "replace" | "merge",
     options?: BackupImportOptions
@@ -74,6 +78,8 @@ export type ConceptStorage = {
     skippedQuizDecks: number;
     importedQuizAttemptLogs: number;
     skippedQuizAttemptLogs: number;
+    importedResearchReports: number;
+    skippedResearchReports: number;
   }>;
   /** 画像・動画を保存し、概念の media 参照を更新する */
   addMedia: (input: {
@@ -103,6 +109,8 @@ export type ConceptStorage = {
     skippedQuizDecks: number;
     importedQuizAttemptLogs: number;
     skippedQuizAttemptLogs: number;
+    importedResearchReports: number;
+    skippedResearchReports: number;
     importedMedia: number;
     missingMedia: number;
     domainColors?: Record<string, string>;
@@ -137,7 +145,7 @@ export type ConceptStorage = {
   deleteQuizAttemptLog: (id: string) => Promise<void>;
   clearQuizAttemptLogs: () => Promise<void>;
 
-  /** 保存済み研究レポート（IndexedDB `researchReports`。バックアップ対象外） */
+  /** 保存済み研究レポート（IndexedDB `researchReports`。JSON / ZIP バックアップ対象） */
   getResearchReports: () => Promise<ResearchReport[]>;
   getResearchReport: (id: string) => Promise<ResearchReport | undefined>;
   saveResearchReport: (report: ResearchReport) => Promise<void>;

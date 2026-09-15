@@ -40,7 +40,8 @@ describe("JSON backup QuizChoice metadata", () => {
           contextCards: [] as ContextCard[],
           quizQuestions: [question],
           quizDecks: [],
-          quizAttemptLogs: []
+          quizAttemptLogs: [],
+          researchReports: []
         } satisfies BackupExportData)
       )
     ) as unknown;

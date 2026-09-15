@@ -10,13 +10,15 @@ const contextCard = { id: "cc1" } as ContextCard;
 const quizQuestion = { id: "q1" } as QuizQuestion;
 const quizDeck = { id: "d1" } as QuizDeck;
 const quizAttemptLog = { id: "log1" } as QuizAttemptLog;
+const researchReport = { id: "rr1" } as BackupExportData["researchReports"][number];
 
 const sampleData = (): BackupExportData => ({
   concepts: [concept],
   contextCards: [contextCard],
   quizQuestions: [quizQuestion],
   quizDecks: [quizDeck],
-  quizAttemptLogs: [quizAttemptLog]
+  quizAttemptLogs: [quizAttemptLog],
+  researchReports: [researchReport]
 });
 
 describe("applyBackupExportOptions / exportBackupData 相当", () => {
@@ -36,13 +38,14 @@ describe("applyBackupExportOptions / exportBackupData 相当", () => {
     expect(result.quizAttemptLogs).toEqual([]);
   });
 
-  it("学習ログ除外時も concepts / contextCards / quizQuestions / quizDecks は維持される", () => {
+  it("学習ログ除外時も concepts / contextCards / quizQuestions / quizDecks / researchReports は維持される", () => {
     const data = sampleData();
     const result = applyBackupExportOptions(data, { includeQuizAttemptLogs: false });
     expect(result.concepts).toEqual(data.concepts);
     expect(result.contextCards).toEqual(data.contextCards);
     expect(result.quizQuestions).toEqual(data.quizQuestions);
     expect(result.quizDecks).toEqual(data.quizDecks);
+    expect(result.researchReports).toEqual(data.researchReports);
   });
 
   it("AI設定キーをバックアップデータへ混ぜない", () => {
@@ -52,7 +55,8 @@ describe("applyBackupExportOptions / exportBackupData 相当", () => {
       "contextCards",
       "quizAttemptLogs",
       "quizDecks",
-      "quizQuestions"
+      "quizQuestions",
+      "researchReports"
     ]);
     expect(result).not.toHaveProperty("aiSettings");
     expect(result).not.toHaveProperty("baseUrl");

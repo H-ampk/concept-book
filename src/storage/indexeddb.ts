@@ -521,7 +521,8 @@ const REPLACE_BACKUP_STORES = [
   STORE_MEDIA,
   STORE_QUIZ_QUESTIONS,
   STORE_QUIZ_DECKS,
-  STORE_QUIZ_ATTEMPT_LOGS
+  STORE_QUIZ_ATTEMPT_LOGS,
+  STORE_RESEARCH_REPORTS
 ];
 
 const withTransaction = async <T>(
@@ -612,6 +613,8 @@ type BackupImportPayload = {
   quizDeckParseSkipped: number;
   quizAttemptLogs: QuizAttemptLog[];
   quizAttemptLogParseSkipped: number;
+  researchReports?: ResearchReport[];
+  researchReportParseSkipped?: number;
 };
 
 type BackupImportCounts = {
@@ -625,7 +628,12 @@ type BackupImportCounts = {
   skippedQuizDecks: number;
   importedQuizAttemptLogs: number;
   skippedQuizAttemptLogs: number;
+  importedResearchReports: number;
+  skippedResearchReports: number;
 };
+
+const backupHasResearchReports = (data: BackupImportPayload): data is BackupImportPayload & { researchReports: ResearchReport[] } =>
+  Array.isArray(data.researchReports);
 
 const importConceptsIntoStore = async (
   store: IDBObjectStore,
@@ -815,6 +823,44 @@ const importQuizAttemptLogsIntoStore = async (
   return { imported, skipped };
 };
 
+const importResearchReportsIntoStore = async (
+  store: IDBObjectStore,
+  reports: ResearchReport[],
+  mode: "replace" | "merge"
+): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0;
+  let skipped = 0;
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+  }
+  for (const report of reports) {
+    if (!report.id?.trim()) {
+      skipped += 1;
+      continue;
+    }
+    if (mode === "merge") {
+      const existing = (await requestToPromise(store.get(report.id))) as ResearchReport | undefined;
+      if (existing) {
+        const newer =
+          existing.updatedAt.localeCompare(report.updatedAt) >= 0 ? existing : report;
+        await requestToPromise(store.put(newer));
+        imported += 1;
+        continue;
+      }
+    }
+    await requestToPromise(store.put(report));
+    imported += 1;
+  }
+  return { imported, skipped };
+};
+
+const emptyResearchReportImportResult = (
+  data: BackupImportPayload
+): { imported: number; skipped: number } => ({
+  imported: 0,
+  skipped: data.researchReportParseSkipped ?? 0
+});
+
 const planReplaceConcepts = (concepts: Concept[]): { incoming: Concept[]; skipped: number; planned: Concept[] } => {
   const incoming: Concept[] = [];
   let skipped = 0;
@@ -841,6 +887,9 @@ const writeReplaceBackupInTransaction = async (
   await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).clear());
   await requestToPromise(getStore(STORE_QUIZ_DECKS).clear());
   await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).clear());
+  if (backupHasResearchReports(data)) {
+    await requestToPromise(getStore(STORE_RESEARCH_REPORTS).clear());
+  }
 
   const conceptResult = await importConceptsIntoStore(
     getStore(STORE_CONCEPTS),
@@ -877,6 +926,13 @@ const writeReplaceBackupInTransaction = async (
     data.quizAttemptLogs,
     "replace"
   );
+  const reportResult = backupHasResearchReports(data)
+    ? await importResearchReportsIntoStore(
+        getStore(STORE_RESEARCH_REPORTS),
+        data.researchReports,
+        "replace"
+      )
+    : emptyResearchReportImportResult(data);
 
   for (const record of mediaRecords) {
     await requestToPromise(getStore(STORE_MEDIA).put(record));
@@ -892,7 +948,11 @@ const writeReplaceBackupInTransaction = async (
     importedQuizDecks: deckResult.imported,
     skippedQuizDecks: data.quizDeckParseSkipped + deckResult.skipped,
     importedQuizAttemptLogs: logResult.imported,
-    skippedQuizAttemptLogs: data.quizAttemptLogParseSkipped + logResult.skipped
+    skippedQuizAttemptLogs: data.quizAttemptLogParseSkipped + logResult.skipped,
+    importedResearchReports: reportResult.imported,
+    skippedResearchReports:
+      (data.researchReportParseSkipped ?? 0) +
+      (backupHasResearchReports(data) ? reportResult.skipped : 0)
   };
 };
 
@@ -1537,6 +1597,7 @@ export class IndexedDBStorage implements ConceptStorage {
     const quizQuestions = await this.getQuizQuestions();
     const quizDecks = await this.getQuizDecks();
     const quizAttemptLogs = await this.getQuizAttemptLogs();
+    const researchReports = await this.getResearchReports();
 
     // Ensure contextDefinitions is present in each concept
     const conceptsWithContextDefs = concepts.map((concept) => ({
@@ -1550,7 +1611,8 @@ export class IndexedDBStorage implements ConceptStorage {
         contextCards,
         quizQuestions,
         quizDecks,
-        quizAttemptLogs
+        quizAttemptLogs,
+        researchReports
       },
       options
     );
@@ -1593,6 +1655,15 @@ export class IndexedDBStorage implements ConceptStorage {
     );
   }
 
+  private async importResearchReports(
+    reports: ResearchReport[],
+    mode: "replace" | "merge"
+  ): Promise<{ imported: number; skipped: number }> {
+    return withTransaction([STORE_RESEARCH_REPORTS], "readwrite", async (getStore) =>
+      importResearchReportsIntoStore(getStore(STORE_RESEARCH_REPORTS), reports, mode)
+    );
+  }
+
   private async replaceBackupData(
     data: BackupImportPayload,
     options: { preserveMediaReferences: boolean; mediaRecords: MediaRecord[] }
@@ -1619,6 +1690,8 @@ export class IndexedDBStorage implements ConceptStorage {
       quizDeckParseSkipped: number;
       quizAttemptLogs: QuizAttemptLog[];
       quizAttemptLogParseSkipped: number;
+      researchReports?: ResearchReport[];
+      researchReportParseSkipped?: number;
     },
     mode: "replace" | "merge",
     options?: BackupImportOptions
@@ -1649,6 +1722,11 @@ export class IndexedDBStorage implements ConceptStorage {
     const logResult = await this.importQuizAttemptLogs(data.quizAttemptLogs, mode);
     const skippedQuizAttemptLogs = data.quizAttemptLogParseSkipped + logResult.skipped;
 
+    const reportParseSkipped = data.researchReportParseSkipped ?? 0;
+    const reportResult = backupHasResearchReports(data)
+      ? await this.importResearchReports(data.researchReports, mode)
+      : { imported: 0, skipped: 0 };
+
     return {
       importedConcepts: conceptResult.imported,
       skippedConcepts: conceptResult.skipped,
@@ -1659,7 +1737,9 @@ export class IndexedDBStorage implements ConceptStorage {
       importedQuizDecks: deckResult.imported,
       skippedQuizDecks,
       importedQuizAttemptLogs: logResult.imported,
-      skippedQuizAttemptLogs
+      skippedQuizAttemptLogs,
+      importedResearchReports: reportResult.imported,
+      skippedResearchReports: reportParseSkipped + reportResult.skipped
     };
   }
 
@@ -1846,6 +1926,8 @@ export class IndexedDBStorage implements ConceptStorage {
     skippedQuizDecks: number;
     importedQuizAttemptLogs: number;
     skippedQuizAttemptLogs: number;
+    importedResearchReports: number;
+    skippedResearchReports: number;
     importedMedia: number;
     missingMedia: number;
     domainColors?: Record<string, string>;
@@ -1867,7 +1949,9 @@ export class IndexedDBStorage implements ConceptStorage {
       quizDecks: validation.quizDecks,
       quizDeckParseSkipped: validation.quizDeckParseSkipped,
       quizAttemptLogs: validation.quizAttemptLogs,
-      quizAttemptLogParseSkipped: validation.quizAttemptLogParseSkipped
+      quizAttemptLogParseSkipped: validation.quizAttemptLogParseSkipped,
+      researchReportParseSkipped: validation.researchReportParseSkipped,
+      ...(validation.researchReportsPresent ? { researchReports: validation.researchReports } : {})
     };
 
     if (mode === "replace") {
@@ -1894,7 +1978,9 @@ export class IndexedDBStorage implements ConceptStorage {
       importedQuizDecks,
       skippedQuizDecks,
       importedQuizAttemptLogs,
-      skippedQuizAttemptLogs
+      skippedQuizAttemptLogs,
+      importedResearchReports,
+      skippedResearchReports
     } = await this.importBackupData(payload, mode, { preserveMediaReferences: true });
 
     let importedMedia = 0;
@@ -1964,6 +2050,8 @@ export class IndexedDBStorage implements ConceptStorage {
       skippedQuizDecks,
       importedQuizAttemptLogs,
       skippedQuizAttemptLogs,
+      importedResearchReports,
+      skippedResearchReports,
       importedMedia,
       missingMedia,
       ...(validation.domainColors !== undefined ? { domainColors: validation.domainColors } : {})

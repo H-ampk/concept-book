@@ -135,7 +135,8 @@ describe("backup export QuizVisibility", () => {
           contextCards: [] as ContextCard[],
           quizQuestions: [question],
           quizDecks: [deck],
-          quizAttemptLogs: []
+          quizAttemptLogs: [],
+          researchReports: []
         } satisfies BackupExportData)
       )
     ) as {

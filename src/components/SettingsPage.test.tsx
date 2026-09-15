@@ -82,7 +82,8 @@ describe("SettingsPage local-first with auth states", () => {
       screen.getByText("クラウド認証はこの環境では設定されていません。ローカル機能はそのまま利用できます。")
     ).toBeInTheDocument();
     expect(screen.getByText(/入力式クイズの学習ログには、ユーザー回答と回答時点の模範解答が全文で保存されます/)).toBeInTheDocument();
-    expect(screen.getByText(/「学習ログを含める」をOFFにするとバックアップ容量を減らせます/)).toBeInTheDocument();
+    expect(screen.getByText(/旧形式バックアップに研究レポート情報がない場合、既存の保存済み研究レポートは保持されます/)).toBeInTheDocument();
+    expect(screen.getByText(/JSON \/ ZIP の双方に、概念・文脈カード・クイズ・クイズ集・保存済み研究レポートが含まれます/)).toBeInTheDocument();
     expect(screen.getByText(/入力式では回答本文・模範解答・自己評価も出力されます/)).toBeInTheDocument();
   });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { unzipSync } from "fflate";
 import { attachDomainColorsToBackup } from "./domainColors";
 import { buildConceptBookZip, parseConceptBookZip } from "./conceptBookZip";
 import { validateBackupImportPayload } from "./conceptImportValidation";
@@ -85,6 +86,27 @@ describe("conceptBookZip quizAttemptLogs", () => {
     expect(backup.quizQuestions).toEqual([{ id: "q1" }]);
     expect(backup.quizDecks).toEqual([{ id: "d1" }]);
     expect(parsed.mediaEntries.get("m1")).toEqual(new Uint8Array([9, 8, 7]));
+  });
+});
+
+describe("conceptBookZip researchReports", () => {
+  it("concepts.json に researchReports を含め、専用ファイルは作らない", () => {
+    const json = JSON.stringify({
+      concepts: [{ id: "c1", title: "概念" }],
+      contextCards: [],
+      quizQuestions: [],
+      quizDecks: [],
+      quizAttemptLogs: [],
+      researchReports: [{ id: "rr1", title: "分析" }]
+    });
+    const zipped = buildConceptBookZip(json, []);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const backup = JSON.parse(parsed.conceptsText) as { researchReports: { id: string }[] };
+    expect(backup.researchReports).toEqual([{ id: "rr1", title: "分析" }]);
+    const unzipped = unzipSync(zipped);
+    expect(Object.keys(unzipped)).toEqual(["concepts.json"]);
   });
 });
 

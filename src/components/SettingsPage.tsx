@@ -78,7 +78,7 @@ export const SettingsPage = ({
         ? `学習ログ ${data.quizAttemptLogs.length} 件をエクスポートしました。`
         : "学習ログは含めていません。";
       setMessage(
-        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）、${logPart}`
+        `${data.concepts.length} 件の概念と ${data.contextCards.length} 件の文脈カード、${data.quizQuestions.length} 件のクイズ、${data.quizDecks.length} 件のクイズ集（QuizDeck）、研究レポート ${data.researchReports.length} 件、${logPart}`
       );
     } catch {
       setMessage("エクスポートに失敗しました。");
@@ -97,7 +97,7 @@ export const SettingsPage = ({
         ? `学習ログ ${snapshot.quizAttemptLogs.length} 件を含みます。`
         : "学習ログは含めていません。";
       setMessage(
-        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件、${logPart}`
+        `概念ブック（ZIP・メディア含む）をエクスポートしました。クイズ ${snapshot.quizQuestions.length} 件、クイズ集 ${snapshot.quizDecks.length} 件、研究レポート ${snapshot.researchReports.length} 件、${logPart}`
       );
     } catch (err) {
       console.error("ZIP export failed:", err);
@@ -118,7 +118,7 @@ export const SettingsPage = ({
       await onImported();
       await loadLearningLogExportData();
       setMessage(
-        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
+        `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}）、研究レポート ${result.importedResearchReports}件（スキップ ${result.skippedResearchReports}件）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
     } catch (e) {
       const unchanged =
@@ -160,6 +160,9 @@ export const SettingsPage = ({
         quizDeckParseSkipped,
         quizAttemptLogs,
         quizAttemptLogParseSkipped,
+        researchReports,
+        researchReportsPresent,
+        researchReportParseSkipped,
         domainColors
       } = validationResult;
       const result = await storage.importBackupData(
@@ -171,7 +174,9 @@ export const SettingsPage = ({
           quizDecks,
           quizDeckParseSkipped,
           quizAttemptLogs,
-          quizAttemptLogParseSkipped
+          quizAttemptLogParseSkipped,
+          researchReportParseSkipped,
+          ...(researchReportsPresent ? { researchReports } : {})
         },
         mode
       );
@@ -179,7 +184,7 @@ export const SettingsPage = ({
       await onImported();
       await loadLearningLogExportData();
       setMessage(
-        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}件）`
+        `インポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}件）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}件）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}件）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}件）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}件）、研究レポート ${result.importedResearchReports}件（スキップ ${result.skippedResearchReports}件）`
       );
     } catch (error) {
       if (error instanceof SyntaxError) {
@@ -234,6 +239,8 @@ export const SettingsPage = ({
         <h3 className="text-sm font-semibold text-celestial-textMain">バックアップ・復元</h3>
         <p className="text-xs text-celestial-textSub">
           ConceptBookへ戻す・別端末へ移すためのバックアップです。分析用の書き出しではありません。
+          JSON / ZIP の双方に、概念・文脈カード・クイズ・クイズ集・保存済み研究レポートが含まれます。
+          旧形式バックアップに研究レポート情報がない場合、既存の保存済み研究レポートは保持されます。
         </p>
         <label className="flex items-start gap-2 text-sm text-celestial-textMain">
           <input
@@ -253,7 +260,7 @@ export const SettingsPage = ({
       <div className="rounded-lg border-2 border-celestial-border bg-celestial-panel/80 p-4">
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">パッケージ（ZIP）— 推奨・メディア付き</h3>
         <p className="mb-2 text-xs text-celestial-textSub">
-          エクスポートされる ZIP には、定義・メモ・出典・文脈カードなどの平文データと画像・動画のバイナリが含まれます。
+          エクスポートされる ZIP には、定義・メモ・出典・文脈カード・保存済み研究レポートなどの平文データと画像・動画のバイナリが含まれます。
           別PCの同アプリでインポートすると画像・動画も再現されます。
         </p>
         <div className="mb-2 flex flex-wrap gap-2">
@@ -289,7 +296,7 @@ export const SettingsPage = ({
       <div className="rounded-lg bg-nordic-surface p-4">
         <h3 className="mb-2 text-sm font-semibold text-celestial-textMain">JSONエクスポート</h3>
         <p className="mb-2 text-xs text-celestial-textSub">
-          エクスポートされる JSON には、定義・メモ・出典などの平文データと文脈カードがそのまま含まれます。
+          エクスポートされる JSON には、定義・メモ・出典などの平文データと文脈カード、保存済み研究レポートがそのまま含まれます。
           画像・動画のバイナリは含まれません（メディア付き移行はZIPを利用してください）。
           共有クラウドや公開リポジトリに置かないでください。
         </p>
