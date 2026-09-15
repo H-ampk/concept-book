@@ -3,7 +3,7 @@ import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
 import { buildCsv, localDateYmd, type CsvCellValue } from "../csv";
 import type { LearningModelPredictionPoint } from "../learningModelEvaluation/types";
 import type { DataLabAggregateRow, DataLabGroupBy } from "./aggregateDataLabLogs";
-import { getDataLabLogConceptId } from "./filterDataLabLogs";
+import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 
 export const DATA_LAB_DOMAIN_TAGS_SEPARATOR = "|";
 
@@ -106,7 +106,7 @@ export const dataLabLogToCsvCells = (
   conceptById: Map<string, Concept>,
   deckById: Map<string, QuizDeck>
 ): Record<DataLabLogCsvColumn, CsvCellValue> => {
-  const conceptId = getDataLabLogConceptId(log);
+  const conceptId = resolveConceptIdFromLog(log);
   const deckId = log.deckId?.trim() || null;
   return {
     logId: log.id,

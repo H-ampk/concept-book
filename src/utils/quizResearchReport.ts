@@ -142,7 +142,7 @@ export const generateResearchReportMarkdown = (input: ResearchReportInput): stri
   );
   lines.push(``);
   lines.push(
-    `Concept の集計は、ダッシュボードと同様に回答時点の questionConceptId を優先し、なければ conceptId を用いています（選択肢の linkedConceptId は混同分析専用です）。`
+    `Concept の集計は、ダッシュボードと同様に出題概念の conceptId を優先し、なければ回答時点の questionConceptId を用いています（選択肢の linkedConceptId は混同分析専用です）。`
   );
   lines.push(``);
 

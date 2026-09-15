@@ -187,6 +187,39 @@ describe("attachDataLabConceptLearningModelMetrics", () => {
     expect(deleted[0]?.hlrHalfLifeDays).toBeNull();
   });
 
+  it("mixed log では Data Lab 行と学習モデル map が同じ cid になり BKT/PFA/HLR が欠ける表示にならない", () => {
+    const mixed = log({
+      id: "mixed",
+      conceptId: "cid",
+      questionConceptId: "qid",
+      correct: true
+    });
+    const conceptById = new Map([
+      ["cid", concept({ id: "cid", title: "出題概念" })],
+      ["qid", concept({ id: "qid", title: "問題概念" })]
+    ]);
+    const attached = attach([mixed], "concept", conceptById);
+    expect(attached).toHaveLength(1);
+    expect(attached[0]?.key).toBe("cid");
+    expect(attached[0]?.conceptId).toBe("cid");
+    expect(attached[0]?.attemptCount).toBe(1);
+    expect(buildConceptMasteryMap([mixed]).has("cid")).toBe(true);
+    expect(buildConceptMasteryMap([mixed]).has("qid")).toBe(false);
+    expect(buildConceptPfaPredictionMap([mixed]).has("cid")).toBe(true);
+    expect(buildConceptPfaPredictionMap([mixed]).has("qid")).toBe(false);
+    expect(buildConceptHlrEstimateMap([mixed], { now }).has("cid")).toBe(true);
+    expect(buildConceptHlrEstimateMap([mixed], { now }).has("qid")).toBe(false);
+    expect(attached[0]?.masteryProbability).toBe(getConceptMastery([mixed], "cid").masteryProbability);
+    expect(attached[0]?.masteryProbability).not.toBeNull();
+    expect(attached[0]?.pfaNextCorrectProbability).toBe(
+      getConceptPfaPrediction([mixed], "cid").nextCorrectProbability
+    );
+    expect(attached[0]?.pfaNextCorrectProbability).not.toBeNull();
+    expect(attached[0]?.pfaSuccessCount).toBe(1);
+    expect(attached[0]?.hlrElapsedDays).toBe(getConceptHlrEstimate([mixed], "cid", { now }).elapsedDays);
+    expect(attached[0]?.masteryProbability).not.toBe(getConceptMastery([mixed], "qid").masteryProbability);
+  });
+
   it("Concept 以外の groupBy ではモデル指標を付けない", () => {
     const logs = [
       log({ id: "1", answeredAt: "2026-01-01T00:00:00.000Z" }),

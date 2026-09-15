@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../../types/concept";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../../types/quiz";
-import { DEFAULT_DATA_LAB_FILTERS, filterDataLabLogs, getDataLabLogConceptId, isDataLabFiltersDefault } from "./filterDataLabLogs";
+import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
+import { DEFAULT_DATA_LAB_FILTERS, filterDataLabLogs, isDataLabFiltersDefault } from "./filterDataLabLogs";
 
 const atLocal = (ymd: string, hours = 12, minutes = 0, seconds = 0, ms = 0): string => {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -37,10 +38,10 @@ const concept = (overrides: Partial<Concept> = {}): Concept => ({
 
 const ids = (rows: QuizAttemptLog[]): string[] => rows.map((row) => row.id);
 
-describe("getDataLabLogConceptId", () => {
+describe("filterDataLabLogs Concept 帰属", () => {
   it("conceptId を優先する", () => {
     expect(
-      getDataLabLogConceptId(
+      resolveConceptIdFromLog(
         log({
           conceptId: "concept-a",
           questionConceptId: "concept-b",
@@ -48,14 +49,43 @@ describe("getDataLabLogConceptId", () => {
         })
       )
     ).toBe("concept-a");
+    const mixed = log({
+      id: "mixed",
+      conceptId: "concept-a",
+      questionConceptId: "concept-b"
+    });
+    expect(
+      ids(
+        filterDataLabLogs(
+          [mixed],
+          { ...DEFAULT_DATA_LAB_FILTERS, conceptIds: ["concept-a"] },
+          new Map([
+            ["concept-a", concept({ id: "concept-a" })],
+            ["concept-b", concept({ id: "concept-b", title: "別概念" })]
+          ])
+        )
+      )
+    ).toEqual(["mixed"]);
+    expect(
+      ids(
+        filterDataLabLogs(
+          [mixed],
+          { ...DEFAULT_DATA_LAB_FILTERS, conceptIds: ["concept-b"] },
+          new Map([
+            ["concept-a", concept({ id: "concept-a" })],
+            ["concept-b", concept({ id: "concept-b", title: "別概念" })]
+          ])
+        )
+      )
+    ).toEqual([]);
   });
 
   it("conceptId がない旧ログでは questionConceptId に fallback する", () => {
-    expect(getDataLabLogConceptId(log({ questionConceptId: "concept-b" }))).toBe("concept-b");
+    expect(resolveConceptIdFromLog(log({ questionConceptId: "concept-b" }))).toBe("concept-b");
   });
 
   it("selectedLinkedConceptId だけでは分析対象 Concept にしない", () => {
-    expect(getDataLabLogConceptId(log({ selectedLinkedConceptId: "concept-c" }))).toBeNull();
+    expect(resolveConceptIdFromLog(log({ selectedLinkedConceptId: "concept-c" }))).toBeNull();
   });
 });
 

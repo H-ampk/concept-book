@@ -1,6 +1,7 @@
 import type { Concept } from "../../types/concept";
 import type { QuizAttemptLog } from "../../types/quiz";
 import { filterLogsByAnsweredDateRange } from "../quizAttemptDateFilter";
+import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 
 export type DataLabCorrectness = "all" | "correct" | "incorrect";
 
@@ -20,19 +21,6 @@ export const DEFAULT_DATA_LAB_FILTERS: DataLabFilters = {
   domainTags: [],
   deckIds: [],
   correctness: "all"
-};
-
-/** Data Lab の分析対象 Concept。`conceptId` 優先、無い旧ログは `questionConceptId`。 */
-export const getDataLabLogConceptId = (log: QuizAttemptLog): string | null => {
-  const conceptId = log.conceptId?.trim();
-  if (conceptId) {
-    return conceptId;
-  }
-  const questionConceptId = log.questionConceptId?.trim();
-  if (questionConceptId) {
-    return questionConceptId;
-  }
-  return null;
 };
 
 export const isDataLabFiltersDefault = (filters: DataLabFilters): boolean =>
@@ -93,7 +81,7 @@ export const filterDataLabLogs = (
 ): QuizAttemptLog[] => {
   const inPeriod = filterLogsByAnsweredDateRange(logs, filters.dateFrom, filters.dateTo);
   return inPeriod.filter((log) => {
-    const conceptId = getDataLabLogConceptId(log);
+    const conceptId = resolveConceptIdFromLog(log);
     return (
       matchesSelectedIds(filters.conceptIds, conceptId) &&
       matchesDomainTags(filters.domainTags, conceptId, conceptById) &&

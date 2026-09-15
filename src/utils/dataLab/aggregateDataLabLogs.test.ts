@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../../types/concept";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, QUIZ_DECK_SCHEMA_VERSION, type QuizAttemptLog, type QuizDeck } from "../../types/quiz";
-import { getDataLabLogConceptId } from "./filterDataLabLogs";
 import {
   aggregateDataLabLogs,
   DATA_LAB_CONCEPT_NONE_KEY,
@@ -164,7 +163,6 @@ describe("aggregateDataLabLogs Concept", () => {
       conceptId: "concept-a",
       questionConceptId: "concept-b"
     });
-    expect(getDataLabLogConceptId(mixed)).toBe("concept-a");
     const conceptById = new Map([
       ["concept-a", concept({ id: "concept-a", title: "A" })],
       ["concept-b", concept({ id: "concept-b", title: "B" })]
@@ -172,6 +170,8 @@ describe("aggregateDataLabLogs Concept", () => {
     const rows = aggregate([mixed], "concept", { conceptById });
     expect(rows).toHaveLength(1);
     expect(rows[0].key).toBe("concept-a");
+    expect(rows[0].conceptId).toBe("concept-a");
+    expect(rows[0].attemptCount).toBe(1);
     expect(rows[0].label).toBe("A");
   });
 });

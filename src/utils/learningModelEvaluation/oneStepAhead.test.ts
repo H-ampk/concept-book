@@ -359,7 +359,7 @@ describe("buildOneStepAheadPredictionSeries", () => {
     expect(spy.predictNextCorrectProbability).toHaveBeenCalledTimes(1);
   });
 
-  it("questionConceptId を conceptId より優先する", () => {
+  it("conceptId を questionConceptId より優先する", () => {
     const logs = [
       baseLog({
         id: "asked",
@@ -370,10 +370,28 @@ describe("buildOneStepAheadPredictionSeries", () => {
     ];
     const spy = createSpyPredictor("spy");
     const points = buildOneStepAheadPredictionSeries(logs, [spy]);
-    expect(points[0].conceptId).toBe("concept-asked");
+    expect(points[0].conceptId).toBe("concept-fallback");
     expect(spy.predictNextCorrectProbability.mock.calls[0][0]).toMatchObject({
-      conceptId: "concept-asked"
+      conceptId: "concept-fallback"
     });
+  });
+
+  it("mixed log の prediction point は cid になり qid にはならない", () => {
+    const logs = [
+      baseLog({
+        id: "mixed",
+        conceptId: "cid",
+        questionConceptId: "qid",
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      })
+    ];
+    const points = buildOneStepAheadPredictionSeries(logs, [
+      createBktLearningModelPredictor(),
+      createPfaLearningModelPredictor()
+    ]);
+    expect(points.length).toBeGreaterThan(0);
+    expect(points.every((point) => point.conceptId === "cid")).toBe(true);
+    expect(points.some((point) => point.conceptId === "qid")).toBe(false);
   });
 
   it("複数 predictor を attempt ごとに入力順で並べる", () => {

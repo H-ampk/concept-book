@@ -239,11 +239,12 @@ describe("getConceptMasteryHistory", () => {
         answeredAt: "2026-01-03T00:00:00.000Z"
       })
     ];
-    expect(resolveConceptIdFromLog(logs[0])).toBe("asked");
+    expect(resolveConceptIdFromLog(logs[0])).toBe("fallback");
     expect(resolveConceptIdFromLog(logs[1])).toBe("fallback");
     expect(resolveConceptIdFromLog(logs[2])).toBeNull();
-    expect(getConceptMasteryHistory(logs, "asked").map((point) => point.quizAttemptLogId)).toEqual(["asked"]);
+    expect(getConceptMasteryHistory(logs, "asked").map((point) => point.quizAttemptLogId)).toEqual([]);
     expect(getConceptMasteryHistory(logs, "fallback").map((point) => point.quizAttemptLogId)).toEqual([
+      "asked",
       "fallback"
     ]);
     expect(getConceptMasteryHistory(logs, "linked")).toEqual([]);

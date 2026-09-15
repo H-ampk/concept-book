@@ -145,6 +145,24 @@ describe("buildDataLabLogCsv", () => {
     expect(data).toContain("旧出題");
   });
 
+  it("conceptId と questionConceptId が異なるとき cid 側の Concept metadata を出す", () => {
+    const csv = buildDataLabLogCsv(
+      [log({ id: "mixed", conceptId: "cid", questionConceptId: "qid" })],
+      new Map([
+        ["cid", concept({ id: "cid", title: "出題概念", domainTags: ["分野cid"] })],
+        ["qid", concept({ id: "qid", title: "問題概念", domainTags: ["分野qid"] })]
+      ]),
+      new Map()
+    );
+    const data = parseCsv(csv)[1] ?? "";
+    const cells = data.split(",");
+    expect(cells[DATA_LAB_LOG_CSV_COLUMNS.indexOf("conceptId")]).toBe("cid");
+    expect(cells[DATA_LAB_LOG_CSV_COLUMNS.indexOf("conceptName")]).toBe("出題概念");
+    expect(cells[DATA_LAB_LOG_CSV_COLUMNS.indexOf("domainTags")]).toBe("分野cid");
+    expect(data).not.toContain("問題概念");
+    expect(data).not.toContain("分野qid");
+  });
+
   it("削除済み Deck は snapshot を使い、ID を失わない", () => {
     const csv = buildDataLabLogCsv(
       [log({ deckId: "gone-deck", deckTitleSnapshot: "心理学セット" })],

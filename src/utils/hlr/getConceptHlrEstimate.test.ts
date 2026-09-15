@@ -355,24 +355,47 @@ describe("getConceptHlrEstimate", () => {
       })
     ];
 
-    expect(resolveConceptIdFromLog(logs[0])).toBe("asked");
+    expect(resolveConceptIdFromLog(logs[0])).toBe("fallback");
     expect(resolveConceptIdFromLog(logs[2])).toBe("fallback");
     expect(resolveConceptIdFromLog(logs[4])).toBeNull();
 
     const asked = getConceptHlrEstimate(logs, "asked", { now: now("2026-01-03T00:00:00.000Z") });
     const fallback = getConceptHlrEstimate(logs, "fallback", { now: now("2026-01-03T00:00:00.000Z") });
-    expect(asked.attemptCount).toBe(2);
-    expect(asked.successCount).toBe(2);
-    expect(fallback.attemptCount).toBe(2);
+    expect(asked.attemptCount).toBe(0);
+    expect(fallback.attemptCount).toBe(4);
+    expect(fallback.successCount).toBe(2);
     expect(fallback.failureCount).toBe(2);
     expect(getConceptHlrEstimate(logs, "selected").attemptCount).toBe(0);
     expect(getConceptHlrEstimate(logs, "linked").attemptCount).toBe(0);
 
     const map = buildConceptHlrEstimateMap(logs);
-    expect(map.has("asked")).toBe(true);
+    expect(map.has("asked")).toBe(false);
     expect(map.has("fallback")).toBe(true);
     expect(map.has("selected")).toBe(false);
     expect(map.has("linked")).toBe(false);
+  });
+
+  it("conceptId と questionConceptId が異なる mixed log は cid の履歴として扱う", () => {
+    const logs = [
+      baseLog({
+        id: "mixed",
+        conceptId: "cid",
+        questionConceptId: "qid",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      }),
+      baseLog({
+        id: "mixed-2",
+        conceptId: "cid",
+        questionConceptId: "qid",
+        correct: true,
+        answeredAt: "2026-01-02T00:00:00.000Z"
+      })
+    ];
+    expect(getConceptHlrEstimate(logs, "cid").attemptCount).toBe(2);
+    expect(getConceptHlrEstimate(logs, "qid").attemptCount).toBe(0);
+    expect(buildConceptHlrEstimateMap(logs).has("cid")).toBe(true);
+    expect(buildConceptHlrEstimateMap(logs).has("qid")).toBe(false);
   });
 
   it("elapsed = 0 なら retention = 1、elapsed = halfLife なら retention = 0.5", () => {

@@ -132,7 +132,7 @@ describe("getConceptPfaPrediction", () => {
     expect(prediction.nextCorrectProbability).toBeLessThanOrEqual(1);
   });
 
-  it("questionConceptId が優先される", () => {
+  it("conceptId が優先される", () => {
     const logs = [
       baseLog({
         questionConceptId: "concept-q",
@@ -140,15 +140,31 @@ describe("getConceptPfaPrediction", () => {
         correct: true
       })
     ];
-    expect(getConceptPfaPrediction(logs, "concept-q").successCount).toBe(1);
-    expect(getConceptPfaPrediction(logs, "concept-fallback").successCount).toBe(0);
-    expect(getConceptPfaPrediction(logs, "concept-fallback").failureCount).toBe(0);
+    expect(getConceptPfaPrediction(logs, "concept-fallback").successCount).toBe(1);
+    expect(getConceptPfaPrediction(logs, "concept-q").successCount).toBe(0);
+    expect(getConceptPfaPrediction(logs, "concept-q").failureCount).toBe(0);
   });
 
   it("questionConceptId が無い場合 conceptId へ fallback する", () => {
     const logs = [baseLog({ conceptId: "concept-fallback", correct: true })];
     expect(getConceptPfaPrediction(logs, "concept-fallback").successCount).toBe(1);
     expect(resolveConceptIdFromLog(logs[0])).toBe("concept-fallback");
+  });
+
+  it("conceptId と questionConceptId が異なる mixed log は cid へ帰属する", () => {
+    const logs = [
+      baseLog({
+        id: "mixed",
+        conceptId: "cid",
+        questionConceptId: "qid",
+        correct: true
+      })
+    ];
+    expect(getConceptPfaPrediction(logs, "cid").successCount).toBe(1);
+    expect(getConceptPfaPrediction(logs, "qid").successCount).toBe(0);
+    expect(getConceptPfaPrediction(logs, "qid").failureCount).toBe(0);
+    expect(buildConceptPfaPredictionMap(logs).has("cid")).toBe(true);
+    expect(buildConceptPfaPredictionMap(logs).has("qid")).toBe(false);
   });
 
   it("selectedLinkedConceptId のみでは対象 Concept にしない", () => {
@@ -220,11 +236,11 @@ describe("getConceptPfaPrediction", () => {
       grouped.set(conceptId, current);
     }
 
-    expect(getConceptPfaPrediction(logs, "asked")).toMatchObject(grouped.get("asked") ?? {});
+    expect(getConceptPfaPrediction(logs, "asked")).toMatchObject(grouped.get("asked") ?? { successCount: 0, failureCount: 0 });
     expect(getConceptPfaPrediction(logs, "fallback")).toMatchObject(grouped.get("fallback") ?? {});
     expect(getConceptPfaPrediction(logs, "selected").successCount).toBe(0);
     expect(getConceptPfaPrediction(logs, "linked").successCount).toBe(0);
-    expect(buildConceptPfaPredictionMap(logs).has("asked")).toBe(true);
+    expect(buildConceptPfaPredictionMap(logs).has("asked")).toBe(false);
     expect(buildConceptPfaPredictionMap(logs).has("fallback")).toBe(true);
     expect(buildConceptPfaPredictionMap(logs).has("selected")).toBe(false);
     expect(buildConceptPfaPredictionMap(logs).has("linked")).toBe(false);

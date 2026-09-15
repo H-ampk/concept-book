@@ -61,7 +61,7 @@ P(correct) = logistic(θ − b)
 - BKT: `src/utils/mastery/`
 - PFA: `src/utils/pfa/`（#166）
 - HLR: `src/utils/hlr/`（#167）
-- Concept 帰属: `resolveConceptIdFromLog()`（`questionConceptId` → `conceptId`）
+- Concept 帰属: `resolveConceptIdFromLog()`（`conceptId` → `questionConceptId`）
 
 IRT utilities は存在せず、本調査でも作成しない。
 
@@ -88,7 +88,7 @@ IRT utilities は存在せず、本調査でも作成しない。
 
 このほか、回答時点の問題文・選択肢スナップショット、`selectedChoiceId`、`correctChoiceId`、リンク先 Concept ID、`deckTitleSnapshot`、`schemaVersion` を保持する。ログは履歴として immutable である。
 
-`resolveConceptIdFromLog()` は mastery / PFA / HLR / 概念別集計の帰属に使う。優先順は `questionConceptId` → `conceptId` であり、混同分析用の `selectedLinkedConceptId` / `correctLinkedConceptId` は使わない。
+`resolveConceptIdFromLog()` は Data Lab / mastery / PFA / HLR / 概念別集計の帰属に使う。優先順は `conceptId` → `questionConceptId` であり、混同分析用の `selectedLinkedConceptId` / `correctLinkedConceptId` は使わない。
 
 `QuizQuestion` は `id` / `conceptId` / `prompt` / `choices` / `correctChoiceId` / `visibility` / `schemaVersion` 等を持つが、difficulty・IRT parameter・ability は持たない。本調査では `QuizQuestion` schema を変更しない。
 
@@ -379,7 +379,7 @@ IRT 実装 Issue:
 - `src/utils/mastery/` は BKT による Concept mastery
 - `src/utils/pfa/` は次回正答確率（#166）
 - `src/utils/hlr/` は記憶保持推定（#167）
-- `resolveConceptIdFromLog()` は `questionConceptId` → `conceptId`
+- `resolveConceptIdFromLog()` は `conceptId` → `questionConceptId`
 - IndexedDB はローカル個人利用が基本で、複数ユーザー識別を持たない
 - #55 は IRT を問題特性として定義しつつ、導入可能性検証を #168 に委譲している
 - #170 は #168 の結論が出るまで Data Lab へ IRT を組み込まない

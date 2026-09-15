@@ -23,7 +23,7 @@ export const isUsableReactionTimeMs = (ms: number): boolean =>
 
 /**
  * Concept 別バケット ID（mastery / 正答率などの概念集計と同一ルール）。
- * questionConceptId → conceptId。混同分析用の linkedConceptId は使わない。
+ * conceptId → questionConceptId。混同分析用の linkedConceptId は使わない。
  */
 export const conceptBucketIdForLog = (log: QuizAttemptLog): string | null =>
   resolveConceptIdFromLog(log);

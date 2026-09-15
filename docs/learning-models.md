@@ -4,7 +4,7 @@
 
 ConceptBook は、学習状態を単一の「理解度」に押し込みません。複数のモデルと指標を **別責務** として扱い、加算や加重平均による総合スコアは作りません。
 
-いずれも `QuizAttemptLog` から導出する derived data です。IndexedDB には保存せず、ログとパラメータから再計算します。Concept への帰属は `resolveConceptIdFromLog()`（`questionConceptId` → `conceptId`）を使います。
+いずれも `QuizAttemptLog` から導出する derived data です。IndexedDB には保存せず、ログとパラメータから再計算します。Concept への帰属は `resolveConceptIdFromLog()`（`conceptId` → `questionConceptId`）を使います。
 
 現行の既定パラメータは初期デフォルト値であり、ConceptBook の個人データから推定した係数ではありません。
 

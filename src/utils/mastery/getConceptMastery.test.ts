@@ -23,22 +23,22 @@ const baseLog = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
 });
 
 describe("resolveConceptIdFromLog", () => {
-  it("questionConceptId を優先し、correctLinkedConceptId は使わない", () => {
+  it("conceptId を優先し、correctLinkedConceptId は使わない", () => {
     const log = baseLog({
       questionConceptId: "concept-q",
       conceptId: "concept-fallback",
       correctLinkedConceptId: "concept-correct-link",
       selectedLinkedConceptId: "concept-selected-link"
     });
-    expect(resolveConceptIdFromLog(log)).toBe("concept-q");
+    expect(resolveConceptIdFromLog(log)).toBe("concept-fallback");
   });
 
-  it("questionConceptId が無ければ conceptId へ fallback する", () => {
+  it("conceptId が無ければ questionConceptId へ fallback する", () => {
     const log = baseLog({
-      conceptId: "concept-fallback",
+      questionConceptId: "concept-q",
       correctLinkedConceptId: "concept-correct-link"
     });
-    expect(resolveConceptIdFromLog(log)).toBe("concept-fallback");
+    expect(resolveConceptIdFromLog(log)).toBe("concept-q");
   });
 
   it("selectedLinkedConceptId のみでは mastery 対象にしない", () => {
@@ -146,6 +146,21 @@ describe("getConceptMastery", () => {
   it("questionConceptId なし・conceptId ありは conceptId へ fallback する", () => {
     const logs = [baseLog({ conceptId: "fallback-id", correct: true })];
     expect(getConceptMastery(logs, "fallback-id").attemptCount).toBe(1);
+  });
+
+  it("conceptId と questionConceptId が異なるとき conceptId 側へ計上する", () => {
+    const logs = [
+      baseLog({
+        id: "mixed",
+        conceptId: "cid",
+        questionConceptId: "qid",
+        correct: true
+      })
+    ];
+    expect(getConceptMastery(logs, "cid").attemptCount).toBe(1);
+    expect(getConceptMastery(logs, "qid").attemptCount).toBe(0);
+    expect(buildConceptMasteryMap(logs).has("cid")).toBe(true);
+    expect(buildConceptMasteryMap(logs).has("qid")).toBe(false);
   });
 
   it("selectedLinkedConceptId のみのログは mastery 対象にしない", () => {

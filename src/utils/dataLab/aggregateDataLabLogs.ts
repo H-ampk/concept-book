@@ -2,7 +2,7 @@ import type { Concept } from "../../types/concept";
 import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
 import { isUsableReactionTimeMs, QUIZ_DECK_BUCKET_FREE } from "../quizStats";
 import { isoWeekKeyAndRange, lastLocalDayOfMonth, localYm, localYmd } from "./dataLabTimePeriod";
-import { getDataLabLogConceptId } from "./filterDataLabLogs";
+import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 
 export type DataLabGroupBy = "concept" | "domain" | "deck" | "day" | "week" | "month";
 
@@ -196,7 +196,7 @@ const domainKeysForLog = (
   log: QuizAttemptLog,
   conceptById: Map<string, Concept>
 ): { key: string; tag: string | null; label: string }[] => {
-  const conceptId = getDataLabLogConceptId(log);
+  const conceptId = resolveConceptIdFromLog(log);
   if (!conceptId) {
     return [{ key: DATA_LAB_DOMAIN_NONE_KEY, tag: null, label: "分野なし" }];
   }
@@ -239,7 +239,7 @@ export const aggregateDataLabLogs = ({
     }
 
     if (groupBy === "concept") {
-      const conceptId = getDataLabLogConceptId(log);
+      const conceptId = resolveConceptIdFromLog(log);
       const key = conceptId ?? DATA_LAB_CONCEPT_NONE_KEY;
       let bucket = buckets.get(key);
       if (!bucket) {
