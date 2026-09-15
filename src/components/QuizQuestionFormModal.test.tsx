@@ -421,6 +421,102 @@ describe("QuizQuestionFormModal answer-type sections", () => {
     expect(screen.queryByText("選択肢 *（2件以上）")).not.toBeInTheDocument();
   });
 
+  it("source 付き Question を編集保存しても source を保持する", async () => {
+    const user = userEvent.setup();
+    const originalSource = {
+      type: "contextualConceptCard" as const,
+      sourceId: "contextual-card-1",
+      sourceTitle: "ベイズ推論 / 医療診断",
+      fieldName: "統計"
+    };
+    const withSource: QuizQuestion = {
+      ...existingQuestion,
+      source: originalSource,
+      choices: [
+        {
+          id: "ch1",
+          text: "選択肢A",
+          displayText: "表示A",
+          sourceConceptId: "bayes",
+          contextDefinitionId: "def1",
+          sourceStrategy: "correct"
+        },
+        {
+          id: "ch2",
+          text: "選択肢B",
+          displayText: "表示B",
+          sourceConceptId: "mle",
+          contextDefinitionId: "def2",
+          sourceStrategy: "same-domain"
+        }
+      ]
+    };
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={withSource}
+        concepts={concepts}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const promptInput = screen.getByPlaceholderText("問いを入力…");
+    await user.clear(promptInput);
+    await user.type(promptInput, "編集後の問題");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.prompt).toBe("編集後の問題");
+    expect(payload.source).toEqual(originalSource);
+    expect(payload.source?.type).toBe("contextualConceptCard");
+    expect(payload.source?.sourceId).toBe("contextual-card-1");
+    expect(payload.source?.sourceTitle).toBe("ベイズ推論 / 医療診断");
+    expect(payload.source?.fieldName).toBe("統計");
+    expect(payload.choices[0]).toMatchObject({
+      displayText: "表示A",
+      sourceConceptId: "bayes",
+      contextDefinitionId: "def1",
+      sourceStrategy: "correct"
+    });
+    expect(payload.choices[1]).toMatchObject({
+      displayText: "表示B",
+      sourceConceptId: "mle",
+      contextDefinitionId: "def2",
+      sourceStrategy: "same-domain"
+    });
+  });
+
+  it("source 無し Question を編集保存しても source を付与しない", async () => {
+    const user = userEvent.setup();
+    const withoutSource: QuizQuestion = {
+      ...existingQuestion,
+      source: undefined
+    };
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={withoutSource}
+        concepts={concepts}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.source).toBeUndefined();
+    expect(payload).not.toHaveProperty("source");
+  });
+
   it("既存の四択問題を開くと choices を編集できる", () => {
     render(
       <QuizQuestionFormModal

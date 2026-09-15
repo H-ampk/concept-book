@@ -385,6 +385,9 @@ export const QuizQuestionFormModal = ({
     if (conceptId.trim()) {
       payload.conceptId = conceptId.trim();
     }
+    if (mode === "edit" && question?.source) {
+      payload.source = { ...question.source };
+    }
 
     setSubmitting(true);
     setError(null);

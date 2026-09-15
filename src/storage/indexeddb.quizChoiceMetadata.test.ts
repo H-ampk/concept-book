@@ -159,6 +159,21 @@ describe("importBackupData QuizChoice metadata", () => {
     expect(created?.choices.find((c) => c.id === "a")?.linkedConceptId).toBe("c_operant");
   });
 
+  it("saveQuizQuestion で QuizQuestion.source を保持し、source 無し問題も読める", async () => {
+    const source = {
+      type: "contextualConceptCard" as const,
+      sourceId: "contextual-card-1",
+      sourceTitle: "ベイズ推論 / 医療診断",
+      fieldName: "統計"
+    };
+    await storage.saveQuizQuestion(question({ id: "q_with_source", source }));
+    await storage.saveQuizQuestion(question({ id: "q_without_source" }));
+
+    const all = await storage.getQuizQuestions();
+    expect(all.find((q) => q.id === "q_with_source")?.source).toEqual(source);
+    expect(all.find((q) => q.id === "q_without_source")?.source).toBeUndefined();
+  });
+
   it("saveQuizQuestion でも Choice metadata を保持する", async () => {
     await storage.importConcepts(
       [concept("c_operant", { title: "オペラント条件づけ" }), concept("c_source")],
