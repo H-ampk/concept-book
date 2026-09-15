@@ -502,27 +502,47 @@ const openDb = (): Promise<IDBDatabase> =>
     request.onerror = () => reject(request.error);
   });
 
+const REPLACE_BACKUP_STORES = [
+  STORE_CONCEPTS,
+  STORE_CONTEXT_CARDS,
+  STORE_MEDIA,
+  STORE_QUIZ_QUESTIONS,
+  STORE_QUIZ_DECKS,
+  STORE_QUIZ_ATTEMPT_LOGS
+];
+
 const withTransaction = async <T>(
   storeNames: string[],
   mode: IDBTransactionMode,
   run: (getStore: (name: string) => IDBObjectStore) => Promise<T>
 ): Promise<T> => {
   const db = await openDb();
+  let tx: IDBTransaction | undefined;
   try {
-    const tx = db.transaction(storeNames, mode);
+    const activeTx = db.transaction(storeNames, mode);
+    tx = activeTx;
     const getStore = (name: string) => {
       if (!storeNames.includes(name)) {
         throw new Error(`Store ${name} is not in this transaction`);
       }
-      return tx.objectStore(name);
+      return activeTx.objectStore(name);
     };
     const result = await run(getStore);
     await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error ?? new Error("Transaction aborted"));
+      activeTx.oncomplete = () => resolve();
+      activeTx.onerror = () => reject(activeTx.error);
+      activeTx.onabort = () => reject(activeTx.error ?? new Error("Transaction aborted"));
     });
     return result;
+  } catch (error) {
+    if (tx) {
+      try {
+        tx.abort();
+      } catch {
+        // already completed or aborted
+      }
+    }
+    throw error;
   } finally {
     db.close();
   }
@@ -547,6 +567,354 @@ const persistRepairedRelatedIds = async (
     repaired.filter((concept) => changed.has(concept.id)).map((concept) => requestToPromise(store.put(concept)))
   );
   return repaired;
+};
+
+const createContextCardId = (): string =>
+  `context_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const sanitizeContextCard = (card: Partial<ContextCard>): ContextCard => {
+  const domainTags = Array.isArray(card.domainTags) ? card.domainTags.filter(Boolean) : [];
+  const fallbackDomainTags = domainTags.length > 0 ? domainTags : card.domain ? [card.domain] : [];
+  return {
+    id: card.id ?? createContextCardId(),
+    title: card.title ?? "",
+    domain: card.domain,
+    domainTags: fallbackDomainTags,
+    centralQuestion: card.centralQuestion ?? "",
+    background: card.background ?? "",
+    flow: card.flow ?? "",
+    keyConcepts: card.keyConcepts ?? "",
+    linkedConcepts: Array.isArray(card.linkedConcepts) ? card.linkedConcepts.filter(Boolean) : [],
+    createdAt: card.createdAt ?? nowIso(),
+    updatedAt: card.updatedAt ?? nowIso()
+  };
+};
+
+type BackupImportPayload = {
+  concepts: Concept[];
+  contextCards: ContextCard[];
+  quizQuestions: QuizQuestion[];
+  quizQuestionParseSkipped: number;
+  quizDecks: QuizDeck[];
+  quizDeckParseSkipped: number;
+  quizAttemptLogs: QuizAttemptLog[];
+  quizAttemptLogParseSkipped: number;
+};
+
+type BackupImportCounts = {
+  importedConcepts: number;
+  skippedConcepts: number;
+  importedContextCards: number;
+  skippedContextCards: number;
+  importedQuizQuestions: number;
+  skippedQuizQuestions: number;
+  importedQuizDecks: number;
+  skippedQuizDecks: number;
+  importedQuizAttemptLogs: number;
+  skippedQuizAttemptLogs: number;
+};
+
+const importConceptsIntoStore = async (
+  store: IDBObjectStore,
+  concepts: Concept[],
+  mode: "replace" | "merge"
+): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0;
+  let skipped = 0;
+  const incoming: Concept[] = [];
+  for (const raw of concepts) {
+    if (!raw?.id || !raw?.title) {
+      skipped += 1;
+      continue;
+    }
+    incoming.push(sanitizeConcept(raw as StoredConcept).concept);
+  }
+
+  const existingRaw =
+    mode === "merge" ? ((await requestToPromise(store.getAll())) as StoredConcept[]) : [];
+  const existing = existingRaw.map((raw) => sanitizeConcept(raw).concept);
+  const planned = planConceptPrerequisiteImport(existing, incoming, mode);
+  const incomingIds = new Set(incoming.map((concept) => concept.id));
+  const existingById = new Map(existing.map((concept) => [concept.id, concept]));
+
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+    for (const concept of planned) {
+      await requestToPromise(store.put(concept));
+      imported += 1;
+    }
+  } else {
+    for (const concept of planned) {
+      const wasIncoming = incomingIds.has(concept.id);
+      const previous = existingById.get(concept.id);
+      const prerequisiteChanged =
+        !previous || !prerequisiteIdsEqual(previous.prerequisiteIds, concept.prerequisiteIds);
+      if (wasIncoming || prerequisiteChanged) {
+        await requestToPromise(store.put(concept));
+      }
+      if (wasIncoming) {
+        imported += 1;
+      }
+    }
+  }
+
+  const allRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
+  const allConcepts = allRaw.map((raw) => sanitizeConcept(raw).concept);
+  await persistRepairedRelatedIds(store, allConcepts);
+
+  return { imported, skipped };
+};
+
+const importContextCardsIntoStore = async (
+  store: IDBObjectStore,
+  contextCards: ContextCard[],
+  mode: "replace" | "merge"
+): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0;
+  let skipped = 0;
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+  }
+
+  for (const raw of contextCards) {
+    if (!raw?.id || !raw?.title) {
+      skipped += 1;
+      continue;
+    }
+    const card = sanitizeContextCard(raw);
+    if (mode === "merge") {
+      const existing = (await requestToPromise(store.get(card.id))) as ContextCard | undefined;
+      if (existing) {
+        const newer =
+          existing.updatedAt.localeCompare(card.updatedAt) >= 0 ? existing : card;
+        await requestToPromise(store.put(newer));
+        imported += 1;
+        continue;
+      }
+    }
+    await requestToPromise(store.put(card));
+    imported += 1;
+  }
+  return { imported, skipped };
+};
+
+const importQuizQuestionsIntoStore = async (
+  store: IDBObjectStore,
+  questions: QuizQuestion[],
+  mode: "replace" | "merge"
+): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0;
+  let skipped = 0;
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+  }
+  for (const q of questions) {
+    if (!q.id?.trim()) {
+      skipped += 1;
+      continue;
+    }
+    const normalized = normalizeQuizQuestion(q);
+    if (mode === "merge") {
+      const existingRaw = (await requestToPromise(store.get(normalized.id))) as StoredQuizQuestion | undefined;
+      if (existingRaw) {
+        const existing = normalizeQuizQuestion(existingRaw);
+        const newer =
+          existing.updatedAt.localeCompare(normalized.updatedAt) >= 0 ? existing : normalized;
+        await requestToPromise(store.put(newer));
+        imported += 1;
+        continue;
+      }
+    }
+    await requestToPromise(store.put(normalized));
+    imported += 1;
+  }
+  return { imported, skipped };
+};
+
+const importQuizDecksIntoStore = async (
+  store: IDBObjectStore,
+  decks: QuizDeck[],
+  mode: "replace" | "merge",
+  validQuestionIds: Set<string>
+): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0;
+  let skipped = 0;
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+  }
+
+  const prune = (d: QuizDeck): QuizDeck =>
+    normalizeQuizDeck({
+      ...d,
+      questionIds: d.questionIds.filter((id) => validQuestionIds.has(id))
+    });
+
+  for (const rawDeck of decks) {
+    const pruned = prune(rawDeck);
+    if (!pruned.id.trim() || !pruned.title.trim()) {
+      skipped += 1;
+      continue;
+    }
+    if (mode === "merge") {
+      const existingRaw = (await requestToPromise(store.get(pruned.id))) as StoredQuizDeck | undefined;
+      if (existingRaw) {
+        const existing = normalizeQuizDeck(existingRaw);
+        const existingPruned = prune(existing);
+        const newer =
+          existingPruned.updatedAt.localeCompare(pruned.updatedAt) >= 0 ? existingPruned : pruned;
+        await requestToPromise(store.put(normalizeQuizDeck(newer)));
+        imported += 1;
+        continue;
+      }
+    }
+    await requestToPromise(store.put(pruned));
+    imported += 1;
+  }
+  return { imported, skipped };
+};
+
+const importQuizAttemptLogsIntoStore = async (
+  store: IDBObjectStore,
+  logs: QuizAttemptLog[],
+  mode: "replace" | "merge"
+): Promise<{ imported: number; skipped: number }> => {
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+  }
+
+  const existingRaw =
+    mode === "merge"
+      ? ((await requestToPromise(store.getAll())) as StoredQuizAttemptLog[])
+      : [];
+  const existingIds = new Set(
+    existingRaw.map((row) => (row.id ?? "").toString().trim()).filter(Boolean)
+  );
+  const { toSave, skipped } = planQuizAttemptLogImport(logs, existingIds, mode);
+
+  let imported = 0;
+  for (const log of toSave) {
+    if (!isValidImportedQuizAttemptLog(log)) {
+      continue;
+    }
+    await requestToPromise(store.put(normalizeQuizAttemptLog(log)));
+    imported += 1;
+  }
+  return { imported, skipped };
+};
+
+const planReplaceConcepts = (concepts: Concept[]): { incoming: Concept[]; skipped: number; planned: Concept[] } => {
+  const incoming: Concept[] = [];
+  let skipped = 0;
+  for (const raw of concepts) {
+    if (!raw?.id || !raw?.title) {
+      skipped += 1;
+      continue;
+    }
+    incoming.push(sanitizeConcept(raw as StoredConcept).concept);
+  }
+  const planned = planConceptPrerequisiteImport([], incoming, "replace");
+  return { incoming, skipped, planned };
+};
+
+const writeReplaceBackupInTransaction = async (
+  getStore: (name: string) => IDBObjectStore,
+  data: BackupImportPayload,
+  conceptsForImport: Concept[],
+  mediaRecords: MediaRecord[]
+): Promise<BackupImportCounts> => {
+  await requestToPromise(getStore(STORE_CONCEPTS).clear());
+  await requestToPromise(getStore(STORE_CONTEXT_CARDS).clear());
+  await requestToPromise(getStore(STORE_MEDIA).clear());
+  await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).clear());
+  await requestToPromise(getStore(STORE_QUIZ_DECKS).clear());
+  await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).clear());
+
+  const conceptResult = await importConceptsIntoStore(
+    getStore(STORE_CONCEPTS),
+    conceptsForImport,
+    "replace"
+  );
+  const contextCardResult = await importContextCardsIntoStore(
+    getStore(STORE_CONTEXT_CARDS),
+    data.contextCards,
+    "replace"
+  );
+
+  const allRaw = (await requestToPromise(getStore(STORE_CONCEPTS).getAll())) as StoredConcept[];
+  const validConceptIds = new Set(allRaw.map((raw) => sanitizeConcept(raw).concept.id));
+  const quizSanitized = data.quizQuestions.map((q) => stripInvalidQuizReferences(q, validConceptIds));
+  const quizResult = await importQuizQuestionsIntoStore(
+    getStore(STORE_QUIZ_QUESTIONS),
+    quizSanitized,
+    "replace"
+  );
+
+  const questionRows = (await requestToPromise(
+    getStore(STORE_QUIZ_QUESTIONS).getAll()
+  )) as StoredQuizQuestion[];
+  const validQuestionIds = new Set(questionRows.map((row) => normalizeQuizQuestion(row).id));
+  const deckResult = await importQuizDecksIntoStore(
+    getStore(STORE_QUIZ_DECKS),
+    data.quizDecks,
+    "replace",
+    validQuestionIds
+  );
+  const logResult = await importQuizAttemptLogsIntoStore(
+    getStore(STORE_QUIZ_ATTEMPT_LOGS),
+    data.quizAttemptLogs,
+    "replace"
+  );
+
+  for (const record of mediaRecords) {
+    await requestToPromise(getStore(STORE_MEDIA).put(record));
+  }
+
+  return {
+    importedConcepts: conceptResult.imported,
+    skippedConcepts: conceptResult.skipped,
+    importedContextCards: contextCardResult.imported,
+    skippedContextCards: contextCardResult.skipped,
+    importedQuizQuestions: quizResult.imported,
+    skippedQuizQuestions: data.quizQuestionParseSkipped + quizResult.skipped,
+    importedQuizDecks: deckResult.imported,
+    skippedQuizDecks: data.quizDeckParseSkipped + deckResult.skipped,
+    importedQuizAttemptLogs: logResult.imported,
+    skippedQuizAttemptLogs: data.quizAttemptLogParseSkipped + logResult.skipped
+  };
+};
+
+const prepareZipMediaRecords = (
+  concepts: Concept[],
+  mediaEntries: Map<string, Uint8Array>
+): { records: MediaRecord[]; missingMedia: number } => {
+  const now = nowIso();
+  const records: MediaRecord[] = [];
+  let missingMedia = 0;
+  for (const raw of concepts) {
+    const { concept } = sanitizeConcept(raw);
+    for (const ref of concept.media ?? []) {
+      const bytes = mediaEntries.get(ref.id);
+      if (!bytes) {
+        missingMedia += 1;
+        continue;
+      }
+      const mime = guessMimeFromFileName(ref.fileName, ref.kind);
+      const blob = new Blob([new Uint8Array(bytes)], { type: mime });
+      records.push({
+        id: ref.id,
+        conceptId: concept.id,
+        kind: ref.kind,
+        blob,
+        mimeType: mime,
+        fileName: ref.fileName,
+        fileSize: blob.size,
+        caption: ref.caption,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  }
+  return { records, missingMedia };
 };
 
 export class IndexedDBStorage implements ConceptStorage {
@@ -1147,88 +1515,18 @@ export class IndexedDBStorage implements ConceptStorage {
     concepts: Concept[],
     mode: "replace" | "merge"
   ): Promise<{ imported: number; skipped: number }> {
-    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONCEPTS);
-      let imported = 0;
-      let skipped = 0;
-      const incoming: Concept[] = [];
-      for (const raw of concepts) {
-        if (!raw?.id || !raw?.title) {
-          skipped += 1;
-          continue;
-        }
-        incoming.push(sanitizeConcept(raw as StoredConcept).concept);
-      }
-
-      const existingRaw =
-        mode === "merge" ? ((await requestToPromise(store.getAll())) as StoredConcept[]) : [];
-      const existing = existingRaw.map((raw) => sanitizeConcept(raw).concept);
-      const planned = planConceptPrerequisiteImport(existing, incoming, mode);
-      const incomingIds = new Set(incoming.map((concept) => concept.id));
-      const existingById = new Map(existing.map((concept) => [concept.id, concept]));
-
-      if (mode === "replace") {
-        await requestToPromise(store.clear());
-        for (const concept of planned) {
-          await requestToPromise(store.put(concept));
-          imported += 1;
-        }
-      } else {
-        for (const concept of planned) {
-          const wasIncoming = incomingIds.has(concept.id);
-          const previous = existingById.get(concept.id);
-          const prerequisiteChanged =
-            !previous || !prerequisiteIdsEqual(previous.prerequisiteIds, concept.prerequisiteIds);
-          if (wasIncoming || prerequisiteChanged) {
-            await requestToPromise(store.put(concept));
-          }
-          if (wasIncoming) {
-            imported += 1;
-          }
-        }
-      }
-
-      const allRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
-      const allConcepts = allRaw.map((raw) => sanitizeConcept(raw).concept);
-      await persistRepairedRelatedIds(store, allConcepts);
-
-      return { imported, skipped };
-    });
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) =>
+      importConceptsIntoStore(getStore(STORE_CONCEPTS), concepts, mode)
+    );
   }
 
   private async importQuizQuestions(
     questions: QuizQuestion[],
     mode: "replace" | "merge"
   ): Promise<{ imported: number; skipped: number }> {
-    return withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_QUIZ_QUESTIONS);
-      let imported = 0;
-      let skipped = 0;
-      if (mode === "replace") {
-        await requestToPromise(store.clear());
-      }
-      for (const q of questions) {
-        if (!q.id?.trim()) {
-          skipped += 1;
-          continue;
-        }
-        const normalized = normalizeQuizQuestion(q);
-        if (mode === "merge") {
-          const existingRaw = (await requestToPromise(store.get(normalized.id))) as StoredQuizQuestion | undefined;
-          if (existingRaw) {
-            const existing = normalizeQuizQuestion(existingRaw);
-            const newer =
-              existing.updatedAt.localeCompare(normalized.updatedAt) >= 0 ? existing : normalized;
-            await requestToPromise(store.put(newer));
-            imported += 1;
-            continue;
-          }
-        }
-        await requestToPromise(store.put(normalized));
-        imported += 1;
-      }
-      return { imported, skipped };
-    });
+    return withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) =>
+      importQuizQuestionsIntoStore(getStore(STORE_QUIZ_QUESTIONS), questions, mode)
+    );
   }
 
   private async importQuizDecks(
@@ -1236,74 +1534,34 @@ export class IndexedDBStorage implements ConceptStorage {
     mode: "replace" | "merge",
     validQuestionIds: Set<string>
   ): Promise<{ imported: number; skipped: number }> {
-    return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_QUIZ_DECKS);
-      let imported = 0;
-      let skipped = 0;
-      if (mode === "replace") {
-        await requestToPromise(store.clear());
-      }
-
-      const prune = (d: QuizDeck): QuizDeck =>
-        normalizeQuizDeck({
-          ...d,
-          questionIds: d.questionIds.filter((id) => validQuestionIds.has(id))
-        });
-
-      for (const rawDeck of decks) {
-        const pruned = prune(rawDeck);
-        if (!pruned.id.trim() || !pruned.title.trim()) {
-          skipped += 1;
-          continue;
-        }
-        if (mode === "merge") {
-          const existingRaw = (await requestToPromise(store.get(pruned.id))) as StoredQuizDeck | undefined;
-          if (existingRaw) {
-            const existing = normalizeQuizDeck(existingRaw);
-            const existingPruned = prune(existing);
-            const newer =
-              existingPruned.updatedAt.localeCompare(pruned.updatedAt) >= 0 ? existingPruned : pruned;
-            await requestToPromise(store.put(normalizeQuizDeck(newer)));
-            imported += 1;
-            continue;
-          }
-        }
-        await requestToPromise(store.put(pruned));
-        imported += 1;
-      }
-      return { imported, skipped };
-    });
+    return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) =>
+      importQuizDecksIntoStore(getStore(STORE_QUIZ_DECKS), decks, mode, validQuestionIds)
+    );
   }
 
   private async importQuizAttemptLogs(
     logs: QuizAttemptLog[],
     mode: "replace" | "merge"
   ): Promise<{ imported: number; skipped: number }> {
-    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_QUIZ_ATTEMPT_LOGS);
-      if (mode === "replace") {
-        await requestToPromise(store.clear());
-      }
+    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readwrite", async (getStore) =>
+      importQuizAttemptLogsIntoStore(getStore(STORE_QUIZ_ATTEMPT_LOGS), logs, mode)
+    );
+  }
 
-      const existingRaw =
-        mode === "merge"
-          ? ((await requestToPromise(store.getAll())) as StoredQuizAttemptLog[])
-          : [];
-      const existingIds = new Set(
-        existingRaw.map((row) => (row.id ?? "").toString().trim()).filter(Boolean)
-      );
-      const { toSave, skipped } = planQuizAttemptLogImport(logs, existingIds, mode);
-
-      let imported = 0;
-      for (const log of toSave) {
-        if (!isValidImportedQuizAttemptLog(log)) {
-          continue;
-        }
-        await requestToPromise(store.put(normalizeQuizAttemptLog(log)));
-        imported += 1;
-      }
-      return { imported, skipped };
-    });
+  private async replaceBackupData(
+    data: BackupImportPayload,
+    options: { preserveMediaReferences: boolean; mediaRecords: MediaRecord[] }
+  ): Promise<BackupImportCounts> {
+    const conceptsForImport = options.preserveMediaReferences
+      ? data.concepts
+      : data.concepts.map((concept) => ({
+          ...concept,
+          media: undefined
+        }));
+    planReplaceConcepts(conceptsForImport);
+    return withTransaction([...REPLACE_BACKUP_STORES], "readwrite", async (getStore) =>
+      writeReplaceBackupInTransaction(getStore, data, conceptsForImport, options.mediaRecords)
+    );
   }
 
   async importBackupData(
@@ -1319,26 +1577,16 @@ export class IndexedDBStorage implements ConceptStorage {
     },
     mode: "replace" | "merge",
     options?: BackupImportOptions
-  ): Promise<{
-    importedConcepts: number;
-    skippedConcepts: number;
-    importedContextCards: number;
-    skippedContextCards: number;
-    importedQuizQuestions: number;
-    skippedQuizQuestions: number;
-    importedQuizDecks: number;
-    skippedQuizDecks: number;
-    importedQuizAttemptLogs: number;
-    skippedQuizAttemptLogs: number;
-  }> {
+  ): Promise<BackupImportCounts> {
     const stripMediaRefs = mode === "replace" && options?.preserveMediaReferences !== true;
-    const conceptsForImport = stripMediaRefs
-      ? data.concepts.map((concept) => ({
-          ...concept,
-          media: undefined
-        }))
-      : data.concepts;
-    const conceptResult = await this.importConcepts(conceptsForImport, mode);
+    if (mode === "replace") {
+      return this.replaceBackupData(data, {
+        preserveMediaReferences: !stripMediaRefs,
+        mediaRecords: []
+      });
+    }
+
+    const conceptResult = await this.importConcepts(data.concepts, mode);
     const contextStorage = new ContextCardIndexedDBStorage();
     const contextCardResult = await contextStorage.importContextCards(data.contextCards, mode);
 
@@ -1355,12 +1603,6 @@ export class IndexedDBStorage implements ConceptStorage {
 
     const logResult = await this.importQuizAttemptLogs(data.quizAttemptLogs, mode);
     const skippedQuizAttemptLogs = data.quizAttemptLogParseSkipped + logResult.skipped;
-
-    if (stripMediaRefs) {
-      await withTransaction([STORE_MEDIA], "readwrite", async (getStore) => {
-        await requestToPromise(getStore(STORE_MEDIA).clear());
-      });
-    }
 
     return {
       importedConcepts: conceptResult.imported,
@@ -1572,18 +1814,29 @@ export class IndexedDBStorage implements ConceptStorage {
       throw new Error(validation.errorMessage);
     }
 
+    const payload: BackupImportPayload = {
+      concepts: validation.concepts,
+      contextCards: validation.contextCards,
+      quizQuestions: validation.quizQuestions,
+      quizQuestionParseSkipped: validation.quizQuestionParseSkipped,
+      quizDecks: validation.quizDecks,
+      quizDeckParseSkipped: validation.quizDeckParseSkipped,
+      quizAttemptLogs: validation.quizAttemptLogs,
+      quizAttemptLogParseSkipped: validation.quizAttemptLogParseSkipped
+    };
+
     if (mode === "replace") {
-      await withTransaction(
-        [STORE_CONCEPTS, STORE_MEDIA, STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS, STORE_QUIZ_ATTEMPT_LOGS],
-        "readwrite",
-        async (getStore) => {
-          await requestToPromise(getStore(STORE_MEDIA).clear());
-          await requestToPromise(getStore(STORE_CONCEPTS).clear());
-          await requestToPromise(getStore(STORE_QUIZ_QUESTIONS).clear());
-          await requestToPromise(getStore(STORE_QUIZ_DECKS).clear());
-          await requestToPromise(getStore(STORE_QUIZ_ATTEMPT_LOGS).clear());
-        }
-      );
+      const { records, missingMedia } = prepareZipMediaRecords(validation.concepts, mediaEntries);
+      const imported = await this.replaceBackupData(payload, {
+        preserveMediaReferences: true,
+        mediaRecords: records
+      });
+      return {
+        ...imported,
+        importedMedia: records.length,
+        missingMedia,
+        ...(validation.domainColors !== undefined ? { domainColors: validation.domainColors } : {})
+      };
     }
 
     const {
@@ -1597,20 +1850,7 @@ export class IndexedDBStorage implements ConceptStorage {
       skippedQuizDecks,
       importedQuizAttemptLogs,
       skippedQuizAttemptLogs
-    } = await this.importBackupData(
-      {
-        concepts: validation.concepts,
-        contextCards: validation.contextCards,
-        quizQuestions: validation.quizQuestions,
-        quizQuestionParseSkipped: validation.quizQuestionParseSkipped,
-        quizDecks: validation.quizDecks,
-        quizDeckParseSkipped: validation.quizDeckParseSkipped,
-        quizAttemptLogs: validation.quizAttemptLogs,
-        quizAttemptLogParseSkipped: validation.quizAttemptLogParseSkipped
-      },
-      mode,
-      { preserveMediaReferences: true }
-    );
+    } = await this.importBackupData(payload, mode, { preserveMediaReferences: true });
 
     let importedMedia = 0;
     let missingMedia = 0;
@@ -1685,29 +1925,6 @@ export class IndexedDBStorage implements ConceptStorage {
     };
   }
 }
-
-const createContextCardId = (): string =>
-  `context_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-const sanitizeContextCard = (
-  card: Partial<ContextCard>
-): ContextCard => {
-  const domainTags = Array.isArray(card.domainTags) ? card.domainTags.filter(Boolean) : [];
-  const fallbackDomainTags = domainTags.length > 0 ? domainTags : (card.domain ? [card.domain] : []);
-  return {
-    id: card.id ?? createContextCardId(),
-    title: card.title ?? "",
-    domain: card.domain,
-    domainTags: fallbackDomainTags,
-    centralQuestion: card.centralQuestion ?? "",
-    background: card.background ?? "",
-    flow: card.flow ?? "",
-    keyConcepts: card.keyConcepts ?? "",
-    linkedConcepts: Array.isArray(card.linkedConcepts) ? card.linkedConcepts.filter(Boolean) : [],
-    createdAt: card.createdAt ?? nowIso(),
-    updatedAt: card.updatedAt ?? nowIso()
-  };
-};
 
 export class ContextCardIndexedDBStorage implements ContextCardStorage {
   async getAllContextCards(): Promise<ContextCard[]> {
@@ -1788,34 +2005,8 @@ export class ContextCardIndexedDBStorage implements ContextCardStorage {
     contextCards: ContextCard[],
     mode: "replace" | "merge"
   ): Promise<{ imported: number; skipped: number }> {
-    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONTEXT_CARDS);
-      let imported = 0;
-      let skipped = 0;
-      if (mode === "replace") {
-        await requestToPromise(store.clear());
-      }
-
-      for (const raw of contextCards) {
-        if (!raw?.id || !raw?.title) {
-          skipped += 1;
-          continue;
-        }
-        const card = sanitizeContextCard(raw);
-        if (mode === "merge") {
-          const existing = (await requestToPromise(store.get(card.id))) as ContextCard | undefined;
-          if (existing) {
-            const newer =
-              existing.updatedAt.localeCompare(card.updatedAt) >= 0 ? existing : card;
-            await requestToPromise(store.put(newer));
-            imported += 1;
-            continue;
-          }
-        }
-        await requestToPromise(store.put(card));
-        imported += 1;
-      }
-      return { imported, skipped };
-    });
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) =>
+      importContextCardsIntoStore(getStore(STORE_CONTEXT_CARDS), contextCards, mode)
+    );
   }
 }

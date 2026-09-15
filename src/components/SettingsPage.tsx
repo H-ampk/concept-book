@@ -121,8 +121,12 @@ export const SettingsPage = ({
         `ZIPインポート完了: 概念 ${result.importedConcepts}件（スキップ ${result.skippedConcepts}）、文脈カード ${result.importedContextCards}件（スキップ ${result.skippedContextCards}）、クイズ ${result.importedQuizQuestions}件（スキップ ${result.skippedQuizQuestions}）、クイズ集 ${result.importedQuizDecks}件（スキップ ${result.skippedQuizDecks}）、学習ログ ${result.importedQuizAttemptLogs}件（スキップ ${result.skippedQuizAttemptLogs}）、メディア ${result.importedMedia}件。ZIP内に無い参照 ${result.missingMedia}件。`
       );
     } catch (e) {
+      const unchanged =
+        packageMode === "replace"
+          ? "インポートに失敗したため、既存データは変更されませんでした。"
+          : "";
       setMessage(
-        `ZIPインポートに失敗しました。${e instanceof Error ? e.message : "形式を確認してください。"}`
+        `ZIPインポートに失敗しました。${unchanged}${e instanceof Error ? e.message : "形式を確認してください。"}`
       );
     } finally {
       setBusy(false);
@@ -139,7 +143,11 @@ export const SettingsPage = ({
       const parsed = JSON.parse(text) as unknown;
       const validationResult = validateBackupImportPayload(parsed);
       if (!validationResult.success) {
-        setMessage(`インポートに失敗しました。${validationResult.errorMessage}`);
+        const unchanged =
+          mode === "replace"
+            ? "インポートに失敗したため、既存データは変更されませんでした。"
+            : "";
+        setMessage(`インポートに失敗しました。${unchanged}${validationResult.errorMessage}`);
         return;
       }
 
@@ -175,10 +183,18 @@ export const SettingsPage = ({
       );
     } catch (error) {
       if (error instanceof SyntaxError) {
-        setMessage("インポートに失敗しました。JSONの構文が不正です。");
-      } else {
         setMessage(
-          `インポートに失敗しました。${error instanceof Error ? error.message : "JSON形式を確認してください。"}`
+          mode === "replace"
+            ? "インポートに失敗しました。インポートに失敗したため、既存データは変更されませんでした。JSONの構文が不正です。"
+            : "インポートに失敗しました。JSONの構文が不正です。"
+        );
+      } else {
+        const unchanged =
+          mode === "replace"
+            ? "インポートに失敗したため、既存データは変更されませんでした。"
+            : "";
+        setMessage(
+          `インポートに失敗しました。${unchanged}${error instanceof Error ? error.message : "JSON形式を確認してください。"}`
         );
       }
     } finally {
