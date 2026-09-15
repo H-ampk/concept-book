@@ -100,3 +100,21 @@ describe("SkillTreeView 複数分野カラー (#142)", () => {
     expect(node.queryByText("+2")).not.toBeInTheDocument();
   });
 });
+
+describe("SkillTreeView window 外 selection (#155)", () => {
+  it("現在windowに含まれない selectedId では onClearSelection を呼ばない", () => {
+    const onClearSelection = vi.fn();
+    const concepts = Array.from({ length: 251 }, (_, index) => makeConcept(`c-${index}`, []));
+    render(
+      <SkillTreeView
+        concepts={concepts}
+        domainColorMap={colorMap}
+        selectedId="c-250"
+        onSelectConcept={vi.fn()}
+        onClearSelection={onClearSelection}
+      />
+    );
+    expect(document.querySelector('[data-testid="skill-tree-node-c-250"]')).toBeNull();
+    expect(onClearSelection).not.toHaveBeenCalled();
+  });
+});

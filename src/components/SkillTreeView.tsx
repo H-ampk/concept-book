@@ -7,6 +7,7 @@ import {
   SKILL_TREE_CARD_WIDTH,
   computeSkillTreeLayout,
 } from "../utils/skillTreeLayout";
+import { buildSkillTreeConceptOrder } from "../utils/skillTreeWindow";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const TREE_NODE_PAGE = 250;
@@ -294,9 +295,19 @@ export const SkillTreeView = ({
     });
   }, [concepts]);
 
+  const orderedConcepts = useMemo(
+    () => buildSkillTreeConceptOrder(concepts),
+    [concepts]
+  );
+
   const conceptsWindow = useMemo(
-    () => concepts.slice(0, Math.min(treeNodeLimit, concepts.length)),
-    [concepts, treeNodeLimit]
+    () => orderedConcepts.slice(0, Math.min(treeNodeLimit, orderedConcepts.length)),
+    [orderedConcepts, treeNodeLimit]
+  );
+
+  const windowIds = useMemo(
+    () => new Set(conceptsWindow.map((concept) => concept.id)),
+    [conceptsWindow]
   );
 
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
@@ -373,10 +384,15 @@ export const SkillTreeView = ({
   }, [layoutData.rootId, structure.tree, visibleIds]);
 
   useEffect(() => {
-    if (selectedId && visibleIds.size > 0 && !visibleIds.has(selectedId)) {
+    if (
+      selectedId &&
+      windowIds.has(selectedId) &&
+      visibleIds.size > 0 &&
+      !visibleIds.has(selectedId)
+    ) {
       onClearSelection?.();
     }
-  }, [selectedId, visibleIds, onClearSelection]);
+  }, [selectedId, windowIds, visibleIds, onClearSelection]);
 
   const [isPanning, setIsPanning] = useState(false);
   const [panOrigin, setPanOrigin] = useState<{ x: number; y: number } | null>(null);
