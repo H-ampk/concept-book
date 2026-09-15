@@ -126,6 +126,16 @@ describe("ConceptDetail mastery history (#57)", () => {
     expect(historyIndex).toBe(masteryIndex + 1);
     expect(screen.getByText("理解度の推移を表示する回答履歴がありません。")).toBeInTheDocument();
     expect(screen.queryByTestId("concept-mastery-history-chart")).not.toBeInTheDocument();
+    const evidenceIndex = headings.indexOf("再認・再生の確認");
+    expect(evidenceIndex).toBe(historyIndex + 1);
+    expect(screen.getByText("再認・再生ともまだ確認されていません")).toBeInTheDocument();
+  });
+
+  it("conceptMasteryHistory が undefined のときは再認・再生パネルを出さない", () => {
+    render(<ConceptDetail {...baseProps} conceptMastery={mastery()} />);
+    expect(screen.getByText("理解度")).toBeInTheDocument();
+    expect(screen.getByText("理解度の推移")).toBeInTheDocument();
+    expect(screen.queryByText("再認・再生の確認")).not.toBeInTheDocument();
   });
 
   it("1〜2件かつ confidence low ではグラフと低信頼度表示を出す", () => {
@@ -143,7 +153,7 @@ describe("ConceptDetail mastery history (#57)", () => {
     expect(screen.getByText("回答数が少ないため、この推定値の信頼度は低い状態です。")).toBeInTheDocument();
   });
 
-  it("履歴があるときグラフ領域を表示する", () => {
+  it("理解度・推移・再認再生確認の順で、履歴があるときグラフ領域を表示する", () => {
     render(
       <ConceptDetail
         {...baseProps}
@@ -155,6 +165,12 @@ describe("ConceptDetail mastery history (#57)", () => {
         ]}
       />
     );
+    const headings = screen.getAllByRole("heading", { level: 3 }).map((el) => el.textContent);
+    const masteryIndex = headings.indexOf("理解度");
+    const historyIndex = headings.indexOf("理解度の推移");
+    const evidenceIndex = headings.indexOf("再認・再生の確認");
+    expect(historyIndex).toBe(masteryIndex + 1);
+    expect(evidenceIndex).toBe(historyIndex + 1);
     expect(screen.getByTestId("concept-mastery-history-chart")).toBeInTheDocument();
     expect(screen.getByText("○ 正解")).toBeInTheDocument();
     expect(screen.getByText("× 誤答")).toBeInTheDocument();

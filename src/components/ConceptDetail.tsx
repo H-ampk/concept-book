@@ -7,6 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 import { OrnamentLine } from "./common/OrnamentLine";
 import type { ConceptMastery, ConceptMasteryPoint } from "../utils/mastery/types";
 import { toConceptMasteryDetailView } from "../utils/mastery/formatConceptMastery";
+import { ConceptEvidenceProfile } from "./mastery/ConceptEvidenceProfile";
 import { ConceptMasteryHistoryChart } from "./mastery/ConceptMasteryHistoryChart";
 import type { ConceptPrerequisiteIndex } from "../utils/conceptPrerequisites";
 import { MASTERY_CONFIDENCE_LABELS } from "../utils/mastery/constants";
@@ -523,6 +524,9 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
             history={conceptMasteryHistory ?? []}
             confidence={conceptMastery.confidence}
           />
+          {conceptMasteryHistory !== undefined ? (
+            <ConceptEvidenceProfile history={conceptMasteryHistory} />
+          ) : null}
         </>
       ) : conceptQuizStatsText ? (
         <div>
