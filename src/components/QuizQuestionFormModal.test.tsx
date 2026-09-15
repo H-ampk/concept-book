@@ -173,6 +173,64 @@ describe("QuizQuestionFormModal concept picker", () => {
     expect(payload.choices).toEqual([]);
     expect(payload.correctChoiceId).toBe("");
     expect(payload.referenceAnswer).toBe("ラベル付きデータで学習する");
+    expect(payload.keywords).toBeUndefined();
+    expect(payload.schemaVersion).toBe(QUIZ_QUESTION_SCHEMA_VERSION);
+  });
+
+  it("入力式の採点補助キーワードを1行1件で正規化して保存する", async () => {
+    const user = userEvent.setup();
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="create"
+        concepts={concepts}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "入力式" }));
+    await user.type(screen.getByPlaceholderText("問いを入力…"), "教師あり学習とは？");
+    await user.type(screen.getByLabelText("模範解答"), "ラベル付きデータで学習する");
+    await user.type(screen.getByLabelText("採点補助キーワード"), " 学習 \n入力\n\n学習");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.keywords).toEqual(["学習", "入力"]);
+  });
+
+  it("入力式から四択へ切り替えて保存すると keywords を残さない", async () => {
+    const user = userEvent.setup();
+    const freeResponse: QuizQuestion = {
+      ...existingQuestion,
+      questionType: "free-response",
+      referenceAnswer: "模範",
+      keywords: ["入力", "学習"],
+      schemaVersion: 2
+    };
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={freeResponse}
+        concepts={concepts}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("採点補助キーワード")).toHaveValue("入力\n学習");
+    await user.click(screen.getByRole("button", { name: "四択" }));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.questionType).toBe("multiple-choice");
+    expect(payload.keywords).toBeUndefined();
+    expect(payload.schemaVersion).toBe(QUIZ_QUESTION_SCHEMA_VERSION);
   });
 
 

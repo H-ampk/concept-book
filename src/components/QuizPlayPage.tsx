@@ -19,6 +19,7 @@ import {
   selfEvaluationToCorrect
 } from "../utils/quiz/quizQuestionType";
 import { collectReferencedQuestionIds } from "../utils/quiz/quizDataCleanup";
+import { matchFreeResponseKeywords } from "../utils/quiz/freeResponseKeywordMatch";
 import { shortDateTime } from "../utils/date";
 import { getQuizChoiceDisplayText } from "../utils/quizChoiceDisplay";
 import { resolveQuizConceptDefinition } from "../utils/resolveQuizConceptDefinition";
@@ -250,6 +251,13 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
   const current = session[index];
   const currentQuestion = current?.question;
   const isCurrentFreeResponse = currentQuestion ? isFreeResponseQuestion(currentQuestion) : false;
+  const keywordGuidance =
+    isCurrentFreeResponse &&
+    freeResponseRevealed &&
+    currentQuestion?.keywords &&
+    currentQuestion.keywords.length > 0
+      ? matchFreeResponseKeywords(freeResponseDraft, currentQuestion.keywords)
+      : null;
   const selectedChoice = current?.shuffledChoices.find((c) => c.id === selectedChoiceId) ?? null;
   const correctChoice =
     current?.shuffledChoices.find((c) => c.id === currentQuestion?.correctChoiceId) ?? null;
@@ -982,6 +990,41 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
                           {(currentQuestion.referenceAnswer ?? "").trim()}
                         </p>
                       </div>
+                      {keywordGuidance ? (
+                        <div
+                          className="space-y-2 rounded-xl border border-celestial-gold/25 bg-celestial-deepBlue/40 p-3"
+                          data-testid="keyword-guidance"
+                        >
+                          <p className="text-sm font-medium text-celestial-textMain">採点補助</p>
+                          <div>
+                            <p className="mb-1 text-xs font-medium text-celestial-softGold">含まれていた重要語句</p>
+                            {keywordGuidance.matchedKeywords.length > 0 ? (
+                              <ul className="list-disc space-y-0.5 pl-5 text-sm text-celestial-textMain">
+                                {keywordGuidance.matchedKeywords.map((keyword) => (
+                                  <li key={`matched-${keyword}`}>{keyword}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-celestial-textSub">なし</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="mb-1 text-xs font-medium text-celestial-softGold">不足している重要語句</p>
+                            {keywordGuidance.missingKeywords.length > 0 ? (
+                              <ul className="list-disc space-y-0.5 pl-5 text-sm text-celestial-textMain">
+                                {keywordGuidance.missingKeywords.map((keyword) => (
+                                  <li key={`missing-${keyword}`}>{keyword}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-celestial-textSub">なし</p>
+                            )}
+                          </div>
+                          <p className="text-xs text-celestial-textSub">
+                            これは自己評価の参考情報です。キーワード一致だけで正解・不正解は決まりません。
+                          </p>
+                        </div>
+                      ) : null}
                       {answerSaveStatus === "error" ? (
                         <p
                           className="rounded-lg border border-amber-500/40 bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95"

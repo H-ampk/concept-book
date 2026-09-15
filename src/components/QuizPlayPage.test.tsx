@@ -343,5 +343,83 @@ describe("QuizPlayPage free-response", () => {
     expect(screen.getByText(/間違えた問題（1 問）/)).toBeInTheDocument();
     expect(screen.getByText("自己評価: 部分的に正解")).toBeInTheDocument();
   });
+
+  it("keywords 未設定では採点補助を出さず既存フローのまま動く", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "ラベル付きデータを使う方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    expect(screen.queryByText("採点補助")).not.toBeInTheDocument();
+    expect(screen.queryByText("含まれていた重要語句")).not.toBeInTheDocument();
+    expect(saveQuizAttemptLog).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "部分的に正解" })).toBeInTheDocument();
+  });
+});
+
+describe("QuizPlayPage free-response keyword guidance", () => {
+  beforeEach(() => {
+    getAllConcepts.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizDecks.mockReset();
+    getQuizAttemptLogs.mockReset();
+    saveQuizAttemptLog.mockReset();
+    setupPlayableStorage(
+      [
+        question({
+          id: "q-fr-kw",
+          questionType: "free-response",
+          prompt: "教師あり学習とは何ですか？",
+          choices: [],
+          correctChoiceId: "",
+          referenceAnswer: "入力データと正解ラベルの組を用いて学習する手法",
+          keywords: ["正解ラベル", "入力", "学習"]
+        })
+      ],
+      deck({ questionIds: ["q-fr-kw"] })
+    );
+  });
+
+  it("回答後に含まれていた重要語句と不足している重要語句を表示する", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    expect(screen.queryByText("採点補助")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("回答"), "入力データを使って学習する方法");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(screen.getByText("採点補助")).toBeInTheDocument();
+    expect(screen.getByText("含まれていた重要語句")).toBeInTheDocument();
+    expect(screen.getByText("入力")).toBeInTheDocument();
+    expect(screen.getByText("学習")).toBeInTheDocument();
+    expect(screen.getByText("不足している重要語句")).toBeInTheDocument();
+    expect(screen.getByText("正解ラベル")).toBeInTheDocument();
+    expect(saveQuizAttemptLog).not.toHaveBeenCalled();
+  });
+
+  it("全キーワード一致でも自動採点せず、自己評価選択後にログ保存する", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "クイズ集「学習心理学セット」で学習を開始" }));
+    await user.type(screen.getByLabelText("回答"), "入力と正解ラベルから学習する");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(saveQuizAttemptLog).not.toHaveBeenCalled();
+    expect(screen.getByText("不足している重要語句")).toBeInTheDocument();
+    expect(screen.getAllByText("なし").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("button", { name: "不正解" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "部分的に正解" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "正解" })).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "部分的に正解" }));
+    await waitFor(() => {
+      expect(saveQuizAttemptLog).toHaveBeenCalledTimes(1);
+    });
+    const log = saveQuizAttemptLog.mock.calls[0]?.[0];
+    expect(log.selfEvaluation).toBe("partial");
+    expect(log.correct).toBe(false);
+    expect(log.matchedKeywords).toBeUndefined();
+  });
 });
 

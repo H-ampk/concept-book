@@ -227,5 +227,37 @@ describe("conceptBookZip free-response round-trip", () => {
     expect(result.quizAttemptLogs[0]?.userAnswerTextSnapshot).toBe("自分の答え");
     expect(result.quizAttemptLogs[0]?.referenceAnswerSnapshot).toBe("ラベル付きデータで学習する");
   });
+
+  it("ZIP round-trip で keywords が保持される", () => {
+    const json = JSON.stringify({
+      concepts: [],
+      contextCards: [],
+      quizQuestions: [
+        {
+          id: "q_fr_kw",
+          questionType: "free-response",
+          prompt: "教師あり学習とは？",
+          choices: [],
+          correctChoiceId: "",
+          referenceAnswer: "ラベル付きデータで学習する",
+          keywords: ["正解ラベル", "入力", "学習"],
+          visibility: "private",
+          schemaVersion: 3,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+    const zipped = buildConceptBookZip(json, []);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const result = validateBackupImportPayload(JSON.parse(parsed.conceptsText));
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.quizQuestions[0]?.keywords).toEqual(["正解ラベル", "入力", "学習"]);
+  });
 });
 

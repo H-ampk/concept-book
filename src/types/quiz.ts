@@ -110,6 +110,11 @@ export interface QuizQuestion {
    * 完全一致による自動採点には使用しない。
    */
   referenceAnswer?: string;
+  /**
+   * free-response の自己採点補助用重要語句。
+   * キーワード一致は採点結果ではない。自己評価の補助にのみ利用する。
+   */
+  keywords?: string[];
   explanation?: string;
   /** 共有ファイルとして Export 可能 / 非共有。新規作成時の初期値は private を想定 */
   visibility: QuizVisibility;
@@ -121,7 +126,7 @@ export interface QuizQuestion {
 }
 
 /** 将来のマイグレーション・検証・新規レコードの schemaVersion 初期値 */
-export const QUIZ_QUESTION_SCHEMA_VERSION = 2;
+export const QUIZ_QUESTION_SCHEMA_VERSION = 3;
 
 /**
  * 複数の QuizQuestion をまとめたクイズ集（「この分野のセット」「復習デッキ」など）。

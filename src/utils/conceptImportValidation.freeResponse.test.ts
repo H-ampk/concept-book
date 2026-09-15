@@ -72,6 +72,37 @@ describe("free-response QuizQuestion normalize", () => {
     expect(skipped).toBe(0);
     expect(questions[0]?.referenceAnswer).toBe("ラベル付きデータで学習する手法");
   });
+
+  it("keywords を canonical form で保持し、未設定の旧問題も読める", () => {
+    const withKeywords = normalizeQuizQuestion({
+      id: "q_fr_kw",
+      questionType: "free-response",
+      prompt: "問い",
+      choices: [],
+      correctChoiceId: "",
+      referenceAnswer: "模範",
+      keywords: [" 入力 ", "", "学習", "入力"],
+      visibility: "private",
+      schemaVersion: 2,
+      createdAt: iso,
+      updatedAt: iso
+    });
+    expect(withKeywords.keywords).toEqual(["入力", "学習"]);
+
+    const withoutKeywords = normalizeQuizQuestion({
+      id: "q_fr_old",
+      questionType: "free-response",
+      prompt: "問い",
+      choices: [],
+      correctChoiceId: "",
+      referenceAnswer: "模範",
+      visibility: "private",
+      schemaVersion: 2,
+      createdAt: iso,
+      updatedAt: iso
+    });
+    expect(withoutKeywords.keywords).toBeUndefined();
+  });
 });
 
 describe("legacy and free-response QuizAttemptLog", () => {
@@ -170,5 +201,46 @@ describe("free-response import/export round-trip", () => {
     expect(result.quizAttemptLogs[0]?.userAnswerTextSnapshot).toBe("ラベルで学ぶ");
     expect(result.quizAttemptLogs[0]?.referenceAnswerSnapshot).toBe("ラベル付きデータで学習する");
     expect(result.quizAttemptLogs[0]?.selfEvaluation).toBe("correct");
+  });
+
+  it("backup import で keywords を保持し、不正要素があっても問題全体は破棄しない", () => {
+    const result = validateBackupImportPayload({
+      concepts: [],
+      contextCards: [],
+      quizQuestions: [
+        {
+          id: "q_fr_kw",
+          questionType: "free-response",
+          prompt: "教師あり学習とは？",
+          choices: [],
+          correctChoiceId: "",
+          referenceAnswer: "ラベル付きデータで学習する",
+          keywords: [" 入力 ", "", "学習", "入力", 1],
+          visibility: "private",
+          schemaVersion: 2,
+          createdAt: iso,
+          updatedAt: iso
+        },
+        {
+          id: "q_fr_old",
+          questionType: "free-response",
+          prompt: "旧問題",
+          choices: [],
+          correctChoiceId: "",
+          referenceAnswer: "模範",
+          visibility: "private",
+          schemaVersion: 2,
+          createdAt: iso,
+          updatedAt: iso
+        }
+      ]
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.quizQuestions).toHaveLength(2);
+    expect(result.quizQuestions[0]?.keywords).toEqual(["入力", "学習"]);
+    expect(result.quizQuestions[1]?.keywords).toBeUndefined();
   });
 });

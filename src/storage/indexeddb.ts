@@ -9,6 +9,7 @@ import type { Concept, ConceptInput, ContextDefinition } from "../types/concept"
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { ConceptMediaRef, MediaRecord } from "../types/media";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource } from "../types/quiz";
+import { normalizeFreeResponseKeywords } from "../utils/quiz/freeResponseKeywordMatch";
 import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
 import type { ResearchReport } from "../types/researchReport";
 import {
@@ -227,6 +228,7 @@ export const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => 
     referenceAnswerRaw !== undefined && referenceAnswerRaw !== null
       ? String(referenceAnswerRaw)
       : undefined;
+  const keywords = normalizeFreeResponseKeywords((raw as { keywords?: unknown }).keywords);
 
   return {
     id: raw.id?.toString() ?? "",
@@ -237,6 +239,7 @@ export const normalizeQuizQuestion = (raw: StoredQuizQuestion): QuizQuestion => 
     choices,
     correctChoiceId: raw.correctChoiceId?.toString() ?? "",
     ...(referenceAnswer !== undefined ? { referenceAnswer } : {}),
+    ...(keywords ? { keywords } : {}),
     explanation: raw.explanation !== undefined ? raw.explanation.toString() : undefined,
     visibility,
     sortOrder: typeof raw.sortOrder === "number" && Number.isFinite(raw.sortOrder) ? raw.sortOrder : undefined,

@@ -170,4 +170,30 @@ describe("importBackupData QuizChoice metadata", () => {
     expect(choice?.linkedConceptId).toBe("c_operant");
     expectChoiceMetadata(choice);
   });
+
+  it("saveQuizQuestion で keywords を canonical に保持し、未設定問題も読める", async () => {
+    await storage.saveQuizQuestion(
+      question({
+        id: "q_fr_kw",
+        questionType: "free-response",
+        choices: [],
+        correctChoiceId: "",
+        referenceAnswer: "模範",
+        keywords: [" 入力 ", "", "学習", "入力"]
+      })
+    );
+    await storage.saveQuizQuestion(
+      question({
+        id: "q_fr_old",
+        questionType: "free-response",
+        choices: [],
+        correctChoiceId: "",
+        referenceAnswer: "模範"
+      })
+    );
+
+    const all = await storage.getQuizQuestions();
+    expect(all.find((q) => q.id === "q_fr_kw")?.keywords).toEqual(["入力", "学習"]);
+    expect(all.find((q) => q.id === "q_fr_old")?.keywords).toBeUndefined();
+  });
 });

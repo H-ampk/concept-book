@@ -10,6 +10,7 @@ import type {
   QuizQuestionSource
 } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
+import { normalizeFreeResponseKeywords } from "./quiz/freeResponseKeywordMatch";
 import {
   isValidImportedQuizAttemptLog,
   normalizeQuizAttemptLog
@@ -139,6 +140,7 @@ export const quizQuestionSchema = z
     choices: z.array(quizChoiceSchema),
     correctChoiceId: z.string(),
     referenceAnswer: z.string().optional(),
+    keywords: z.array(z.string().min(1)).optional(),
     explanation: z.string().optional(),
     visibility: quizVisibilitySchema,
     sortOrder: z.number().optional(),
@@ -483,6 +485,10 @@ const normalizeQuizQuestionItem = (item: unknown): QuizQuestion | null => {
   };
   if (referenceAnswer) {
     candidate.referenceAnswer = referenceAnswer;
+  }
+  const keywords = normalizeFreeResponseKeywords(raw.keywords);
+  if (keywords) {
+    candidate.keywords = keywords;
   }
   if (conceptId) {
     candidate.conceptId = conceptId;

@@ -17,6 +17,7 @@ import {
 } from "../utils/generateQuizChoicesFromContextCards";
 import { applyAutoLinkedConceptIdsToChoices, resolveChoiceConceptLink } from "../utils/quizConceptLink";
 import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
+import { normalizeFreeResponseKeywords } from "../utils/quiz/freeResponseKeywordMatch";
 import { ModalPortal } from "./common/ModalPortal";
 import { QuizConceptPicker } from "./QuizConceptPicker";
 
@@ -76,6 +77,7 @@ export const QuizQuestionFormModal = ({
   const [choices, setChoices] = useState<QuizChoice[]>(defaultChoices);
   const [correctChoiceId, setCorrectChoiceId] = useState("");
   const [referenceAnswer, setReferenceAnswer] = useState("");
+  const [keywordsText, setKeywordsText] = useState("");
   const [explanation, setExplanation] = useState("");
   const [visibility, setVisibility] = useState<QuizVisibility>("private");
   const [sortOrderInput, setSortOrderInput] = useState("");
@@ -114,6 +116,7 @@ export const QuizQuestionFormModal = ({
       setChoices(question.choices.length > 0 ? question.choices.map((c) => ({ ...c })) : defaultChoices());
       setCorrectChoiceId(question.correctChoiceId);
       setReferenceAnswer(question.referenceAnswer ?? "");
+      setKeywordsText((question.keywords ?? []).join("\n"));
       setExplanation(question.explanation ?? "");
       setVisibility(question.visibility);
       setSortOrderInput(question.sortOrder !== undefined ? String(question.sortOrder) : "");
@@ -126,6 +129,7 @@ export const QuizQuestionFormModal = ({
       setChoices(ch);
       setCorrectChoiceId(ch[0]?.id ?? "");
       setReferenceAnswer("");
+      setKeywordsText("");
       setExplanation("");
       setVisibility("private");
       setSortOrderInput("");
@@ -360,12 +364,16 @@ export const QuizQuestionFormModal = ({
       explanation: explanation.trim() || undefined,
       visibility,
       sortOrder,
-      schemaVersion: mode === "edit" && question ? question.schemaVersion : QUIZ_QUESTION_SCHEMA_VERSION,
+      schemaVersion: QUIZ_QUESTION_SCHEMA_VERSION,
       createdAt: mode === "edit" && question ? question.createdAt : nowIso(),
       updatedAt: nowIso()
     };
     if (questionType === "free-response") {
       payload.referenceAnswer = trimmedReferenceAnswer;
+      const keywords = normalizeFreeResponseKeywords(keywordsText.split("\n"));
+      if (keywords) {
+        payload.keywords = keywords;
+      }
     }
     if (conceptId.trim()) {
       payload.conceptId = conceptId.trim();
@@ -541,6 +549,7 @@ export const QuizQuestionFormModal = ({
           </label>
 
           {questionType === "free-response" ? (
+            <>
             <label className="block space-y-1.5">
               <span className="block text-sm text-celestial-textMain">模範解答 *</span>
               <textarea
@@ -551,6 +560,20 @@ export const QuizQuestionFormModal = ({
                 aria-label="模範解答"
               />
             </label>
+            <label className="block space-y-1.5">
+              <span className="block text-sm text-celestial-textMain">採点補助キーワード</span>
+              <textarea
+                className="min-h-[88px] w-full rounded-md border border-celestial-border bg-celestial-deepBlue px-3 py-2 text-sm text-celestial-textMain placeholder:text-celestial-textSub focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/45"
+                value={keywordsText}
+                onChange={(e) => setKeywordsText(e.target.value)}
+                placeholder="1行に1つ入力してください"
+                aria-label="採点補助キーワード"
+              />
+              <span className="block text-xs text-celestial-textSub">
+                1行に1つ入力してください。キーワード一致だけで正解・不正解は決まりません。
+              </span>
+            </label>
+            </>
           ) : (
           <fieldset className="min-w-0">
             <legend className="mb-2 text-sm font-medium text-celestial-textMain">選択肢 *（2件以上）</legend>
