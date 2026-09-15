@@ -219,3 +219,46 @@ describe("QuizAnalysisDashboardPage 復習候補 (#58 Phase 1)", () => {
     expect(card).toHaveTextContent("復習が必要ですが、対応する問題がありません");
   });
 });
+
+describe("QuizAnalysisDashboardPage 最近の回答履歴 (#163)", () => {
+  beforeEach(() => {
+    getQuizAttemptLogs.mockReset();
+    getAllConcepts.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizQuestions.mockResolvedValue([]);
+  });
+
+  it("free-response の recent log を自己評価つきで表示し、partial を不正解にしない", async () => {
+    getQuizAttemptLogs.mockResolvedValue([
+      log({
+        id: "recent-fr",
+        questionType: "free-response",
+        questionPromptSnapshot: "入力式の問い",
+        userAnswerTextSnapshot: "自分の回答",
+        referenceAnswerSnapshot: "模範解答",
+        selfEvaluation: "partial",
+        correct: false,
+        answeredAt: "2026-09-12T00:00:00.000Z"
+      })
+    ]);
+    getAllConcepts.mockResolvedValue([concept()]);
+
+    render(
+      <QuizAnalysisDashboardPage
+        onBack={vi.fn()}
+        onGoToQuizPlay={vi.fn()}
+        onGoToLearningLogs={vi.fn()}
+      />
+    );
+
+    const row = await screen.findByTestId("quiz-analysis-recent-recent-fr");
+    expect(row).toHaveTextContent("入力式（再生）");
+    expect(row).toHaveTextContent("自分の回答");
+    expect(row).toHaveTextContent("模範解答");
+    expect(row).toHaveTextContent("部分的に正解");
+    expect(row).not.toHaveTextContent("不正解");
+    expect(
+      screen.getByText(/入力式の「部分的に正解」は、既存の二値集計では correct=false として扱われます/)
+    ).toBeInTheDocument();
+  });
+});

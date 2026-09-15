@@ -81,6 +81,9 @@ describe("SettingsPage local-first with auth states", () => {
     expect(
       screen.getByText("クラウド認証はこの環境では設定されていません。ローカル機能はそのまま利用できます。")
     ).toBeInTheDocument();
+    expect(screen.getByText(/入力式クイズの学習ログには、ユーザー回答と回答時点の模範解答が全文で保存されます/)).toBeInTheDocument();
+    expect(screen.getByText(/「学習ログを含める」をOFFにするとバックアップ容量を減らせます/)).toBeInTheDocument();
+    expect(screen.getByText(/入力式では回答本文・模範解答・自己評価も出力されます/)).toBeInTheDocument();
   });
 
   it("anonymous でも Settings / backup UI を描画する", () => {

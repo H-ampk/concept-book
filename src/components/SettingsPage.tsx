@@ -245,7 +245,7 @@ export const SettingsPage = ({
           <span>
             学習ログを含める
             <span className="mt-0.5 block text-xs text-celestial-textSub">
-              クイズの回答履歴をバックアップに含めます。完全なバックアップではONを推奨します。
+              クイズの回答履歴をバックアップに含めます。完全なバックアップではONを推奨します。入力式クイズの学習ログには、ユーザー回答と回答時点の模範解答が全文で保存されます。長文回答や大量の履歴がある場合、IndexedDB とバックアップファイルの容量が増えます。「学習ログを含める」をOFFにするとバックアップ容量を減らせます。
             </span>
           </span>
         </label>
@@ -339,7 +339,7 @@ export const SettingsPage = ({
         <div className="rounded-lg bg-nordic-surface p-4">
           <h4 className="mb-2 text-sm font-semibold text-celestial-textMain">学習ログ</h4>
           <p className="mb-2 text-xs text-celestial-textSub">
-            クイズの回答履歴をCSVとして保存します。表計算ソフトや分析ツールで利用できます。エクスポートは読み取り専用で、ConceptBook内の学習履歴は変更されません。
+            クイズの回答履歴をCSVとして保存します。表計算ソフトや分析ツールで利用できます。入力式では回答本文・模範解答・自己評価も出力されます。エクスポートは読み取り専用で、ConceptBook内の学習履歴は変更されません。
           </p>
           <p className="mb-3 text-sm tabular-nums text-celestial-textMain">{quizAttemptLogs.length}件</p>
           <div className="flex flex-wrap gap-2">

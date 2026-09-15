@@ -12,6 +12,7 @@ import {
 import { shortDateTime } from "../utils/date";
 import { buildConceptMasteryMapForConceptIds } from "../utils/mastery/getConceptMastery";
 import { filterLogsByAnsweredDateRange } from "../utils/quizAttemptDateFilter";
+import { presentQuizAttemptHistory } from "../utils/quiz/quizAttemptHistoryPresentation";
 import {
   computeConceptStats,
   computeDeckStats,
@@ -494,6 +495,9 @@ export const QuizAnalysisDashboardPage = ({
                 <p className="mt-2 text-xs text-celestial-textSub">
                   テキスト表記: 正解 {summary.correctCount} 件、不正解 {summary.incorrectCount} 件
                 </p>
+                <p className="mt-2 text-[11px] leading-relaxed text-celestial-textSub/90">
+                  入力式の「部分的に正解」は、既存の二値集計では correct=false として扱われます。詳細な自己評価は下の回答履歴で確認できます。
+                </p>
               </div>
               <div className="rounded-xl border border-celestial-border/60 bg-nordic-navy/40 p-4 backdrop-blur-sm">
                 <p className="text-xs text-celestial-textSub">平均反応時間</p>
@@ -748,7 +752,7 @@ export const QuizAnalysisDashboardPage = ({
               <span className="text-celestial-textSub"> — 全件の履歴や絞り込みはこちらから。</span>
             </p>
             <div className="overflow-x-auto scrollbar-none rounded-xl border border-celestial-border/70 bg-nordic-navy/35 backdrop-blur-sm">
-              <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[1240px] border-collapse text-left text-sm">
                 <caption className="sr-only">最近のクイズ回答ログ</caption>
                 <thead>
                   <tr className="border-b border-celestial-border/50 text-xs uppercase tracking-wide text-celestial-textSub">
@@ -759,16 +763,19 @@ export const QuizAnalysisDashboardPage = ({
                       学習元
                     </th>
                     <th scope="col" className="px-3 py-2 font-medium">
+                      回答形式
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
                       問題文
                     </th>
                     <th scope="col" className="px-3 py-2 font-medium">
-                      選んだ選択肢
+                      回答
                     </th>
                     <th scope="col" className="px-3 py-2 font-medium">
-                      正解選択肢
+                      正答・模範解答
                     </th>
                     <th scope="col" className="px-3 py-2 font-medium">
-                      正誤
+                      結果
                     </th>
                     <th scope="col" className="px-3 py-2 font-medium">
                       反応時間
@@ -779,8 +786,16 @@ export const QuizAnalysisDashboardPage = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {recent.map((log) => (
-                    <tr key={log.id} className="border-b border-celestial-border/30 last:border-0">
+                  {recent.map((log) => {
+                    const view = presentQuizAttemptHistory(log);
+                    const resultClass =
+                      view.resultKind === "correct"
+                        ? "text-celestial-emerald"
+                        : view.resultKind === "partial"
+                          ? "text-amber-300"
+                          : "text-rose-400/90";
+                    return (
+                    <tr key={log.id} data-testid={`quiz-analysis-recent-${log.id}`} className="border-b border-celestial-border/30 last:border-0">
                       <td className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
                         {shortDateTime(log.answeredAt)}
                       </td>
@@ -789,31 +804,37 @@ export const QuizAnalysisDashboardPage = ({
                           {formatDeckSourceLabel(log)}
                         </span>
                       </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-celestial-textMain">
+                        <span className="inline-flex rounded-full border border-celestial-gold/40 bg-celestial-gold/10 px-2 py-0.5 text-[11px] text-celestial-softGold">
+                          {view.formatLabel}
+                        </span>
+                      </td>
                       <td className="max-w-xs px-3 py-2 text-celestial-textMain">
                         <span className="line-clamp-2" title={log.questionPromptSnapshot}>
                           {log.questionPromptSnapshot}
                         </span>
                       </td>
-                      <td className="max-w-[200px] px-3 py-2 text-celestial-textMain">
-                        <span className="line-clamp-2" title={log.selectedChoiceTextSnapshot}>
-                          {log.selectedChoiceTextSnapshot}
+                      <td className="max-w-[220px] px-3 py-2 text-celestial-textMain">
+                        <span className="line-clamp-4 whitespace-pre-wrap" title={view.answerText}>
+                          {view.answerText}
                         </span>
                       </td>
-                      <td className="max-w-[200px] px-3 py-2 text-celestial-textMain">
-                        <span className="line-clamp-2" title={log.correctChoiceTextSnapshot}>
-                          {log.correctChoiceTextSnapshot}
+                      <td className="max-w-[220px] px-3 py-2 text-celestial-textMain">
+                        <span className="line-clamp-4 whitespace-pre-wrap" title={view.referenceText}>
+                          {view.referenceText}
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        {log.correct ? (
-                          <span className="text-celestial-emerald">
-                            正解<span className="sr-only">。正しい回答です。</span>
-                          </span>
-                        ) : (
-                          <span className="text-rose-400/90">
-                            不正解<span className="sr-only">。誤った回答です。</span>
-                          </span>
-                        )}
+                        <span className={resultClass}>
+                          {view.resultLabel}
+                          {view.resultKind === "correct" ? (
+                            <span className="sr-only">。正しい回答です。</span>
+                          ) : view.resultKind === "partial" ? (
+                            <span className="sr-only">。部分的に正しい回答です。</span>
+                          ) : (
+                            <span className="sr-only">。誤った回答です。</span>
+                          )}
+                        </span>
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 tabular-nums text-celestial-textMain">
                         {isUsableReactionTimeMs(log.timeMs)
@@ -826,7 +847,8 @@ export const QuizAnalysisDashboardPage = ({
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
