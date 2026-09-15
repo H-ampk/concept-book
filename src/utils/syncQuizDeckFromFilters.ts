@@ -68,10 +68,11 @@ export function resolveDeckGenerationFilters(deck: QuizDeck): QuizDeckGeneration
   return null;
 }
 
-/** 問題プール内の conceptId 一覧（conceptId 未設定の問題は除外し、件数だけ返す） */
+/** 問題プール内の現存 conceptId 一覧（帰属できない問題は件数だけ返す） */
 export function collectConceptIdsInDeckPool(
   deck: QuizDeck,
-  questionsById: Map<string, QuizQuestion>
+  questionsById: Map<string, QuizQuestion>,
+  validConceptIds: ReadonlySet<string>
 ): { conceptIds: Set<string>; withoutConceptId: number } {
   const conceptIds = new Set<string>();
   let withoutConceptId = 0;
@@ -80,7 +81,7 @@ export function collectConceptIdsInDeckPool(
     if (!q) {
       continue;
     }
-    const cid = resolveQuestionConceptId(q);
+    const cid = resolveQuestionConceptId(q, validConceptIds);
     if (cid) {
       conceptIds.add(cid);
     } else {
@@ -108,9 +109,11 @@ export function previewQuizDeckSync(input: {
   }
 
   const questionsById = new Map(input.allQuestions.map((q) => [q.id, q]));
+  const validConceptIds = new Set(input.allConcepts.map((concept) => concept.id));
   const { conceptIds: existingConceptIds, withoutConceptId } = collectConceptIdsInDeckPool(
     input.deck,
-    questionsById
+    questionsById,
+    validConceptIds
   );
 
   const targetConcepts = selectConceptsForDomainTag(

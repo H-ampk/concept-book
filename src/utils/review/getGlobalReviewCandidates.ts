@@ -42,7 +42,7 @@ export const getGlobalReviewCandidates = (
     input.confusionStats,
     validConceptIds
   );
-  const quizQuestionConceptIds = buildQuizQuestionConceptIdSet(input.quizQuestions);
+  const quizQuestionConceptIds = buildQuizQuestionConceptIdSet(input.quizQuestions, validConceptIds);
   const candidates: GlobalReviewCandidate[] = [];
 
   for (const concept of input.concepts) {

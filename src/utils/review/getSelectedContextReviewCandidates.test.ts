@@ -279,9 +279,10 @@ describe("getSelectedContextReviewCandidates", () => {
       mastery("A", "developing", "medium"),
       mastery("Target", "unlearned", "none")
     );
-    const quizQuestionConceptIds = buildQuizQuestionConceptIdSet([
-      question({ conceptId: "A" })
-    ]);
+    const quizQuestionConceptIds = buildQuizQuestionConceptIdSet(
+      [question({ conceptId: "A" })],
+      new Set(["A", "Target"])
+    );
     const { result } = reviewFrom("Target", concepts, masteryByConceptId, quizQuestionConceptIds);
     expect(result.candidates[0]?.hasQuizQuestion).toBe(true);
   });
@@ -295,14 +296,17 @@ describe("getSelectedContextReviewCandidates", () => {
       mastery("A", "developing", "medium"),
       mastery("Target", "unlearned", "none")
     );
-    const quizQuestionConceptIds = buildQuizQuestionConceptIdSet([
-      question({
-        choices: [
-          { id: "a", text: "正解", sourceConceptId: "A" },
-          { id: "b", text: "誤答", linkedConceptId: "other" }
-        ]
-      })
-    ]);
+    const quizQuestionConceptIds = buildQuizQuestionConceptIdSet(
+      [
+        question({
+          choices: [
+            { id: "a", text: "正解", sourceConceptId: "A" },
+            { id: "b", text: "誤答", linkedConceptId: "other" }
+          ]
+        })
+      ],
+      new Set(["A", "Target"])
+    );
     const { result } = reviewFrom("Target", concepts, masteryByConceptId, quizQuestionConceptIds);
     expect(result.candidates[0]?.hasQuizQuestion).toBe(true);
   });
@@ -316,14 +320,17 @@ describe("getSelectedContextReviewCandidates", () => {
       mastery("A", "developing", "medium"),
       mastery("Target", "unlearned", "none")
     );
-    const quizQuestionConceptIds = buildQuizQuestionConceptIdSet([
-      question({
-        choices: [
-          { id: "a", text: "正解" },
-          { id: "b", text: "誤答", linkedConceptId: "A" }
-        ]
-      })
-    ]);
+    const quizQuestionConceptIds = buildQuizQuestionConceptIdSet(
+      [
+        question({
+          choices: [
+            { id: "a", text: "正解" },
+            { id: "b", text: "誤答", linkedConceptId: "A" }
+          ]
+        })
+      ],
+      new Set(["A", "Target"])
+    );
     expect(quizQuestionConceptIds.has("A")).toBe(false);
     const { result } = reviewFrom("Target", concepts, masteryByConceptId, quizQuestionConceptIds);
     expect(result.candidates[0]?.hasQuizQuestion).toBe(false);

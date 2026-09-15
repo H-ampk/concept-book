@@ -16,6 +16,7 @@ import {
   QUIZ_DECK_SCHEMA_VERSION,
   QUIZ_QUESTION_SCHEMA_VERSION
 } from "../types/quiz";
+import { parseContextualCardSourceId } from "../utils/quizQuestionSource";
 import { stripInvalidQuizReferences } from "../utils/quizConceptLink";
 import {
   isValidImportedQuizAttemptLog,
@@ -1138,9 +1139,9 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   private async stripQuizReferencesToDeletedConcept(deletedConceptId: string): Promise<void> {
-    await withTransaction([STORE_QUIZ_QUESTIONS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_QUIZ_QUESTIONS);
-      const all = (await requestToPromise(store.getAll())) as StoredQuizQuestion[];
+    await withTransaction([STORE_QUIZ_QUESTIONS, STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
+      const questionStore = getStore(STORE_QUIZ_QUESTIONS);
+      const all = (await requestToPromise(questionStore.getAll())) as StoredQuizQuestion[];
       for (const raw of all) {
         const q = normalizeQuizQuestion(raw);
         let changed = false;
@@ -1149,24 +1150,56 @@ export class IndexedDBStorage implements ConceptStorage {
           nextConceptId = undefined;
           changed = true;
         }
-        const nextChoices: QuizChoice[] = q.choices.map((c) => {
-          if (c.linkedConceptId === deletedConceptId) {
+        let nextSource = q.source;
+        if (q.source?.type === "contextualConceptCard") {
+          const parsed = parseContextualCardSourceId(q.source.sourceId);
+          if (parsed?.conceptId === deletedConceptId) {
+            nextSource = undefined;
             changed = true;
-            const { linkedConceptId: _, ...rest } = c;
-            return rest;
           }
-          return c;
+        }
+        const nextChoices: QuizChoice[] = q.choices.map((c) => {
+          let next = c;
+          if (next.linkedConceptId === deletedConceptId) {
+            changed = true;
+            const { linkedConceptId: _, ...rest } = next;
+            next = rest;
+          }
+          if (next.sourceConceptId === deletedConceptId) {
+            changed = true;
+            const { sourceConceptId: _source, contextDefinitionId: _ctx, ...rest } = next;
+            next = rest;
+          }
+          return next;
         });
         if (!changed) {
           continue;
         }
+        const { conceptId: _conceptId, source: _source, ...restQuestion } = q;
         const next: QuizQuestion = {
-          ...q,
-          conceptId: nextConceptId,
+          ...restQuestion,
+          ...(nextConceptId ? { conceptId: nextConceptId } : {}),
+          ...(nextSource ? { source: nextSource } : {}),
           choices: nextChoices,
           updatedAt: nowIso()
         };
-        await requestToPromise(store.put(normalizeQuizQuestion(next as StoredQuizQuestion)));
+        await requestToPromise(questionStore.put(normalizeQuizQuestion(next as StoredQuizQuestion)));
+      }
+
+      const contextStore = getStore(STORE_CONTEXT_CARDS);
+      const cards = (await requestToPromise(contextStore.getAll())) as Partial<ContextCard>[];
+      const now = nowIso();
+      for (const raw of cards) {
+        const card = sanitizeContextCard(raw);
+        if (!card.linkedConcepts.includes(deletedConceptId)) {
+          continue;
+        }
+        const updated: ContextCard = {
+          ...card,
+          linkedConcepts: card.linkedConcepts.filter((id) => id !== deletedConceptId),
+          updatedAt: now
+        };
+        await requestToPromise(contextStore.put(updated));
       }
     });
   }

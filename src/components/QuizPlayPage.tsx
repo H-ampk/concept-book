@@ -238,6 +238,10 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     () => new Map(concepts.map((concept) => [concept.id, concept])),
     [concepts]
   );
+  const validConceptIds = useMemo(
+    () => new Set(concepts.map((concept) => concept.id)),
+    [concepts]
+  );
 
   const questionStatsMap = useMemo(
     () => buildQuestionQuizStatsMap(attemptLogs),
@@ -502,7 +506,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     if (sessionIdRef.current) {
       log.sessionId = sessionIdRef.current;
     }
-    const promptConceptId = resolveQuestionConceptId(currentQuestion);
+    const promptConceptId = resolveQuestionConceptId(currentQuestion, validConceptIds);
     if (promptConceptId) {
       log.conceptId = promptConceptId;
       log.questionConceptId = promptConceptId;
@@ -648,7 +652,7 @@ export const QuizPlayPage = ({ onBack, onGoToQuizBuilder }: Props) => {
     if (sessionIdRef.current) {
       log.sessionId = sessionIdRef.current;
     }
-    const promptConceptId = resolveQuestionConceptId(currentQuestion);
+    const promptConceptId = resolveQuestionConceptId(currentQuestion, validConceptIds);
     if (promptConceptId) {
       log.conceptId = promptConceptId;
       log.questionConceptId = promptConceptId;

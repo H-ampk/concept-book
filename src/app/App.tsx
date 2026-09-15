@@ -192,8 +192,10 @@ export const App = () => {
 
   const reloadQuizQuestionConceptIds = useCallback(async () => {
     const questions = await storage.getQuizQuestions();
-    setQuizQuestionConceptIds(buildQuizQuestionConceptIdSet(questions));
-  }, []);
+    setQuizQuestionConceptIds(
+      buildQuizQuestionConceptIdSet(questions, new Set(concepts.map((concept) => concept.id)))
+    );
+  }, [concepts]);
 
   useEffect(() => {
     void reloadQuizAttemptLogs();

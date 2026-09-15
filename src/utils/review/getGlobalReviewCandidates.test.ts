@@ -529,6 +529,24 @@ describe("getGlobalReviewCandidates / QuizQuestion", () => {
     });
     expect(candidate.hasQuizQuestion).toBe(true);
   });
+
+  it("dangling な sourceConceptId は hasQuizQuestion の根拠にしない", () => {
+    const [candidate] = getGlobalReviewCandidates({
+      concepts: [{ id: "a" }],
+      masteryByConceptId: new Map([["a", mastery({ conceptId: "a" })]]),
+      confusionStats: [],
+      quizQuestions: [
+        question({
+          choices: [
+            { id: "a", text: "A", sourceConceptId: "deleted-concept" },
+            { id: "b", text: "B" }
+          ]
+        })
+      ],
+      now: NOW
+    });
+    expect(candidate.hasQuizQuestion).toBe(false);
+  });
 });
 
 describe("getGlobalReviewCandidates / determinism", () => {
