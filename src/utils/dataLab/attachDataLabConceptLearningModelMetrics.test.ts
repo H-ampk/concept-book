@@ -181,7 +181,7 @@ describe("attachDataLabConceptLearningModelMetrics", () => {
     expect(missing[0]?.hlrRetentionProbability).toBeNull();
 
     const deleted = attach([log({ conceptId: "gone" })], "concept", new Map());
-    expect(deleted[0]?.label).toBe("削除済みConcept");
+    expect(deleted[0]?.label).toBe("削除済みConcept (gone)");
     expect(deleted[0]?.masteryProbability).toBeNull();
     expect(deleted[0]?.pfaNextCorrectProbability).toBeNull();
     expect(deleted[0]?.hlrHalfLifeDays).toBeNull();

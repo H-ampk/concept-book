@@ -137,4 +137,36 @@ describe("DataLabLearningModelEvaluationPanel", () => {
       pfa.brierScore?.toFixed(4)
     );
   });
+
+  it("削除済み Concept は完全な ID 付き label で区別する", () => {
+    const points = [
+      point({
+        attemptId: "a1",
+        conceptId: "deleted-id-A",
+        predictedCorrectProbability: 0.9,
+        actualCorrect: true
+      }),
+      point({
+        attemptId: "a2",
+        conceptId: "deleted-id-A",
+        predictedCorrectProbability: 0.8,
+        actualCorrect: true
+      }),
+      point({
+        attemptId: "b1",
+        conceptId: "deleted-id-B",
+        predictedCorrectProbability: 0.1,
+        actualCorrect: false
+      })
+    ];
+    render(<DataLabLearningModelEvaluationPanel points={points} conceptById={new Map()} />);
+    const table = screen.getByTestId("data-lab-learning-model-concept-metrics");
+    expect(table).toHaveTextContent("削除済みConcept (deleted-id-A)");
+    expect(table).toHaveTextContent("削除済みConcept (deleted-id-B)");
+    const rows = within(table).getAllByRole("row").slice(1);
+    const rowA = rows.find((row) => row.textContent?.includes("削除済みConcept (deleted-id-A)"));
+    const rowB = rows.find((row) => row.textContent?.includes("削除済みConcept (deleted-id-B)"));
+    expect(rowA).toHaveTextContent("2");
+    expect(rowB).toHaveTextContent("1");
+  });
 });

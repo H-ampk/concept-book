@@ -3,6 +3,7 @@ import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
 import { isUsableReactionTimeMs, QUIZ_DECK_BUCKET_FREE } from "../quizStats";
 import { isoWeekKeyAndRange, lastLocalDayOfMonth, localYm, localYmd } from "./dataLabTimePeriod";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
+import { formatDataLabConceptLabel } from "./dataLabConceptLabel";
 
 export type DataLabGroupBy = "concept" | "domain" | "deck" | "day" | "week" | "month";
 
@@ -160,18 +161,6 @@ const sortByPeriod = (a: DataLabAggregateRow, b: DataLabAggregateRow): number =>
   return a.key.localeCompare(b.key);
 };
 
-const conceptLabel = (conceptId: string | null, conceptById: Map<string, Concept>): string => {
-  if (!conceptId) {
-    return "Conceptなし";
-  }
-  const concept = conceptById.get(conceptId);
-  const title = concept?.title?.trim();
-  if (title) {
-    return title;
-  }
-  return "削除済みConcept";
-};
-
 const deckLabel = (
   deckId: string | null,
   log: QuizAttemptLog,
@@ -243,7 +232,7 @@ export const aggregateDataLabLogs = ({
       const key = conceptId ?? DATA_LAB_CONCEPT_NONE_KEY;
       let bucket = buckets.get(key);
       if (!bucket) {
-        bucket = emptyBucket(conceptLabel(conceptId, conceptById), {
+        bucket = emptyBucket(formatDataLabConceptLabel(conceptId, conceptById), {
           conceptId
         });
         buckets.set(key, bucket);

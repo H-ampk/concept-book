@@ -142,11 +142,26 @@ describe("aggregateDataLabLogs Concept", () => {
   });
 
   it("削除済み Concept でもクラッシュせず、元 ID をキーに残す", () => {
-    const rows = aggregate([log({ conceptId: "gone" })], "concept", emptyMaps());
-    expect(rows).toHaveLength(1);
-    expect(rows[0].key).toBe("gone");
-    expect(rows[0].label).toBe("削除済みConcept");
-    expect(rows[0].conceptId).toBe("gone");
+    const rows = aggregate(
+      [
+        log({ id: "1", conceptId: "deleted-id-A", correct: true }),
+        log({ id: "2", conceptId: "deleted-id-A", correct: false }),
+        log({ id: "3", conceptId: "deleted-id-B", correct: true })
+      ],
+      "concept",
+      emptyMaps()
+    );
+    expect(rows).toHaveLength(2);
+    const rowA = rows.find((row) => row.key === "deleted-id-A");
+    const rowB = rows.find((row) => row.key === "deleted-id-B");
+    expect(rowA?.key).toBe("deleted-id-A");
+    expect(rowA?.conceptId).toBe("deleted-id-A");
+    expect(rowA?.label).toBe("削除済みConcept (deleted-id-A)");
+    expect(rowA?.attemptCount).toBe(2);
+    expect(rowB?.key).toBe("deleted-id-B");
+    expect(rowB?.conceptId).toBe("deleted-id-B");
+    expect(rowB?.label).toBe("削除済みConcept (deleted-id-B)");
+    expect(rowB?.attemptCount).toBe(1);
   });
 
   it("Concept ID なしは安定 sentinel の Conceptなし へまとめる", () => {

@@ -25,6 +25,7 @@ import {
   PFA_LEARNING_MODEL_ID
 } from "../../utils/learningModelEvaluation/predictors";
 import type { LearningModelPredictionMetrics, LearningModelPredictionPoint } from "../../utils/learningModelEvaluation/types";
+import { formatDataLabConceptLabel } from "../../utils/dataLab/dataLabConceptLabel";
 
 type Props = {
   points: LearningModelPredictionPoint[];
@@ -48,14 +49,6 @@ const emptyMetrics = (): LearningModelPredictionMetrics => ({
 
 const inputClass =
   "w-full rounded-md border border-celestial-border/60 bg-nordic-navy/50 px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55";
-
-const conceptLabel = (conceptId: string, conceptById: Map<string, Concept>): string => {
-  const title = conceptById.get(conceptId)?.title?.trim();
-  if (title) {
-    return title;
-  }
-  return "削除済みConcept";
-};
 
 type EvaluationTooltipPayload = {
   payload?: DataLabEvaluationScatterPoint;
@@ -182,7 +175,7 @@ export const DataLabLearningModelEvaluationPanel = ({ points, conceptById }: Pro
     return [...byConcept.entries()]
       .map(([conceptId, metrics]) => ({
         conceptId,
-        label: conceptLabel(conceptId, conceptById),
+        label: formatDataLabConceptLabel(conceptId, conceptById),
         metrics
       }))
       .sort((a, b) => {

@@ -122,4 +122,69 @@ describe("SavedResearchReportsPanel", () => {
     expect(onDeleteBlock).toHaveBeenCalledWith(report.id, report.blocks[0]?.id);
     expect(sourceLogs).toEqual([{ id: "keep" }]);
   });
+
+  it("legacy の削除済みConcept snapshot を表示時に ID で区別し、保存済み label は変えない", () => {
+    const legacySnapshot = buildDataLabAnalysisSnapshot(
+      {
+        filters: DEFAULT_DATA_LAB_FILTERS,
+        filterChips: [],
+        groupBy: "concept",
+        metric: "accuracy",
+        displayMode: "table",
+        filteredLogCount: 4,
+        aggregatedRows: [
+          {
+            groupBy: "concept",
+            key: "deleted-id-A",
+            label: "削除済みConcept",
+            attemptCount: 3,
+            correctCount: 1,
+            incorrectCount: 2,
+            accuracy: 1 / 3,
+            averageResponseTimeMs: 1000,
+            firstAttemptAt: null,
+            lastAttemptAt: null,
+            conceptId: "deleted-id-A"
+          },
+          {
+            groupBy: "concept",
+            key: "deleted-id-B",
+            label: "削除済みConcept",
+            attemptCount: 1,
+            correctCount: 1,
+            incorrectCount: 0,
+            accuracy: 1,
+            averageResponseTimeMs: 800,
+            firstAttemptAt: null,
+            lastAttemptAt: null,
+            conceptId: "deleted-id-B"
+          }
+        ]
+      },
+      { now: "2026-09-16T00:00:00.000Z" }
+    );
+    expect(legacySnapshot.rows.map((row) => row.label)).toEqual(["削除済みConcept", "削除済みConcept"]);
+
+    const report = createResearchReportFromSnapshot(legacySnapshot, {
+      id: "r-deleted",
+      title: "削除済み概念の分析",
+      now: "2026-09-16T00:00:00.000Z"
+    });
+    render(
+      <SavedResearchReportsPanel
+        reports={[report]}
+        onTitleChange={vi.fn()}
+        onCommentaryChange={vi.fn()}
+        onDeleteBlock={vi.fn()}
+      />
+    );
+
+    const table = screen.getByTestId("research-analysis-snapshot-table");
+    expect(table).toHaveTextContent("削除済みConcept (deleted-id-A)");
+    expect(table).toHaveTextContent("削除済みConcept (deleted-id-B)");
+    expect(report.blocks[0]?.snapshot.rows.map((row) => row.label)).toEqual([
+      "削除済みConcept",
+      "削除済みConcept"
+    ]);
+  });
 });

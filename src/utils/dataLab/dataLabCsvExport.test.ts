@@ -125,13 +125,16 @@ describe("buildDataLabLogCsv", () => {
 
   it("削除済み Concept でも失敗せず ID を残す", () => {
     const csv = buildDataLabLogCsv(
-      [log({ conceptId: "gone-concept" })],
+      [log({ conceptId: "deleted-id-A" })],
       new Map(),
       new Map([["deck-1", deck()]])
     );
     const data = parseCsv(csv)[1] ?? "";
-    expect(data).toContain("gone-concept");
-    expect(data).toContain("削除済みConcept");
+    const cells = data.split(",");
+    expect(cells[DATA_LAB_LOG_CSV_COLUMNS.indexOf("conceptId")]).toBe("deleted-id-A");
+    expect(cells[DATA_LAB_LOG_CSV_COLUMNS.indexOf("conceptName")]).toBe(
+      "削除済みConcept (deleted-id-A)"
+    );
   });
 
   it("questionConceptId だけでも Concept ID を解決する", () => {
@@ -332,6 +335,22 @@ describe("buildDataLabAggregateCsv", () => {
 
   it("0件でも例外にならない", () => {
     expect(parseCsv(buildDataLabAggregateCsv([]))[0]).toBe(DATA_LAB_AGGREGATE_CSV_COLUMNS.join(","));
+  });
+
+  it("aggregate CSV は row.label を使い、削除済み Concept の groupKey / groupLabel / conceptId を対応させる", () => {
+    const csv = buildDataLabAggregateCsv([
+      aggregateRow("concept", {
+        key: "deleted-id-A",
+        label: "削除済みConcept (deleted-id-A)",
+        conceptId: "deleted-id-A"
+      })
+    ]);
+    const cells = (parseCsv(csv)[1] ?? "").split(",");
+    expect(cells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("groupKey")]).toBe("deleted-id-A");
+    expect(cells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("groupLabel")]).toBe(
+      "削除済みConcept (deleted-id-A)"
+    );
+    expect(cells[DATA_LAB_AGGREGATE_CSV_COLUMNS.indexOf("conceptId")]).toBe("deleted-id-A");
   });
 });
 

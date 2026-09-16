@@ -4,6 +4,7 @@ import { buildCsv, localDateYmd, type CsvCellValue } from "../csv";
 import type { LearningModelPredictionPoint } from "../learningModelEvaluation/types";
 import type { DataLabAggregateRow, DataLabGroupBy } from "./aggregateDataLabLogs";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
+import { formatDataLabConceptLabel } from "./dataLabConceptLabel";
 
 export const DATA_LAB_DOMAIN_TAGS_SEPARATOR = "|";
 
@@ -59,17 +60,6 @@ export type DataLabLogCsvColumn = (typeof DATA_LAB_LOG_CSV_COLUMNS)[number];
 export type DataLabAggregateCsvColumn = (typeof DATA_LAB_AGGREGATE_CSV_COLUMNS)[number];
 export type DataLabPredictionCsvColumn = (typeof DATA_LAB_PREDICTION_CSV_COLUMNS)[number];
 
-const dataLabConceptName = (conceptId: string | null, conceptById: Map<string, Concept>): string => {
-  if (!conceptId) {
-    return "Conceptなし";
-  }
-  const title = conceptById.get(conceptId)?.title?.trim();
-  if (title) {
-    return title;
-  }
-  return "削除済みConcept";
-};
-
 const dataLabDeckName = (
   deckId: string | null,
   log: QuizAttemptLog,
@@ -113,7 +103,7 @@ export const dataLabLogToCsvCells = (
     answeredAt: log.answeredAt,
     startedAt: log.startedAt,
     conceptId: conceptId ?? "",
-    conceptName: dataLabConceptName(conceptId, conceptById),
+    conceptName: formatDataLabConceptLabel(conceptId, conceptById),
     deckId: deckId ?? "",
     deckName: dataLabDeckName(deckId, log, deckById),
     domainTags: dataLabDomainTagsCell(conceptId, conceptById),

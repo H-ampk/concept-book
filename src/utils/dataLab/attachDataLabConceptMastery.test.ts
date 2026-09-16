@@ -121,7 +121,7 @@ describe("attachDataLabConceptMastery", () => {
       deckById: new Map()
     });
     const attached = attachDataLabConceptMastery(rows, buildConceptMasteryMap(logs), new Map());
-    expect(rows[0]?.label).toBe("削除済みConcept");
+    expect(rows[0]?.label).toBe("削除済みConcept (gone)");
     expect(attached[0]?.masteryProbability).toBeNull();
   });
 

@@ -1,4 +1,5 @@
 import type { DataLabAggregateRow, DataLabGroupBy } from "../../utils/dataLab/aggregateDataLabLogs";
+import { formatStoredDataLabConceptLabel } from "../../utils/dataLab/dataLabConceptLabel";
 import { DATA_LAB_GROUP_BY_COLUMN_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
 import {
   formatDataLabAccuracy,
@@ -45,7 +46,11 @@ export const ResearchAnalysisSnapshotTable = ({ rows, groupBy }: Props) => {
         <tbody>
           {rows.map((row) => (
             <tr key={row.key} className="border-b border-celestial-border/30 text-celestial-textMain">
-              <td className="px-3 py-2">{row.label}</td>
+              <td className="px-3 py-2">
+                {groupBy === "concept"
+                  ? formatStoredDataLabConceptLabel(row.label, row.conceptId)
+                  : row.label}
+              </td>
               <td className="px-3 py-2 tabular-nums">{row.attemptCount}</td>
               <td className="px-3 py-2 tabular-nums">{row.correctCount}</td>
               <td className="px-3 py-2 tabular-nums">{row.incorrectCount}</td>
