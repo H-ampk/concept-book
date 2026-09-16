@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { TextLayer } from "pdfjs-dist";
 import "./pdfTextLayer.css";
 import { getStorage } from "../../storage";
 import type { Concept } from "../../types/concept";
-import type { ConceptSourceAnchor } from "../../types/conceptSourceAnchor";
+import type { ConceptSourceAnchor, NormalizedRect } from "../../types/conceptSourceAnchor";
 import type { LearningMaterial } from "../../types/learningMaterial";
 import { nowIso } from "../../utils/date";
 import { denormalizeAnchorRectsRelative, normalizeSelectionRects } from "../../utils/pdf/normalizeSelectionRects";
 import { loadPdfDocument, type PdfDocumentHandle } from "../../utils/pdf/loadPdfDocument";
+import { buildPdfPageTextIndex, type PdfPageTextIndex } from "../../utils/pdf/buildPdfPageTextIndex";
+import { collectSearchableConceptTerms, findConceptTermMatches } from "../../utils/pdf/findConceptTermMatches";
+import { mapTextMatchToRects, type ViewportLike } from "../../utils/pdf/mapTextMatchToRects";
+import { rectSetsOverlap } from "../../utils/pdf/conceptTermMatchOverlap";
+import { isPdfTextItem } from "../../utils/pdf/pdfTextItem";
 import { useAnchorConnectors } from "../../hooks/useAnchorConnectors";
 import { ModalPortal } from "../common/ModalPortal";
 import { ConceptLinkDialog } from "./ConceptLinkDialog";
@@ -17,11 +22,19 @@ type Props = {
   material: LearningMaterial;
   linkedConcepts: Concept[];
   onClose: () => void;
+  onOpenConcept?: (conceptId: string) => void;
 };
 
 const storage = getStorage();
 
-export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onClose }: Props) => {
+type AutoMatchView = {
+  id: string;
+  conceptId: string;
+  title: string;
+  rects: NormalizedRect[];
+};
+
+export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onClose, onOpenConcept }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageCount, setPageCount] = useState(1);
@@ -36,11 +49,16 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
   const [overlayEl, setOverlayEl] = useState<HTMLDivElement | null>(null);
   const [connectorTick, setConnectorTick] = useState(0);
+  const [showRegisteredConcepts, setShowRegisteredConcepts] = useState(true);
+  const [pdfReady, setPdfReady] = useState(0);
+  const [textIndex, setTextIndex] = useState<PdfPageTextIndex | null>(null);
+  const [baseViewport, setBaseViewport] = useState<ViewportLike | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const textLayerRef = useRef<HTMLDivElement | null>(null);
   const pageWrapRef = useRef<HTMLDivElement | null>(null);
   const pdfRef = useRef<PdfDocumentHandle | null>(null);
   const renderGenRef = useRef(0);
+  const extractedPageRef = useRef<number | null>(null);
   const conceptRefs = useRef<Map<string, HTMLElement>>(new Map());
   const highlightRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -76,26 +94,24 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
     if (!open) {
       return;
     }
-    let revoked: string | null = null;
     let cancelled = false;
     const run = async () => {
       setError(null);
+      extractedPageRef.current = null;
       try {
         const blob = await storage.getLearningMaterialBlob(material.id);
         if (!blob) {
           throw new Error("missing");
         }
-        const url = URL.createObjectURL(blob);
-        revoked = url;
         const pdf = await loadPdfDocument(await blob.arrayBuffer());
         if (cancelled) {
           await pdf.destroy?.();
-          URL.revokeObjectURL(url);
           return;
         }
         pdfRef.current = pdf;
         setPageCount(pdf.numPages);
         setPageIndex(0);
+        setPdfReady((value) => value + 1);
         await reloadAnchors();
       } catch {
         if (!cancelled) {
@@ -106,9 +122,6 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
     void run();
     return () => {
       cancelled = true;
-      if (revoked) {
-        URL.revokeObjectURL(revoked);
-      }
       void pdfRef.current?.destroy?.();
       pdfRef.current = null;
     };
@@ -127,11 +140,29 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
       if (gen !== renderGenRef.current) {
         return;
       }
+      if (extractedPageRef.current !== pageIndex) {
+        const content = await page.getTextContent();
+        const viewport1 = page.getViewport({ scale: 1 });
+        if (gen !== renderGenRef.current) {
+          return;
+        }
+        const items = content.items.filter(isPdfTextItem).map((item) => ({
+          str: item.str,
+          width: item.width || 0,
+          height: item.height || 0,
+          transform: item.transform,
+          hasEOL: item.hasEOL
+        }));
+        setTextIndex(buildPdfPageTextIndex(items));
+        setBaseViewport(viewport1);
+        extractedPageRef.current = pageIndex;
+      }
       const viewport = page.getViewport({ scale });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
+        setPageSize({ width: viewport.width, height: viewport.height });
         return;
       }
       await page.render({ canvasContext: ctx, viewport }).promise;
@@ -164,12 +195,35 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
     if (open) {
       void renderPage();
     }
-  }, [open, renderPage, pageCount, error]);
+  }, [open, renderPage, pageCount, error, pdfReady]);
 
   const pageAnchors = useMemo(
     () => anchors.filter((anchor) => anchor.pageIndex === pageIndex),
     [anchors, pageIndex]
   );
+
+  const searchableTerms = useMemo(() => collectSearchableConceptTerms(linkedConcepts), [linkedConcepts]);
+
+  const autoMatches = useMemo(() => {
+    if (!textIndex || !baseViewport) {
+      return [] as AutoMatchView[];
+    }
+    const matches = findConceptTermMatches(textIndex, searchableTerms);
+    return matches.map((match, i) => ({
+      id: `auto-${match.conceptId}-${match.rawStart}-${i}`,
+      conceptId: match.conceptId,
+      title: match.title,
+      rects: mapTextMatchToRects(textIndex, match, baseViewport)
+    }));
+  }, [textIndex, baseViewport, searchableTerms]);
+
+  const visibleAutoMatches = useMemo(() => {
+    if (!showRegisteredConcepts) {
+      return [] as AutoMatchView[];
+    }
+    return autoMatches.filter((match) => !pageAnchors.some((anchor) => rectSetsOverlap(match.rects, anchor.rects)));
+  }, [autoMatches, pageAnchors, showRegisteredConcepts]);
+
   const getConnectorTargets = useCallback(
     () =>
       pageAnchors.map((anchor) => ({
@@ -180,6 +234,8 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
     [pageAnchors, connectorTick]
   );
   const lines = useAnchorConnectors(overlayEl, getConnectorTargets, wide && open);
+
+  const selectedConcept = linkedConcepts.find((concept) => concept.id === selectedConceptId) ?? null;
 
   const captureSelection = () => {
     const selection = window.getSelection();
@@ -205,6 +261,31 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
     setLinkOpen(true);
   };
 
+  const handlePageClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (!showRegisteredConcepts || pageSize.width <= 0) {
+      return;
+    }
+    const selected = window.getSelection()?.toString().trim();
+    if (selected) {
+      return;
+    }
+    const box = pageWrapRef.current?.getBoundingClientRect();
+    if (!box) {
+      return;
+    }
+    const nx = (event.clientX - box.left) / pageSize.width;
+    const ny = (event.clientY - box.top) / pageSize.height;
+    const hit = visibleAutoMatches.find((match) =>
+      match.rects.some(
+        (rect) => nx >= rect.x && nx <= rect.x + rect.width && ny >= rect.y && ny <= rect.y + rect.height
+      )
+    );
+    if (hit) {
+      setSelectedConceptId(hit.conceptId);
+      setSelectedAnchorId(null);
+    }
+  };
+
   if (!open) {
     return null;
   }
@@ -222,7 +303,15 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
                 {pageIndex + 1} / {pageCount} ページ
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1 text-xs text-celestial-textMain">
+                <input
+                  type="checkbox"
+                  checked={showRegisteredConcepts}
+                  onChange={(event) => setShowRegisteredConcepts(event.target.checked)}
+                />
+                登録済みConceptを表示
+              </label>
               <button type="button" className="rounded-2xl border border-celestial-gold/30 px-3 py-2 text-sm" disabled={pageIndex <= 0} onClick={() => setPageIndex((v) => Math.max(0, v - 1))}>
                 前のページ
               </button>
@@ -246,9 +335,29 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
           {error ? <p className="px-4 py-3 text-sm text-celestial-textSub">{error}</p> : null}
           <div ref={setOverlayEl} className="relative flex min-h-0 flex-1 flex-col md:flex-row">
             <div className="min-h-0 flex-1 overflow-auto p-3">
-              <div ref={pageWrapRef} className="relative inline-block bg-white">
+              <div ref={pageWrapRef} className="relative inline-block bg-white" onClick={handlePageClick}>
                 <canvas ref={canvasRef} className="block" />
                 <div ref={textLayerRef} className="text-layer absolute left-0 top-0 overflow-hidden" />
+                {visibleAutoMatches.flatMap((match) =>
+                  denormalizeAnchorRectsRelative(match.rects, pageSize).map((rect, index) => {
+                    const active = selectedConceptId === match.conceptId && selectedAnchorId === null;
+                    return (
+                      <button
+                        key={`${match.id}-${index}`}
+                        type="button"
+                        aria-label={`登録済みConcept「${match.title}」を表示`}
+                        className={`pointer-events-none absolute z-[1] border ${
+                          active ? "border-nordic-blue bg-nordic-blue/35" : "border-nordic-blue/40 bg-nordic-blue/20"
+                        }`}
+                        style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+                        onClick={() => {
+                          setSelectedConceptId(match.conceptId);
+                          setSelectedAnchorId(null);
+                        }}
+                      />
+                    );
+                  })
+                )}
                 {pageAnchors.flatMap((anchor) =>
                   denormalizeAnchorRectsRelative(anchor.rects, pageSize).map((rect, index) => {
                     const active = selectedAnchorId === anchor.id || selectedConceptId === anchor.conceptId;
@@ -262,7 +371,7 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
                           }
                         }}
                         aria-label={`出現箇所: ${linkedConcepts.find((c) => c.id === anchor.conceptId)?.title ?? "Concept"}`}
-                        className={`absolute border ${active ? "border-celestial-gold bg-celestial-gold/40" : "border-celestial-gold/40 bg-celestial-gold/20"}`}
+                        className={`absolute z-[2] border ${active ? "border-celestial-gold bg-celestial-gold/40" : "border-celestial-gold/40 bg-celestial-gold/20"}`}
                         style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
                         onClick={() => {
                           setSelectedAnchorId(anchor.id);
@@ -276,6 +385,32 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
             </div>
             <aside className="w-full shrink-0 border-t border-celestial-border p-3 md:w-72 md:border-l md:border-t-0">
               <h3 className="text-sm font-semibold text-celestial-softGold">この回のConcept</h3>
+              {selectedConcept ? (
+                <div className="mt-3 rounded-xl border border-nordic-blue/40 bg-celestial-deepBlue p-3">
+                  <p className="text-sm font-semibold text-celestial-textMain">{selectedConcept.title || "無題のConcept"}</p>
+                  <p className="mt-2 text-xs text-celestial-softGold">自分の定義</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-celestial-textMain">
+                    {selectedConcept.definition.trim() ? selectedConcept.definition : "定義はまだ登録されていません。"}
+                  </p>
+                  {selectedConcept.domainTags.length > 0 ? (
+                    <p className="mt-2 text-xs text-celestial-textSub">{selectedConcept.domainTags.join("、")}</p>
+                  ) : null}
+                  {onOpenConcept ? (
+                    <button
+                      type="button"
+                      className="action-button mt-3 rounded-2xl px-3 py-1.5 text-sm"
+                      onClick={() => {
+                        onOpenConcept(selectedConcept.id);
+                        onClose();
+                      }}
+                    >
+                      Conceptを開く
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-celestial-textSub">PDF上の登録済みConceptを選ぶと、自分の定義を表示します。</p>
+              )}
               {linkedConcepts.length === 0 ? (
                 <p className="mt-2 text-sm text-celestial-textSub">先にこの文脈カードへConceptを登録してください</p>
               ) : (
@@ -299,6 +434,8 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
                             if (first) {
                               setSelectedAnchorId(first.id);
                               setPageIndex(first.pageIndex);
+                            } else {
+                              setSelectedAnchorId(null);
                             }
                           }}
                         >
@@ -335,7 +472,7 @@ export const LearningMaterialPdfViewer = ({ open, material, linkedConcepts, onCl
               )}
             </aside>
             {wide ? (
-              <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+              <svg className="pointer-events-none absolute inset-0 z-[3] h-full w-full" aria-hidden="true">
                 {lines.map((line) => (
                   <line key={line.id} x1={line.fromX} y1={line.fromY} x2={line.toX} y2={line.toY} stroke="rgba(212,175,55,0.85)" strokeWidth="2" />
                 ))}

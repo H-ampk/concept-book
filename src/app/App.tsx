@@ -792,7 +792,8 @@ export const App = () => {
           />
         ) : screen === "contexts" ? (
           <ContextCardsScreen
-            onNavigateToConcept={(id) => {
+            onNavigateToConcept={async (id) => {
+              await reload();
               setScreen("concepts");
               setSelectedId(id);
               setMobileDetail(true);

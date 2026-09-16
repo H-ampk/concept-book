@@ -4,12 +4,16 @@ import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export type PdfPageHandle = {
-  getViewport: (opts: { scale: number }) => { width: number; height: number };
+  getViewport: (opts: { scale: number }) => {
+    width: number;
+    height: number;
+    convertToViewportPoint?: (x: number, y: number) => number[];
+  };
   render: (opts: {
     canvasContext: CanvasRenderingContext2D;
     viewport: { width: number; height: number };
   }) => { promise: Promise<void> };
-  getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
+  getTextContent: () => Promise<{ items: Array<unknown> }>;
   streamTextContent: () => unknown;
 };
 

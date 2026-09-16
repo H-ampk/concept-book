@@ -10,6 +10,7 @@ type Props = {
   error?: string | null;
   onAddPdf: (file: File) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onOpenConcept?: (conceptId: string) => void;
 };
 
 export const ContextCardMaterialsSection = ({
@@ -18,7 +19,8 @@ export const ContextCardMaterialsSection = ({
   busy,
   error,
   onAddPdf,
-  onDelete
+  onDelete,
+  onOpenConcept
 }: Props) => {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -106,7 +108,13 @@ export const ContextCardMaterialsSection = ({
         PDFを追加
       </button>
       {openMaterial ? (
-        <LearningMaterialPdfViewer open material={openMaterial} linkedConcepts={linkedConcepts} onClose={() => setOpenMaterial(null)} />
+        <LearningMaterialPdfViewer
+          open
+          material={openMaterial}
+          linkedConcepts={linkedConcepts}
+          onClose={() => setOpenMaterial(null)}
+          onOpenConcept={onOpenConcept}
+        />
       ) : null}
     </div>
   );

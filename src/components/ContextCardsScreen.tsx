@@ -302,6 +302,7 @@ const ContextCardDetail = ({
           error={materialsError}
           onAddPdf={(file) => addPdf(file).then(() => undefined)}
           onDelete={remove}
+          onOpenConcept={onNavigateToConcept}
         />
       </div>
     </section>
