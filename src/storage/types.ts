@@ -120,6 +120,10 @@ export type ConceptStorage = {
   getQuizQuestions: () => Promise<QuizQuestion[]>;
   getQuizQuestionsByConceptId: (conceptId: string) => Promise<QuizQuestion[]>;
   saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
+  /** 複数 Question と Deck を同一 transaction で保存する */
+  saveQuizQuestionsAndDeck: (questions: QuizQuestion[], deck: QuizDeck) => Promise<void>;
+  /** 新規 Question 保存と既存 Deck への membership 追加を同一 transaction で行う */
+  saveQuizQuestionAndAppendToDeck: (question: QuizQuestion, deckId: string) => Promise<QuizDeck>;
   deleteQuizQuestion: (id: string) => Promise<void>;
   deleteQuizQuestionsByConceptId: (conceptId: string) => Promise<void>;
 

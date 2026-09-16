@@ -822,3 +822,71 @@ describe("QuizQuestionFormModal provenance linkedConceptId", () => {
     expect(payload.choices[0]?.sourceConceptId).toBe("concept-a");
   });
 });
+
+describe("QuizQuestionFormModal persistQuestion", () => {
+  beforeEach(() => {
+    saveQuizQuestion.mockClear();
+    getAllContextCards.mockClear();
+  });
+
+  it("persistQuestion が reject するとエラーを表示し modal を閉じない", async () => {
+    const user = userEvent.setup();
+    const persistQuestion = vi.fn(async () => {
+      throw new Error("injected persist failure");
+    });
+    const onSaved = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={existingQuestion}
+        concepts={concepts}
+        persistQuestion={persistQuestion}
+        onClose={onClose}
+        onSaved={onSaved}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("保存に失敗しました。")).toBeInTheDocument();
+    });
+    expect(persistQuestion).toHaveBeenCalledTimes(1);
+    expect(saveQuizQuestion).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("persistQuestion 成功時は単独 save せず保存完了後に閉じる", async () => {
+    const user = userEvent.setup();
+    const persistQuestion = vi.fn(async () => undefined);
+    const onSaved = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={existingQuestion}
+        concepts={concepts}
+        persistQuestion={persistQuestion}
+        onClose={onClose}
+        onSaved={onSaved}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(persistQuestion).toHaveBeenCalledTimes(1);
+    });
+    expect(saveQuizQuestion).not.toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+

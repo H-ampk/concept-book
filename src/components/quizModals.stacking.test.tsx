@@ -17,6 +17,8 @@ vi.mock("../storage", () => {
     getQuizDeck,
     getAllContextCards,
     saveQuizQuestion: vi.fn(async () => undefined),
+    saveQuizQuestionsAndDeck: vi.fn(async () => undefined),
+    saveQuizQuestionAndAppendToDeck: vi.fn(async () => sampleDeck),
     deleteQuizQuestion: vi.fn(async () => undefined)
   };
   return {

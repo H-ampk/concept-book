@@ -81,11 +81,11 @@ export const QuizDeckSyncModal = ({ open, deck, concepts, allQuestions, onClose,
         return;
       }
 
-      for (const q of result.newQuestions) {
-        const linkedChoices = applyAutoLinkedConceptIdsToChoices(q.choices, concepts);
-        await storage.saveQuizQuestion({ ...q, choices: linkedChoices });
-      }
-      await storage.saveQuizDeck(result.updatedDeck);
+      const questions = result.newQuestions.map((q) => ({
+        ...q,
+        choices: applyAutoLinkedConceptIdsToChoices(q.choices, concepts)
+      }));
+      await storage.saveQuizQuestionsAndDeck(questions, result.updatedDeck);
       setLastResult(result);
       onSynced();
     } catch {

@@ -176,16 +176,13 @@ export const QuizSetFromDomainTagPanel = ({
     setSaving(true);
     setError(null);
     try {
-      const questionIds: string[] = [];
-      for (const draft of drafts) {
+      const questions = drafts.map((draft) => {
         const linkedChoices = applyAutoLinkedConceptIdsToChoices(
           draft.question.choices,
           concepts
         );
-        const question = { ...draft.question, choices: linkedChoices };
-        await storage.saveQuizQuestion(question);
-        questionIds.push(question.id);
-      }
+        return { ...draft.question, choices: linkedChoices };
+      });
 
       const now = nowIso();
       const deck: QuizDeck = {
@@ -201,7 +198,7 @@ export const QuizSetFromDomainTagPanel = ({
             : targetDomainTag.trim()
               ? [targetDomainTag.trim()]
               : undefined,
-        questionIds,
+        questionIds: questions.map((question) => question.id),
         visibility: "private",
         schemaVersion: QUIZ_DECK_SCHEMA_VERSION,
         createdAt: now,
@@ -216,7 +213,7 @@ export const QuizSetFromDomainTagPanel = ({
               lastSyncedAt: now
             }))
       };
-      await storage.saveQuizDeck(deck);
+      await storage.saveQuizQuestionsAndDeck(questions, deck);
       onSaved();
       onClose();
     } catch {

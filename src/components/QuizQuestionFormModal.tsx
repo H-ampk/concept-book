@@ -65,8 +65,11 @@ type Props = {
   concepts: Concept[];
   onClose: () => void;
   onSaved: () => void;
-  /** 保存直後に呼ばれる（クイズ集への紐づけなど） */
-  onSavedQuestion?: (saved: QuizQuestion) => void;
+  /**
+   * Deck 内の新規作問など、Question 単独保存では足りない場合に渡す。
+   * 指定時は storage.saveQuizQuestion の代わりにこれを待つ。
+   */
+  persistQuestion?: (question: QuizQuestion) => Promise<void>;
 };
 
 export const QuizQuestionFormModal = ({
@@ -76,7 +79,7 @@ export const QuizQuestionFormModal = ({
   concepts,
   onClose,
   onSaved,
-  onSavedQuestion
+  persistQuestion
 }: Props) => {
   const [conceptId, setConceptId] = useState("");
   const [questionType, setQuestionType] = useState<QuizQuestionType>("multiple-choice");
@@ -385,8 +388,11 @@ export const QuizQuestionFormModal = ({
     setSubmitting(true);
     setError(null);
     try {
-      await storage.saveQuizQuestion(payload);
-      onSavedQuestion?.(payload);
+      if (persistQuestion) {
+        await persistQuestion(payload);
+      } else {
+        await storage.saveQuizQuestion(payload);
+      }
       onSaved();
       onClose();
     } catch {

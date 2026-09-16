@@ -1418,6 +1418,71 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  async saveQuizQuestionsAndDeck(questions: QuizQuestion[], deck: QuizDeck): Promise<void> {
+    if (!deck.id?.trim()) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    const titleTrim = deck.title?.trim() ?? "";
+    if (!titleTrim) {
+      throw new Error("QuizDeck の title が空です。");
+    }
+    const normalizedQuestions = questions.map((question) => {
+      if (!question.id?.trim()) {
+        throw new Error("QuizQuestion の id が空です。");
+      }
+      return normalizeQuizQuestion(question);
+    });
+    const normalizedDeck = normalizeQuizDeck({ ...deck, title: titleTrim });
+    for (const question of normalizedQuestions) {
+      if (!normalizedDeck.questionIds.includes(question.id)) {
+        throw new Error(`Question ${question.id} が Deck の questionIds に含まれていません。`);
+      }
+    }
+    return withTransaction(
+      [STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS],
+      "readwrite",
+      async (getStore) => {
+        const questionStore = getStore(STORE_QUIZ_QUESTIONS);
+        const deckStore = getStore(STORE_QUIZ_DECKS);
+        for (const question of normalizedQuestions) {
+          await requestToPromise(questionStore.put(question));
+        }
+        await requestToPromise(deckStore.put(normalizedDeck));
+      }
+    );
+  }
+
+  async saveQuizQuestionAndAppendToDeck(question: QuizQuestion, deckId: string): Promise<QuizDeck> {
+    if (!question.id?.trim()) {
+      throw new Error("QuizQuestion の id が空です。");
+    }
+    if (!deckId?.trim()) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    const normalizedQuestion = normalizeQuizQuestion(question);
+    return withTransaction(
+      [STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS],
+      "readwrite",
+      async (getStore) => {
+        const questionStore = getStore(STORE_QUIZ_QUESTIONS);
+        const deckStore = getStore(STORE_QUIZ_DECKS);
+        const rawDeck = (await requestToPromise(deckStore.get(deckId))) as StoredQuizDeck | undefined;
+        if (!rawDeck) {
+          throw new Error(`QuizDeck ${deckId} が見つかりません。`);
+        }
+        const currentDeck = normalizeQuizDeck(rawDeck);
+        const updatedDeck = normalizeQuizDeck({
+          ...currentDeck,
+          questionIds: [...currentDeck.questionIds, normalizedQuestion.id],
+          updatedAt: nowIso()
+        });
+        await requestToPromise(questionStore.put(normalizedQuestion));
+        await requestToPromise(deckStore.put(updatedDeck));
+        return updatedDeck;
+      }
+    );
+  }
+
   async deleteQuizDeck(id: string): Promise<void> {
     return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
       await requestToPromise(getStore(STORE_QUIZ_DECKS).delete(id));

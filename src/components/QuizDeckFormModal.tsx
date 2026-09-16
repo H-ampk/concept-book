@@ -206,13 +206,10 @@ export const QuizDeckFormModal = ({
     setQuestionFormOpen(true);
   };
 
-  const onQuestionSavedWithPayload = async (saved: QuizQuestion) => {
-    if (questionFormMode !== "create") {
-      return;
-    }
-    const latest = (await storage.getQuizDeck(draft.id)) ?? draft;
-    const nextIds = dedupeQuestionIds([...latest.questionIds, saved.id]);
-    await persistDeckToStorage({ ...latest, questionIds: nextIds, updatedAt: nowIso() });
+  const persistNewQuestionToDeck = async (saved: QuizQuestion) => {
+    const updated = await storage.saveQuizQuestionAndAppendToDeck(saved, draft.id);
+    setDraft(updated);
+    setTagsInput(updated.domainTags?.join(", ") ?? "");
   };
 
   const moveQuestion = async (index: number, dir: -1 | 1) => {
@@ -586,7 +583,7 @@ export const QuizDeckFormModal = ({
         concepts={concepts}
         onClose={() => setQuestionFormOpen(false)}
         onSaved={() => void onReload()}
-        onSavedQuestion={(saved) => void onQuestionSavedWithPayload(saved)}
+        persistQuestion={questionFormMode === "create" ? persistNewQuestionToDeck : undefined}
       />
     </div>
     </ModalPortal>

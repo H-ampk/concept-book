@@ -130,13 +130,9 @@ export const QuizSetFromContextCardPanel = ({
     setSaving(true);
     setError(null);
     try {
-      const questionIds: string[] = [];
-      for (const draft of preview.questions) {
-        // 選択肢は文脈別定義（概念名マスク済み）と由来概念を保持したまま保存する。
-        // テキスト一致による自動リンクは行わない（定義テキストは概念名と一致しないため）。
-        await storage.saveQuizQuestion(draft.question);
-        questionIds.push(draft.question.id);
-      }
+      // 選択肢は文脈別定義（概念名マスク済み）と由来概念を保持したまま保存する。
+      // テキスト一致による自動リンクは行わない（定義テキストは概念名と一致しないため）。
+      const questions = preview.questions.map((draft) => draft.question);
 
       const now = nowIso();
       const deck: QuizDeck = {
@@ -144,13 +140,13 @@ export const QuizSetFromContextCardPanel = ({
         title: quizSetTitle.trim(),
         description: `文脈カード「${preview.contextCardTitle}」から自動生成`,
         domainTags: preview.fieldName ? [preview.fieldName] : selectedCard?.domainTags,
-        questionIds,
+        questionIds: questions.map((question) => question.id),
         visibility: "private",
         schemaVersion: QUIZ_DECK_SCHEMA_VERSION,
         createdAt: now,
         updatedAt: now
       };
-      await storage.saveQuizDeck(deck);
+      await storage.saveQuizQuestionsAndDeck(questions, deck);
       onSaved();
       onClose();
     } catch {
