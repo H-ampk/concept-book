@@ -120,7 +120,11 @@ export const quizChoiceSchema = z.object({
   sourceStrategy: quizChoiceSourceStrategySchema.optional()
 });
 
-const quizQuestionSourceTypeSchema = z.enum(["contextualConceptCard", "contextCard"]);
+const quizQuestionSourceTypeSchema = z.enum([
+  "contextualConceptCard",
+  "contextCard",
+  "conceptGeneral"
+]);
 
 export const quizQuestionSourceSchema = z.object({
   type: quizQuestionSourceTypeSchema,

@@ -1,5 +1,52 @@
+import type { Concept } from "../types/concept";
 import type { QuizQuestion, QuizQuestionSource } from "../types/quiz";
 import { normalizeConceptTitle } from "./normalizeConceptTitle";
+
+const GENERATED_QUESTION_SOURCE_TYPES = new Set<QuizQuestionSource["type"]>([
+  "contextualConceptCard",
+  "contextCard",
+  "conceptGeneral"
+]);
+
+export function buildConceptGeneralSource(
+  concept: Pick<Concept, "id" | "title">,
+  fieldName?: string
+): QuizQuestionSource {
+  const trimmedFieldName = fieldName?.trim();
+  return {
+    type: "conceptGeneral",
+    sourceId: concept.id,
+    sourceTitle: concept.title,
+    ...(trimmedFieldName ? { fieldName: trimmedFieldName } : {})
+  };
+}
+
+export function isLegacyConceptGeneralQuestion(question: QuizQuestion): boolean {
+  if (question.source) {
+    return false;
+  }
+  const conceptId = question.conceptId?.trim();
+  if (!conceptId) {
+    return false;
+  }
+  const expectedContextDefinitionId = `general_${conceptId}`;
+  return question.choices.some((choice) => {
+    if (choice.contextDefinitionId !== expectedContextDefinitionId) {
+      return false;
+    }
+    const sourceConceptId = choice.sourceConceptId?.trim();
+    if (sourceConceptId && sourceConceptId !== conceptId) {
+      return false;
+    }
+    const linkedConceptId = choice.linkedConceptId?.trim();
+    if (linkedConceptId && linkedConceptId !== conceptId) {
+      return false;
+    }
+    const isCorrect = choice.id === question.correctChoiceId;
+    const fromAnswerConcept = sourceConceptId === conceptId || linkedConceptId === conceptId;
+    return isCorrect || fromAnswerConcept;
+  });
+}
 
 /** 文脈別カードの sourceId（conceptId:contextDefinitionId） */
 export function buildContextualCardSourceId(conceptId: string, contextDefinitionId: string): string {
@@ -43,15 +90,51 @@ export function resolveQuestionAnswerKey(question: QuizQuestion): {
 export function collectExistingDuplicateKeys(questions: QuizQuestion[]): Set<string> {
   const keys = new Set<string>();
   for (const question of questions) {
-    if (!question.source) {
+    const { answerConceptId, normalizedAnswerTitle } = resolveQuestionAnswerKey(question);
+    if (question.source) {
+      keys.add(
+        buildQuizQuestionDuplicateKey(question.source, answerConceptId, normalizedAnswerTitle)
+      );
       continue;
     }
-    const { answerConceptId, normalizedAnswerTitle } = resolveQuestionAnswerKey(question);
+    if (!isLegacyConceptGeneralQuestion(question) || !question.conceptId) {
+      continue;
+    }
     keys.add(
-      buildQuizQuestionDuplicateKey(question.source, answerConceptId, normalizedAnswerTitle)
+      buildQuizQuestionDuplicateKey(
+        {
+          type: "conceptGeneral",
+          sourceId: question.conceptId,
+          sourceTitle: ""
+        },
+        answerConceptId,
+        normalizedAnswerTitle
+      )
     );
   }
   return keys;
+}
+
+export function collectExistingGeneratedQuestionConceptIds(questions: QuizQuestion[]): Set<string> {
+  const ids = new Set<string>();
+  for (const question of questions) {
+    const conceptId = question.conceptId?.trim();
+    if (question.source && GENERATED_QUESTION_SOURCE_TYPES.has(question.source.type)) {
+      if (conceptId) {
+        ids.add(conceptId);
+        continue;
+      }
+      const { answerConceptId } = resolveQuestionAnswerKey(question);
+      if (answerConceptId) {
+        ids.add(answerConceptId);
+      }
+      continue;
+    }
+    if (isLegacyConceptGeneralQuestion(question) && conceptId) {
+      ids.add(conceptId);
+    }
+  }
+  return ids;
 }
 
 export function isDuplicateQuizQuestion(

@@ -13,9 +13,11 @@ import { generateQuizChoicesFromConceptGeneral } from "./generateQuizChoicesFrom
 import { generateQuizChoicesFromContextCards } from "./generateQuizChoicesFromContextCards";
 import type { QuizGenerationResult } from "./generateQuizChoicesFromContextCards";
 import {
+  buildConceptGeneralSource,
   buildContextualCardSourceId,
   buildQuizQuestionDuplicateKey,
   collectExistingDuplicateKeys,
+  collectExistingGeneratedQuestionConceptIds,
   isDuplicateQuizQuestion,
   resolveQuestionAnswerKey
 } from "./quizQuestionSource";
@@ -176,12 +178,34 @@ function generateFromConceptGeneral(
   };
 }
 
+export type GenerateForConceptOptions = {
+  existingDuplicateKeys?: Set<string>;
+  existingGeneratedConceptIds?: Set<string>;
+  targetDomainTag?: string;
+};
+
+function isExistingDuplicate(
+  source: QuizQuestionSource,
+  concept: Concept,
+  existingDuplicateKeys?: Set<string>
+): boolean {
+  return Boolean(
+    existingDuplicateKeys &&
+      isDuplicateQuizQuestion(
+        source,
+        concept.id,
+        normalizeConceptTitle(concept.title),
+        existingDuplicateKeys
+      )
+  );
+}
+
 export function generateForConcept(
   concept: Concept,
   generationMode: QuizSetGenerationMode,
   allConcepts: Concept[],
   allContextCards: ContextCard[],
-  existingDuplicateKeys?: Set<string>
+  options: GenerateForConceptOptions = {}
 ):
   | {
       question: QuizQuestion;
@@ -190,21 +214,15 @@ export function generateForConcept(
       quality: QuizGenerationQuality;
     }
   | { failed: true; reason: string } {
+  const { existingDuplicateKeys, existingGeneratedConceptIds, targetDomainTag } = options;
+
   if (generationMode === "context-definition") {
     const generated = generateFromContextDefinition(concept, allConcepts, allContextCards);
     if (!generated) {
       return { failed: true, reason: "文脈別定義がないため、この概念から問題を生成できませんでした。" };
     }
     const source = buildContextualConceptCardSource(concept, generated.contextDefinitionId);
-    if (
-      existingDuplicateKeys &&
-      isDuplicateQuizQuestion(
-        source,
-        concept.id,
-        normalizeConceptTitle(concept.title),
-        existingDuplicateKeys
-      )
-    ) {
+    if (isExistingDuplicate(source, concept, existingDuplicateKeys)) {
       return { failed: true, reason: "この文脈別カードから作成できる新しいクイズはありません。" };
     }
     const question = toQuizQuestion(concept, generated.result, source);
@@ -223,8 +241,12 @@ export function generateForConcept(
   }
 
   if (generationMode === "concept-general") {
+    const source = buildConceptGeneralSource(concept, targetDomainTag);
+    if (isExistingDuplicate(source, concept, existingDuplicateKeys)) {
+      return { failed: true, reason: "この概念の一般定義から作成できる新しいクイズはありません。" };
+    }
     const generated = generateFromConceptGeneral(concept, allConcepts, allContextCards);
-    const question = toQuizQuestion(concept, generated.result);
+    const question = toQuizQuestion(concept, generated.result, source);
     if (!question) {
       return {
         failed: true,
@@ -240,16 +262,10 @@ export function generateForConcept(
   }
 
   const contextGenerated = generateFromContextDefinition(concept, allConcepts, allContextCards);
+  let contextWasDuplicate = false;
   if (contextGenerated) {
     const source = buildContextualConceptCardSource(concept, contextGenerated.contextDefinitionId);
-    const isDuplicate =
-      existingDuplicateKeys &&
-      isDuplicateQuizQuestion(
-        source,
-        concept.id,
-        normalizeConceptTitle(concept.title),
-        existingDuplicateKeys
-      );
+    const isDuplicate = isExistingDuplicate(source, concept, existingDuplicateKeys);
     if (!isDuplicate) {
       const question = toQuizQuestion(concept, contextGenerated.result, source);
       if (question) {
@@ -260,7 +276,13 @@ export function generateForConcept(
           quality: contextGenerated.result.quality
         };
       }
+    } else {
+      contextWasDuplicate = true;
     }
+  }
+
+  if (contextWasDuplicate || existingGeneratedConceptIds?.has(concept.id)) {
+    return { failed: true, reason: "この概念から作成できる新しいクイズはありません。" };
   }
 
   if (!hasGeneralDefinition(concept)) {
@@ -270,8 +292,13 @@ export function generateForConcept(
     };
   }
 
+  const generalSource = buildConceptGeneralSource(concept, targetDomainTag);
+  if (isExistingDuplicate(generalSource, concept, existingDuplicateKeys)) {
+    return { failed: true, reason: "この概念の一般定義から作成できる新しいクイズはありません。" };
+  }
+
   const generalGenerated = generateFromConceptGeneral(concept, allConcepts, allContextCards);
-  const question = toQuizQuestion(concept, generalGenerated.result);
+  const question = toQuizQuestion(concept, generalGenerated.result, generalSource);
   if (!question) {
     return {
       failed: true,
@@ -307,6 +334,7 @@ export function generateQuizSetFromDomainTag(
   } = input;
 
   const existingDuplicateKeys = collectExistingDuplicateKeys(existingQuestions);
+  const existingGeneratedConceptIds = collectExistingGeneratedQuestionConceptIds(existingQuestions);
 
   const targetConcepts = selectConceptsForDomainTag(
     allConcepts,
@@ -328,7 +356,11 @@ export function generateQuizSetFromDomainTag(
       generationMode,
       allConcepts,
       allContextCards,
-      existingDuplicateKeys
+      {
+        existingDuplicateKeys,
+        existingGeneratedConceptIds,
+        targetDomainTag
+      }
     );
 
     if ("failed" in outcome) {
@@ -354,6 +386,8 @@ export function generateQuizSetFromDomainTag(
         )
       );
     }
+
+    existingGeneratedConceptIds.add(concept.id);
 
     questions.push({
       question: outcome.question,

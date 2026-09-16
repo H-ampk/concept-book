@@ -154,7 +154,7 @@ type StoredQuizQuestion = Omit<Partial<QuizQuestion>, "visibility"> & {
 };
 
 const isQuizQuestionSourceType = (v: unknown): v is QuizQuestionSource["type"] =>
-  v === "contextualConceptCard" || v === "contextCard";
+  v === "contextualConceptCard" || v === "contextCard" || v === "conceptGeneral";
 
 const normalizeQuizQuestionSource = (raw: unknown): QuizQuestionSource | undefined => {
   if (!raw || typeof raw !== "object") {

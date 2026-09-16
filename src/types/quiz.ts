@@ -43,7 +43,10 @@ export type QuizDeckSourceType = "manual" | "domain-tag";
 export type QuizCreateSourceType = "contextualConceptCard" | "contextCard";
 
 /** クイズ問題の出典種別 */
-export type QuizQuestionSourceType = "contextualConceptCard" | "contextCard";
+export type QuizQuestionSourceType =
+  | "contextualConceptCard"
+  | "contextCard"
+  | "conceptGeneral";
 
 /** クイズ問題の出典情報（既存データとの互換のため optional） */
 export type QuizQuestionSource = {

@@ -7,6 +7,12 @@ import {
   type QuizSetGenerationMode
 } from "./generateQuizSetFromDomainTag";
 import { resolveQuestionConceptId } from "./quiz/resolveQuestionConceptId";
+import {
+  buildQuizQuestionDuplicateKey,
+  collectExistingDuplicateKeys,
+  collectExistingGeneratedQuestionConceptIds,
+  resolveQuestionAnswerKey
+} from "./quizQuestionSource";
 
 export type QuizDeckSyncSkipReason =
   | "already-in-pool"
@@ -179,13 +185,20 @@ export function syncQuizDeckFromFilters(input: {
   const generationMode: QuizSetGenerationMode = filters.generationMode ?? "auto";
   const skippedEntries: QuizDeckSyncSkippedEntry[] = [...preview.skippedEntries];
   const newQuestions: QuizQuestion[] = [];
+  const existingDuplicateKeys = collectExistingDuplicateKeys(input.allQuestions);
+  const existingGeneratedConceptIds = collectExistingGeneratedQuestionConceptIds(input.allQuestions);
 
   for (const concept of preview.addableConcepts) {
     const outcome = generateForConcept(
       concept,
       generationMode,
       input.allConcepts,
-      input.allContextCards
+      input.allContextCards,
+      {
+        existingDuplicateKeys,
+        existingGeneratedConceptIds,
+        targetDomainTag: filters.targetDomainTag
+      }
     );
 
     if ("failed" in outcome) {
@@ -204,6 +217,17 @@ export function syncQuizDeckFromFilters(input: {
       createdAt: input.nowIso,
       updatedAt: input.nowIso
     });
+    if (outcome.question.source) {
+      const { answerConceptId, normalizedAnswerTitle } = resolveQuestionAnswerKey(outcome.question);
+      existingDuplicateKeys.add(
+        buildQuizQuestionDuplicateKey(
+          outcome.question.source,
+          answerConceptId,
+          normalizedAnswerTitle
+        )
+      );
+    }
+    existingGeneratedConceptIds.add(concept.id);
   }
 
   const newQuestionIds = newQuestions.map((q) => q.id);

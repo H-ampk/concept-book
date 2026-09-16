@@ -6,7 +6,7 @@ import {
   type QuizDeck,
   type QuizQuestion
 } from "../types/quiz";
-import { collectConceptIdsInDeckPool, previewQuizDeckSync } from "./syncQuizDeckFromFilters";
+import { collectConceptIdsInDeckPool, previewQuizDeckSync, syncQuizDeckFromFilters } from "./syncQuizDeckFromFilters";
 
 const iso = "2026-01-01T00:00:00.000Z";
 
@@ -86,5 +86,75 @@ describe("collectConceptIdsInDeckPool live Concept 解決", () => {
     expect(preview.skippedEntries.some((entry) => entry.conceptId === "deleted-concept")).toBe(
       false
     );
+  });
+});
+
+describe("syncQuizDeckFromFilters concept-general", () => {
+  const domainConcepts = (): Concept[] => [
+    concept("a", {
+      title: "概念A",
+      definition: "Aの一般定義。十分な長さの定義文です。",
+      domainTags: ["心理学"]
+    }),
+    concept("b", {
+      title: "概念B",
+      definition: "Bの別説明。十分な長さの定義文です。",
+      domainTags: ["心理学"]
+    }),
+    concept("c", {
+      title: "概念C",
+      definition: "Cの別説明。十分な長さの定義文です。",
+      domainTags: ["心理学"]
+    }),
+    concept("d", {
+      title: "概念D",
+      definition: "Dの別説明。十分な長さの定義文です。",
+      domainTags: ["心理学"]
+    })
+  ];
+
+  it("同一 Concept が Deck pool にあれば skip する", () => {
+    const concepts = domainConcepts();
+    const existing = question({
+      id: "q-a",
+      conceptId: "a"
+    });
+    const preview = previewQuizDeckSync({
+      deck: deck({
+        questionIds: ["q-a"],
+        generationFilters: { targetDomainTag: "心理学", generationMode: "concept-general" }
+      }),
+      allConcepts: concepts,
+      allQuestions: [existing]
+    });
+    expect(preview.skippedEntries.some((entry) => entry.conceptId === "a" && entry.reason === "already-in-pool")).toBe(
+      true
+    );
+    expect(preview.addableConcepts.some((item) => item.id === "a")).toBe(false);
+  });
+
+  it("新規 sync の concept-general Question に conceptGeneral source が付く", () => {
+    const concepts = domainConcepts();
+    const result = syncQuizDeckFromFilters({
+      deck: deck({
+        questionIds: [],
+        generationFilters: { targetDomainTag: "心理学", generationMode: "concept-general" }
+      }),
+      allConcepts: concepts,
+      allContextCards: [],
+      allQuestions: [],
+      createQuestionId: (() => {
+        let n = 0;
+        return () => `q-new-${++n}`;
+      })(),
+      nowIso: iso
+    });
+    expect(result.addedQuestionCount).toBeGreaterThan(0);
+    expect(result.newQuestions[0]?.source).toEqual({
+      type: "conceptGeneral",
+      sourceId: result.newQuestions[0]?.conceptId,
+      sourceTitle: expect.any(String),
+      fieldName: "心理学"
+    });
   });
 });

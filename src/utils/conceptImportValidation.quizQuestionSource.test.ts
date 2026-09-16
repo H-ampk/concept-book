@@ -109,6 +109,26 @@ describe("normalizeQuizQuestionsForBackupImport QuizQuestion.source", () => {
     expect(questions[0]?.source).toBeUndefined();
   });
 
+  it("conceptGeneral の source を保持する", () => {
+    const q = {
+      ...baseQuestion(),
+      source: {
+        type: "conceptGeneral",
+        sourceId: "concept_a",
+        sourceTitle: "概念A",
+        fieldName: "情報科学"
+      }
+    };
+    const { questions, skipped } = normalizeQuizQuestionsForBackupImport([q]);
+    expect(skipped).toBe(0);
+    expect(questions[0]?.source).toEqual({
+      type: "conceptGeneral",
+      sourceId: "concept_a",
+      sourceTitle: "概念A",
+      fieldName: "情報科学"
+    });
+  });
+
   it("不正な source.type では source のみ落として本体は復元する", () => {
     const q = {
       ...baseQuestion(),
@@ -203,6 +223,36 @@ describe("JSON backup round-trip QuizQuestion.source", () => {
       return;
     }
     expect(result.quizQuestions).toHaveLength(1);
+    expect(result.quizQuestions[0]?.source).toEqual(original.source);
+  });
+
+  it("export JSON → validation で conceptGeneral source が一致する", () => {
+    const original: QuizQuestion = {
+      ...baseQuestion(),
+      source: {
+        type: "conceptGeneral",
+        sourceId: "concept_a",
+        sourceTitle: "概念A",
+        fieldName: "情報科学"
+      }
+    };
+    const exported = JSON.parse(
+      JSON.stringify(
+        applyBackupExportOptions({
+          concepts: [] as Concept[],
+          contextCards: [] as ContextCard[],
+          quizQuestions: [original],
+          quizDecks: [],
+          quizAttemptLogs: [],
+          researchReports: []
+        } satisfies BackupExportData)
+      )
+    ) as unknown;
+    const result = validateBackupImportPayload(exported);
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
     expect(result.quizQuestions[0]?.source).toEqual(original.source);
   });
 

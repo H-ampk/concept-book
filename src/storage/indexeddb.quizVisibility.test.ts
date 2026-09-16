@@ -93,4 +93,33 @@ describe("IndexedDB QuizVisibility normalize", () => {
     expect(question.visibility).toBe("private");
     expect(deck.visibility).toBe("private");
   });
+
+  it("conceptGeneral source を正規化して保持する", () => {
+    const question = normalizeQuizQuestion({
+      id: "q_general",
+      prompt: "問い",
+      choices: [
+        { id: "a", text: "A" },
+        { id: "b", text: "B" }
+      ],
+      correctChoiceId: "a",
+      visibility: "private",
+      schemaVersion: QUIZ_QUESTION_SCHEMA_VERSION,
+      createdAt: iso,
+      updatedAt: iso,
+      source: {
+        type: "conceptGeneral",
+        sourceId: "concept_a",
+        sourceTitle: "概念A",
+        fieldName: "情報科学"
+      }
+    });
+    expect(question.source).toEqual({
+      type: "conceptGeneral",
+      sourceId: "concept_a",
+      sourceTitle: "概念A",
+      fieldName: "情報科学"
+    });
+    expect(normalizeQuizQuestion(question).source).toEqual(question.source);
+  });
 });

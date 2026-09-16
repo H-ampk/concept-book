@@ -150,6 +150,46 @@ describe("conceptBookZip QuizQuestion.source round-trip", () => {
     }
     expect(result.quizQuestions[0]?.source).toEqual(source);
   });
+
+  it("ZIP export → parse → validate で conceptGeneral source が保持される", () => {
+    const source = {
+      type: "conceptGeneral" as const,
+      sourceId: "concept_a",
+      sourceTitle: "概念A",
+      fieldName: "情報科学"
+    };
+    const json = JSON.stringify({
+      concepts: [],
+      contextCards: [],
+      quizQuestions: [
+        {
+          id: "question_1",
+          prompt: "問い",
+          choices: [
+            { id: "a", text: "A" },
+            { id: "b", text: "B" }
+          ],
+          correctChoiceId: "a",
+          visibility: "private",
+          schemaVersion: 1,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          source
+        }
+      ],
+      quizDecks: []
+    });
+    const zipped = buildConceptBookZip(json, []);
+    const parsed = parseConceptBookZip(
+      zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength)
+    );
+    const result = validateBackupImportPayload(JSON.parse(parsed.conceptsText));
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.quizQuestions[0]?.source).toEqual(source);
+  });
 });
 
 describe("conceptBookZip QuizChoice metadata round-trip", () => {

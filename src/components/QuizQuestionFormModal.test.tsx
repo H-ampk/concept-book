@@ -491,6 +491,69 @@ describe("QuizQuestionFormModal answer-type sections", () => {
     });
   });
 
+  it("conceptGeneral source 付き Question を編集保存しても source を保持する", async () => {
+    const user = userEvent.setup();
+    const originalSource = {
+      type: "conceptGeneral" as const,
+      sourceId: "concept-a",
+      sourceTitle: "概念A",
+      fieldName: "情報科学"
+    };
+    const withSource: QuizQuestion = {
+      ...existingQuestion,
+      conceptId: "concept-a",
+      source: originalSource,
+      choices: [
+        {
+          id: "ch1",
+          text: "選択肢A",
+          displayText: "表示A",
+          sourceConceptId: "concept-a",
+          contextDefinitionId: "general_concept-a",
+          sourceStrategy: "correct"
+        },
+        {
+          id: "ch2",
+          text: "選択肢B",
+          displayText: "表示B",
+          sourceConceptId: "mle",
+          contextDefinitionId: "def2",
+          sourceStrategy: "same-domain"
+        }
+      ]
+    };
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={withSource}
+        concepts={concepts}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const promptInput = screen.getByPlaceholderText("問いを入力…");
+    await user.clear(promptInput);
+    await user.type(promptInput, "編集後の一般問題");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.source).toEqual(originalSource);
+    expect(payload.source?.type).toBe("conceptGeneral");
+    expect(payload.source?.sourceId).toBe("concept-a");
+    expect(payload.source?.sourceTitle).toBe("概念A");
+    expect(payload.source?.fieldName).toBe("情報科学");
+    expect(payload.choices[0]).toMatchObject({
+      sourceConceptId: "concept-a",
+      contextDefinitionId: "general_concept-a",
+      sourceStrategy: "correct"
+    });
+  });
+
   it("source 無し Question を編集保存しても source を付与しない", async () => {
     const user = userEvent.setup();
     const withoutSource: QuizQuestion = {
