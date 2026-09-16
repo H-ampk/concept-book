@@ -10,11 +10,19 @@ import {
   dataLabLogCsvFilename,
   dataLabPredictionCsvFilename
 } from "../../utils/dataLab/dataLabCsvExport";
+import {
+  buildDataLabExportMetadata,
+  buildDataLabExportZip,
+  DATA_LAB_EXPORT_ZIP_MIME,
+  dataLabExportZipFilename,
+  type DataLabExportTarget
+} from "../../utils/dataLab/dataLabExportBundle";
 import { DATA_LAB_GROUP_BY_CONTROL_LABELS } from "../../utils/dataLab/dataLabGroupByLabels";
+import type { DataLabFilters } from "../../utils/dataLab/filterDataLabLogs";
 import { downloadBlob } from "../../utils/downloadFile";
 import type { LearningModelPredictionPoint } from "../../utils/learningModelEvaluation/types";
 
-export type DataLabExportTarget = "logs" | "aggregate" | "predictions";
+export type { DataLabExportTarget };
 
 type Props = {
   filteredLogs: QuizAttemptLog[];
@@ -23,10 +31,20 @@ type Props = {
   groupBy: DataLabGroupBy;
   conceptById: Map<string, Concept>;
   deckById: Map<string, QuizDeck>;
+  filters: DataLabFilters;
+  hlrComputedAt: string;
 };
 
 const inputClass =
   "w-full rounded-md border border-celestial-border/60 bg-nordic-navy/50 px-3 py-2 text-sm text-celestial-textMain focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55";
+
+const downloadZip = (csvFilename: string, csv: string, metadata: ReturnType<typeof buildDataLabExportMetadata>) => {
+  const zipBytes = buildDataLabExportZip(csvFilename, csv, metadata);
+  downloadBlob(
+    dataLabExportZipFilename(csvFilename),
+    new Blob([new Uint8Array(zipBytes)], { type: DATA_LAB_EXPORT_ZIP_MIME })
+  );
+};
 
 export const DataLabExportPanel = ({
   filteredLogs,
@@ -34,7 +52,9 @@ export const DataLabExportPanel = ({
   predictionPoints,
   groupBy,
   conceptById,
-  deckById
+  deckById,
+  filters,
+  hlrComputedAt
 }: Props) => {
   const [target, setTarget] = useState<DataLabExportTarget>("aggregate");
 
@@ -64,26 +84,56 @@ export const DataLabExportPanel = ({
     if (!canExport) {
       return;
     }
+    const now = new Date();
+    const exportedAt = now.toISOString();
+
     if (target === "logs") {
       const csv = buildDataLabLogCsv(filteredLogs, conceptById, deckById);
-      downloadBlob(
-        dataLabLogCsvFilename(new Date()),
-        new Blob([csv], { type: "text/csv;charset=utf-8" })
+      const dataFile = dataLabLogCsvFilename(now);
+      downloadZip(
+        dataFile,
+        csv,
+        buildDataLabExportMetadata({
+          target: "logs",
+          exportedAt,
+          dataFile,
+          rowCount: filteredLogs.length,
+          filters
+        })
       );
       return;
     }
     if (target === "predictions") {
       const csv = buildDataLabPredictionCsv(predictionPoints);
-      downloadBlob(
-        dataLabPredictionCsvFilename(new Date()),
-        new Blob([csv], { type: "text/csv;charset=utf-8" })
+      const dataFile = dataLabPredictionCsvFilename(now);
+      downloadZip(
+        dataFile,
+        csv,
+        buildDataLabExportMetadata({
+          target: "predictions",
+          exportedAt,
+          dataFile,
+          rowCount: predictionPoints.length,
+          filters,
+          predictionPoints
+        })
       );
       return;
     }
     const csv = buildDataLabAggregateCsv(aggregatedRows);
-    downloadBlob(
-      dataLabAggregateCsvFilename(groupBy, new Date()),
-      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    const dataFile = dataLabAggregateCsvFilename(groupBy, now);
+    downloadZip(
+      dataFile,
+      csv,
+      buildDataLabExportMetadata({
+        target: "aggregate",
+        exportedAt,
+        dataFile,
+        rowCount: aggregatedRows.length,
+        filters,
+        groupBy,
+        hlrComputedAt
+      })
     );
   };
 
@@ -95,10 +145,10 @@ export const DataLabExportPanel = ({
       <div className="relative z-[1] space-y-3">
         <div className="space-y-1">
           <h2 id="data-lab-export-title" className="text-sm font-semibold text-celestial-softGold">
-            CSV エクスポート
+            研究データエクスポート
           </h2>
           <p className="text-xs text-celestial-textSub">
-            画面で使っているフィルタ済みログ、集計結果、または予測評価データを、そのまま CSV として保存します。予測評価データでは回答結果（正答 / 誤答）フィルタを適用しません。
+            CSV と分析条件 metadata を1つの ZIP として保存します。予測評価データでは回答結果（正答 / 誤答）フィルタを適用しません。
           </p>
         </div>
 
@@ -139,7 +189,7 @@ export const DataLabExportPanel = ({
           disabled={!canExport}
           className="rounded-md border border-celestial-gold/50 bg-transparent px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-celestial-gold/55 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          CSVを保存
+          ZIPを保存
         </button>
       </div>
     </section>

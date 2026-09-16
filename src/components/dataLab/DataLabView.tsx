@@ -318,6 +318,8 @@ export const DataLabView = ({
             groupBy={groupBy}
             conceptById={conceptById}
             deckById={deckById}
+            filters={filters}
+            hlrComputedAt={modelNow.toISOString()}
           />
           <DataLabAddToResearchReportPanel
             filters={filters}

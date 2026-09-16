@@ -69,7 +69,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("2 / 2");
     expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "分析条件" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "CSV エクスポート" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "研究データエクスポート" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "研究レポート" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "研究レポートに追加" })).toBeEnabled();
     expect(screen.getByRole("heading", { name: "分析結果" })).toBeInTheDocument();
@@ -403,7 +403,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.queryByRole("heading", { name: "分析結果" })).not.toBeInTheDocument();
   });
 
-  it("初期状態で CSV エクスポート UI を表示し、対象を切り替えられる", async () => {
+  it("初期状態で研究データエクスポート UI を表示し、対象を切り替えられる", async () => {
     const user = userEvent.setup();
     render(
       <DataLabView
@@ -420,7 +420,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("出力対象: 集計結果");
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計軸: Concept");
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 1");
-    expect(screen.getByRole("button", { name: "CSVを保存" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "ZIPを保存" })).toBeEnabled();
 
     await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "logs");
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("出力対象: フィルタ済みログ");
@@ -451,7 +451,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計軸: Deck");
   });
 
-  it("0件では CSVを保存 を disabled にし、案内を出す", () => {
+  it("0件では ZIPを保存 を disabled にし、案内を出す", () => {
     render(
       <DataLabView logs={[]} concepts={[]} decks={[]} loading={false} error={false} onBack={vi.fn()} />
     );
@@ -460,7 +460,7 @@ describe("DataLabView (#89 / #90)", () => {
     expect(screen.getByTestId("data-lab-export-empty")).toHaveTextContent(
       "エクスポートできるデータがありません。"
     );
-    expect(screen.getByRole("button", { name: "CSVを保存" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ZIPを保存" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "研究レポートに追加" })).toBeDisabled();
     expect(screen.getByTestId("data-lab-research-report-empty")).toHaveTextContent(
       "保存できる集計結果がありません。"
@@ -829,7 +829,7 @@ describe("DataLabView 概念データ (#28)", () => {
     expect(screen.getByTestId("data-lab-concept-completeness")).toHaveTextContent("定義未入力");
     expect(screen.getByTestId("data-lab-concept-disclaimer")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Filters" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "CSV エクスポート" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "研究データエクスポート" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "学習モデル評価" })).not.toBeInTheDocument();
   });
 
