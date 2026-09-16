@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ContextCardFormModal } from "./ContextCardFormModal";
+import { ContextCardMaterialsSection } from "./learningMaterials/ContextCardMaterialsSection";
 import { useContextCards } from "../features/contextCards/useContextCards";
+import { useLearningMaterials } from "../features/learningMaterials/useLearningMaterials";
 import { useConcepts } from "../features/concepts/useConcepts";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
@@ -157,6 +159,30 @@ const ContextCardDetail = ({
   onCreateQuiz?: (card: ContextCard) => void;
 }) => {
   const conceptByNormalizedTitle = useMemo(() => buildConceptByTitleMap(concepts), [concepts]);
+  const { materials, error: materialsError, addPdf, remove } = useLearningMaterials(card?.id);
+  const linkedConceptRecords = useMemo(() => {
+    if (!card) {
+      return [];
+    }
+    const byId = new Map(concepts.map((concept) => [concept.id, concept]));
+    const fromIds = card.linkedConcepts.map((id) => byId.get(id)).filter((c): c is Concept => Boolean(c));
+    const fromTitles = card.keyConcepts
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((title) => conceptByNormalizedTitle.get(normalizeConceptTitle(title)))
+      .filter((c): c is Concept => Boolean(c));
+    const seen = new Set<string>();
+    const merged: Concept[] = [];
+    for (const concept of [...fromIds, ...fromTitles]) {
+      if (seen.has(concept.id)) {
+        continue;
+      }
+      seen.add(concept.id);
+      merged.push(concept);
+    }
+    return merged;
+  }, [card, concepts, conceptByNormalizedTitle]);
 
   if (!card) {
     return (
@@ -269,6 +295,14 @@ const ContextCardDetail = ({
             <p className="text-base text-celestial-textMain">未入力</p>
           )}
         </div>
+
+        <ContextCardMaterialsSection
+          materials={materials}
+          linkedConcepts={linkedConceptRecords}
+          error={materialsError}
+          onAddPdf={(file) => addPdf(file).then(() => undefined)}
+          onDelete={remove}
+        />
       </div>
     </section>
   );

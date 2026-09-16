@@ -12,6 +12,15 @@ import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSo
 import { normalizeFreeResponseKeywords } from "../utils/quiz/freeResponseKeywordMatch";
 import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
 import type { ResearchReport } from "../types/researchReport";
+import type { ConceptSourceAnchor } from "../types/conceptSourceAnchor";
+import type { LearningMaterial, LearningMaterialBlobRecord } from "../types/learningMaterial";
+import {
+  normalizeConceptSourceAnchor,
+  normalizeConceptSourceAnchorsForBackupImport,
+  normalizeLearningMaterial,
+  normalizeLearningMaterialsForBackupImport
+} from "../utils/learningMaterialImportValidation";
+import { looksLikePdfBytes, validatePdfFile } from "../utils/pdf/validatePdfFile";
 import {
   QUIZ_DECK_SCHEMA_VERSION,
   QUIZ_QUESTION_SCHEMA_VERSION
@@ -53,7 +62,7 @@ import type {
 } from "./types";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
@@ -61,6 +70,9 @@ const STORE_QUIZ_QUESTIONS = "quizQuestions";
 const STORE_QUIZ_DECKS = "quizDecks";
 const STORE_QUIZ_ATTEMPT_LOGS = "quizAttemptLogs";
 const STORE_RESEARCH_REPORTS = "researchReports";
+const STORE_LEARNING_MATERIALS = "learningMaterials";
+const STORE_LEARNING_MATERIAL_BLOBS = "learningMaterialBlobs";
+const STORE_CONCEPT_SOURCE_ANCHORS = "conceptSourceAnchors";
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -490,6 +502,18 @@ const openDb = (): Promise<IDBDatabase> =>
         const reportStore = db.createObjectStore(STORE_RESEARCH_REPORTS, { keyPath: "id" });
         reportStore.createIndex("updatedAt", "updatedAt", { unique: false });
       }
+      if (!db.objectStoreNames.contains(STORE_LEARNING_MATERIALS)) {
+        const materialStore = db.createObjectStore(STORE_LEARNING_MATERIALS, { keyPath: "id" });
+        materialStore.createIndex("contextCardId", "contextCardId", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_LEARNING_MATERIAL_BLOBS)) {
+        db.createObjectStore(STORE_LEARNING_MATERIAL_BLOBS, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(STORE_CONCEPT_SOURCE_ANCHORS)) {
+        const anchorStore = db.createObjectStore(STORE_CONCEPT_SOURCE_ANCHORS, { keyPath: "id" });
+        anchorStore.createIndex("materialId", "materialId", { unique: false });
+        anchorStore.createIndex("conceptId", "conceptId", { unique: false });
+      }
 
       // v7: relatedIds を無向関係として一度だけ修復する
       if (oldVersion < 7 && db.objectStoreNames.contains(STORE_CONCEPTS)) {
@@ -522,7 +546,10 @@ const REPLACE_BACKUP_STORES = [
   STORE_QUIZ_QUESTIONS,
   STORE_QUIZ_DECKS,
   STORE_QUIZ_ATTEMPT_LOGS,
-  STORE_RESEARCH_REPORTS
+  STORE_RESEARCH_REPORTS,
+  STORE_LEARNING_MATERIALS,
+  STORE_LEARNING_MATERIAL_BLOBS,
+  STORE_CONCEPT_SOURCE_ANCHORS
 ];
 
 const withTransaction = async <T>(
@@ -586,6 +613,24 @@ const persistRepairedRelatedIds = async (
 const createContextCardId = (): string =>
   `context_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const createLearningMaterialId = (): string =>
+  `material_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const createConceptSourceAnchorId = (): string =>
+  `anchor_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const deleteLearningMaterialCascadeInStores = async (
+  getStore: (name: string) => IDBObjectStore,
+  materialId: string
+): Promise<void> => {
+  const anchorStore = getStore(STORE_CONCEPT_SOURCE_ANCHORS);
+  const index = anchorStore.index("materialId");
+  const rows = (await requestToPromise(index.getAll(materialId))) as ConceptSourceAnchor[];
+  await Promise.all(rows.map((row) => requestToPromise(anchorStore.delete(row.id))));
+  await requestToPromise(getStore(STORE_LEARNING_MATERIAL_BLOBS).delete(materialId));
+  await requestToPromise(getStore(STORE_LEARNING_MATERIALS).delete(materialId));
+};
+
 const sanitizeContextCard = (card: Partial<ContextCard>): ContextCard => {
   const domainTags = Array.isArray(card.domainTags) ? card.domainTags.filter(Boolean) : [];
   const fallbackDomainTags = domainTags.length > 0 ? domainTags : card.domain ? [card.domain] : [];
@@ -615,6 +660,10 @@ type BackupImportPayload = {
   quizAttemptLogParseSkipped: number;
   researchReports?: ResearchReport[];
   researchReportParseSkipped?: number;
+  learningMaterials?: LearningMaterial[];
+  learningMaterialParseSkipped?: number;
+  conceptSourceAnchors?: ConceptSourceAnchor[];
+  conceptSourceAnchorParseSkipped?: number;
 };
 
 type BackupImportCounts = {
@@ -630,6 +679,10 @@ type BackupImportCounts = {
   skippedQuizAttemptLogs: number;
   importedResearchReports: number;
   skippedResearchReports: number;
+  importedLearningMaterials: number;
+  skippedLearningMaterials: number;
+  importedConceptSourceAnchors: number;
+  skippedConceptSourceAnchors: number;
 };
 
 const backupHasResearchReports = (data: BackupImportPayload): data is BackupImportPayload & { researchReports: ResearchReport[] } =>
@@ -890,6 +943,9 @@ const writeReplaceBackupInTransaction = async (
   if (backupHasResearchReports(data)) {
     await requestToPromise(getStore(STORE_RESEARCH_REPORTS).clear());
   }
+  await requestToPromise(getStore(STORE_LEARNING_MATERIALS).clear());
+  await requestToPromise(getStore(STORE_LEARNING_MATERIAL_BLOBS).clear());
+  await requestToPromise(getStore(STORE_CONCEPT_SOURCE_ANCHORS).clear());
 
   const conceptResult = await importConceptsIntoStore(
     getStore(STORE_CONCEPTS),
@@ -952,7 +1008,11 @@ const writeReplaceBackupInTransaction = async (
     importedResearchReports: reportResult.imported,
     skippedResearchReports:
       (data.researchReportParseSkipped ?? 0) +
-      (backupHasResearchReports(data) ? reportResult.skipped : 0)
+      (backupHasResearchReports(data) ? reportResult.skipped : 0),
+    importedLearningMaterials: 0,
+    skippedLearningMaterials: data.learningMaterialParseSkipped ?? 0,
+    importedConceptSourceAnchors: 0,
+    skippedConceptSourceAnchors: data.conceptSourceAnchorParseSkipped ?? 0
   };
 };
 
@@ -1198,6 +1258,15 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  private async deleteAnchorsForConceptId(conceptId: string): Promise<void> {
+    await withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_CONCEPT_SOURCE_ANCHORS);
+      const index = store.index("conceptId");
+      const rows = (await requestToPromise(index.getAll(conceptId))) as ConceptSourceAnchor[];
+      await Promise.all(rows.map((row) => requestToPromise(store.delete(row.id))));
+    });
+  }
+
   private async stripQuizReferencesToDeletedConcept(deletedConceptId: string): Promise<void> {
     await withTransaction([STORE_QUIZ_QUESTIONS, STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
       const questionStore = getStore(STORE_QUIZ_QUESTIONS);
@@ -1266,6 +1335,7 @@ export class IndexedDBStorage implements ConceptStorage {
 
   async deleteConcept(id: string): Promise<void> {
     await this.deleteMediaForConceptId(id);
+    await this.deleteAnchorsForConceptId(id);
     await this.stripQuizReferencesToDeletedConcept(id);
     await withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
       const store = getStore(STORE_CONCEPTS);
@@ -1663,6 +1733,8 @@ export class IndexedDBStorage implements ConceptStorage {
     const quizDecks = await this.getQuizDecks();
     const quizAttemptLogs = await this.getQuizAttemptLogs();
     const researchReports = await this.getResearchReports();
+    const learningMaterials = await this.getAllLearningMaterials();
+    const conceptSourceAnchors = await this.getAllConceptSourceAnchors();
 
     // Ensure contextDefinitions is present in each concept
     const conceptsWithContextDefs = concepts.map((concept) => ({
@@ -1677,7 +1749,9 @@ export class IndexedDBStorage implements ConceptStorage {
         quizQuestions,
         quizDecks,
         quizAttemptLogs,
-        researchReports
+        researchReports,
+        learningMaterials,
+        conceptSourceAnchors
       },
       options
     );
@@ -1804,7 +1878,11 @@ export class IndexedDBStorage implements ConceptStorage {
       importedQuizAttemptLogs: logResult.imported,
       skippedQuizAttemptLogs,
       importedResearchReports: reportResult.imported,
-      skippedResearchReports: reportParseSkipped + reportResult.skipped
+      skippedResearchReports: reportParseSkipped + reportResult.skipped,
+      importedLearningMaterials: 0,
+      skippedLearningMaterials: 0,
+      importedConceptSourceAnchors: 0,
+      skippedConceptSourceAnchors: 0
     };
   }
 
@@ -1935,6 +2013,156 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  async getAllLearningMaterials(): Promise<LearningMaterial[]> {
+    return withTransaction([STORE_LEARNING_MATERIALS], "readonly", async (getStore) => {
+      const rows = (await requestToPromise(getStore(STORE_LEARNING_MATERIALS).getAll())) as unknown[];
+      return rows
+        .map((row) => normalizeLearningMaterial(row))
+        .filter((row): row is LearningMaterial => Boolean(row));
+    });
+  }
+
+  async getLearningMaterialsByContextCardId(contextCardId: string): Promise<LearningMaterial[]> {
+    return withTransaction([STORE_LEARNING_MATERIALS], "readonly", async (getStore) => {
+      const index = getStore(STORE_LEARNING_MATERIALS).index("contextCardId");
+      const rows = (await requestToPromise(index.getAll(contextCardId))) as unknown[];
+      return rows
+        .map((row) => normalizeLearningMaterial(row))
+        .filter((row): row is LearningMaterial => Boolean(row))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    });
+  }
+
+  async getLearningMaterial(id: string): Promise<LearningMaterial | undefined> {
+    return withTransaction([STORE_LEARNING_MATERIALS], "readonly", async (getStore) => {
+      return normalizeLearningMaterial(await requestToPromise(getStore(STORE_LEARNING_MATERIALS).get(id))) ?? undefined;
+    });
+  }
+
+  async saveLearningMaterial(material: LearningMaterial, blob?: Blob): Promise<void> {
+    const normalized = normalizeLearningMaterial(material);
+    if (!normalized) {
+      throw new Error("教材メタデータが不正です。");
+    }
+    await withTransaction(
+      [STORE_LEARNING_MATERIALS, STORE_LEARNING_MATERIAL_BLOBS],
+      "readwrite",
+      async (getStore) => {
+        await requestToPromise(getStore(STORE_LEARNING_MATERIALS).put(normalized));
+        if (blob) {
+          await requestToPromise(getStore(STORE_LEARNING_MATERIAL_BLOBS).put({ id: normalized.id, blob }));
+        }
+      }
+    );
+  }
+
+  async addLearningMaterialPdf(input: {
+    contextCardId: string;
+    file: File;
+    title?: string;
+  }): Promise<LearningMaterial> {
+    const validated = await validatePdfFile(input.file);
+    if (!validated.ok) {
+      throw new Error(validated.message);
+    }
+    const card = await new ContextCardIndexedDBStorage().getContextCardById(input.contextCardId);
+    if (!card) {
+      throw new Error("文脈カードが見つかりません。");
+    }
+    const now = nowIso();
+    const title = (input.title ?? input.file.name.replace(/\.pdf$/i, "")).trim() || input.file.name;
+    const material: LearningMaterial = {
+      id: createLearningMaterialId(),
+      contextCardId: input.contextCardId,
+      type: "pdf",
+      title,
+      fileName: input.file.name,
+      mimeType: "application/pdf",
+      fileSize: input.file.size,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.saveLearningMaterial(material, input.file);
+    return material;
+  }
+
+  async deleteLearningMaterial(id: string): Promise<void> {
+    await withTransaction(
+      [STORE_LEARNING_MATERIALS, STORE_LEARNING_MATERIAL_BLOBS, STORE_CONCEPT_SOURCE_ANCHORS],
+      "readwrite",
+      async (getStore) => {
+        await deleteLearningMaterialCascadeInStores(getStore, id);
+      }
+    );
+  }
+
+  async saveLearningMaterialBlob(materialId: string, blob: Blob): Promise<void> {
+    await withTransaction([STORE_LEARNING_MATERIAL_BLOBS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_LEARNING_MATERIAL_BLOBS).put({ id: materialId, blob }));
+    });
+  }
+
+  async getLearningMaterialBlob(materialId: string): Promise<Blob | undefined> {
+    return withTransaction([STORE_LEARNING_MATERIAL_BLOBS], "readonly", async (getStore) => {
+      const record = (await requestToPromise(
+        getStore(STORE_LEARNING_MATERIAL_BLOBS).get(materialId)
+      )) as LearningMaterialBlobRecord | undefined;
+      return record?.blob;
+    });
+  }
+
+  async getAllConceptSourceAnchors(): Promise<ConceptSourceAnchor[]> {
+    return withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readonly", async (getStore) => {
+      const rows = (await requestToPromise(getStore(STORE_CONCEPT_SOURCE_ANCHORS).getAll())) as unknown[];
+      return rows
+        .map((row) => normalizeConceptSourceAnchor(row))
+        .filter((row): row is ConceptSourceAnchor => Boolean(row));
+    });
+  }
+
+  async getAnchorsByMaterialId(materialId: string): Promise<ConceptSourceAnchor[]> {
+    return withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readonly", async (getStore) => {
+      const rows = (await requestToPromise(
+        getStore(STORE_CONCEPT_SOURCE_ANCHORS).index("materialId").getAll(materialId)
+      )) as unknown[];
+      return rows
+        .map((row) => normalizeConceptSourceAnchor(row))
+        .filter((row): row is ConceptSourceAnchor => Boolean(row));
+    });
+  }
+
+  async getAnchorsByConceptId(conceptId: string): Promise<ConceptSourceAnchor[]> {
+    return withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readonly", async (getStore) => {
+      const rows = (await requestToPromise(
+        getStore(STORE_CONCEPT_SOURCE_ANCHORS).index("conceptId").getAll(conceptId)
+      )) as unknown[];
+      return rows
+        .map((row) => normalizeConceptSourceAnchor(row))
+        .filter((row): row is ConceptSourceAnchor => Boolean(row));
+    });
+  }
+
+  async saveConceptSourceAnchor(anchor: ConceptSourceAnchor): Promise<void> {
+    const normalized = normalizeConceptSourceAnchor({
+      ...anchor,
+      id: anchor.id?.trim() ? anchor.id : createConceptSourceAnchorId(),
+      createdAt: anchor.createdAt || nowIso(),
+      updatedAt: nowIso()
+    });
+    if (!normalized) {
+      throw new Error("出現箇所の座標が不正です。");
+    }
+    await withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_CONCEPT_SOURCE_ANCHORS).put(normalized));
+    });
+  }
+
+  async deleteConceptSourceAnchor(id: string): Promise<void> {
+    await withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readwrite", async (getStore) => {
+      await requestToPromise(getStore(STORE_CONCEPT_SOURCE_ANCHORS).delete(id));
+    });
+  }
+
   async exportConceptBookPackage(
     domainColors?: Record<string, string>,
     options?: BackupExportOptions
@@ -1973,7 +2201,15 @@ export class IndexedDBStorage implements ConceptStorage {
       null,
       2
     );
-    const zipped = buildConceptBookZip(json, mediaFiles);
+    const learningMaterialFiles: { id: string; data: Uint8Array }[] = [];
+    for (const material of data.learningMaterials) {
+      const blob = await this.getLearningMaterialBlob(material.id);
+      if (!blob) {
+        continue;
+      }
+      learningMaterialFiles.push({ id: material.id, data: new Uint8Array(await blob.arrayBuffer()) });
+    }
+    const zipped = buildConceptBookZip(json, mediaFiles, learningMaterialFiles);
     return new Blob([new Uint8Array(zipped)], { type: "application/zip" });
   }
 
@@ -1995,16 +2231,61 @@ export class IndexedDBStorage implements ConceptStorage {
     skippedResearchReports: number;
     importedMedia: number;
     missingMedia: number;
+    importedLearningMaterials: number;
+    skippedLearningMaterials: number;
+    missingLearningMaterials: number;
+    importedConceptSourceAnchors: number;
+    skippedConceptSourceAnchors: number;
     domainColors?: Record<string, string>;
   }> {
     const buffer = await file.arrayBuffer();
-    const { conceptsText, mediaEntries } = parseConceptBookZip(buffer);
+    const { conceptsText, mediaEntries, learningMaterialEntries } = parseConceptBookZip(buffer);
     const parsed: unknown = JSON.parse(conceptsText);
 
     const validation = validateBackupImportPayload(parsed);
     if (!validation.success) {
       throw new Error(validation.errorMessage);
     }
+
+    const restorePdfPackage = async () => {
+      const raw = parsed as {
+        learningMaterials?: unknown;
+        conceptSourceAnchors?: unknown;
+      };
+      const { materials } = normalizeLearningMaterialsForBackupImport(raw.learningMaterials);
+      const { anchors } = normalizeConceptSourceAnchorsForBackupImport(raw.conceptSourceAnchors);
+      let importedLearningMaterials = 0;
+      let missingLearningMaterials = 0;
+      for (const material of materials) {
+        const bytes = learningMaterialEntries.get(material.id);
+        if (!bytes || !looksLikePdfBytes(bytes)) {
+          missingLearningMaterials += 1;
+          continue;
+        }
+        await this.saveLearningMaterial(
+          material,
+          new Blob([new Uint8Array(bytes)], { type: "application/pdf" })
+        );
+        importedLearningMaterials += 1;
+      }
+      let importedConceptSourceAnchors = 0;
+      const materialIds = new Set(materials.map((m) => m.id));
+      const conceptIds = new Set(validation.concepts.map((c) => c.id));
+      for (const anchor of anchors) {
+        if (!materialIds.has(anchor.materialId) || !conceptIds.has(anchor.conceptId)) {
+          continue;
+        }
+        await this.saveConceptSourceAnchor(anchor);
+        importedConceptSourceAnchors += 1;
+      }
+      return {
+        importedLearningMaterials,
+        skippedLearningMaterials: 0,
+        missingLearningMaterials,
+        importedConceptSourceAnchors,
+        skippedConceptSourceAnchors: 0
+      };
+    };
 
     const payload: BackupImportPayload = {
       concepts: validation.concepts,
@@ -2025,8 +2306,10 @@ export class IndexedDBStorage implements ConceptStorage {
         preserveMediaReferences: true,
         mediaRecords: records
       });
+      const restored = await restorePdfPackage();
       return {
         ...imported,
+        ...restored,
         importedMedia: records.length,
         missingMedia,
         ...(validation.domainColors !== undefined ? { domainColors: validation.domainColors } : {})
@@ -2104,6 +2387,8 @@ export class IndexedDBStorage implements ConceptStorage {
       }
     });
 
+    const restored = await restorePdfPackage();
+
     return {
       importedConcepts,
       skippedConcepts,
@@ -2119,6 +2404,7 @@ export class IndexedDBStorage implements ConceptStorage {
       skippedResearchReports,
       importedMedia,
       missingMedia,
+      ...restored,
       ...(validation.domainColors !== undefined ? { domainColors: validation.domainColors } : {})
     };
   }
@@ -2193,10 +2479,24 @@ export class ContextCardIndexedDBStorage implements ContextCardStorage {
   }
 
   async deleteContextCard(id: string): Promise<void> {
-    await withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONTEXT_CARDS);
-      await requestToPromise(store.delete(id));
-    });
+    await withTransaction(
+      [
+        STORE_CONTEXT_CARDS,
+        STORE_LEARNING_MATERIALS,
+        STORE_LEARNING_MATERIAL_BLOBS,
+        STORE_CONCEPT_SOURCE_ANCHORS
+      ],
+      "readwrite",
+      async (getStore) => {
+        const materials = (await requestToPromise(
+          getStore(STORE_LEARNING_MATERIALS).index("contextCardId").getAll(id)
+        )) as LearningMaterial[];
+        for (const material of materials) {
+          await deleteLearningMaterialCascadeInStores(getStore, material.id);
+        }
+        await requestToPromise(getStore(STORE_CONTEXT_CARDS).delete(id));
+      }
+    );
   }
 
   async importContextCards(

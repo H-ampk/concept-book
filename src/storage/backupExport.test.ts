@@ -18,7 +18,9 @@ const sampleData = (): BackupExportData => ({
   quizQuestions: [quizQuestion],
   quizDecks: [quizDeck],
   quizAttemptLogs: [quizAttemptLog],
-  researchReports: [researchReport]
+  researchReports: [researchReport],
+  learningMaterials: [],
+  conceptSourceAnchors: []
 });
 
 describe("applyBackupExportOptions / exportBackupData 相当", () => {
@@ -51,8 +53,10 @@ describe("applyBackupExportOptions / exportBackupData 相当", () => {
   it("AI設定キーをバックアップデータへ混ぜない", () => {
     const result = applyBackupExportOptions(sampleData());
     expect(Object.keys(result).sort()).toEqual([
+      "conceptSourceAnchors",
       "concepts",
       "contextCards",
+      "learningMaterials",
       "quizAttemptLogs",
       "quizDecks",
       "quizQuestions",

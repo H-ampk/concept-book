@@ -3,6 +3,8 @@ import type { ConceptMediaRef } from "../types/media";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { QuizAttemptLog, QuizDeck, QuizQuestion } from "../types/quiz";
 import type { ResearchReport } from "../types/researchReport";
+import type { ConceptSourceAnchor } from "../types/conceptSourceAnchor";
+import type { LearningMaterial } from "../types/learningMaterial";
 
 export type BackupExportData = {
   concepts: Concept[];
@@ -11,6 +13,8 @@ export type BackupExportData = {
   quizDecks: QuizDeck[];
   quizAttemptLogs: QuizAttemptLog[];
   researchReports: ResearchReport[];
+  learningMaterials: LearningMaterial[];
+  conceptSourceAnchors: ConceptSourceAnchor[];
 };
 
 /** 省略時・true は従来どおり学習ログ全件を含む完全バックアップ */
@@ -64,6 +68,10 @@ export type ConceptStorage = {
       /** フィールドなしは旧形式。空配列は新形式の0件バックアップ。 */
       researchReports?: ResearchReport[];
       researchReportParseSkipped?: number;
+      learningMaterials?: LearningMaterial[];
+      learningMaterialParseSkipped?: number;
+      conceptSourceAnchors?: ConceptSourceAnchor[];
+      conceptSourceAnchorParseSkipped?: number;
     },
     mode: "replace" | "merge",
     options?: BackupImportOptions
@@ -80,6 +88,10 @@ export type ConceptStorage = {
     skippedQuizAttemptLogs: number;
     importedResearchReports: number;
     skippedResearchReports: number;
+    importedLearningMaterials: number;
+    skippedLearningMaterials: number;
+    importedConceptSourceAnchors: number;
+    skippedConceptSourceAnchors: number;
   }>;
   /** 画像・動画を保存し、概念の media 参照を更新する */
   addMedia: (input: {
@@ -113,8 +125,29 @@ export type ConceptStorage = {
     skippedResearchReports: number;
     importedMedia: number;
     missingMedia: number;
+    importedLearningMaterials: number;
+    skippedLearningMaterials: number;
+    missingLearningMaterials: number;
+    importedConceptSourceAnchors: number;
+    skippedConceptSourceAnchors: number;
     domainColors?: Record<string, string>;
   }>;
+
+  getLearningMaterialsByContextCardId: (contextCardId: string) => Promise<LearningMaterial[]>;
+  getLearningMaterial: (id: string) => Promise<LearningMaterial | undefined>;
+  saveLearningMaterial: (material: LearningMaterial, blob?: Blob) => Promise<void>;
+  addLearningMaterialPdf: (input: {
+    contextCardId: string;
+    file: File;
+    title?: string;
+  }) => Promise<LearningMaterial>;
+  deleteLearningMaterial: (id: string) => Promise<void>;
+  saveLearningMaterialBlob: (materialId: string, blob: Blob) => Promise<void>;
+  getLearningMaterialBlob: (materialId: string) => Promise<Blob | undefined>;
+  getAnchorsByMaterialId: (materialId: string) => Promise<ConceptSourceAnchor[]>;
+  getAnchorsByConceptId: (conceptId: string) => Promise<ConceptSourceAnchor[]>;
+  saveConceptSourceAnchor: (anchor: ConceptSourceAnchor) => Promise<void>;
+  deleteConceptSourceAnchor: (id: string) => Promise<void>;
 
   /** QuizQuestion（IndexedDB `quizQuestions`）。ZIP の concepts.json にも含める */
   getQuizQuestions: () => Promise<QuizQuestion[]>;

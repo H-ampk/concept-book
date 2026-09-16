@@ -213,7 +213,9 @@ describe("JSON backup round-trip QuizQuestion.source", () => {
           quizQuestions: [original],
           quizDecks: [],
           quizAttemptLogs: [],
-          researchReports: []
+          researchReports: [],
+          learningMaterials: [],
+          conceptSourceAnchors: []
         } satisfies BackupExportData)
       )
     ) as unknown;
@@ -244,7 +246,9 @@ describe("JSON backup round-trip QuizQuestion.source", () => {
           quizQuestions: [original],
           quizDecks: [],
           quizAttemptLogs: [],
-          researchReports: []
+          researchReports: [],
+          learningMaterials: [],
+          conceptSourceAnchors: []
         } satisfies BackupExportData)
       )
     ) as unknown;

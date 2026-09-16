@@ -136,7 +136,9 @@ describe("backup export QuizVisibility", () => {
           quizQuestions: [question],
           quizDecks: [deck],
           quizAttemptLogs: [],
-          researchReports: []
+          researchReports: [],
+          learningMaterials: [],
+          conceptSourceAnchors: []
         } satisfies BackupExportData)
       )
     ) as {
