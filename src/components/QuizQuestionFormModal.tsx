@@ -319,18 +319,11 @@ export const QuizQuestionFormModal = ({
       .map((c) => {
         const text = c.text.trim();
         const displayText = c.displayText?.trim();
-        const choice: QuizChoice = { id: c.id, text };
+        const choice: QuizChoice = { ...c, text };
         if (displayText) {
           choice.displayText = displayText;
-        }
-        if (c.sourceConceptId) {
-          choice.sourceConceptId = c.sourceConceptId;
-        }
-        if (c.contextDefinitionId) {
-          choice.contextDefinitionId = c.contextDefinitionId;
-        }
-        if (c.sourceStrategy) {
-          choice.sourceStrategy = c.sourceStrategy;
+        } else {
+          delete choice.displayText;
         }
         return choice;
       })

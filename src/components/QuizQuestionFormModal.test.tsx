@@ -570,3 +570,192 @@ describe("QuizQuestionFormModal answer-type sections", () => {
     expect(screen.getByRole("button", { name: "文脈別定義から生成" })).toBeEnabled();
   });
 });
+
+describe("QuizQuestionFormModal provenance linkedConceptId", () => {
+  const contextCardSource = {
+    type: "contextCard" as const,
+    sourceId: "card-1",
+    sourceTitle: "文脈カード",
+    fieldName: "統計"
+  };
+
+  const provenanceQuestion = (overrides: Partial<QuizQuestion> = {}): QuizQuestion => ({
+    id: "q-context",
+    conceptId: "concept-a",
+    questionType: "multiple-choice",
+    prompt: "文脈カード由来の問題",
+    source: contextCardSource,
+    choices: [
+      {
+        id: "ch1",
+        text: "Concept A",
+        linkedConceptId: "concept-a",
+        sourceConceptId: "concept-a",
+        contextDefinitionId: "def-a",
+        sourceStrategy: "correct"
+      },
+      {
+        id: "ch2",
+        text: "Concept B",
+        linkedConceptId: "concept-b",
+        sourceConceptId: "concept-b",
+        contextDefinitionId: "def-b",
+        sourceStrategy: "same-context"
+      }
+    ],
+    correctChoiceId: "ch1",
+    visibility: "private",
+    schemaVersion: QUIZ_QUESTION_SCHEMA_VERSION,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides
+  });
+
+  beforeEach(() => {
+    saveQuizQuestion.mockClear();
+    getAllContextCards.mockClear();
+  });
+
+  it("問題文だけ編集保存しても生成由来 Choice の linkedConceptId / metadata / source を維持する", async () => {
+    const user = userEvent.setup();
+    const question = provenanceQuestion();
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={question}
+        concepts={[
+          concept({ id: "concept-a", title: "Concept A" }),
+          concept({ id: "concept-b", title: "Concept B" })
+        ]}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const promptInput = screen.getByPlaceholderText("問いを入力…");
+    await user.clear(promptInput);
+    await user.type(promptInput, "問題文だけ変更");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.prompt).toBe("問題文だけ変更");
+    expect(payload.source).toEqual(contextCardSource);
+    expect(payload.choices[0]).toMatchObject({
+      linkedConceptId: "concept-a",
+      sourceConceptId: "concept-a",
+      contextDefinitionId: "def-a",
+      sourceStrategy: "correct"
+    });
+    expect(payload.choices[1]).toMatchObject({
+      linkedConceptId: "concept-b",
+      sourceConceptId: "concept-b",
+      contextDefinitionId: "def-b",
+      sourceStrategy: "same-context"
+    });
+  });
+
+  it("Concept が rename されても既存 linkedConceptId を維持する", async () => {
+    const user = userEvent.setup();
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={provenanceQuestion({
+          choices: [
+            {
+              id: "ch1",
+              text: "AI",
+              linkedConceptId: "concept-a",
+              sourceConceptId: "concept-a",
+              contextDefinitionId: "def-a",
+              sourceStrategy: "correct"
+            },
+            {
+              id: "ch2",
+              text: "Concept B",
+              linkedConceptId: "concept-b",
+              sourceConceptId: "concept-b",
+              contextDefinitionId: "def-b",
+              sourceStrategy: "same-context"
+            }
+          ]
+        })}
+        concepts={[
+          concept({ id: "concept-a", title: "人工知能" }),
+          concept({ id: "concept-b", title: "Concept B" })
+        ]}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.choices[0]?.linkedConceptId).toBe("concept-a");
+    expect(payload.choices[0]?.sourceConceptId).toBe("concept-a");
+    expect(payload.source).toEqual(contextCardSource);
+  });
+
+  it("同名 Concept が複数あっても既存 linkedConceptId を維持する", async () => {
+    const user = userEvent.setup();
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={provenanceQuestion()}
+        concepts={[
+          concept({ id: "concept-a", title: "Concept A" }),
+          concept({ id: "concept-a-dup", title: "Concept A" }),
+          concept({ id: "concept-b", title: "Concept B" })
+        ]}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.choices[0]?.linkedConceptId).toBe("concept-a");
+    expect(payload.choices[0]?.sourceConceptId).toBe("concept-a");
+  });
+
+  it("Choice text を別 Concept 名へ変えても生成由来 Choice は付け替えない", async () => {
+    const user = userEvent.setup();
+    render(
+      <QuizQuestionFormModal
+        open
+        mode="edit"
+        question={provenanceQuestion()}
+        concepts={[
+          concept({ id: "concept-a", title: "Concept A" }),
+          concept({ id: "concept-b", title: "Concept B" })
+        ]}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const firstChoice = screen.getByDisplayValue("Concept A");
+    await user.clear(firstChoice);
+    await user.type(firstChoice, "Concept B");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveQuizQuestion).toHaveBeenCalledTimes(1);
+    });
+    const payload = saveQuizQuestion.mock.calls[0]?.[0] as QuizQuestion;
+    expect(payload.choices[0]?.text).toBe("Concept B");
+    expect(payload.choices[0]?.linkedConceptId).toBe("concept-a");
+    expect(payload.choices[0]?.sourceConceptId).toBe("concept-a");
+  });
+});

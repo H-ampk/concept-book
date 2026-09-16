@@ -43,17 +43,25 @@ export const resolveChoiceConceptLink = (
 };
 
 /**
- * 保存直前: 各選択肢にテキスト一致による linkedConceptId を付与（ambiguous は付与しない）。
+ * 保存直前: 手動 Choice にはテキスト一致による linkedConceptId を付与（ambiguous は付与しない）。
+ * sourceConceptId がある生成由来 Choice はタイトル照合せず、有効な既存 linkedConceptId のみ保持する。
  * displayText / sourceConceptId 等の既存 Choice metadata は保持する。
- * linkedConceptId だけはテキスト照合結果で再計算する（一意一致時のみ付与）。
  */
 export const applyAutoLinkedConceptIdsToChoices = (
   choices: QuizChoice[],
   concepts: Concept[]
-): QuizChoice[] =>
-  choices.map((c) => {
-    const resolved = resolveChoiceConceptLink(c.text.trim(), concepts);
-    const next: QuizChoice = { ...c };
+): QuizChoice[] => {
+  const validConceptIds = new Set(concepts.map((concept) => concept.id));
+  return choices.map((choice) => {
+    const next: QuizChoice = { ...choice };
+    if (choice.sourceConceptId) {
+      if (choice.linkedConceptId && validConceptIds.has(choice.linkedConceptId)) {
+        return next;
+      }
+      delete next.linkedConceptId;
+      return next;
+    }
+    const resolved = resolveChoiceConceptLink(choice.text.trim(), concepts);
     if (resolved.state === "linked" && resolved.linkedConceptId) {
       next.linkedConceptId = resolved.linkedConceptId;
     } else {
@@ -61,6 +69,7 @@ export const applyAutoLinkedConceptIdsToChoices = (
     }
     return next;
   });
+};
 
 /** ZIP / JSON インポート後: 存在しない Concept を指す conceptId / linkedConceptId を外す */
 export const stripInvalidQuizReferences = (

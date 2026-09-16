@@ -16,18 +16,32 @@ const concept = (id: string, title: string): Concept => ({
   updatedAt: iso
 });
 
-const metadataFields = {
+const provenanceMetadata = {
   displayText: "○○条件づけ",
-  sourceConceptId: "c_source",
+  sourceConceptId: "c_a",
   contextDefinitionId: "ctx_1",
   sourceStrategy: "same-context" as const
 };
 
-const fullChoice = (overrides: Partial<QuizChoice> = {}): QuizChoice => ({
+const manualMetadata = {
+  displayText: "○○条件づけ",
+  contextDefinitionId: "ctx_1",
+  sourceStrategy: "same-context" as const
+};
+
+const provenanceChoice = (overrides: Partial<QuizChoice> = {}): QuizChoice => ({
+  id: "choice_a",
+  text: "オペラント条件づけ",
+  linkedConceptId: "c_a",
+  ...provenanceMetadata,
+  ...overrides
+});
+
+const manualChoice = (overrides: Partial<QuizChoice> = {}): QuizChoice => ({
   id: "choice_a",
   text: "オペラント条件づけ",
   linkedConceptId: "c_old",
-  ...metadataFields,
+  ...manualMetadata,
   ...overrides
 });
 
@@ -43,48 +57,93 @@ const questionWithChoices = (choices: QuizChoice[]): QuizQuestion => ({
   updatedAt: iso
 });
 
-const expectMetadataPreserved = (choice: QuizChoice | undefined) => {
-  expect(choice?.displayText).toBe(metadataFields.displayText);
-  expect(choice?.sourceConceptId).toBe(metadataFields.sourceConceptId);
-  expect(choice?.contextDefinitionId).toBe(metadataFields.contextDefinitionId);
-  expect(choice?.sourceStrategy).toBe(metadataFields.sourceStrategy);
+const expectProvenanceMetadataPreserved = (choice: QuizChoice | undefined) => {
+  expect(choice?.displayText).toBe(provenanceMetadata.displayText);
+  expect(choice?.sourceConceptId).toBe(provenanceMetadata.sourceConceptId);
+  expect(choice?.contextDefinitionId).toBe(provenanceMetadata.contextDefinitionId);
+  expect(choice?.sourceStrategy).toBe(provenanceMetadata.sourceStrategy);
+};
+
+const expectManualMetadataPreserved = (choice: QuizChoice | undefined) => {
+  expect(choice?.displayText).toBe(manualMetadata.displayText);
+  expect(choice).not.toHaveProperty("sourceConceptId");
+  expect(choice?.contextDefinitionId).toBe(manualMetadata.contextDefinitionId);
+  expect(choice?.sourceStrategy).toBe(manualMetadata.sourceStrategy);
 };
 
 describe("applyAutoLinkedConceptIdsToChoices", () => {
   it("displayText / sourceConceptId / contextDefinitionId / sourceStrategy を保持する", () => {
     const [next] = applyAutoLinkedConceptIdsToChoices(
-      [fullChoice()],
-      [concept("c_operant", "オペラント条件づけ")]
+      [provenanceChoice()],
+      [concept("c_a", "オペラント条件づけ")]
     );
-    expectMetadataPreserved(next);
+    expectProvenanceMetadataPreserved(next);
   });
 
-  it("テキストが一意に Concept タイトルと一致したら linkedConceptId を付与する", () => {
+  it("sourceConceptId のない手動 Choice はテキストが一意一致したら linkedConceptId を付与する", () => {
     const [next] = applyAutoLinkedConceptIdsToChoices(
-      [fullChoice({ linkedConceptId: "c_old" })],
+      [manualChoice({ linkedConceptId: "c_old" })],
       [concept("c_operant", "オペラント条件づけ")]
     );
     expect(next?.linkedConceptId).toBe("c_operant");
-    expectMetadataPreserved(next);
+    expectManualMetadataPreserved(next);
   });
 
-  it("一致しない Choice では既存の linkedConceptId を外し、他 metadata は残す", () => {
+  it("sourceConceptId のない手動 Choice は一致しなければ既存の linkedConceptId を外し、他 metadata は残す", () => {
     const [next] = applyAutoLinkedConceptIdsToChoices(
-      [fullChoice({ text: "一致しない選択肢" })],
+      [manualChoice({ text: "一致しない選択肢" })],
       [concept("c_operant", "オペラント条件づけ")]
     );
     expect(next).not.toHaveProperty("linkedConceptId");
     expect(next?.text).toBe("一致しない選択肢");
-    expectMetadataPreserved(next);
+    expectManualMetadataPreserved(next);
   });
 
-  it("ambiguous な Choice では linkedConceptId を付けず、他 metadata は残す", () => {
+  it("sourceConceptId のない手動 Choice は ambiguous なら linkedConceptId を付けず、他 metadata は残す", () => {
     const [next] = applyAutoLinkedConceptIdsToChoices(
-      [fullChoice()],
+      [manualChoice()],
       [concept("c_a", "オペラント条件づけ"), concept("c_b", "オペラント条件づけ")]
     );
     expect(next).not.toHaveProperty("linkedConceptId");
-    expectMetadataPreserved(next);
+    expectManualMetadataPreserved(next);
+  });
+
+  it("provenance 付き Choice は Concept が rename されても既存 linkedConceptId を保持する", () => {
+    const [next] = applyAutoLinkedConceptIdsToChoices(
+      [provenanceChoice({ text: "AI" })],
+      [concept("c_a", "人工知能")]
+    );
+    expect(next?.linkedConceptId).toBe("c_a");
+    expectProvenanceMetadataPreserved(next);
+  });
+
+  it("provenance 付き Choice は ambiguous でも有効な既存 linkedConceptId を保持する", () => {
+    const [next] = applyAutoLinkedConceptIdsToChoices(
+      [provenanceChoice()],
+      [concept("c_a", "オペラント条件づけ"), concept("c_b", "オペラント条件づけ")]
+    );
+    expect(next?.linkedConceptId).toBe("c_a");
+    expectProvenanceMetadataPreserved(next);
+  });
+
+  it("provenance 付き Choice は text を別 Concept 名へ変えても自動付け替えしない", () => {
+    const [next] = applyAutoLinkedConceptIdsToChoices(
+      [provenanceChoice({ text: "古典的条件づけ" })],
+      [concept("c_a", "オペラント条件づけ"), concept("c_b", "古典的条件づけ")]
+    );
+    expect(next?.linkedConceptId).toBe("c_a");
+    expect(next?.sourceConceptId).toBe("c_a");
+    expectProvenanceMetadataPreserved(next);
+  });
+
+  it("provenance 付き Choice の dangling linkedConceptId は除去し、タイトル照合で付け替えない", () => {
+    const [next] = applyAutoLinkedConceptIdsToChoices(
+      [provenanceChoice({ linkedConceptId: "missing", text: "古典的条件づけ" })],
+      [concept("c_a", "オペラント条件づけ"), concept("c_b", "古典的条件づけ")]
+    );
+    expect(next).not.toHaveProperty("linkedConceptId");
+    expect(next?.text).toBe("古典的条件づけ");
+    expectProvenanceMetadataPreserved(next);
   });
 
   it("{ id, text } だけの旧 Choice も従来通り動作し、不要な undefined フィールドを足さない", () => {
@@ -107,40 +166,40 @@ describe("applyAutoLinkedConceptIdsToChoices", () => {
 describe("stripInvalidQuizReferences", () => {
   it("有効な linkedConceptId と Choice metadata を保持する", () => {
     const stripped = stripInvalidQuizReferences(
-      questionWithChoices([fullChoice({ linkedConceptId: "c_operant" })]),
+      questionWithChoices([provenanceChoice({ linkedConceptId: "c_operant" })]),
       new Set(["c_operant", "c_source"])
     );
     const choice = stripped.choices[0];
     expect(choice?.linkedConceptId).toBe("c_operant");
     expect(choice?.id).toBe("choice_a");
     expect(choice?.text).toBe("オペラント条件づけ");
-    expectMetadataPreserved(choice);
+    expectProvenanceMetadataPreserved(choice);
   });
 
   it("無効な linkedConceptId だけを除去し、他 metadata は残す", () => {
     const stripped = stripInvalidQuizReferences(
-      questionWithChoices([fullChoice({ linkedConceptId: "missing_concept" })]),
+      questionWithChoices([provenanceChoice({ linkedConceptId: "missing_concept" })]),
       new Set(["c_source"])
     );
     const choice = stripped.choices[0];
     expect(choice).not.toHaveProperty("linkedConceptId");
     expect(choice?.id).toBe("choice_a");
     expect(choice?.text).toBe("オペラント条件づけ");
-    expectMetadataPreserved(choice);
+    expectProvenanceMetadataPreserved(choice);
   });
 
   it("空文字の linkedConceptId を除去する", () => {
     const stripped = stripInvalidQuizReferences(
-      questionWithChoices([fullChoice({ linkedConceptId: "   " })]),
+      questionWithChoices([provenanceChoice({ linkedConceptId: "   " })]),
       new Set(["c_operant"])
     );
     expect(stripped.choices[0]).not.toHaveProperty("linkedConceptId");
-    expectMetadataPreserved(stripped.choices[0]);
+    expectProvenanceMetadataPreserved(stripped.choices[0]);
   });
 
   it("sourceConceptId は参照整合性チェックせず保持する", () => {
     const stripped = stripInvalidQuizReferences(
-      questionWithChoices([fullChoice({ sourceConceptId: "orphan_source" })]),
+      questionWithChoices([provenanceChoice({ sourceConceptId: "orphan_source" })]),
       new Set(["c_operant"])
     );
     expect(stripped.choices[0]?.sourceConceptId).toBe("orphan_source");
