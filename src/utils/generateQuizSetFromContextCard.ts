@@ -8,7 +8,6 @@ import type {
   QuizQuestionSource
 } from "../types/quiz";
 import { QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
-import { buildConceptByTitleMap } from "./conceptLookupMaps";
 import { nowIso } from "./date";
 import { maskConceptNameInText } from "./maskConceptNameInText";
 import { normalizeConceptTitle } from "./normalizeConceptTitle";
@@ -17,7 +16,10 @@ import {
   collectExistingDuplicateKeys,
   isDuplicateQuizQuestion
 } from "./quizQuestionSource";
-import { extractImportantTerms } from "./syncImportantTermsToConcepts";
+import {
+  extractImportantTerms,
+  findConceptsByTitle
+} from "./syncImportantTermsToConcepts";
 
 /** 1問あたりの誤答選択肢数（正解を含め4択にする） */
 const DISTRACTOR_COUNT = 3;
@@ -41,6 +43,7 @@ const shuffleArray = <T>(items: T[]): T[] => {
 export type ContextCardExclusionReason =
   | "no-context-definition" // 文脈別定義なし
   | "no-concept" // 概念カード未登録
+  | "ambiguous-concept" // 同名概念が複数
   | "insufficient-choices"; // 選択肢不足
 
 export type ContextCardExcludedTerm = {
@@ -307,7 +310,6 @@ export function generateQuizSetFromContextCard(input: {
 }): ContextCardQuizGenerationPreview {
   const { contextCard, allConcepts, existingQuestions } = input;
   const fieldName = contextCard.domainTags[0]?.trim() || contextCard.domain?.trim();
-  const conceptByTitle = buildConceptByTitleMap(allConcepts);
   const terms = extractImportantTerms(contextCard.keyConcepts);
 
   const candidates: ContextCardCandidate[] = [];
@@ -321,11 +323,16 @@ export function generateQuizSetFromContextCard(input: {
     }
     seen.add(normalizedTerm);
 
-    const concept = conceptByTitle.get(normalizedTerm);
-    if (!concept) {
+    const matchedConcepts = findConceptsByTitle(allConcepts, term);
+    if (matchedConcepts.length === 0) {
       excludedTerms.push({ term, reason: "no-concept" });
       continue;
     }
+    if (matchedConcepts.length > 1) {
+      excludedTerms.push({ term, reason: "ambiguous-concept" });
+      continue;
+    }
+    const concept = matchedConcepts[0];
     const contextDefinition = pickCardContextDefinition(concept, contextCard);
     if (!contextDefinition) {
       excludedTerms.push({ term, reason: "no-context-definition" });

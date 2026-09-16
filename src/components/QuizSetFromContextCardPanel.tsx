@@ -17,12 +17,14 @@ const contextStorage = getContextStorage();
 const EXCLUSION_LABELS: Record<ContextCardExclusionReason, string> = {
   "no-context-definition": "文脈別定義なし",
   "no-concept": "概念カード未登録",
+  "ambiguous-concept": "同名概念が複数",
   "insufficient-choices": "選択肢不足"
 };
 
 const EXCLUSION_ORDER: ContextCardExclusionReason[] = [
   "no-context-definition",
   "no-concept",
+  "ambiguous-concept",
   "insufficient-choices"
 ];
 
