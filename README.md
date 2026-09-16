@@ -222,6 +222,8 @@ npm run test:e2e
 
 Node.js 22 以上が必要です。CI（`.github/workflows/`）も Node.js 22 で実行します。
 
+UI やユーザーフローに影響する変更の完了判断（通常テストに加えて実ブラウザ検証が必要な条件）は [AGENTS.md](AGENTS.md) を参照してください。
+
 ## GitHub Pages 公開
 
 このリポジトリ（`concept-book`）は GitHub Pages で公開できます。
@@ -262,6 +264,10 @@ npm run build
 - `@supabase/supabase-js`（任意の認証。未設定時は認証のみ unavailable）
 
 ## Documentation
+
+開発手順:
+
+- [エージェント向け開発手順（完了判断・実ブラウザ検証）](AGENTS.md)
 
 機能仕様・研究メモ:
 
