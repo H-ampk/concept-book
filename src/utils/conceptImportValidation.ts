@@ -619,6 +619,7 @@ const dataLabAnalysisSnapshotSchema = z
   .object({
     schemaVersion: z.number(),
     createdAt: z.string().min(1),
+    hlrComputedAt: z.string().optional(),
     source: z.literal("data-lab"),
     filters: dataLabFiltersSchema,
     filterChips: z.array(dataLabFilterChipSchema),

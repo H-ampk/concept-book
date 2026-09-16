@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStorage } from "../../storage";
-import type { DataLabAnalysisSnapshot, ResearchReport } from "../../types/researchReport";
+import type { ResearchReport } from "../../types/researchReport";
 import { buildDataLabAnalysisSnapshot } from "../../utils/dataLab/buildDataLabAnalysisSnapshot";
 import type { DataLabAggregateRow, DataLabGroupBy } from "../../utils/dataLab/aggregateDataLabLogs";
 import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
@@ -9,6 +9,7 @@ import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode"
 import type { DataLabFilterChip } from "../../utils/dataLab/describeDataLabFilters";
 import type { DataLabFilters } from "../../utils/dataLab/filterDataLabLogs";
 import type { DataLabBarChartLimit, DataLabBarChartSort } from "../../utils/dataLab/toDataLabBarChartRows";
+import { nowIso } from "../../utils/date";
 import {
   appendDataLabAnalysisBlock,
   createResearchReportFromSnapshot
@@ -28,6 +29,8 @@ type Props = {
   barLimit: DataLabBarChartLimit;
   filteredLogCount: number;
   aggregatedRows: DataLabAggregateRow[];
+  buildAggregatedRowsForNow: (now: Date) => DataLabAggregateRow[];
+  onSnapshotSavedAt?: (savedAt: Date) => void;
 };
 
 type Destination = "new" | "existing";
@@ -46,7 +49,9 @@ export const DataLabAddToResearchReportPanel = ({
   barSort,
   barLimit,
   filteredLogCount,
-  aggregatedRows
+  aggregatedRows,
+  buildAggregatedRowsForNow,
+  onSnapshotSavedAt
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [destination, setDestination] = useState<Destination>("new");
@@ -57,39 +62,6 @@ export const DataLabAddToResearchReportPanel = ({
   const [error, setError] = useState<string | null>(null);
 
   const canSave = aggregatedRows.length > 0 && filteredLogCount > 0;
-
-  const snapshot = useMemo(
-    () =>
-      canSave
-        ? buildDataLabAnalysisSnapshot({
-            filters,
-            filterChips,
-            groupBy,
-            metric,
-            scatterXMetric,
-            scatterYMetric,
-            displayMode,
-            barSort,
-            barLimit,
-            filteredLogCount,
-            aggregatedRows
-          })
-        : null,
-    [
-      aggregatedRows,
-      barLimit,
-      barSort,
-      canSave,
-      displayMode,
-      filterChips,
-      filteredLogCount,
-      filters,
-      groupBy,
-      metric,
-      scatterXMetric,
-      scatterYMetric
-    ]
-  );
 
   useEffect(() => {
     if (!open) {
@@ -111,12 +83,37 @@ export const DataLabAddToResearchReportPanel = ({
     };
   }, [open]);
 
-  const handleSave = async (currentSnapshot: DataLabAnalysisSnapshot) => {
+  const handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
+      const savedAt = nowIso();
+      const savedAtDate = new Date(savedAt);
+      const rowsForSave = buildAggregatedRowsForNow(savedAtDate);
+      if (rowsForSave.length === 0 || filteredLogCount === 0) {
+        setError("保存できる集計結果がありません。");
+        return;
+      }
+
+      const snapshot = buildDataLabAnalysisSnapshot(
+        {
+          filters,
+          filterChips,
+          groupBy,
+          metric,
+          scatterXMetric,
+          scatterYMetric,
+          displayMode,
+          barSort,
+          barLimit,
+          filteredLogCount,
+          aggregatedRows: rowsForSave
+        },
+        { now: savedAt }
+      );
+
       if (destination === "new") {
-        const report = createResearchReportFromSnapshot(currentSnapshot);
+        const report = createResearchReportFromSnapshot(snapshot, { now: savedAt });
         await storage.saveResearchReport(report);
         setMessage(`研究レポート「${report.title}」を作成しました。`);
       } else {
@@ -125,10 +122,11 @@ export const DataLabAddToResearchReportPanel = ({
           setError("追加先の研究レポートが見つかりません。");
           return;
         }
-        const next = appendDataLabAnalysisBlock(target, currentSnapshot);
+        const next = appendDataLabAnalysisBlock(target, snapshot, { now: savedAt });
         await storage.saveResearchReport(next);
         setMessage(`研究レポート「${next.title}」へ分析を追加しました。`);
       }
+      onSnapshotSavedAt?.(savedAtDate);
       setOpen(false);
     } catch {
       setError("研究レポートへの保存に失敗しました。");
@@ -178,7 +176,7 @@ export const DataLabAddToResearchReportPanel = ({
         </button>
       </div>
 
-      {typeof document !== "undefined" && open && snapshot
+      {typeof document !== "undefined" && open && canSave
         ? createPortal(
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-3 py-6 sm:px-4"
@@ -270,7 +268,7 @@ export const DataLabAddToResearchReportPanel = ({
                     type="button"
                     className="rounded-md border border-celestial-gold/50 bg-celestial-gold/10 px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/20 disabled:opacity-40"
                     disabled={saving || (destination === "existing" && !existingId)}
-                    onClick={() => void handleSave(snapshot)}
+                    onClick={() => void handleSave()}
                   >
                     {saving ? "保存中…" : "保存"}
                   </button>

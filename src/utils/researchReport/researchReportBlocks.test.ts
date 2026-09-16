@@ -51,6 +51,10 @@ describe("researchReportBlocks", () => {
     expect(report.blocks[0]?.type).toBe("data-lab-analysis");
     expect(report.blocks[0]?.commentary).toBe("");
     expect(report.blocks[0]?.snapshot.rows[0]?.label).toBe("人工知能");
+    expect(report.createdAt).toBe("2026-09-09T12:00:00.000Z");
+    expect(report.updatedAt).toBe("2026-09-09T12:00:00.000Z");
+    expect(report.blocks[0]?.snapshot.createdAt).toBe("2026-09-09T12:00:00.000Z");
+    expect(report.blocks[0]?.snapshot.hlrComputedAt).toBe("2026-09-09T12:00:00.000Z");
   });
 
   it("既存レポート末尾へ追加し、既存 block は変えない", () => {
@@ -68,6 +72,10 @@ describe("researchReportBlocks", () => {
     expect(next.blocks[0]).toEqual(firstBlock);
     expect(next.blocks[1]?.snapshot.rows[0]?.label).toBe("B");
     expect(report.blocks).toHaveLength(1);
+    expect(next.createdAt).toBe(report.createdAt);
+    expect(next.updatedAt).toBe("2026-09-09T00:00:00.000Z");
+    expect(next.blocks[1]?.snapshot.createdAt).toBe("2026-09-09T12:00:00.000Z");
+    expect(next.blocks[1]?.snapshot.hlrComputedAt).toBe("2026-09-09T12:00:00.000Z");
   });
 
   it("考察を編集できる", () => {

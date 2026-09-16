@@ -58,6 +58,7 @@ describe("buildDataLabAnalysisSnapshot", () => {
     expect(snapshot.schemaVersion).toBe(1);
     expect(snapshot.source).toBe("data-lab");
     expect(snapshot.createdAt).toBe("2026-09-09T12:00:00.000Z");
+    expect(snapshot.hlrComputedAt).toBe("2026-09-09T12:00:00.000Z");
     expect(snapshot.filters).toEqual(filters);
     expect(snapshot.filterLabels).toEqual([
       "期間: 2026/08/01〜2026/08/31",
@@ -175,5 +176,24 @@ describe("buildDataLabAnalysisSnapshot", () => {
     expect(snapshot.savedRowCount).toBe(MAX_RESEARCH_ANALYSIS_ROWS);
     expect(snapshot.rows).toHaveLength(MAX_RESEARCH_ANALYSIS_ROWS);
     expect(snapshot.truncated).toBe(true);
+  });
+
+  it("明示的 timestamp を createdAt と hlrComputedAt の両方に使う", () => {
+    const savedAt = "2026-09-16T03:00:00.000Z";
+    const snapshot = buildDataLabAnalysisSnapshot(
+      {
+        filters: DEFAULT_DATA_LAB_FILTERS,
+        filterChips: [],
+        groupBy: "concept",
+        metric: "accuracy",
+        displayMode: "table",
+        filteredLogCount: 1,
+        aggregatedRows: [row()]
+      },
+      { now: savedAt }
+    );
+
+    expect(snapshot.createdAt).toBe(savedAt);
+    expect(snapshot.hlrComputedAt).toBe(savedAt);
   });
 });

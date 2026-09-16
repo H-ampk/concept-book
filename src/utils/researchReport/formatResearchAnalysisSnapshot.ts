@@ -7,6 +7,7 @@ import { shortDateTime } from "../date";
 
 export type ResearchAnalysisSnapshotView = {
   createdAtLabel: string;
+  hlrComputedAtLabel: string | null;
   filterLabels: string[];
   groupByLabel: string;
   metricLabel: string;
@@ -33,6 +34,7 @@ export const formatResearchAnalysisSnapshotView = (
 
   return {
     createdAtLabel: shortDateTime(snapshot.createdAt),
+    hlrComputedAtLabel: snapshot.hlrComputedAt ? shortDateTime(snapshot.hlrComputedAt) : null,
     filterLabels: [...snapshot.filterLabels],
     groupByLabel: DATA_LAB_GROUP_BY_CONTROL_LABELS[snapshot.groupBy],
     metricLabel: DATA_LAB_METRIC_LABELS[snapshot.metric],

@@ -12,6 +12,8 @@ export const MAX_RESEARCH_ANALYSIS_ROWS = 1000;
 export type DataLabAnalysisSnapshot = {
   schemaVersion: typeof DATA_LAB_ANALYSIS_SNAPSHOT_SCHEMA_VERSION;
   createdAt: string;
+  /** HLR elapsedDays / retentionProbability の計算基準時刻。旧 Snapshot には無い。 */
+  hlrComputedAt?: string;
   source: "data-lab";
   filters: DataLabFilters;
   filterChips: DataLabFilterChip[];

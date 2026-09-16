@@ -156,6 +156,36 @@ describe("validateBackupImportPayload researchReports", () => {
     expect(reports[0]?.blocks[0]?.snapshot).toMatchObject({ extraSnap: 1 });
   });
 
+  it("hlrComputedAt を持たない旧 Snapshot を読み込み、ある場合は保持する", () => {
+    const without = {
+      ...validReport("old"),
+      blocks: [
+        {
+          id: "b1",
+          type: "data-lab-analysis" as const,
+          snapshot: { ...snapshot },
+          commentary: ""
+        }
+      ]
+    };
+    const withHlr = {
+      ...validReport("new"),
+      blocks: [
+        {
+          id: "b1",
+          type: "data-lab-analysis" as const,
+          snapshot: { ...snapshot, hlrComputedAt: "2026-09-16T03:00:00.000Z" },
+          commentary: ""
+        }
+      ]
+    };
+
+    const { reports, skipped } = normalizeResearchReportsForBackupImport([without, withHlr]);
+    expect(skipped).toBe(0);
+    expect(reports[0]?.blocks[0]?.snapshot.hlrComputedAt).toBeUndefined();
+    expect(reports[1]?.blocks[0]?.snapshot.hlrComputedAt).toBe("2026-09-16T03:00:00.000Z");
+  });
+
   it("researchReports が配列でない場合は validation 失敗", () => {
     const result = validateBackupImportPayload({
       ...baseBackup,

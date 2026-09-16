@@ -53,10 +53,12 @@ export const buildDataLabAnalysisSnapshot = (
   const truncated = totalRowCount > maxRows;
   const savedRows = input.aggregatedRows.slice(0, maxRows).map(cloneRow);
   const chips = cloneFilterChips(input.filterChips);
+  const timestamp = options?.now ?? nowIso();
 
   const snapshot: DataLabAnalysisSnapshot = {
     schemaVersion: DATA_LAB_ANALYSIS_SNAPSHOT_SCHEMA_VERSION,
-    createdAt: options?.now ?? nowIso(),
+    createdAt: timestamp,
+    hlrComputedAt: timestamp,
     source: "data-lab",
     filters: cloneFilters(input.filters),
     filterChips: chips,

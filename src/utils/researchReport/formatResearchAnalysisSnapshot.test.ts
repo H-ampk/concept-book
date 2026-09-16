@@ -83,4 +83,72 @@ describe("formatResearchAnalysisSnapshotView", () => {
     const view = formatResearchAnalysisSnapshotView(snapshot);
     expect(view.truncationLabel).toBe("2 / 3 行を保存");
   });
+
+  it("hlrComputedAt がある Snapshot は HLR 計算時刻ラベルを出す", () => {
+    const snapshot = buildDataLabAnalysisSnapshot(
+      {
+        filters: DEFAULT_DATA_LAB_FILTERS,
+        filterChips: [],
+        groupBy: "concept",
+        metric: "accuracy",
+        displayMode: "table",
+        filteredLogCount: 1,
+        aggregatedRows: [
+          {
+            groupBy: "concept",
+            key: "c-0",
+            label: "概念",
+            attemptCount: 1,
+            correctCount: 1,
+            incorrectCount: 0,
+            accuracy: 1,
+            masteryProbability: null,
+            averageResponseTimeMs: null,
+            firstAttemptAt: null,
+            lastAttemptAt: null,
+            conceptId: "c-0"
+          }
+        ]
+      },
+      { now: "2026-09-09T12:00:00.000Z" }
+    );
+
+    const view = formatResearchAnalysisSnapshotView(snapshot);
+    expect(view.hlrComputedAtLabel).toBeTruthy();
+  });
+
+  it("古い Snapshot で hlrComputedAt が無い場合は推測せず省略する", () => {
+    const snapshot = buildDataLabAnalysisSnapshot(
+      {
+        filters: DEFAULT_DATA_LAB_FILTERS,
+        filterChips: [],
+        groupBy: "concept",
+        metric: "accuracy",
+        displayMode: "table",
+        filteredLogCount: 1,
+        aggregatedRows: [
+          {
+            groupBy: "concept",
+            key: "c-0",
+            label: "概念",
+            attemptCount: 1,
+            correctCount: 1,
+            incorrectCount: 0,
+            accuracy: 1,
+            masteryProbability: null,
+            averageResponseTimeMs: null,
+            firstAttemptAt: null,
+            lastAttemptAt: null,
+            conceptId: "c-0"
+          }
+        ]
+      },
+      { now: "2026-09-09T12:00:00.000Z" }
+    );
+    delete snapshot.hlrComputedAt;
+
+    const view = formatResearchAnalysisSnapshotView(snapshot);
+    expect(view.hlrComputedAtLabel).toBeNull();
+    expect(view.createdAtLabel).toBeTruthy();
+  });
 });

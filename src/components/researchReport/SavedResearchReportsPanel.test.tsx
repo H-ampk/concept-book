@@ -62,6 +62,28 @@ describe("SavedResearchReportsPanel", () => {
     expect(screen.getByTestId("research-analysis-snapshot-table")).toHaveTextContent("66%");
     expect(screen.getByText("対象ログ件数")).toBeInTheDocument();
     expect(screen.getByText("8 件")).toBeInTheDocument();
+    expect(screen.getByText(/分析時刻:/)).toBeInTheDocument();
+    expect(screen.getByText(/HLR計算時刻:/)).toBeInTheDocument();
+  });
+
+  it("hlrComputedAt の無い旧 Snapshot では HLR計算時刻を出さない", () => {
+    const oldSnapshot = { ...snapshot };
+    delete oldSnapshot.hlrComputedAt;
+    const report = createResearchReportFromSnapshot(oldSnapshot, {
+      id: "r-old",
+      title: "旧分析",
+      now: "2026-09-09T12:00:00.000Z"
+    });
+    render(
+      <SavedResearchReportsPanel
+        reports={[report]}
+        onTitleChange={vi.fn()}
+        onCommentaryChange={vi.fn()}
+        onDeleteBlock={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/分析時刻:/)).toBeInTheDocument();
+    expect(screen.queryByText(/HLR計算時刻:/)).not.toBeInTheDocument();
   });
 
   it("考察の blur で保存コールバックを呼ぶ", () => {

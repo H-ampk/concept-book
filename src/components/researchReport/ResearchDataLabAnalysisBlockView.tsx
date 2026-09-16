@@ -21,7 +21,10 @@ export const ResearchDataLabAnalysisBlockView = ({ block, onCommentaryChange, on
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-sm font-semibold text-celestial-softGold">Data Lab Analysis</h3>
-          <p className="mt-1 text-xs text-celestial-textSub">分析日時: {view.createdAtLabel}</p>
+          <p className="mt-1 text-xs text-celestial-textSub">分析時刻: {view.createdAtLabel}</p>
+          {view.hlrComputedAtLabel ? (
+            <p className="mt-1 text-xs text-celestial-textSub">HLR計算時刻: {view.hlrComputedAtLabel}</p>
+          ) : null}
         </div>
         <button
           type="button"

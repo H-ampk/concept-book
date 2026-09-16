@@ -1,12 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Concept } from "../../types/concept";
 import type { QuizAttemptLog, QuizDeck } from "../../types/quiz";
-import {
-  aggregateDataLabLogs,
-  type DataLabGroupBy
-} from "../../utils/dataLab/aggregateDataLabLogs";
+import { type DataLabGroupBy } from "../../utils/dataLab/aggregateDataLabLogs";
+import { buildDataLabAggregatedRows } from "../../utils/dataLab/buildDataLabAggregatedRows";
 import { aggregateDataLabConcepts } from "../../utils/dataLab/aggregateDataLabConcepts";
-import { attachDataLabConceptLearningModelMetrics } from "../../utils/dataLab/attachDataLabConceptLearningModelMetrics";
 import type { DataLabMetric } from "../../utils/dataLab/dataLabChartMetrics";
 import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode";
 import { describeDataLabConceptFilters } from "../../utils/dataLab/describeDataLabConceptFilters";
@@ -24,8 +21,6 @@ import {
   filterDataLabConcepts,
   type DataLabConceptFilters
 } from "../../utils/dataLab/filterDataLabConcepts";
-import { fillDataLabTimeSeries } from "../../utils/dataLab/fillDataLabTimeSeries";
-import { buildConceptHlrEstimateMap } from "../../utils/hlr/getConceptHlrEstimate";
 import { buildOneStepAheadPredictionSeries } from "../../utils/learningModelEvaluation/oneStepAhead";
 import {
   createBktLearningModelPredictor,
@@ -81,7 +76,7 @@ export const DataLabView = ({
   const [displayMode, setDisplayMode] = useState<DataLabDisplayMode>("table");
   const [barSort, setBarSort] = useState<DataLabBarChartSort>("valueDesc");
   const [barLimit, setBarLimit] = useState<DataLabBarChartLimit>(10);
-  const [modelNow] = useState(() => new Date());
+  const [modelNow, setModelNow] = useState(() => new Date());
 
   const conceptById = useMemo(() => new Map(concepts.map((concept) => [concept.id, concept])), [concepts]);
   const deckById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
@@ -107,10 +102,6 @@ export const DataLabView = ({
 
   const masteryByConceptId = useMemo(() => buildConceptMasteryMap(logs), [logs]);
   const pfaByConceptId = useMemo(() => buildConceptPfaPredictionMap(logs), [logs]);
-  const hlrByConceptId = useMemo(
-    () => buildConceptHlrEstimateMap(logs, { now: modelNow }),
-    [logs, modelNow]
-  );
   const allPredictionPoints = useMemo(
     () => buildOneStepAheadPredictionSeries(logs, DATA_LAB_EVALUATION_PREDICTORS),
     [logs]
@@ -120,34 +111,37 @@ export const DataLabView = ({
     return filterLearningModelPredictionPointsByAttemptIds(allPredictionPoints, targetAttemptIds);
   }, [allPredictionPoints, filteredLogs]);
 
-  const aggregatedRows = useMemo(() => {
-    const rows = aggregateDataLabLogs({
-      logs: filteredLogs,
+  const buildAggregatedRowsForNow = useCallback(
+    (now: Date) =>
+      buildDataLabAggregatedRows({
+        logs: filteredLogs,
+        groupBy,
+        conceptById,
+        deckById,
+        masteryByConceptId,
+        pfaByConceptId,
+        hlrNow: now,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        hlrLogs: logs
+      }),
+    [
+      filteredLogs,
       groupBy,
       conceptById,
-      deckById
-    });
-    const withModels = attachDataLabConceptLearningModelMetrics(
-      rows,
-      { masteryByConceptId, pfaByConceptId, hlrByConceptId },
-      conceptById
-    );
-    return fillDataLabTimeSeries(withModels, {
-      groupBy,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo
-    });
-  }, [
-    filteredLogs,
-    groupBy,
-    conceptById,
-    deckById,
-    masteryByConceptId,
-    pfaByConceptId,
-    hlrByConceptId,
-    filters.dateFrom,
-    filters.dateTo
-  ]);
+      deckById,
+      masteryByConceptId,
+      pfaByConceptId,
+      filters.dateFrom,
+      filters.dateTo,
+      logs
+    ]
+  );
+
+  const aggregatedRows = useMemo(
+    () => buildAggregatedRowsForNow(modelNow),
+    [buildAggregatedRowsForNow, modelNow]
+  );
 
   const handleGroupByChange = (nextGroupBy: DataLabGroupBy) => {
     const sanitized = sanitizeDataLabAnalysisMetrics({
@@ -332,6 +326,8 @@ export const DataLabView = ({
             barLimit={barLimit}
             filteredLogCount={displayedLogs}
             aggregatedRows={aggregatedRows}
+            buildAggregatedRowsForNow={buildAggregatedRowsForNow}
+            onSnapshotSavedAt={setModelNow}
           />
           <DataLabResultsPanel
             totalLogs={totalLogs}
