@@ -9,6 +9,7 @@ import type { DataLabDisplayMode } from "../../utils/dataLab/dataLabDisplayMode"
 import { describeDataLabConceptFilters } from "../../utils/dataLab/describeDataLabConceptFilters";
 import { describeDataLabFilters } from "../../utils/dataLab/describeDataLabFilters";
 import { filterLearningModelPredictionPointsByAttemptIds } from "../../utils/dataLab/filterLearningModelPredictionPointsByAttemptIds";
+import { filterDataLabPredictionEvaluationLogs } from "../../utils/dataLab/toDataLabPredictionEvaluationFilters";
 import { sanitizeDataLabAnalysisMetrics } from "../../utils/dataLab/sanitizeDataLabMetrics";
 import type { DataLabBarChartLimit, DataLabBarChartSort } from "../../utils/dataLab/toDataLabBarChartRows";
 import {
@@ -106,10 +107,14 @@ export const DataLabView = ({
     () => buildOneStepAheadPredictionSeries(logs, DATA_LAB_EVALUATION_PREDICTORS),
     [logs]
   );
-  const filteredPredictionPoints = useMemo(() => {
-    const targetAttemptIds = new Set(filteredLogs.map((log) => log.id));
-    return filterLearningModelPredictionPointsByAttemptIds(allPredictionPoints, targetAttemptIds);
-  }, [allPredictionPoints, filteredLogs]);
+  const evaluationTargetLogs = useMemo(
+    () => filterDataLabPredictionEvaluationLogs(logs, filters, conceptById),
+    [logs, filters, conceptById]
+  );
+  const evaluationPredictionPoints = useMemo(() => {
+    const evaluationTargetAttemptIds = new Set(evaluationTargetLogs.map((log) => log.id));
+    return filterLearningModelPredictionPointsByAttemptIds(allPredictionPoints, evaluationTargetAttemptIds);
+  }, [allPredictionPoints, evaluationTargetLogs]);
 
   const buildAggregatedRowsForNow = useCallback(
     (now: Date) =>
@@ -309,7 +314,7 @@ export const DataLabView = ({
           <DataLabExportPanel
             filteredLogs={filteredLogs}
             aggregatedRows={aggregatedRows}
-            predictionPoints={filteredPredictionPoints}
+            predictionPoints={evaluationPredictionPoints}
             groupBy={groupBy}
             conceptById={conceptById}
             deckById={deckById}
@@ -344,7 +349,7 @@ export const DataLabView = ({
           />
           {totalLogs > 0 ? (
             <DataLabLearningModelEvaluationPanel
-              points={filteredPredictionPoints}
+              points={evaluationPredictionPoints}
               conceptById={conceptById}
             />
           ) : null}

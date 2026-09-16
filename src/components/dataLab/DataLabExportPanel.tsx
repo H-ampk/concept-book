@@ -98,7 +98,7 @@ export const DataLabExportPanel = ({
             CSV エクスポート
           </h2>
           <p className="text-xs text-celestial-textSub">
-            画面で使っているフィルタ済みログ、集計結果、または予測評価データを、そのまま CSV として保存します。
+            画面で使っているフィルタ済みログ、集計結果、または予測評価データを、そのまま CSV として保存します。予測評価データでは回答結果（正答 / 誤答）フィルタを適用しません。
           </p>
         </div>
 

@@ -20,7 +20,7 @@ export const DATA_LAB_LEARNING_MODEL_CURRENT_METRICS_NOTE =
   "BKT: 学習済みである確率。PFA: 次回回答が正解する確率。HLR: 現時点で記憶が保持されている推定確率。いずれも全学習履歴から算出した現在値であり、同じ理解度ではありません。期間フィルタでは学習履歴を切りません。";
 
 export const DATA_LAB_LEARNING_MODEL_EVALUATION_NOTE =
-  "Brier score / Log loss は小さいほど予測誤差が小さい。評価対象は BKT と PFA の次回正答確率予測です。HLR の記憶保持率は次回正答確率ではないため、この比較には含めていません。予測は全学習履歴から生成し、画面のフィルタは評価対象の回答だけに適用します。";
+  "Brier score / Log loss は小さいほど予測誤差が小さい。評価対象は BKT と PFA の次回正答確率予測です。HLR の記憶保持率は次回正答確率ではないため、この比較には含めていません。予測は全学習履歴から生成し、期間・Concept・分野・Deck フィルタは評価対象の回答に適用します。「回答結果（正答 / 誤答）」フィルタは、actual outcome による事後選択を避けるため学習モデル評価には適用しません。";
 
 export const describeDataLabMetricAggregation = (metric: DataLabMetric): string =>
   DATA_LAB_METRIC_AGGREGATION_DESCRIPTIONS[metric];

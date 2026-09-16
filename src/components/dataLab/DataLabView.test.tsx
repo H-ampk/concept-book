@@ -659,6 +659,49 @@ describe("DataLabView 理解度 (#97 / #170)", () => {
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("集計結果");
   });
 
+  it("回答結果フィルタで対象ログは減るが学習モデル評価の件数と Brier / Log loss は変わらない", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    const summary = screen.getByTestId("data-lab-learning-model-summary");
+    const baseline = summary.textContent;
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("2 / 2");
+    expect(within(summary).getAllByRole("row")[1]).toHaveTextContent("2");
+    expect(within(summary).getAllByRole("row")[2]).toHaveTextContent("2");
+    expect(screen.getByTestId("data-lab-learning-model-evaluation-note")).toHaveTextContent(
+      "Brier score / Log loss は小さいほど予測誤差が小さい"
+    );
+    expect(screen.getByTestId("data-lab-learning-model-evaluation-note")).toHaveTextContent(
+      "HLR の記憶保持率は次回正答確率ではない"
+    );
+    expect(screen.getByTestId("data-lab-learning-model-evaluation-note")).toHaveTextContent(
+      "学習モデル評価には適用しません"
+    );
+
+    await user.selectOptions(screen.getByLabelText("回答結果"), "correct");
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 1件");
+    const tableCorrect = screen.getByTestId("data-lab-table");
+    expect(within(tableCorrect).getAllByRole("cell")[3]).toHaveTextContent("100%");
+    expect(screen.getByTestId("data-lab-learning-model-summary").textContent).toBe(baseline);
+
+    await user.selectOptions(screen.getByLabelText("回答結果"), "incorrect");
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("data-lab-aggregate-summary")).toHaveTextContent("対象ログ: 1件");
+    const tableIncorrect = screen.getByTestId("data-lab-table");
+    expect(within(tableIncorrect).getAllByRole("cell")[3]).toHaveTextContent("0%");
+    expect(screen.getByTestId("data-lab-learning-model-summary").textContent).toBe(baseline);
+  });
+
   it("予測評価データの CSV 対象を選べる", async () => {
     const user = userEvent.setup();
     render(
@@ -674,6 +717,37 @@ describe("DataLabView 理解度 (#97 / #170)", () => {
     await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "predictions");
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("予測評価データ");
     expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 4");
+    expect(screen.getByText(/予測評価データでは回答結果（正答 \/ 誤答）フィルタを適用しません/)).toBeInTheDocument();
+  });
+
+  it("予測評価 CSV は回答結果フィルタで件数が減らず、ログと集計は減る", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataLabView
+        logs={twoLogs}
+        concepts={[concept()]}
+        decks={[deck()]}
+        loading={false}
+        error={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "predictions");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 4");
+
+    await user.selectOptions(screen.getByLabelText("回答結果"), "correct");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 4");
+    expect(screen.getByTestId("data-lab-log-count")).toHaveTextContent("1 / 2");
+
+    await user.selectOptions(screen.getByLabelText("回答結果"), "incorrect");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 4");
+
+    await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "logs");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 1");
+
+    await user.selectOptions(screen.getByLabelText("CSVエクスポート対象"), "aggregate");
+    expect(screen.getByTestId("data-lab-export-summary")).toHaveTextContent("件数: 1");
   });
 });
 

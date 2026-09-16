@@ -65,6 +65,9 @@ describe("DataLabLearningModelEvaluationPanel", () => {
     expect(screen.getByTestId("data-lab-learning-model-evaluation-note")).toHaveTextContent(
       "HLR の記憶保持率は次回正答確率ではない"
     );
+    expect(screen.getByTestId("data-lab-learning-model-evaluation-note")).toHaveTextContent(
+      "回答結果（正答 / 誤答）」フィルタは、actual outcome による事後選択を避けるため学習モデル評価には適用しません"
+    );
     expect(screen.queryByRole("option", { name: "HLR" })).not.toBeInTheDocument();
   });
 
