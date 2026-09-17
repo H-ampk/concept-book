@@ -1252,124 +1252,144 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  private async deleteMediaForConceptId(conceptId: string): Promise<void> {
-    await withTransaction([STORE_MEDIA], "readwrite", async (getStore) => {
-      const mediaStore = getStore(STORE_MEDIA);
-      const index = mediaStore.index("conceptId");
-      const records = (await requestToPromise(index.getAll(conceptId))) as MediaRecord[];
-      await Promise.all(records.map((r) => requestToPromise(mediaStore.delete(r.id))));
-    });
+  private async deleteMediaForConceptIdInStore(
+    mediaStore: IDBObjectStore,
+    conceptId: string
+  ): Promise<void> {
+    const index = mediaStore.index("conceptId");
+    const records = (await requestToPromise(index.getAll(conceptId))) as MediaRecord[];
+    await Promise.all(records.map((r) => requestToPromise(mediaStore.delete(r.id))));
   }
 
-  private async deleteAnchorsForConceptId(conceptId: string): Promise<void> {
-    await withTransaction([STORE_CONCEPT_SOURCE_ANCHORS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONCEPT_SOURCE_ANCHORS);
-      const index = store.index("conceptId");
-      const rows = (await requestToPromise(index.getAll(conceptId))) as ConceptSourceAnchor[];
-      await Promise.all(rows.map((row) => requestToPromise(store.delete(row.id))));
-    });
+  private async deleteAnchorsForConceptIdInStore(
+    anchorStore: IDBObjectStore,
+    conceptId: string
+  ): Promise<void> {
+    const index = anchorStore.index("conceptId");
+    const rows = (await requestToPromise(index.getAll(conceptId))) as ConceptSourceAnchor[];
+    await Promise.all(rows.map((row) => requestToPromise(anchorStore.delete(row.id))));
   }
 
-  private async stripQuizReferencesToDeletedConcept(deletedConceptId: string): Promise<void> {
-    await withTransaction([STORE_QUIZ_QUESTIONS, STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
-      const questionStore = getStore(STORE_QUIZ_QUESTIONS);
-      const all = (await requestToPromise(questionStore.getAll())) as StoredQuizQuestion[];
-      for (const raw of all) {
-        const q = normalizeQuizQuestion(raw);
-        let changed = false;
-        let nextConceptId = q.conceptId;
-        if (nextConceptId === deletedConceptId) {
-          nextConceptId = undefined;
+  private async stripLiveReferencesToDeletedConceptInStores(
+    questionStore: IDBObjectStore,
+    contextCardStore: IDBObjectStore,
+    deletedConceptId: string
+  ): Promise<void> {
+    const all = (await requestToPromise(questionStore.getAll())) as StoredQuizQuestion[];
+    for (const raw of all) {
+      const q = normalizeQuizQuestion(raw);
+      let changed = false;
+      let nextConceptId = q.conceptId;
+      if (nextConceptId === deletedConceptId) {
+        nextConceptId = undefined;
+        changed = true;
+      }
+      let nextSource = q.source;
+      if (q.source?.type === "contextualConceptCard") {
+        const parsed = parseContextualCardSourceId(q.source.sourceId);
+        if (parsed?.conceptId === deletedConceptId) {
+          nextSource = undefined;
           changed = true;
         }
-        let nextSource = q.source;
-        if (q.source?.type === "contextualConceptCard") {
-          const parsed = parseContextualCardSourceId(q.source.sourceId);
-          if (parsed?.conceptId === deletedConceptId) {
-            nextSource = undefined;
-            changed = true;
-          }
-        }
-        const nextChoices: QuizChoice[] = q.choices.map((c) => {
-          let next = c;
-          if (next.linkedConceptId === deletedConceptId) {
-            changed = true;
-            const { linkedConceptId: _, ...rest } = next;
-            next = rest;
-          }
-          if (next.sourceConceptId === deletedConceptId) {
-            changed = true;
-            const { sourceConceptId: _source, contextDefinitionId: _ctx, ...rest } = next;
-            next = rest;
-          }
-          return next;
-        });
-        if (!changed) {
-          continue;
-        }
-        const { conceptId: _conceptId, source: _source, ...restQuestion } = q;
-        const next: QuizQuestion = {
-          ...restQuestion,
-          ...(nextConceptId ? { conceptId: nextConceptId } : {}),
-          ...(nextSource ? { source: nextSource } : {}),
-          choices: nextChoices,
-          updatedAt: nowIso()
-        };
-        await requestToPromise(questionStore.put(normalizeQuizQuestion(next as StoredQuizQuestion)));
       }
-
-      const contextStore = getStore(STORE_CONTEXT_CARDS);
-      const cards = (await requestToPromise(contextStore.getAll())) as Partial<ContextCard>[];
-      const now = nowIso();
-      for (const raw of cards) {
-        const card = sanitizeContextCard(raw);
-        if (!card.linkedConcepts.includes(deletedConceptId)) {
-          continue;
+      const nextChoices: QuizChoice[] = q.choices.map((c) => {
+        let next = c;
+        if (next.linkedConceptId === deletedConceptId) {
+          changed = true;
+          const { linkedConceptId: _, ...rest } = next;
+          next = rest;
         }
-        const updated: ContextCard = {
-          ...card,
-          linkedConcepts: card.linkedConcepts.filter((id) => id !== deletedConceptId),
+        if (next.sourceConceptId === deletedConceptId) {
+          changed = true;
+          const { sourceConceptId: _source, contextDefinitionId: _ctx, ...rest } = next;
+          next = rest;
+        }
+        return next;
+      });
+      if (!changed) {
+        continue;
+      }
+      const { conceptId: _conceptId, source: _source, ...restQuestion } = q;
+      const next: QuizQuestion = {
+        ...restQuestion,
+        ...(nextConceptId ? { conceptId: nextConceptId } : {}),
+        ...(nextSource ? { source: nextSource } : {}),
+        choices: nextChoices,
+        updatedAt: nowIso()
+      };
+      await requestToPromise(questionStore.put(normalizeQuizQuestion(next as StoredQuizQuestion)));
+    }
+
+    const cards = (await requestToPromise(contextCardStore.getAll())) as Partial<ContextCard>[];
+    const now = nowIso();
+    for (const raw of cards) {
+      const card = sanitizeContextCard(raw);
+      if (!card.linkedConcepts.includes(deletedConceptId)) {
+        continue;
+      }
+      const updated: ContextCard = {
+        ...card,
+        linkedConcepts: card.linkedConcepts.filter((id) => id !== deletedConceptId),
+        updatedAt: now
+      };
+      await requestToPromise(contextCardStore.put(updated));
+    }
+  }
+
+  private async deleteConceptAndCleanupRelationsInStore(
+    conceptStore: IDBObjectStore,
+    id: string
+  ): Promise<void> {
+    await requestToPromise(conceptStore.delete(id));
+
+    const all = (await requestToPromise(conceptStore.getAll())) as StoredConcept[];
+    const now = nowIso();
+    await Promise.all(
+      all.map(async (item) => {
+        const concept = sanitizeConcept(item).concept;
+        const relatedIds = withRelatedIdRemoved(concept.relatedIds, id);
+        const prerequisiteIds = normalizePrerequisiteIdList(
+          concept.prerequisiteIds.filter((prerequisiteId) => prerequisiteId !== id),
+          { selfId: concept.id }
+        );
+        if (
+          prerequisiteIdsEqual(relatedIds, concept.relatedIds) &&
+          prerequisiteIdsEqual(prerequisiteIds, concept.prerequisiteIds)
+        ) {
+          return;
+        }
+        const next: Concept = {
+          ...concept,
+          relatedIds,
+          prerequisiteIds,
           updatedAt: now
         };
-        await requestToPromise(contextStore.put(updated));
-      }
-    });
+        await requestToPromise(conceptStore.put(next));
+      })
+    );
   }
 
   async deleteConcept(id: string): Promise<void> {
-    await this.deleteMediaForConceptId(id);
-    await this.deleteAnchorsForConceptId(id);
-    await this.stripQuizReferencesToDeletedConcept(id);
-    await withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONCEPTS);
-      await requestToPromise(store.delete(id));
-
-      const all = (await requestToPromise(store.getAll())) as StoredConcept[];
-      const now = nowIso();
-      await Promise.all(
-        all.map(async (item) => {
-          const concept = sanitizeConcept(item).concept;
-          const relatedIds = withRelatedIdRemoved(concept.relatedIds, id);
-          const prerequisiteIds = normalizePrerequisiteIdList(
-            concept.prerequisiteIds.filter((prerequisiteId) => prerequisiteId !== id),
-            { selfId: concept.id }
-          );
-          if (
-            prerequisiteIdsEqual(relatedIds, concept.relatedIds) &&
-            prerequisiteIdsEqual(prerequisiteIds, concept.prerequisiteIds)
-          ) {
-            return;
-          }
-          const next: Concept = {
-            ...concept,
-            relatedIds,
-            prerequisiteIds,
-            updatedAt: now
-          };
-          await requestToPromise(store.put(next));
-        })
-      );
-    });
+    await withTransaction(
+      [
+        STORE_CONCEPTS,
+        STORE_MEDIA,
+        STORE_CONCEPT_SOURCE_ANCHORS,
+        STORE_QUIZ_QUESTIONS,
+        STORE_CONTEXT_CARDS
+      ],
+      "readwrite",
+      async (getStore) => {
+        await this.deleteMediaForConceptIdInStore(getStore(STORE_MEDIA), id);
+        await this.deleteAnchorsForConceptIdInStore(getStore(STORE_CONCEPT_SOURCE_ANCHORS), id);
+        await this.stripLiveReferencesToDeletedConceptInStores(
+          getStore(STORE_QUIZ_QUESTIONS),
+          getStore(STORE_CONTEXT_CARDS),
+          id
+        );
+        await this.deleteConceptAndCleanupRelationsInStore(getStore(STORE_CONCEPTS), id);
+      }
+    );
   }
 
   async getQuizQuestions(): Promise<QuizQuestion[]> {
