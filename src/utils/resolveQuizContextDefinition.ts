@@ -75,8 +75,9 @@ export function resolveQuizContextDefinition(
   }
 
   let rawDefinition: string | undefined;
+  const hasExplicitContextDefinitionId = Boolean(choice.contextDefinitionId?.trim());
 
-  if (choice.contextDefinitionId) {
+  if (hasExplicitContextDefinitionId) {
     const matched = (concept.contextDefinitions ?? []).find(
       (item) => item.id === choice.contextDefinitionId
     );
@@ -85,7 +86,7 @@ export function resolveQuizContextDefinition(
     }
   }
 
-  if (!rawDefinition) {
+  if (!rawDefinition && !hasExplicitContextDefinitionId) {
     rawDefinition = pickContextDefinitionBySource(concept, source) ?? undefined;
   }
 
