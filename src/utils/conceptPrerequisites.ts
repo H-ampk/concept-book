@@ -1,4 +1,5 @@
 import type { Concept } from "../types/concept";
+import { mergeContextDefinitions } from "./mergeContextDefinitions";
 
 export const PREREQUISITE_CYCLE_SAVE_ERROR =
   "この前提概念を設定すると循環するため保存できません。";
@@ -289,10 +290,16 @@ export const planConceptPrerequisiteImport = (
         byId.set(concept.id, concept);
         continue;
       }
-      byId.set(
-        concept.id,
-        current.updatedAt.localeCompare(concept.updatedAt) >= 0 ? current : concept
-      );
+      const winner =
+        current.updatedAt.localeCompare(concept.updatedAt) >= 0 ? current : concept;
+      const loser = winner === current ? concept : current;
+      byId.set(concept.id, {
+        ...winner,
+        contextDefinitions: mergeContextDefinitions(
+          winner.contextDefinitions,
+          loser.contextDefinitions
+        )
+      });
     }
     merged = [...byId.values()];
   }

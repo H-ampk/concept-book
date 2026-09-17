@@ -186,4 +186,123 @@ describe("planConceptPrerequisiteImport", () => {
     expect(planned.find((item) => item.id === "B")?.prerequisiteIds).toEqual([]);
     expect(planned.find((item) => item.id === "A")?.relatedIds).toEqual(["B"]);
   });
+
+  it("merge で import が新しいとき本体は import、local-only 定義は残す", () => {
+    const t1 = "2026-01-01T00:00:00.000Z";
+    const t2 = "2026-02-01T00:00:00.000Z";
+    const existing = [
+      concept("A", {
+        title: "local",
+        definition: "local-def",
+        updatedAt: t1,
+        contextDefinitions: [
+          { id: "D1", context: "local", definition: "local D1" },
+          { id: "D2", context: "local", definition: "local D2" }
+        ]
+      })
+    ];
+    const incoming = [
+      concept("A", {
+        title: "import",
+        definition: "import-def",
+        updatedAt: t2,
+        contextDefinitions: [{ id: "D1", context: "import", definition: "import D1" }]
+      })
+    ];
+    const planned = planConceptPrerequisiteImport(existing, incoming, "merge");
+    const merged = planned.find((item) => item.id === "A");
+    expect(merged?.title).toBe("import");
+    expect(merged?.definition).toBe("import-def");
+    expect(merged?.updatedAt).toBe(t2);
+    expect(merged?.contextDefinitions).toEqual([
+      { id: "D1", context: "import", definition: "import D1" },
+      { id: "D2", context: "local", definition: "local D2" }
+    ]);
+  });
+
+  it("merge で local が新しいとき本体は local、import-only 定義は追加する", () => {
+    const t1 = "2026-01-01T00:00:00.000Z";
+    const t2 = "2026-02-01T00:00:00.000Z";
+    const existing = [
+      concept("A", {
+        title: "local",
+        definition: "local-def",
+        updatedAt: t2,
+        contextDefinitions: [
+          { id: "D1", context: "local", definition: "local D1" },
+          { id: "D2", context: "local", definition: "local D2" }
+        ]
+      })
+    ];
+    const incoming = [
+      concept("A", {
+        title: "import",
+        definition: "import-def",
+        updatedAt: t1,
+        contextDefinitions: [
+          { id: "D1", context: "import", definition: "import D1" },
+          { id: "D3", context: "import", definition: "import D3" }
+        ]
+      })
+    ];
+    const planned = planConceptPrerequisiteImport(existing, incoming, "merge");
+    const merged = planned.find((item) => item.id === "A");
+    expect(merged?.title).toBe("local");
+    expect(merged?.definition).toBe("local-def");
+    expect(merged?.updatedAt).toBe(t2);
+    expect(merged?.contextDefinitions).toEqual([
+      { id: "D1", context: "local", definition: "local D1" },
+      { id: "D2", context: "local", definition: "local D2" },
+      { id: "D3", context: "import", definition: "import D3" }
+    ]);
+  });
+
+  it("merge で updatedAt が同じなら existing を winner とし import-only ID は追加する", () => {
+    const t = "2026-01-01T00:00:00.000Z";
+    const existing = [
+      concept("A", {
+        title: "local",
+        updatedAt: t,
+        contextDefinitions: [{ id: "D1", context: "local", definition: "local D1" }]
+      })
+    ];
+    const incoming = [
+      concept("A", {
+        title: "import",
+        updatedAt: t,
+        contextDefinitions: [
+          { id: "D1", context: "import", definition: "import D1" },
+          { id: "D3", context: "import", definition: "import D3" }
+        ]
+      })
+    ];
+    const planned = planConceptPrerequisiteImport(existing, incoming, "merge");
+    const merged = planned.find((item) => item.id === "A");
+    expect(merged?.title).toBe("local");
+    expect(merged?.updatedAt).toBe(t);
+    expect(merged?.contextDefinitions).toEqual([
+      { id: "D1", context: "local", definition: "local D1" },
+      { id: "D3", context: "import", definition: "import D3" }
+    ]);
+  });
+
+  it("replace では contextDefinitions を union しない", () => {
+    const existing = [
+      concept("A", {
+        contextDefinitions: [
+          { id: "D1", context: "local", definition: "local D1" },
+          { id: "D2", context: "local", definition: "local D2" }
+        ]
+      })
+    ];
+    const incoming = [
+      concept("A", {
+        contextDefinitions: [{ id: "D1", context: "import", definition: "import D1" }]
+      })
+    ];
+    const planned = planConceptPrerequisiteImport(existing, incoming, "replace");
+    expect(planned.find((item) => item.id === "A")?.contextDefinitions).toEqual([
+      { id: "D1", context: "import", definition: "import D1" }
+    ]);
+  });
 });
