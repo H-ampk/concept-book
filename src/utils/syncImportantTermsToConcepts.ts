@@ -285,13 +285,6 @@ export function computeMissingConceptInputs(
   return computeConceptSyncPlan(contextCard, existingConcepts).conceptsToCreate;
 }
 
-export type SyncImportantTermsResult = {
-  createdConcepts: Concept[];
-  createdCount: number;
-  updatedCount: number;
-  metadataUpdatedCount: number;
-};
-
 export function formatSyncImportantTermsToast(
   createdCount: number,
   updatedCount: number
@@ -306,60 +299,4 @@ export function formatSyncImportantTermsToast(
     return `${updatedCount}件の既存概念に分野タグを追加しました`;
   }
   return null;
-}
-
-/**
- * 文脈カードの重要概念（keyConcepts）を既存 concepts と同期する。
- * 未登録語句は新規作成、同名概念には不足分野タグのみ追加する。
- */
-export async function syncImportantTermsToConcepts(
-  contextCard: ContextCard,
-  existingConcepts: Concept[],
-  handlers: {
-    createConcept: (input: ConceptInput) => Promise<Concept>;
-    updateConcept: (
-      id: string,
-      updates: Partial<ConceptInput>
-    ) => Promise<Concept | undefined>;
-  }
-): Promise<SyncImportantTermsResult> {
-  const plan = computeConceptSyncPlan(contextCard, existingConcepts);
-  const createdConcepts: Concept[] = [];
-  let updatedCount = 0;
-  let metadataUpdatedCount = 0;
-
-  for (const input of plan.conceptsToCreate) {
-    try {
-      const created = await handlers.createConcept(input);
-      createdConcepts.push(created);
-    } catch (error) {
-      console.error(`概念の自動生成に失敗しました: ${input.title}`, error);
-    }
-  }
-
-  for (const update of plan.conceptsToUpdate) {
-    try {
-      const updated = await handlers.updateConcept(update.conceptId, update.updates);
-      if (updated) {
-        if (update.domainTagsChanged) {
-          updatedCount += 1;
-        }
-        if (update.provenanceChanged && !update.domainTagsChanged) {
-          metadataUpdatedCount += 1;
-        }
-      }
-    } catch (error) {
-      console.error(
-        `既存概念への分野タグ追加に失敗しました: ${update.conceptId}`,
-        error
-      );
-    }
-  }
-
-  return {
-    createdConcepts,
-    createdCount: createdConcepts.length,
-    updatedCount,
-    metadataUpdatedCount
-  };
 }

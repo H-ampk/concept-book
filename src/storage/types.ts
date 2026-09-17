@@ -61,6 +61,16 @@ export type ConceptStorage = {
     });
     media: ConceptMediaCommitItem[];
   }) => Promise<Concept>;
+  saveContextCardWithConceptSync: (args: {
+    mode: "create" | "edit";
+    contextCardId?: string;
+    input: ContextCardInput;
+  }) => Promise<{
+    card: ContextCard;
+    createdCount: number;
+    updatedCount: number;
+    metadataUpdatedCount: number;
+  }>;
   deleteConcept: (id: string) => Promise<void>;
   importConcepts: (
     concepts: Concept[],

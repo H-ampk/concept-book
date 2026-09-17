@@ -7,10 +7,7 @@ import { useConcepts } from "../features/concepts/useConcepts";
 import { getStorage } from "../storage";
 import type { Concept } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
-import {
-  formatSyncImportantTermsToast,
-  syncImportantTermsToConcepts
-} from "../utils/syncImportantTermsToConcepts";
+import { formatSyncImportantTermsToast } from "../utils/syncImportantTermsToConcepts";
 import { buildConceptByTitleMap } from "../utils/conceptLookupMaps";
 import { normalizeConceptTitle } from "../utils/normalizeConceptTitle";
 
@@ -376,7 +373,7 @@ export const ContextCardsScreen = ({
   onNavigateToConcept: (id: string) => void;
   onCreateQuizFromContextCard?: (contextCardId: string) => void;
 }) => {
-  const { contextCards, loading, domains, create, update } = useContextCards();
+  const { contextCards, loading, domains, reload: reloadContextCards } = useContextCards();
   const { concepts, reload: reloadConcepts } = useConcepts();
   const [activeScreen, setActiveScreen] = useState<"selection" | "list" | "detail" | "relatedConcepts">("selection");
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
@@ -425,43 +422,44 @@ export const ContextCardsScreen = ({
 
   const handleSubmit = async (payload: ContextCardInput) => {
     const isEdit = Boolean(editingContext);
-    let savedCard: ContextCard | undefined;
+    setFeedback(null);
+    setConceptToast(null);
 
-    if (isEdit && editingContext) {
-      savedCard = await update(editingContext.id, payload);
-      if (!savedCard) {
-        return undefined;
-      }
-    } else {
-      savedCard = await create(payload);
+    let result: {
+      card: ContextCard;
+      createdCount: number;
+      updatedCount: number;
+      metadataUpdatedCount: number;
+    };
+    try {
+      result = await storage.saveContextCardWithConceptSync({
+        mode: isEdit ? "edit" : "create",
+        contextCardId: editingContext?.id,
+        input: payload
+      });
+    } catch {
+      throw new Error("文脈カードと重要概念の保存に失敗しました。変更は保存されていません。");
     }
-
-    setSelectedId(savedCard.id);
-    setActiveScreen("detail");
-    setFeedback(isEdit ? "文脈カードを更新しました。" : "文脈カードを作成しました。");
 
     try {
-      const { createdCount, updatedCount, metadataUpdatedCount } =
-        await syncImportantTermsToConcepts(
-        savedCard,
-        concepts,
-        {
-          createConcept: (input) => storage.createConcept(input),
-          updateConcept: (id, updates) => storage.updateConcept(id, updates)
-        }
-      );
-      if (createdCount > 0 || updatedCount > 0 || metadataUpdatedCount > 0) {
-        await reloadConcepts();
-        const toastMessage = formatSyncImportantTermsToast(createdCount, updatedCount);
-        if (toastMessage) {
-          setConceptToast(toastMessage);
-        }
-      }
+      await reloadContextCards();
+      await reloadConcepts();
     } catch (error) {
-      console.error("重要概念からの概念自動生成に失敗しました:", error);
+      console.error("保存後の再読み込みに失敗しました:", error);
+      setSelectedId(result.card.id);
+      setActiveScreen("detail");
+      setFeedback("文脈カードは保存されましたが、画面の再読み込みに失敗しました。");
+      return result.card;
     }
 
-    return savedCard;
+    setSelectedId(result.card.id);
+    setActiveScreen("detail");
+    setFeedback(isEdit ? "文脈カードを更新しました。" : "文脈カードを作成しました。");
+    const toastMessage = formatSyncImportantTermsToast(result.createdCount, result.updatedCount);
+    if (toastMessage) {
+      setConceptToast(toastMessage);
+    }
+    return result.card;
   };
 
   const handleCloseModal = () => {

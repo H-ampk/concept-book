@@ -60,6 +60,7 @@ import type {
   ConceptStorage,
   ContextCardStorage
 } from "./types";
+import { computeConceptSyncPlan } from "../utils/syncImportantTermsToConcepts";
 
 const DB_NAME = "concept-book-db";
 const DB_VERSION = 9;
@@ -1053,6 +1054,221 @@ const prepareZipMediaRecords = (
   return { records, missingMedia };
 };
 
+const createConceptInStore = async (
+  store: IDBObjectStore,
+  input: ConceptInput
+): Promise<Concept> => {
+  const now = nowIso();
+  const mediaNorm = normalizeMediaRefs(input.media ?? []);
+  const newId = createConceptId();
+  const existingRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
+  const existingConcepts = existingRaw.map((raw) => sanitizeConcept(raw).concept);
+  const existingIds = new Set(existingConcepts.map((concept) => concept.id));
+  const relatedIds = normalizeRelatedIdList(input.relatedIds, {
+    selfId: newId,
+    existingIds
+  });
+  const prerequisiteIds = resolvePrerequisiteIdsForCreate(
+    existingConcepts,
+    newId,
+    input.prerequisiteIds
+  );
+  const concept: Concept = {
+    ...input,
+    id: newId,
+    domainTags: toArray(input.domainTags)
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    researchTags: toArray(input.researchTags)
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    relatedIds,
+    prerequisiteIds,
+    media: mediaNorm.length > 0 ? mediaNorm : undefined,
+    createdAt: now,
+    updatedAt: now
+  };
+  await requestToPromise(store.add(concept));
+
+  const existingById = new Map(existingConcepts.map((item) => [item.id, item]));
+  await Promise.all(
+    relatedIds.map(async (peerId) => {
+      const peer = existingById.get(peerId);
+      if (!peer) {
+        return;
+      }
+      const nextPeer: Concept = {
+        ...peer,
+        relatedIds: withRelatedIdAdded(peer.relatedIds, newId, peer.id),
+        updatedAt: now
+      };
+      await requestToPromise(store.put(nextPeer));
+    })
+  );
+  return concept;
+};
+
+const updateConceptInStore = async (
+  store: IDBObjectStore,
+  id: string,
+  updates: Partial<ConceptInput> & {
+    relatedIds?: string[];
+    prerequisiteIds?: string[];
+    domainTags?: string[];
+    researchTags?: string[];
+    media?: ConceptMediaRef[];
+  }
+): Promise<Concept | undefined> => {
+  const existingRaw = (await requestToPromise(store.get(id))) as StoredConcept | undefined;
+  const existing = existingRaw ? sanitizeConcept(existingRaw).concept : undefined;
+  if (!existing) {
+    return undefined;
+  }
+  const nextMedia =
+    updates.media !== undefined
+      ? (() => {
+          const n = normalizeMediaRefs(updates.media);
+          return n.length > 0 ? n : undefined;
+        })()
+      : existing.media;
+
+  const needsAllConcepts =
+    updates.relatedIds !== undefined || updates.prerequisiteIds !== undefined;
+  const allConcepts = needsAllConcepts
+    ? ((await requestToPromise(store.getAll())) as StoredConcept[]).map(
+        (raw) => sanitizeConcept(raw).concept
+      )
+    : [existing];
+
+  const prerequisiteIds =
+    updates.prerequisiteIds !== undefined
+      ? resolvePrerequisiteIdsForUpdate(allConcepts, id, updates.prerequisiteIds)
+      : existing.prerequisiteIds;
+
+  const updated: Concept = {
+    ...existing,
+    ...updates,
+    domainTags:
+      updates.domainTags !== undefined
+        ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
+        : existing.domainTags,
+    researchTags:
+      updates.researchTags !== undefined
+        ? updates.researchTags.map((tag) => tag.trim()).filter(Boolean)
+        : existing.researchTags,
+    relatedIds: existing.relatedIds,
+    prerequisiteIds,
+    media: nextMedia,
+    source: {
+      book: updates.source?.book ?? existing.source.book,
+      page: updates.source?.page ?? existing.source.page,
+      author: updates.source?.author ?? existing.source.author
+    },
+    updatedAt: nowIso()
+  };
+
+  if (updates.relatedIds !== undefined) {
+    const existingIds = new Set(allConcepts.map((item) => item.id));
+    const newRelatedIds = normalizeRelatedIdList(updates.relatedIds, {
+      selfId: id,
+      existingIds
+    });
+    const oldRelatedIds = normalizeRelatedIdList(existing.relatedIds, {
+      selfId: id,
+      existingIds
+    });
+    const { added, removed } = diffRelatedIds(oldRelatedIds, newRelatedIds);
+    updated.relatedIds = newRelatedIds;
+
+    const peerById = new Map(allConcepts.map((item) => [item.id, item]));
+    await Promise.all(
+      added.map(async (peerId) => {
+        const peer = peerById.get(peerId);
+        if (!peer) {
+          return;
+        }
+        await requestToPromise(
+          store.put({
+            ...peer,
+            relatedIds: withRelatedIdAdded(peer.relatedIds, id, peer.id),
+            updatedAt: updated.updatedAt
+          })
+        );
+      })
+    );
+    await Promise.all(
+      removed.map(async (peerId) => {
+        const peer = peerById.get(peerId);
+        if (!peer) {
+          return;
+        }
+        await requestToPromise(
+          store.put({
+            ...peer,
+            relatedIds: withRelatedIdRemoved(peer.relatedIds, id),
+            updatedAt: updated.updatedAt
+          })
+        );
+      })
+    );
+  }
+
+  await requestToPromise(store.put(updated));
+  return updated;
+};
+
+const createContextCardInStore = async (
+  store: IDBObjectStore,
+  input: ContextCardInput
+): Promise<ContextCard> => {
+  const now = nowIso();
+  const domainTags = Array.isArray(input.domainTags)
+    ? input.domainTags.map((tag) => tag.trim()).filter(Boolean)
+    : [];
+  const card: ContextCard = {
+    ...input,
+    id: createContextCardId(),
+    domain: domainTags[0] || undefined,
+    domainTags,
+    linkedConcepts: Array.isArray(input.linkedConcepts)
+      ? input.linkedConcepts.map((link) => link.trim()).filter(Boolean)
+      : [],
+    createdAt: now,
+    updatedAt: now
+  };
+  await requestToPromise(store.add(card));
+  return card;
+};
+
+const updateContextCardInStore = async (
+  store: IDBObjectStore,
+  id: string,
+  updates: Partial<ContextCardInput>
+): Promise<ContextCard | undefined> => {
+  const existingRaw = (await requestToPromise(store.get(id))) as Partial<ContextCard> | undefined;
+  if (!existingRaw) {
+    return undefined;
+  }
+  const existing = sanitizeContextCard(existingRaw);
+  const domainTags =
+    updates.domainTags !== undefined
+      ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
+      : existing.domainTags;
+  const updated: ContextCard = {
+    ...existing,
+    ...updates,
+    domain: domainTags[0] || existing.domain,
+    domainTags,
+    linkedConcepts:
+      updates.linkedConcepts !== undefined
+        ? updates.linkedConcepts.map((link) => link.trim()).filter(Boolean)
+        : existing.linkedConcepts,
+    updatedAt: nowIso()
+  };
+  await requestToPromise(store.put(updated));
+  return updated;
+};
+
 export class IndexedDBStorage implements ConceptStorage {
   async getAllConcepts(): Promise<Concept[]> {
     return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
@@ -1087,172 +1303,9 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  private async createConceptInStore(
-    store: IDBObjectStore,
-    input: ConceptInput
-  ): Promise<Concept> {
-    const now = nowIso();
-    const mediaNorm = normalizeMediaRefs(input.media ?? []);
-    const newId = createConceptId();
-    const existingRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
-    const existingConcepts = existingRaw.map((raw) => sanitizeConcept(raw).concept);
-      const existingIds = new Set(existingConcepts.map((concept) => concept.id));
-      const relatedIds = normalizeRelatedIdList(input.relatedIds, {
-        selfId: newId,
-        existingIds
-      });
-      const prerequisiteIds = resolvePrerequisiteIdsForCreate(
-        existingConcepts,
-        newId,
-        input.prerequisiteIds
-      );
-      const concept: Concept = {
-        ...input,
-        id: newId,
-        domainTags: toArray(input.domainTags)
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        researchTags: toArray(input.researchTags)
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        relatedIds,
-        prerequisiteIds,
-        media: mediaNorm.length > 0 ? mediaNorm : undefined,
-        createdAt: now,
-        updatedAt: now
-      };
-      await requestToPromise(store.add(concept));
-
-      const existingById = new Map(existingConcepts.map((item) => [item.id, item]));
-      await Promise.all(
-        relatedIds.map(async (peerId) => {
-          const peer = existingById.get(peerId);
-          if (!peer) {
-            return;
-          }
-          const nextPeer: Concept = {
-            ...peer,
-            relatedIds: withRelatedIdAdded(peer.relatedIds, newId, peer.id),
-            updatedAt: now
-          };
-          await requestToPromise(store.put(nextPeer));
-        })
-      );
-      return concept;
-  }
-
-  private async updateConceptInStore(
-    store: IDBObjectStore,
-    id: string,
-    updates: Partial<ConceptInput> & {
-      relatedIds?: string[];
-      prerequisiteIds?: string[];
-      domainTags?: string[];
-      researchTags?: string[];
-      media?: ConceptMediaRef[];
-    }
-  ): Promise<Concept | undefined> {
-      const existingRaw = (await requestToPromise(store.get(id))) as StoredConcept | undefined;
-      const existing = existingRaw ? sanitizeConcept(existingRaw).concept : undefined;
-      if (!existing) {
-        return undefined;
-      }
-      const nextMedia =
-        updates.media !== undefined
-          ? (() => {
-              const n = normalizeMediaRefs(updates.media);
-              return n.length > 0 ? n : undefined;
-            })()
-          : existing.media;
-
-      const needsAllConcepts =
-        updates.relatedIds !== undefined || updates.prerequisiteIds !== undefined;
-      const allConcepts = needsAllConcepts
-        ? ((await requestToPromise(store.getAll())) as StoredConcept[]).map(
-            (raw) => sanitizeConcept(raw).concept
-          )
-        : [existing];
-
-      const prerequisiteIds =
-        updates.prerequisiteIds !== undefined
-          ? resolvePrerequisiteIdsForUpdate(allConcepts, id, updates.prerequisiteIds)
-          : existing.prerequisiteIds;
-
-      const updated: Concept = {
-        ...existing,
-        ...updates,
-        domainTags:
-          updates.domainTags !== undefined
-            ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
-            : existing.domainTags,
-        researchTags:
-          updates.researchTags !== undefined
-            ? updates.researchTags.map((tag) => tag.trim()).filter(Boolean)
-            : existing.researchTags,
-        relatedIds: existing.relatedIds,
-        prerequisiteIds,
-        media: nextMedia,
-        source: {
-          book: updates.source?.book ?? existing.source.book,
-          page: updates.source?.page ?? existing.source.page,
-          author: updates.source?.author ?? existing.source.author
-        },
-        updatedAt: nowIso()
-      };
-
-      if (updates.relatedIds !== undefined) {
-        const existingIds = new Set(allConcepts.map((item) => item.id));
-        const newRelatedIds = normalizeRelatedIdList(updates.relatedIds, {
-          selfId: id,
-          existingIds
-        });
-        const oldRelatedIds = normalizeRelatedIdList(existing.relatedIds, {
-          selfId: id,
-          existingIds
-        });
-        const { added, removed } = diffRelatedIds(oldRelatedIds, newRelatedIds);
-        updated.relatedIds = newRelatedIds;
-
-        const peerById = new Map(allConcepts.map((item) => [item.id, item]));
-        await Promise.all(
-          added.map(async (peerId) => {
-            const peer = peerById.get(peerId);
-            if (!peer) {
-              return;
-            }
-            await requestToPromise(
-              store.put({
-                ...peer,
-                relatedIds: withRelatedIdAdded(peer.relatedIds, id, peer.id),
-                updatedAt: updated.updatedAt
-              })
-            );
-          })
-        );
-        await Promise.all(
-          removed.map(async (peerId) => {
-            const peer = peerById.get(peerId);
-            if (!peer) {
-              return;
-            }
-            await requestToPromise(
-              store.put({
-                ...peer,
-                relatedIds: withRelatedIdRemoved(peer.relatedIds, id),
-                updatedAt: updated.updatedAt
-              })
-            );
-          })
-        );
-      }
-
-      await requestToPromise(store.put(updated));
-      return updated;
-  }
-
   async createConcept(input: ConceptInput): Promise<Concept> {
     return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
-      return this.createConceptInStore(getStore(STORE_CONCEPTS), input);
+      return createConceptInStore(getStore(STORE_CONCEPTS), input);
     });
   }
 
@@ -1267,7 +1320,7 @@ export class IndexedDBStorage implements ConceptStorage {
     }
   ): Promise<Concept | undefined> {
     return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
-      return this.updateConceptInStore(getStore(STORE_CONCEPTS), id, updates);
+      return updateConceptInStore(getStore(STORE_CONCEPTS), id, updates);
     });
   }
 
@@ -1304,7 +1357,7 @@ export class IndexedDBStorage implements ConceptStorage {
 
       let concept: Concept;
       if (args.mode === "create") {
-        concept = await this.createConceptInStore(conceptStore, {
+        concept = await createConceptInStore(conceptStore, {
           ...(args.input as ConceptInput),
           media: []
         });
@@ -1338,7 +1391,7 @@ export class IndexedDBStorage implements ConceptStorage {
         const { media: _ignoredMedia, ...conceptUpdates } = args.input as Partial<ConceptInput> & {
           media?: ConceptMediaRef[];
         };
-        const updated = await this.updateConceptInStore(conceptStore, conceptId, {
+        const updated = await updateConceptInStore(conceptStore, conceptId, {
           ...conceptUpdates,
           media: current.media
         });
@@ -1426,6 +1479,79 @@ export class IndexedDBStorage implements ConceptStorage {
       await requestToPromise(conceptStore.put(finalConcept));
       return finalConcept;
     });
+  }
+
+  async saveContextCardWithConceptSync(args: {
+    mode: "create" | "edit";
+    contextCardId?: string;
+    input: ContextCardInput;
+  }): Promise<{
+    card: ContextCard;
+    createdCount: number;
+    updatedCount: number;
+    metadataUpdatedCount: number;
+  }> {
+    return withTransaction(
+      [STORE_CONTEXT_CARDS, STORE_CONCEPTS],
+      "readwrite",
+      async (getStore) => {
+        const cardStore = getStore(STORE_CONTEXT_CARDS);
+        const conceptStore = getStore(STORE_CONCEPTS);
+
+        let savedCard: ContextCard;
+        if (args.mode === "create") {
+          savedCard = await createContextCardInStore(cardStore, args.input);
+        } else {
+          const contextCardId = args.contextCardId;
+          if (!contextCardId) {
+            throw new Error("更新対象の文脈カードが指定されていません。");
+          }
+          const updatedCard = await updateContextCardInStore(
+            cardStore,
+            contextCardId,
+            args.input
+          );
+          if (!updatedCard) {
+            throw new Error("文脈カードが見つかりません。");
+          }
+          savedCard = updatedCard;
+        }
+
+        const existingRaw = (await requestToPromise(conceptStore.getAll())) as StoredConcept[];
+        const existingConcepts = existingRaw.map((raw) => sanitizeConcept(raw).concept);
+        const plan = computeConceptSyncPlan(savedCard, existingConcepts);
+
+        for (const input of plan.conceptsToCreate) {
+          await createConceptInStore(conceptStore, input);
+        }
+
+        let updatedCount = 0;
+        let metadataUpdatedCount = 0;
+        for (const update of plan.conceptsToUpdate) {
+          const updated = await updateConceptInStore(
+            conceptStore,
+            update.conceptId,
+            update.updates
+          );
+          if (!updated) {
+            throw new Error("同期対象の概念が見つかりません。");
+          }
+          if (update.domainTagsChanged) {
+            updatedCount += 1;
+          }
+          if (update.provenanceChanged && !update.domainTagsChanged) {
+            metadataUpdatedCount += 1;
+          }
+        }
+
+        return {
+          card: savedCard,
+          createdCount: plan.conceptsToCreate.length,
+          updatedCount,
+          metadataUpdatedCount
+        };
+      }
+    );
   }
 
   private async deleteMediaForConceptIdInStore(
@@ -2628,53 +2754,18 @@ export class ContextCardIndexedDBStorage implements ContextCardStorage {
   }
 
   async createContextCard(input: ContextCardInput): Promise<ContextCard> {
-    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONTEXT_CARDS);
-      const now = nowIso();
-      const domainTags = Array.isArray(input.domainTags) ? input.domainTags.map((tag) => tag.trim()).filter(Boolean) : [];
-      const card: ContextCard = {
-        ...input,
-        id: createContextCardId(),
-        domain: domainTags[0] || undefined,
-        domainTags,
-        linkedConcepts: Array.isArray(input.linkedConcepts) ? input.linkedConcepts.map((link) => link.trim()).filter(Boolean) : [],
-        createdAt: now,
-        updatedAt: now
-      };
-      await requestToPromise(store.add(card));
-      return card;
-    });
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) =>
+      createContextCardInStore(getStore(STORE_CONTEXT_CARDS), input)
+    );
   }
 
   async updateContextCard(
     id: string,
     updates: Partial<ContextCardInput>
   ): Promise<ContextCard | undefined> {
-    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONTEXT_CARDS);
-      const existingRaw = (await requestToPromise(store.get(id))) as Partial<ContextCard> | undefined;
-      if (!existingRaw) {
-        return undefined;
-      }
-      const existing = sanitizeContextCard(existingRaw);
-      const domainTags =
-        updates.domainTags !== undefined
-          ? updates.domainTags.map((tag) => tag.trim()).filter(Boolean)
-          : existing.domainTags;
-      const updated: ContextCard = {
-        ...existing,
-        ...updates,
-        domain: domainTags[0] || existing.domain,
-        domainTags,
-        linkedConcepts:
-          updates.linkedConcepts !== undefined
-            ? updates.linkedConcepts.map((link) => link.trim()).filter(Boolean)
-            : existing.linkedConcepts,
-        updatedAt: nowIso()
-      };
-      await requestToPromise(store.put(updated));
-      return updated;
-    });
+    return withTransaction([STORE_CONTEXT_CARDS], "readwrite", async (getStore) =>
+      updateContextCardInStore(getStore(STORE_CONTEXT_CARDS), id, updates)
+    );
   }
 
   async deleteContextCard(id: string): Promise<void> {
