@@ -441,7 +441,8 @@ export const ContextCardsScreen = ({
     setFeedback(isEdit ? "文脈カードを更新しました。" : "文脈カードを作成しました。");
 
     try {
-      const { createdCount, updatedCount } = await syncImportantTermsToConcepts(
+      const { createdCount, updatedCount, metadataUpdatedCount } =
+        await syncImportantTermsToConcepts(
         savedCard,
         concepts,
         {
@@ -449,7 +450,7 @@ export const ContextCardsScreen = ({
           updateConcept: (id, updates) => storage.updateConcept(id, updates)
         }
       );
-      if (createdCount > 0 || updatedCount > 0) {
+      if (createdCount > 0 || updatedCount > 0 || metadataUpdatedCount > 0) {
         await reloadConcepts();
         const toastMessage = formatSyncImportantTermsToast(createdCount, updatedCount);
         if (toastMessage) {
