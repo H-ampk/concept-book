@@ -55,25 +55,47 @@ export const computeSkillTreeLayout = (
     });
   };
 
-  const layoutNode = (id: string, depth: number): number => {
-    const children = tree.get(id) ?? [];
+  type LayoutFrame = {
+    id: string;
+    depth: number;
+    childIndex: number;
+    childYs: number[];
+  };
+
+  const frames: LayoutFrame[] = [{ id: rootId, depth: 0, childIndex: 0, childYs: [] }];
+
+  while (frames.length > 0) {
+    const frame = frames[frames.length - 1];
+    const children = tree.get(frame.id) ?? [];
 
     if (children.length === 0) {
       const y = getSkillTreeLeafSlotY(nextLeafIndex);
       nextLeafIndex += 1;
-      savePosition(id, depth, y);
-      return y;
+      savePosition(frame.id, frame.depth, y);
+      frames.pop();
+      if (frames.length > 0) {
+        frames[frames.length - 1].childYs.push(y);
+      }
+      continue;
     }
 
-    const childYs = children.map((child) => layoutNode(child, depth + 1));
+    if (frame.childIndex < children.length) {
+      const child = children[frame.childIndex];
+      frame.childIndex += 1;
+      frames.push({ id: child, depth: frame.depth + 1, childIndex: 0, childYs: [] });
+      continue;
+    }
+
     const y =
-      childYs.length === 1 ? childYs[0] : (childYs[0] + childYs[childYs.length - 1]) / 2;
-
-    savePosition(id, depth, y);
-    return y;
-  };
-
-  layoutNode(rootId, 0);
+      frame.childYs.length === 1
+        ? frame.childYs[0]
+        : (frame.childYs[0] + frame.childYs[frame.childYs.length - 1]) / 2;
+    savePosition(frame.id, frame.depth, y);
+    frames.pop();
+    if (frames.length > 0) {
+      frames[frames.length - 1].childYs.push(y);
+    }
+  }
 
   const leafCount = Math.max(nextLeafIndex, 1);
   const canvasWidth =

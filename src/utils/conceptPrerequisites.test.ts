@@ -110,6 +110,30 @@ describe("findPrerequisiteCycle / wouldCreatePrerequisiteCycle", () => {
     ];
     expect(findPrerequisiteCycle(diamond)).toBeNull();
   });
+
+  it("10,000 ノードの acyclic chain で stack overflow せず null を返す", () => {
+    const nodeCount = 10_000;
+    const concepts = Array.from({ length: nodeCount }, (_, index) =>
+      concept(`C${index}`, index === 0 ? {} : { prerequisiteIds: [`C${index - 1}`] })
+    );
+    expect(findPrerequisiteCycle(concepts)).toBeNull();
+  });
+
+  it("10,000 ノードの deep cycle を検出し path の両端が一致する", () => {
+    const nodeCount = 10_000;
+    const lastId = `C${nodeCount - 1}`;
+    const concepts = Array.from({ length: nodeCount }, (_, index) => {
+      if (index === 0) {
+        return concept("C0", { prerequisiteIds: [lastId] });
+      }
+      return concept(`C${index}`, { prerequisiteIds: [`C${index - 1}`] });
+    });
+    const cycle = findPrerequisiteCycle(concepts);
+    expect(cycle).not.toBeNull();
+    expect(cycle?.[0]).toBe("C0");
+    expect(cycle?.at(-1)).toBe(cycle?.[0]);
+    expect(cycle?.length).toBeGreaterThan(2);
+  });
 });
 
 describe("resolvePrerequisiteIdsForUpdate", () => {

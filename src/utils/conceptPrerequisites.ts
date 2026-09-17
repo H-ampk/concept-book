@@ -158,10 +158,15 @@ export const wouldCreatePrerequisiteCycle = (
   return collectReachableDependentIds(index, dependentId).has(prerequisiteId);
 };
 
+type PrerequisiteDfsFrame = {
+  id: string;
+  nextChildIndex: number;
+};
+
 /**
  * 有向辺 prerequisite → dependent の cycle を1つ返す。
  * 例: ["A", "B", "C", "A"]。無ければ null。
- * DFS、O(V + E)。
+ * iterative DFS、O(V + E)。
  */
 export const findPrerequisiteCycle = (
   nodes: readonly PrerequisiteGraphNode[]
@@ -169,38 +174,44 @@ export const findPrerequisiteCycle = (
   const { dependentsByConceptId } = buildPrerequisiteAdjacency(nodes);
   const visiting = new Set<string>();
   const visited = new Set<string>();
-  const stack: string[] = [];
+  const path: string[] = [];
+  const frames: PrerequisiteDfsFrame[] = [];
 
-  const dfs = (id: string): string[] | null => {
+  const enter = (id: string) => {
     visiting.add(id);
-    stack.push(id);
-    const dependents = dependentsByConceptId.get(id) ?? [];
-    for (const nextId of dependents) {
-      if (visiting.has(nextId)) {
-        const cycleStart = stack.indexOf(nextId);
-        return [...stack.slice(cycleStart), nextId];
-      }
-      if (visited.has(nextId)) {
-        continue;
-      }
-      const found = dfs(nextId);
-      if (found) {
-        return found;
-      }
-    }
-    stack.pop();
-    visiting.delete(id);
-    visited.add(id);
-    return null;
+    path.push(id);
+    frames.push({ id, nextChildIndex: 0 });
   };
 
   for (const node of nodes) {
     if (visited.has(node.id) || visiting.has(node.id)) {
       continue;
     }
-    const found = dfs(node.id);
-    if (found) {
-      return found;
+    enter(node.id);
+
+    while (frames.length > 0) {
+      const frame = frames[frames.length - 1];
+      const dependents = dependentsByConceptId.get(frame.id) ?? [];
+
+      if (frame.nextChildIndex < dependents.length) {
+        const nextId = dependents[frame.nextChildIndex];
+        frame.nextChildIndex += 1;
+
+        if (visiting.has(nextId)) {
+          const cycleStart = path.indexOf(nextId);
+          return [...path.slice(cycleStart), nextId];
+        }
+        if (visited.has(nextId)) {
+          continue;
+        }
+        enter(nextId);
+        continue;
+      }
+
+      frames.pop();
+      path.pop();
+      visiting.delete(frame.id);
+      visited.add(frame.id);
     }
   }
   return null;

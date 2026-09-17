@@ -197,4 +197,22 @@ describe("computeSkillTreeLayout", () => {
     );
     expect(deep.canvasWidth).toBeGreaterThan(shallow.canvasWidth);
   });
+
+  it("10,000 ノードの chain を stack overflow せずレイアウトする", () => {
+    const nodeCount = 10_000;
+    const entries: Array<[string, string[]]> = Array.from({ length: nodeCount }, (_, index) => {
+      const id = `C${index}`;
+      const children = index === nodeCount - 1 ? [] : [`C${index + 1}`];
+      return [id, children];
+    });
+    const result = computeSkillTreeLayout(treeFrom(entries), "C0");
+    expect(result.positions.size).toBe(nodeCount);
+    expect(result.positions.get("C0")?.depth).toBe(0);
+    expect(result.positions.get(`C${nodeCount - 1}`)?.depth).toBe(nodeCount - 1);
+    const y = result.positions.get("C0")?.y;
+    expect(result.positions.get("C1")?.y).toBe(y);
+    expect(result.positions.get(`C${nodeCount - 1}`)?.y).toBe(y);
+    expect(Number.isFinite(result.canvasWidth)).toBe(true);
+    expect(Number.isFinite(result.canvasHeight)).toBe(true);
+  });
 });
