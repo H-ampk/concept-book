@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { planFiltersToRevealConcept } from "./revealConceptInGraphFilters";
+import { planConceptReveal } from "./planConceptReveal";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
 
@@ -366,32 +366,47 @@ export const App = () => {
     applyGraphDetailUi(selectGraphConcept({ selectedId, graphDetailOpen }, id));
   };
 
-  const openConceptInGraphFromAnalysis = (conceptId: string) => {
-    const concept = conceptMap.get(conceptId);
+  const revealConceptForNavigation = async (conceptId: string): Promise<boolean> => {
+    const concept = conceptMap.get(conceptId) ?? (await storage.getConceptById(conceptId));
     if (!concept) {
-      return;
+      return false;
     }
-    const isVisible = masteryFilteredConcepts.some((item) => item.id === conceptId);
-    if (!isVisible) {
-      const { filtersChanged, nextFilters } = planFiltersToRevealConcept(concept, {
-        query,
-        selectedDomainTags,
-        selectedResearchTags,
-        selectedStatuses,
-        onlyFavorite
-      });
-      if (filtersChanged) {
-        setQuery(nextFilters.query);
-        setSelectedDomainTags(nextFilters.selectedDomainTags);
-        setSelectedResearchTags(nextFilters.selectedResearchTags);
-        setSelectedStatuses(nextFilters.selectedStatuses);
-        setOnlyFavorite(nextFilters.onlyFavorite);
-        setFeedback("対象の概念を表示するためフィルタを解除しました。");
-      }
-      if (masteryFilter !== "all") {
-        setMasteryFilter("all");
-        setFeedback("対象の概念を表示するためフィルタを解除しました。");
-      }
+
+    const plan = planConceptReveal(
+      concept,
+      {
+        filters: {
+          query,
+          selectedDomainTags,
+          selectedResearchTags,
+          selectedStatuses,
+          onlyFavorite
+        },
+        masteryFilter
+      },
+      conceptMasteryMap.get(concept.id)
+    );
+
+    if (plan.filtersChanged) {
+      setQuery(plan.nextFilters.query);
+      setSelectedDomainTags(plan.nextFilters.selectedDomainTags);
+      setSelectedResearchTags(plan.nextFilters.selectedResearchTags);
+      setSelectedStatuses(plan.nextFilters.selectedStatuses);
+      setOnlyFavorite(plan.nextFilters.onlyFavorite);
+    }
+    if (plan.masteryFilterChanged) {
+      setMasteryFilter(plan.nextMasteryFilter);
+    }
+    if (plan.changed) {
+      setFeedback("対象の概念を表示するためフィルタを解除しました。");
+    }
+    return true;
+  };
+
+  const openConceptInGraphFromAnalysis = async (conceptId: string) => {
+    const revealed = await revealConceptForNavigation(conceptId);
+    if (!revealed) {
+      return;
     }
     setScreen("concepts");
     setConceptMainTab("graph");
@@ -794,6 +809,10 @@ export const App = () => {
           <ContextCardsScreen
             onNavigateToConcept={async (id) => {
               await reload();
+              const revealed = await revealConceptForNavigation(id);
+              if (!revealed) {
+                return;
+              }
               setScreen("concepts");
               setSelectedId(id);
               setMobileDetail(true);
@@ -822,7 +841,11 @@ export const App = () => {
               onBack={() => setScreen("concepts")}
               onGoToQuizPlay={() => setScreen("quiz-play")}
               onGoToLearningLogs={() => setScreen("learning-logs")}
-              onOpenConcept={(conceptId) => {
+              onOpenConcept={async (conceptId) => {
+                const revealed = await revealConceptForNavigation(conceptId);
+                if (!revealed) {
+                  return;
+                }
                 setScreen("concepts");
                 setConceptMainTab("list");
                 setSelectedId(conceptId);
