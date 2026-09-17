@@ -7,7 +7,7 @@ import { guessMimeFromFileName } from "../utils/mediaConstraints";
 import { MAX_MEDIA_FILES_PER_CONCEPT, validateMediaFile } from "../utils/mediaConstraints";
 import type { Concept, ConceptInput, ContextDefinition } from "../types/concept";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
-import type { ConceptMediaRef, MediaRecord } from "../types/media";
+import type { ConceptMediaCommitItem, ConceptMediaRef, MediaRecord } from "../types/media";
 import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSource } from "../types/quiz";
 import { normalizeFreeResponseKeywords } from "../utils/quiz/freeResponseKeywordMatch";
 import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
@@ -1087,14 +1087,15 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
-  async createConcept(input: ConceptInput): Promise<Concept> {
-    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONCEPTS);
-      const now = nowIso();
-      const mediaNorm = normalizeMediaRefs(input.media ?? []);
-      const newId = createConceptId();
-      const existingRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
-      const existingConcepts = existingRaw.map((raw) => sanitizeConcept(raw).concept);
+  private async createConceptInStore(
+    store: IDBObjectStore,
+    input: ConceptInput
+  ): Promise<Concept> {
+    const now = nowIso();
+    const mediaNorm = normalizeMediaRefs(input.media ?? []);
+    const newId = createConceptId();
+    const existingRaw = (await requestToPromise(store.getAll())) as StoredConcept[];
+    const existingConcepts = existingRaw.map((raw) => sanitizeConcept(raw).concept);
       const existingIds = new Set(existingConcepts.map((concept) => concept.id));
       const relatedIds = normalizeRelatedIdList(input.relatedIds, {
         selfId: newId,
@@ -1138,10 +1139,10 @@ export class IndexedDBStorage implements ConceptStorage {
         })
       );
       return concept;
-    });
   }
 
-  async updateConcept(
+  private async updateConceptInStore(
+    store: IDBObjectStore,
     id: string,
     updates: Partial<ConceptInput> & {
       relatedIds?: string[];
@@ -1151,8 +1152,6 @@ export class IndexedDBStorage implements ConceptStorage {
       media?: ConceptMediaRef[];
     }
   ): Promise<Concept | undefined> {
-    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
-      const store = getStore(STORE_CONCEPTS);
       const existingRaw = (await requestToPromise(store.get(id))) as StoredConcept | undefined;
       const existing = existingRaw ? sanitizeConcept(existingRaw).concept : undefined;
       if (!existing) {
@@ -1249,6 +1248,183 @@ export class IndexedDBStorage implements ConceptStorage {
 
       await requestToPromise(store.put(updated));
       return updated;
+  }
+
+  async createConcept(input: ConceptInput): Promise<Concept> {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      return this.createConceptInStore(getStore(STORE_CONCEPTS), input);
+    });
+  }
+
+  async updateConcept(
+    id: string,
+    updates: Partial<ConceptInput> & {
+      relatedIds?: string[];
+      prerequisiteIds?: string[];
+      domainTags?: string[];
+      researchTags?: string[];
+      media?: ConceptMediaRef[];
+    }
+  ): Promise<Concept | undefined> {
+    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+      return this.updateConceptInStore(getStore(STORE_CONCEPTS), id, updates);
+    });
+  }
+
+  async saveConceptWithMediaDraft(args: {
+    mode: "create" | "edit";
+    conceptId?: string;
+    input: ConceptInput | (Partial<ConceptInput> & {
+      relatedIds?: string[];
+      prerequisiteIds?: string[];
+      domainTags?: string[];
+      researchTags?: string[];
+      media?: ConceptMediaRef[];
+    });
+    media: ConceptMediaCommitItem[];
+  }): Promise<Concept> {
+    if (args.media.length > MAX_MEDIA_FILES_PER_CONCEPT) {
+      throw new Error(`1概念あたり最大 ${MAX_MEDIA_FILES_PER_CONCEPT} 件までです。`);
+    }
+    for (const item of args.media) {
+      if (item.type === "new") {
+        const validated = validateMediaFile(item.file);
+        if (!validated.ok) {
+          throw new Error(validated.message);
+        }
+      } else if (args.mode === "create") {
+        throw new Error("新規作成では既存メディアを参照できません。");
+      }
+    }
+
+    return withTransaction([STORE_CONCEPTS, STORE_MEDIA], "readwrite", async (getStore) => {
+      const conceptStore = getStore(STORE_CONCEPTS);
+      const mediaStore = getStore(STORE_MEDIA);
+      const staleMessage = "メディアが別の操作で変更されています。再度開いてください。";
+
+      let concept: Concept;
+      if (args.mode === "create") {
+        concept = await this.createConceptInStore(conceptStore, {
+          ...(args.input as ConceptInput),
+          media: []
+        });
+      } else {
+        const conceptId = args.conceptId;
+        if (!conceptId) {
+          throw new Error("更新対象の概念が指定されていません。");
+        }
+        const existingRaw = (await requestToPromise(conceptStore.get(conceptId))) as
+          | StoredConcept
+          | undefined;
+        if (!existingRaw) {
+          throw new Error("概念が見つかりません。");
+        }
+        const current = sanitizeConcept(existingRaw).concept;
+        const currentIds = new Set((current.media ?? []).map((ref) => ref.id));
+        for (const item of args.media) {
+          if (item.type !== "existing") {
+            continue;
+          }
+          if (!currentIds.has(item.mediaId)) {
+            throw new Error(staleMessage);
+          }
+          const record = (await requestToPromise(mediaStore.get(item.mediaId))) as
+            | MediaRecord
+            | undefined;
+          if (!record || record.conceptId !== conceptId) {
+            throw new Error(staleMessage);
+          }
+        }
+        const { media: _ignoredMedia, ...conceptUpdates } = args.input as Partial<ConceptInput> & {
+          media?: ConceptMediaRef[];
+        };
+        const updated = await this.updateConceptInStore(conceptStore, conceptId, {
+          ...conceptUpdates,
+          media: current.media
+        });
+        if (!updated) {
+          throw new Error("概念が見つかりません。");
+        }
+        concept = updated;
+      }
+
+      const previousRefs = concept.media ?? [];
+      const retainedIds = new Set(
+        args.media.filter((item) => item.type === "existing").map((item) => item.mediaId)
+      );
+      for (const ref of previousRefs) {
+        if (!retainedIds.has(ref.id)) {
+          await requestToPromise(mediaStore.delete(ref.id));
+        }
+      }
+
+      const now = nowIso();
+      const nextRefs: ConceptMediaRef[] = [];
+      for (let sortOrder = 0; sortOrder < args.media.length; sortOrder += 1) {
+        const item = args.media[sortOrder];
+        if (item.type === "existing") {
+          const record = (await requestToPromise(mediaStore.get(item.mediaId))) as
+            | MediaRecord
+            | undefined;
+          if (!record) {
+            throw new Error(staleMessage);
+          }
+          const caption = item.caption?.trim() ? item.caption.trim() : undefined;
+          if (record.caption !== caption) {
+            await requestToPromise(
+              mediaStore.put({
+                ...record,
+                caption,
+                updatedAt: now
+              })
+            );
+          }
+          const previous = previousRefs.find((ref) => ref.id === item.mediaId);
+          nextRefs.push({
+            id: item.mediaId,
+            kind: previous?.kind ?? record.kind,
+            fileName: previous?.fileName ?? record.fileName,
+            caption,
+            sortOrder
+          });
+          continue;
+        }
+
+        const validated = validateMediaFile(item.file);
+        if (!validated.ok) {
+          throw new Error(validated.message);
+        }
+        const id = createMediaId();
+        const caption = item.caption?.trim() ? item.caption.trim() : undefined;
+        const record: MediaRecord = {
+          id,
+          conceptId: concept.id,
+          kind: validated.kind,
+          blob: item.file,
+          mimeType: validated.mimeType,
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          caption,
+          createdAt: now,
+          updatedAt: now
+        };
+        await requestToPromise(mediaStore.add(record));
+        nextRefs.push({
+          id,
+          kind: validated.kind,
+          fileName: item.file.name,
+          caption,
+          sortOrder
+        });
+      }
+
+      const finalConcept: Concept = {
+        ...concept,
+        media: nextRefs.length > 0 ? nextRefs : undefined,
+        updatedAt: now
+      };
+      await requestToPromise(conceptStore.put(finalConcept));
+      return finalConcept;
     });
   }
 

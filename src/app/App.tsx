@@ -18,6 +18,8 @@ import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
 import { getStorage } from "../storage";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
+import type { ConceptMediaDraftItem } from "../types/media";
+import { toConceptMediaCommitItems } from "../utils/conceptMediaDraft";
 import type { QuizAttemptLog } from "../types/quiz";
 import { buildContextualCardSourceId } from "../utils/quizQuestionSource";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
@@ -147,8 +149,7 @@ export const App = () => {
     setSelectedStatuses,
     onlyFavorite,
     setOnlyFavorite,
-    create,
-    update,
+    saveWithMediaDraft,
     remove,
     reload,
     toggleFavorite
@@ -331,13 +332,33 @@ export const App = () => {
     }
   };
 
-  const handleSubmit = async (payload: ConceptInput, options?: ConceptSaveOptions) => {
+  const handleSubmit = async (
+    payload: ConceptInput,
+    options?: ConceptSaveOptions,
+    mediaDraft: ConceptMediaDraftItem[] = []
+  ) => {
+    const media = toConceptMediaCommitItems(mediaDraft);
     if (editingConcept) {
-      const updated = await update(editingConcept.id, payload, options);
+      const updated = await saveWithMediaDraft(
+        {
+          mode: "edit",
+          conceptId: editingConcept.id,
+          input: payload,
+          media
+        },
+        options
+      );
       setSelectedId(editingConcept.id);
-      return updated ?? undefined;
+      return updated;
     }
-    return await create(payload, options);
+    return await saveWithMediaDraft(
+      {
+        mode: "create",
+        input: payload,
+        media
+      },
+      options
+    );
   };
 
   const handleSelect = (id: string) => {

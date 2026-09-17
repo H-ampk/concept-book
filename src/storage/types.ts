@@ -1,5 +1,5 @@
 import type { Concept, ConceptInput } from "../types/concept";
-import type { ConceptMediaRef } from "../types/media";
+import type { ConceptMediaCommitItem, ConceptMediaRef } from "../types/media";
 import type { ContextCard, ContextCardInput } from "../types/contextCard";
 import type { QuizAttemptLog, QuizDeck, QuizQuestion } from "../types/quiz";
 import type { ResearchReport } from "../types/researchReport";
@@ -49,6 +49,18 @@ export type ConceptStorage = {
       media?: ConceptMediaRef[];
     }
   ) => Promise<Concept | undefined>;
+  saveConceptWithMediaDraft: (args: {
+    mode: "create" | "edit";
+    conceptId?: string;
+    input: ConceptInput | (Partial<ConceptInput> & {
+      relatedIds?: string[];
+      prerequisiteIds?: string[];
+      domainTags?: string[];
+      researchTags?: string[];
+      media?: ConceptMediaRef[];
+    });
+    media: ConceptMediaCommitItem[];
+  }) => Promise<Concept>;
   deleteConcept: (id: string) => Promise<void>;
   importConcepts: (
     concepts: Concept[],

@@ -12,8 +12,13 @@ import {
   hasAddableContextDefinitionsFromFieldTags,
 } from "../utils/addContextDefinitionsFromFieldTags";
 import { normalizeConceptTitle } from "../utils/normalizeConceptTitle";
-import type { ConceptMediaRef } from "../types/media";
+import type { ConceptMediaDraftItem, ConceptMediaRef } from "../types/media";
 import { getStorage } from "../storage";
+import {
+  MAX_MEDIA_FILES_PER_CONCEPT,
+  validateMediaFile
+} from "../utils/mediaConstraints";
+import { revokeNewMediaObjectUrls } from "../utils/conceptMediaDraft";
 import { RelatedConceptPicker } from "./RelatedConceptPicker";
 import { PrerequisiteConceptPicker } from "./PrerequisiteConceptPicker";
 import {
@@ -31,12 +36,12 @@ type Props = {
   /** 正規化タイトル参照（先頭出現のみ）。一括追加で使用 */
   conceptTitleIndex: Map<string, Concept>;
   onClose: () => void;
-  /** 保存した概念を返す（新規作成時は addMedia 用）。編集時は更新後の概念。 */
   onSubmit: (
     payload: ConceptInput,
-    options?: { statusExplicitlySet?: boolean }
+    options?: { statusExplicitlySet?: boolean },
+    mediaDraft?: ConceptMediaDraftItem[]
   ) => Promise<Concept | undefined>;
-  /** メディア追加・削除後に一覧を再読込 */
+  /** 関連概念の一括作成後に一覧を再読込 */
   reloadConcepts?: () => Promise<void>;
 };
 
@@ -47,11 +52,16 @@ const splitCsv = (value: string): string[] =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-type PendingMedia = {
-  file: File;
-  caption: string;
-  objectUrl: string;
-};
+const toExistingDraftItems = (media: ConceptMediaRef[] | undefined): ConceptMediaDraftItem[] =>
+  [...(media ?? [])]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((ref) => ({
+      type: "existing" as const,
+      mediaId: ref.id,
+      kind: ref.kind,
+      fileName: ref.fileName,
+      caption: ref.caption
+    }));
 
 export const ConceptFormModal = ({
   open,
@@ -70,9 +80,10 @@ export const ConceptFormModal = ({
   const [error, setError] = useState<string | null>(null);
   const [contextDefFeedback, setContextDefFeedback] = useState<string | null>(null);
   const [statusTouched, setStatusTouched] = useState(false);
-  const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
+  const [mediaDraft, setMediaDraft] = useState<ConceptMediaDraftItem[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const previewRevokeRef = useRef<string[]>([]);
+  const mediaDraftRef = useRef<ConceptMediaDraftItem[]>([]);
   const definitionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useLayoutEffect(() => {
@@ -90,11 +101,11 @@ export const ConceptFormModal = ({
 
   const mediaIdKey = useMemo(
     () =>
-      [...(form.media ?? [])]
-        .map((m) => m.id)
-        .sort()
+      mediaDraft
+        .filter((item): item is Extract<ConceptMediaDraftItem, { type: "existing" }> => item.type === "existing")
+        .map((item) => item.mediaId)
         .join(","),
-    [form.media]
+    [mediaDraft]
   );
 
   const tagsState = useMemo(
@@ -120,13 +131,15 @@ export const ConceptFormModal = ({
   }, [allConcepts, baseConcept?.id, form.prerequisiteIds]);
 
   useEffect(() => {
+    mediaDraftRef.current = mediaDraft;
+  }, [mediaDraft]);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
-    setPendingMedia((prev) => {
-      prev.forEach((p) => URL.revokeObjectURL(p.objectUrl));
-      return [];
-    });
+    revokeNewMediaObjectUrls(mediaDraftRef.current);
+    setMediaDraft(mode === "edit" && baseConcept ? toExistingDraftItems(baseConcept.media) : []);
     setStatusTouched(false);
     if (mode === "edit" && baseConcept) {
       setForm({
@@ -160,6 +173,13 @@ export const ConceptFormModal = ({
   }, [open, mode, baseConcept]);
 
   useEffect(() => {
+    return () => {
+      revokeNewMediaObjectUrls(mediaDraftRef.current);
+      previewRevokeRef.current.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, []);
+
+  useEffect(() => {
     previewRevokeRef.current.forEach((u) => URL.revokeObjectURL(u));
     previewRevokeRef.current = [];
 
@@ -171,14 +191,15 @@ export const ConceptFormModal = ({
     let cancelled = false;
     const load = async () => {
       const next: Record<string, string> = {};
-      for (const ref of form.media ?? []) {
-        const blob = await storage.getMediaBlob(ref.id);
+      const existingIds = mediaIdKey ? mediaIdKey.split(",").filter(Boolean) : [];
+      for (const mediaId of existingIds) {
+        const blob = await storage.getMediaBlob(mediaId);
         if (cancelled || !blob) {
           continue;
         }
         const url = URL.createObjectURL(blob);
         previewRevokeRef.current.push(url);
-        next[ref.id] = url;
+        next[mediaId] = url;
       }
       if (!cancelled) {
         setPreviewUrls(next);
@@ -192,76 +213,90 @@ export const ConceptFormModal = ({
     };
   }, [open, mode, baseConcept?.id, mediaIdKey]);
 
-  const syncFormMedia = async () => {
-    if (!baseConcept?.id) {
+  const requestClose = () => {
+    if (submitting) {
       return;
     }
-    const fresh = await storage.getConceptById(baseConcept.id);
-    if (fresh) {
-      setForm((prev) => ({ ...prev, media: fresh.media ?? [] }));
-    }
+    revokeNewMediaObjectUrls(mediaDraft);
+    setMediaDraft([]);
+    onClose();
   };
 
-  const handleAddFiles = async (fileList: FileList | null) => {
-    if (!fileList?.length) {
+  const handleAddFiles = (fileList: FileList | null) => {
+    if (submitting || !fileList?.length) {
       return;
     }
     const files = [...fileList];
+    const additions: ConceptMediaDraftItem[] = [];
+    let nextCount = mediaDraft.length;
     for (const file of files) {
-      try {
-        if (mode === "edit" && baseConcept?.id) {
-          await storage.addMedia({ conceptId: baseConcept.id, file });
-          await syncFormMedia();
-          await reloadConcepts?.();
-        } else {
-          const objectUrl = URL.createObjectURL(file);
-          setPendingMedia((prev) => [...prev, { file, caption: "", objectUrl }]);
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "メディアの追加に失敗しました。");
+      if (nextCount >= MAX_MEDIA_FILES_PER_CONCEPT) {
+        setError(`1概念あたり最大 ${MAX_MEDIA_FILES_PER_CONCEPT} 件までです。`);
+        break;
       }
+      const validated = validateMediaFile(file);
+      if (!validated.ok) {
+        setError(validated.message);
+        continue;
+      }
+      additions.push({
+        type: "new",
+        clientId: crypto.randomUUID(),
+        file,
+        kind: validated.kind,
+        fileName: file.name,
+        caption: "",
+        objectUrl: URL.createObjectURL(file)
+      });
+      nextCount += 1;
+    }
+    if (additions.length > 0) {
+      setMediaDraft((prev) => [...prev, ...additions]);
     }
   };
 
-  const removeSavedMedia = async (mediaId: string) => {
-    try {
-      await storage.deleteMedia(mediaId);
-      await syncFormMedia();
-      await reloadConcepts?.();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "削除に失敗しました。");
+  const removeDraftAt = (index: number) => {
+    if (submitting) {
+      return;
     }
-  };
-
-  const removePendingAt = (index: number) => {
-    setPendingMedia((prev) => {
+    setMediaDraft((prev) => {
       const next = [...prev];
       const [removed] = next.splice(index, 1);
-      if (removed) {
+      if (removed?.type === "new") {
         URL.revokeObjectURL(removed.objectUrl);
       }
       return next;
     });
   };
 
-  const updatePendingCaption = (index: number, caption: string) => {
-    setPendingMedia((prev) => {
+  const updateDraftCaption = (index: number, caption: string) => {
+    if (submitting) {
+      return;
+    }
+    setMediaDraft((prev) => {
       const next = [...prev];
-      if (next[index]) {
-        next[index] = { ...next[index], caption };
+      const item = next[index];
+      if (!item) {
+        return prev;
       }
+      next[index] = { ...item, caption };
       return next;
     });
   };
 
-  const updateSavedCaption = async (mediaId: string, caption: string) => {
-    try {
-      await storage.updateMediaCaption(mediaId, caption.trim() || undefined);
-      await syncFormMedia();
-      await reloadConcepts?.();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "キャプション更新に失敗しました。");
+  const reorderDraft = (index: number, delta: number) => {
+    if (submitting) {
+      return;
     }
+    setMediaDraft((prev) => {
+      const j = index + delta;
+      if (j < 0 || j >= prev.length) {
+        return prev;
+      }
+      const next = [...prev];
+      [next[index], next[j]] = [next[j], next[index]];
+      return next;
+    });
   };
 
   const handleAddBulkRelatedConcepts = async (titles: string[]): Promise<{ message: string }> => {
@@ -373,38 +408,15 @@ export const ConceptFormModal = ({
     }
   };
 
-  const reorderMedia = async (index: number, delta: number) => {
-    if (mode === "edit" && baseConcept?.id) {
-      const list = [...(form.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
-      const j = index + delta;
-      if (j < 0 || j >= list.length) {
-        return;
-      }
-      const swapped = [...list];
-      [swapped[index], swapped[j]] = [swapped[j], swapped[index]];
-      const reordered: ConceptMediaRef[] = swapped.map((r, i) => ({ ...r, sortOrder: i }));
-      await storage.updateConcept(baseConcept.id, { media: reordered });
-      await syncFormMedia();
-      await reloadConcepts?.();
-      return;
-    }
-    setPendingMedia((prev) => {
-      const list = [...prev];
-      const j = index + delta;
-      if (j < 0 || j >= list.length) {
-        return prev;
-      }
-      [list[index], list[j]] = [list[j], list[index]];
-      return list;
-    });
-  };
-
   if (!open) {
     return null;
   }
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submitting) {
+      return;
+    }
     if (!form.title.trim()) {
       setError("タイトルは必須です。");
       return;
@@ -423,7 +435,7 @@ export const ConceptFormModal = ({
       title: form.title.trim(),
       domainTags: splitCsv(domainTagInput),
       researchTags: splitCsv(researchTagInput),
-      media: mode === "create" ? [] : form.media ?? [],
+      media: [],
       contextDefinitions: cleanContextDefinitions,
       source: {
         book: form.source.book.trim(),
@@ -435,19 +447,9 @@ export const ConceptFormModal = ({
     setSubmitting(true);
     setError(null);
     try {
-      const saved = await onSubmit(payload, { statusExplicitlySet: statusTouched });
-      if (saved?.id && pendingMedia.length > 0) {
-        for (const p of pendingMedia) {
-          await storage.addMedia({
-            conceptId: saved.id,
-            file: p.file,
-            caption: p.caption.trim() || undefined
-          });
-        }
-        pendingMedia.forEach((p) => URL.revokeObjectURL(p.objectUrl));
-        setPendingMedia([]);
-        await reloadConcepts?.();
-      }
+      await onSubmit(payload, { statusExplicitlySet: statusTouched }, mediaDraft);
+      revokeNewMediaObjectUrls(mediaDraft);
+      setMediaDraft([]);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存に失敗しました。");
@@ -456,8 +458,6 @@ export const ConceptFormModal = ({
     }
   };
 
-  const savedMediaSorted = [...(form.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-nordic-overlay px-4">
       <form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto scrollbar-none rounded-2xl bg-celestial-panel p-5 shadow-xl border border-celestial-border" onSubmit={handleSubmit}>
@@ -465,7 +465,7 @@ export const ConceptFormModal = ({
           <h2 className="text-lg font-semibold text-celestial-textMain">
             {mode === "create" ? "新しい概念" : "概念を編集"}
           </h2>
-          <button className="rounded-md px-2 py-1 text-sm text-celestial-softGold hover:bg-celestial-gold/10 transition-colors" onClick={onClose} type="button">
+          <button className="rounded-md px-2 py-1 text-sm text-celestial-softGold hover:bg-celestial-gold/10 transition-colors disabled:cursor-not-allowed disabled:opacity-50" onClick={requestClose} type="button" disabled={submitting}>
             閉じる
           </button>
         </header>
@@ -643,122 +643,83 @@ export const ConceptFormModal = ({
           <div className="md:col-span-2 rounded-lg border border-celestial-gold/25 bg-celestial-deepBlue p-3">
             <span className="mb-2 block text-sm font-medium text-celestial-textMain">画像・動画（png/jpg/jpeg/gif、mp4/webm・1ファイル最大20MB）</span>
             <p className="mb-2 text-xs text-celestial-textSub">
-              新規作成では保存後にファイルがアップロードされます。別PCへは設定の「パッケージ（ZIP）」でエクスポートしてください。
+              保存するまでメディアの追加・削除・並び替えは下書きです。キャンセルすると破棄されます。別PCへは設定の「パッケージ（ZIP）」でエクスポートしてください。
             </p>
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/gif,video/mp4,video/webm,.png,.jpg,.jpeg,.gif,.mp4,.webm"
               multiple
+              disabled={submitting}
               className="block w-full text-sm text-celestial-textMain file:mr-3 file:rounded-md file:border file:border-celestial-border file:bg-celestial-deepBlue file:px-3 file:py-1.5 file:text-celestial-softGold"
-              onChange={(e) => void handleAddFiles(e.target.files)}
+              onChange={(e) => {
+                handleAddFiles(e.target.files);
+                e.currentTarget.value = "";
+              }}
             />
 
-            {savedMediaSorted.length > 0 && (
+            {mediaDraft.length > 0 && (
               <ul className="mt-3 space-y-2">
-                {savedMediaSorted.map((ref, index) => (
-                  <li
-                    key={ref.id}
-                    className="flex flex-col gap-2 rounded-md border border-celestial-gold/25 bg-celestial-deepBlue p-2 sm:flex-row sm:items-start"
-                  >
-                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-celestial-deepBlue sm:h-20 sm:w-28">
-                      {ref.kind === "image" && previewUrls[ref.id] ? (
-                        <img src={previewUrls[ref.id]} alt="" className="h-full w-full object-contain" />
-                      ) : ref.kind === "video" && previewUrls[ref.id] ? (
-                        <video src={previewUrls[ref.id]} className="h-full w-full object-contain" muted playsInline />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-celestial-textSub">読込中…</div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-celestial-textMain">{ref.fileName}</p>
-                      <input
-                        type="text"
-                        className="mt-1 w-full rounded border border-celestial-gold/25 bg-celestial-deepBlue px-2 py-1 text-xs text-celestial-textMain placeholder:text-celestial-textSub"
-                        placeholder="キャプション（任意）"
-                        defaultValue={ref.caption ?? ""}
-                        key={ref.id + (ref.caption ?? "")}
-                        onBlur={(e) => {
-                          if (e.target.value !== (ref.caption ?? "")) {
-                            void updateSavedCaption(ref.id, e.target.value);
-                          }
-                        }}
-                      />
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
-                          onClick={() => void reorderMedia(index, -1)}
-                        >
-                          上へ
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
-                          onClick={() => void reorderMedia(index, 1)}
-                        >
-                          下へ
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded border border-rose-300 bg-rose-50 px-2 py-0.5 text-xs text-rose-700 hover:bg-rose-100"
-                          onClick={() => void removeSavedMedia(ref.id)}
-                        >
-                          削除
-                        </button>
+                {mediaDraft.map((item, index) => {
+                  const previewSrc =
+                    item.type === "new" ? item.objectUrl : previewUrls[item.mediaId];
+                  const kind = item.type === "new" ? item.kind : item.kind;
+                  const key = item.type === "new" ? item.clientId : item.mediaId;
+                  return (
+                    <li
+                      key={key}
+                      className="flex flex-col gap-2 rounded-md border border-celestial-gold/25 bg-celestial-deepBlue p-2 sm:flex-row sm:items-start"
+                    >
+                      <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-celestial-deepBlue sm:h-20 sm:w-28">
+                        {kind === "image" && previewSrc ? (
+                          <img src={previewSrc} alt="" className="h-full w-full object-contain" />
+                        ) : kind === "video" && previewSrc ? (
+                          <video src={previewSrc} className="h-full w-full object-contain" muted playsInline />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-celestial-textSub">
+                            {item.type === "existing" ? "読込中…" : "プレビュー"}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {pendingMedia.length > 0 && (
-              <ul className="mt-3 space-y-2 border-t border-celestial-gold/25 pt-2">
-                <p className="text-xs text-celestial-textSub">保存待ち（新規作成）</p>
-                {pendingMedia.map((p, index) => (
-                  <li key={p.objectUrl} className="flex flex-col gap-2 rounded-md border border-celestial-gold/25 bg-celestial-deepBlue p-2 sm:flex-row">
-                    <div className="h-24 w-full shrink-0 overflow-hidden rounded bg-celestial-deepBlue sm:h-20 sm:w-28">
-                      {p.file.type.startsWith("video/") ? (
-                        <video src={p.objectUrl} className="h-full w-full object-contain" muted playsInline />
-                      ) : (
-                        <img src={p.objectUrl} alt="" className="h-full w-full object-contain" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-celestial-textMain">{p.file.name}</p>
-                      <input
-                        type="text"
-                        className="mt-1 w-full rounded border border-celestial-gold/25 bg-celestial-deepBlue px-2 py-1 text-xs text-celestial-textMain placeholder:text-celestial-textSub"
-                        placeholder="キャプション（任意）"
-                        value={p.caption}
-                        onChange={(e) => updatePendingCaption(index, e.target.value)}
-                      />
-                      <div className="mt-1 flex gap-1">
-                        <button
-                          type="button"
-                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
-                          onClick={() => reorderMedia(index, -1)}
-                        >
-                          上へ
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
-                          onClick={() => reorderMedia(index, 1)}
-                        >
-                          下へ
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded border border-rose-300 bg-rose-50 px-2 py-0.5 text-xs text-rose-700 hover:bg-rose-100"
-                          onClick={() => removePendingAt(index)}
-                        >
-                          削除
-                        </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-celestial-textMain">{item.fileName}</p>
+                        <input
+                          type="text"
+                          className="mt-1 w-full rounded border border-celestial-gold/25 bg-celestial-deepBlue px-2 py-1 text-xs text-celestial-textMain placeholder:text-celestial-textSub"
+                          placeholder="キャプション（任意）"
+                          value={item.caption ?? ""}
+                          disabled={submitting}
+                          onChange={(e) => updateDraftCaption(index, e.target.value)}
+                        />
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            disabled={submitting}
+                            className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => reorderDraft(index, -1)}
+                          >
+                            上へ
+                          </button>
+                          <button
+                            type="button"
+                            disabled={submitting}
+                            className="rounded border border-celestial-border px-2 py-0.5 text-xs text-celestial-softGold hover:bg-celestial-gold/12 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => reorderDraft(index, 1)}
+                          >
+                            下へ
+                          </button>
+                          <button
+                            type="button"
+                            disabled={submitting}
+                            className="rounded border border-rose-300 bg-rose-50 px-2 py-0.5 text-xs text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => removeDraftAt(index)}
+                          >
+                            削除
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -818,8 +779,9 @@ export const ConceptFormModal = ({
         <footer className="mt-5 flex justify-end gap-2">
           <button
             type="button"
-            className="rounded-md border border-celestial-border px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/12 transition-colors"
-            onClick={onClose}
+            className="rounded-md border border-celestial-border px-3 py-2 text-sm text-celestial-softGold hover:bg-celestial-gold/12 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={requestClose}
+            disabled={submitting}
           >
             キャンセル
           </button>

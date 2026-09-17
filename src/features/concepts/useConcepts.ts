@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { getStorage } from "../../storage";
 import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
+import type { ConceptMediaCommitItem } from "../../types/media";
 import {
   applyDerivedStatusOnUpdate,
   applyDerivedStatusToInput,
@@ -79,6 +80,45 @@ export const useConcepts = () => {
     [reload]
   );
 
+  const saveWithMediaDraft = useCallback(
+    async (
+      args: {
+        mode: "create" | "edit";
+        conceptId?: string;
+        input: ConceptInput;
+        media: ConceptMediaCommitItem[];
+      },
+      options?: ConceptSaveOptions
+    ) => {
+      if (args.mode === "create") {
+        const normalized = applyDerivedStatusToInput(args.input, options);
+        const created = await storage.saveConceptWithMediaDraft({
+          mode: "create",
+          input: normalized,
+          media: args.media
+        });
+        await reload();
+        return created;
+      }
+      if (!args.conceptId) {
+        throw new Error("更新対象の概念が指定されていません。");
+      }
+      const existing = concepts.find((concept) => concept.id === args.conceptId);
+      const normalized = existing
+        ? applyDerivedStatusOnUpdate(existing, args.input, options)
+        : args.input;
+      const updated = await storage.saveConceptWithMediaDraft({
+        mode: "edit",
+        conceptId: args.conceptId,
+        input: normalized,
+        media: args.media
+      });
+      await reload();
+      return updated;
+    },
+    [concepts, reload]
+  );
+
   const toggleFavorite = useCallback(
     async (concept: Concept) => {
       await storage.updateConcept(concept.id, { favorite: !concept.favorite });
@@ -130,6 +170,7 @@ export const useConcepts = () => {
     setOnlyFavorite,
     create,
     update,
+    saveWithMediaDraft,
     remove,
     reload,
     toggleFavorite
