@@ -139,6 +139,9 @@ export const App = () => {
     allDomainTags,
     allResearchTags,
     loading,
+    reloadError,
+    isStale,
+    canMutateConcepts,
     query,
     setQuery,
     selectedDomainTags,
@@ -318,7 +321,11 @@ export const App = () => {
 
   const conceptDetailActions = {
     onEdit: openEdit,
-    onToggleFavorite: (concept: Concept) => void toggleFavorite(concept),
+    onToggleFavorite: (concept: Concept) => {
+      void toggleFavorite(concept).catch(() => {
+        setFeedback("お気に入りの更新に失敗しました。時間をおいて再試行してください。");
+      });
+    },
     conceptQuizStatsText: selectedConceptQuizStatsText,
     conceptMastery: selectedConceptMastery,
     conceptMasteryMap,
@@ -444,7 +451,7 @@ export const App = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteTarget || deleting) {
+    if (!deleteTarget || deleting || !canMutateConcepts) {
       return;
     }
     setDeleting(true);
@@ -482,6 +489,35 @@ export const App = () => {
         conceptMainTab === "graph" ? "shrink-0 p-3" : "p-5"
       }`}
     >
+      {reloadError ? (
+        <div
+          role="alert"
+          data-testid="concept-reload-error"
+          className="mb-3 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900"
+        >
+          {isStale ? (
+            <>
+              <p>概念データの再読み込みに失敗しました。</p>
+              <p className="mt-1">
+                表示中の内容は前回の読み込み成功時点のデータです。再読み込みに成功するまで保存・削除・お気に入り変更はできません。
+              </p>
+            </>
+          ) : (
+            <>
+              <p>概念データを取得できませんでした。</p>
+              <p className="mt-1">再読み込みを試してください。</p>
+            </>
+          )}
+          <button
+            type="button"
+            className="mt-2 rounded-md border border-rose-400 bg-white px-3 py-1.5 text-sm text-rose-800 disabled:opacity-60"
+            disabled={loading}
+            onClick={() => void reload()}
+          >
+            {loading ? "再読み込み中..." : "再読み込み"}
+          </button>
+        </div>
+      ) : null}
       <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
         <div className="hud-search-wrap min-w-0">
           <input
@@ -498,7 +534,12 @@ export const App = () => {
         >
           {onlyFavorite ? "お気に入りのみ" : "すべて"}
         </button>
-        <button type="button" className="action-button px-4 py-3 text-sm" onClick={openCreate}>
+        <button
+          type="button"
+          className="action-button px-4 py-3 text-sm"
+          onClick={openCreate}
+          disabled={!canMutateConcepts}
+        >
           概念を追加
         </button>
       </div>
@@ -736,6 +777,7 @@ export const App = () => {
             domainColorMap={domainColorMap}
             prerequisiteIndex={prerequisiteIndex}
             {...conceptDetailActions}
+            mutationDisabled={!canMutateConcepts}
             onRequestDelete={handleRequestDelete}
             deleting={deleting}
             onSelectRelated={(id) => {
@@ -945,6 +987,7 @@ export const App = () => {
                           domainColorMap={domainColorMap}
                           prerequisiteIndex={prerequisiteIndex}
                           {...conceptDetailActions}
+                          mutationDisabled={!canMutateConcepts}
                           onRequestDelete={handleRequestDelete}
                           deleting={deleting}
                           onSelectRelated={handleGraphSelect}
@@ -971,6 +1014,7 @@ export const App = () => {
                         domainColorMap={domainColorMap}
                         prerequisiteIndex={prerequisiteIndex}
                         {...conceptDetailActions}
+                        mutationDisabled={!canMutateConcepts}
                         onRequestDelete={handleRequestDelete}
                         deleting={deleting}
                         onSelectRelated={(id) => {
@@ -996,6 +1040,7 @@ export const App = () => {
         onClose={() => setModalOpen(false)}
         onSubmit={handleSubmit}
         reloadConcepts={reload}
+        mutationDisabled={!canMutateConcepts}
       />
 
       {deleteTarget && (
@@ -1010,6 +1055,11 @@ export const App = () => {
             <p className="mt-2 rounded-md bg-nordic-section px-3 py-2 text-sm text-nordic-textPrimary">
               対象: {deleteTarget.title}
             </p>
+            {!canMutateConcepts ? (
+              <p className="mt-2 text-sm text-rose-700">
+                概念データの再読み込みに成功するまで削除できません。
+              </p>
+            ) : null}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -1021,7 +1071,7 @@ export const App = () => {
               </button>
               <button
                 type="button"
-                disabled={deleting}
+                disabled={deleting || !canMutateConcepts}
                 className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 disabled:opacity-60"
                 onClick={() => void handleConfirmDelete()}
               >

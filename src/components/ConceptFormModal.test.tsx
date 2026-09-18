@@ -135,3 +135,36 @@ describe("ConceptFormModal prerequisites (#118)", () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
   });
 });
+
+describe("ConceptFormModal stale mutation (#201)", () => {
+  it("mutationDisabled 時は警告を出し保存できない", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn(async () => undefined);
+    render(
+      <ConceptFormModal
+        open
+        mode="create"
+        allConcepts={allConcepts}
+        conceptTitleIndex={new Map()}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        mutationDisabled
+      />
+    );
+
+    expect(
+      screen.getByText(
+        "表示中の概念データが最新ではないため、再読み込みに成功するまで保存できません。"
+      )
+    ).toBeInTheDocument();
+    const saveButton = screen.getByRole("button", { name: "保存" });
+    expect(saveButton).toBeDisabled();
+    await user.click(saveButton);
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    const form = saveButton.closest("form");
+    expect(form).not.toBeNull();
+    form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});

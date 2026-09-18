@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { getStorage } from "../../storage";
 import type { Concept, ConceptInput, ConceptStatus } from "../../types/concept";
@@ -13,19 +13,45 @@ import { collectTagGroups, filterConcepts } from "./conceptFilters";
 
 const storage = getStorage();
 
+const CONCEPT_STALE_MUTATION_ERROR =
+  "概念データが最新状態ではないため、再読み込みに成功するまで変更できません。";
+
+const reloadFailureMessage = (error: unknown): string =>
+  error instanceof Error && error.message.trim()
+    ? error.message
+    : "概念データの再読み込みに失敗しました。";
+
+const shouldFailConceptReload = (): boolean =>
+  typeof window !== "undefined" &&
+  Boolean(
+    (window as Window & { __CONCEPTBOOK_FAIL_CONCEPT_RELOAD?: boolean })
+      .__CONCEPTBOOK_FAIL_CONCEPT_RELOAD
+  );
+
 export const useConcepts = () => {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadError, setReloadError] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedDomainTags, setSelectedDomainTags] = useState<string[]>([]);
   const [selectedResearchTags, setSelectedResearchTags] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<ConceptStatus[]>([]);
   const [onlyFavorite, setOnlyFavorite] = useState(false);
+  const hasSuccessfulLoadRef = useRef(false);
+  const reloadGenerationRef = useRef(0);
 
   const reload = useCallback(async () => {
+    const generation = ++reloadGenerationRef.current;
     setLoading(true);
     try {
+      if (shouldFailConceptReload()) {
+        throw new Error("injected read failure");
+      }
       const all = await storage.getAllConcepts();
+      if (generation !== reloadGenerationRef.current) {
+        return;
+      }
       const { concepts: normalized, changedCount, changedIds } =
         normalizeConceptStatuses(all);
 
@@ -39,12 +65,29 @@ export const useConcepts = () => {
             return storage.updateConcept(id, { status: concept.status });
           })
         );
+        if (generation !== reloadGenerationRef.current) {
+          return;
+        }
         console.info(`[ConceptBook] normalized concept statuses: ${changedCount}`);
       }
 
+      if (generation !== reloadGenerationRef.current) {
+        return;
+      }
       setConcepts(normalized);
+      setReloadError(null);
+      setIsStale(false);
+      hasSuccessfulLoadRef.current = true;
+    } catch (error) {
+      if (generation !== reloadGenerationRef.current) {
+        return;
+      }
+      setReloadError(reloadFailureMessage(error));
+      setIsStale(hasSuccessfulLoadRef.current);
     } finally {
-      setLoading(false);
+      if (generation === reloadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -52,15 +95,25 @@ export const useConcepts = () => {
     void reload();
   }, [reload]);
 
+  const canMutateConcepts = !loading && reloadError === null;
+
+  const assertCanMutateConcepts = useCallback(() => {
+    if (!canMutateConcepts) {
+      throw new Error(CONCEPT_STALE_MUTATION_ERROR);
+    }
+  }, [canMutateConcepts]);
+
   const create = useCallback(async (input: ConceptInput, options?: ConceptSaveOptions) => {
+    assertCanMutateConcepts();
     const normalized = applyDerivedStatusToInput(input, options);
     const created = await storage.createConcept(normalized);
     await reload();
     return created;
-  }, [reload]);
+  }, [assertCanMutateConcepts, reload]);
 
   const update = useCallback(
     async (id: string, updates: Partial<ConceptInput>, options?: ConceptSaveOptions) => {
+      assertCanMutateConcepts();
       const existing = concepts.find((concept) => concept.id === id);
       const normalized = existing
         ? applyDerivedStatusOnUpdate(existing, updates, options)
@@ -69,15 +122,16 @@ export const useConcepts = () => {
       await reload();
       return updated;
     },
-    [concepts, reload]
+    [assertCanMutateConcepts, concepts, reload]
   );
 
   const remove = useCallback(
     async (id: string) => {
+      assertCanMutateConcepts();
       await storage.deleteConcept(id);
       await reload();
     },
-    [reload]
+    [assertCanMutateConcepts, reload]
   );
 
   const saveWithMediaDraft = useCallback(
@@ -90,6 +144,7 @@ export const useConcepts = () => {
       },
       options?: ConceptSaveOptions
     ) => {
+      assertCanMutateConcepts();
       if (args.mode === "create") {
         const normalized = applyDerivedStatusToInput(args.input, options);
         const created = await storage.saveConceptWithMediaDraft({
@@ -116,15 +171,16 @@ export const useConcepts = () => {
       await reload();
       return updated;
     },
-    [concepts, reload]
+    [assertCanMutateConcepts, concepts, reload]
   );
 
   const toggleFavorite = useCallback(
     async (concept: Concept) => {
+      assertCanMutateConcepts();
       await storage.updateConcept(concept.id, { favorite: !concept.favorite });
       await reload();
     },
-    [reload]
+    [assertCanMutateConcepts, reload]
   );
 
   const debouncedSearchQuery = useDebouncedValue(query, 200);
@@ -158,6 +214,9 @@ export const useConcepts = () => {
     allDomainTags: tagGroups.domainTags,
     allResearchTags: tagGroups.researchTags,
     loading,
+    reloadError,
+    isStale,
+    canMutateConcepts,
     query,
     setQuery,
     selectedDomainTags,

@@ -45,6 +45,7 @@ type Props = {
   onCreateQuizFromContextualCard?: (conceptId: string, contextDefinitionId: string) => void;
   onRequestDelete: (concept: Concept) => void;
   deleting: boolean;
+  mutationDisabled?: boolean;
   /** App 側で concepts から一度だけ構築した index。dependents 表示に使う */
   prerequisiteIndex?: ConceptPrerequisiteIndex;
   /** App 側で一括構築した mastery map。personalized sequence 用 */
@@ -401,6 +402,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
   onCreateQuizFromContextualCard,
   onRequestDelete,
   deleting,
+  mutationDisabled = false,
   prerequisiteIndex,
   conceptMasteryMap,
   quizQuestionConceptIds,
@@ -484,6 +486,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               type="button"
               onClick={() => onEdit(concept)}
               className="detail-action-button"
+              disabled={mutationDisabled}
             >
               編集
             </button>
@@ -493,6 +496,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
               type="button"
               onClick={() => onToggleFavorite(concept)}
               className="detail-action-button"
+              disabled={mutationDisabled}
             >
               {concept.favorite ? "お気に入り解除" : "お気に入り"}
             </button>
@@ -510,7 +514,7 @@ export const ConceptDetail = forwardRef<HTMLDivElement, Props>(({
         <button
           type="button"
           onClick={() => onRequestDelete(concept)}
-          disabled={deleting}
+          disabled={deleting || mutationDisabled}
           className="detail-delete-button"
         >
           {deleting ? "削除中..." : "削除"}

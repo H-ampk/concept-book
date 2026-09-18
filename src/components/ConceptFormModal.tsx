@@ -43,6 +43,7 @@ type Props = {
   ) => Promise<Concept | undefined>;
   /** 関連概念の一括作成後に一覧を再読込 */
   reloadConcepts?: () => Promise<void>;
+  mutationDisabled?: boolean;
 };
 
 const joinCsv = (items: string[]): string => items.join(", ");
@@ -71,7 +72,8 @@ export const ConceptFormModal = ({
   conceptTitleIndex,
   onClose,
   onSubmit,
-  reloadConcepts
+  reloadConcepts,
+  mutationDisabled = false
 }: Props) => {
   const [form, setForm] = useState<ConceptInput>(createEmptyConceptInput());
   const [domainTagInput, setDomainTagInput] = useState("");
@@ -300,6 +302,11 @@ export const ConceptFormModal = ({
   };
 
   const handleAddBulkRelatedConcepts = async (titles: string[]): Promise<{ message: string }> => {
+    if (mutationDisabled) {
+      return {
+        message: "概念データを再読み込みしてから関連概念を追加してください。"
+      };
+    }
     if (titles.length === 0) {
       return { message: "追加する項目がありませんでした。" };
     }
@@ -414,7 +421,7 @@ export const ConceptFormModal = ({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (submitting) {
+    if (submitting || mutationDisabled) {
       return;
     }
     if (!form.title.trim()) {
@@ -629,7 +636,7 @@ export const ConceptFormModal = ({
             inputMyInterpretation={form.myInterpretation}
             inputTags={tagsState}
             onChange={(nextIds) => setForm((prev) => ({ ...prev, relatedIds: nextIds }))}
-            onBulkAddTitles={handleAddBulkRelatedConcepts}
+            onBulkAddTitles={mutationDisabled ? undefined : handleAddBulkRelatedConcepts}
           />
 
           <PrerequisiteConceptPicker
@@ -774,6 +781,15 @@ export const ConceptFormModal = ({
           お気に入りにする
         </label>
 
+        {mutationDisabled && (
+          <p
+            role="alert"
+            className="mt-3 rounded-md border border-amber-500/40 bg-amber-950/40 px-3 py-2 text-sm text-amber-100"
+          >
+            表示中の概念データが最新ではないため、再読み込みに成功するまで保存できません。
+          </p>
+        )}
+
         {error && <p className="mt-3 rounded-md border border-red-500/40 bg-red-950/50 px-3 py-2 text-sm text-red-100">{error}</p>}
 
         <footer className="mt-5 flex justify-end gap-2">
@@ -787,7 +803,7 @@ export const ConceptFormModal = ({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || mutationDisabled}
             className="action-button rounded-md px-3 py-2 text-sm disabled:opacity-70"
           >
             {submitting ? "保存中..." : "保存"}
