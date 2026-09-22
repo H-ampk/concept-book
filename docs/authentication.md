@@ -50,7 +50,7 @@ NG  client → ownerUserId = "abc" → server がそのまま信用
 OK  authenticated request → Supabase Auth JWT → auth.uid() → owner 判定
 ```
 
-実際の Private Sync テーブル / RLS は #70 / #71 / #82 で実装します。本 Issue では認証基盤と原則のみです。
+Private Sync のデータモデルは #70（`docs/private-sync.md`）です。テーブル / RLS / push / pull は #71 / #82 等で扱います。クライアントの `ownerUserId` を認可根拠にしない原則は変わりません。
 
 ## トークン
 
