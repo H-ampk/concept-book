@@ -30,6 +30,16 @@ export type BackupImportOptions = {
   preserveMediaReferences?: boolean;
 };
 
+/**
+ * 既存 Deck へ Question を追加するときに一緒に書く metadata。
+ * questionIds は含めない。membership は transaction 内の最新 Deck へ append する。
+ */
+export type QuizDeckAppendPatch = {
+  lastSyncedAt?: string;
+  generationFilters?: QuizDeck["generationFilters"];
+  generationSummary?: QuizDeck["generationSummary"];
+};
+
 // Security note for future sync backends:
 // - Keep this interface storage-agnostic so UI never talks directly to remote APIs.
 // - When adding cloud sync, enforce auth + transport encryption (HTTPS/TLS) at implementation level.
@@ -179,6 +189,15 @@ export type ConceptStorage = {
   saveQuizQuestionsAndDeck: (questions: QuizQuestion[], deck: QuizDeck) => Promise<void>;
   /** 新規 Question 保存と既存 Deck への membership 追加を同一 transaction で行う */
   saveQuizQuestionAndAppendToDeck: (question: QuizQuestion, deckId: string) => Promise<QuizDeck>;
+  /**
+   * 複数 Question の保存と、既存 Deck の最新 membership への append を同一 transaction で行う。
+   * 呼び出し側の Deck snapshot で questionIds を置き換えない。
+   */
+  saveQuizQuestionsAndAppendToDeck: (
+    questions: QuizQuestion[],
+    deckId: string,
+    patch?: QuizDeckAppendPatch
+  ) => Promise<QuizDeck>;
   deleteQuizQuestion: (id: string) => Promise<void>;
   deleteQuizQuestionsByConceptId: (conceptId: string) => Promise<void>;
 
@@ -186,7 +205,30 @@ export type ConceptStorage = {
   getQuizDecks: () => Promise<QuizDeck[]>;
   getQuizDeck: (id: string) => Promise<QuizDeck | undefined>;
   getQuizDecksByDeckKey: (deckKey: string) => Promise<QuizDeck[]>;
+  /**
+   * Deck 全体の置換。新規作成や、呼び出し側が完全な状態を所有する意図的な置換に使う。
+   * questionIds の追加・削除・並び替えには使わない。
+   */
   saveQuizDeck: (deck: QuizDeck) => Promise<void>;
+  /**
+   * タイトル・説明・タグ・公開設定を更新する。
+   * 既存 Deck では transaction 内の最新 questionIds と生成条件を維持する。
+   * 未保存の id のときは Deck を新規作成する。
+   */
+  saveQuizDeckMetadata: (deck: QuizDeck) => Promise<QuizDeck>;
+  /** transaction 内で最新 Deck を読み、未所属の questionIds を末尾へ追加する。 */
+  addQuestionsToDeck: (deckId: string, questionIds: string[]) => Promise<QuizDeck>;
+  /** transaction 内で最新 Deck を読み、指定 ID だけを外す。 */
+  removeQuestionsFromDeck: (deckId: string, questionIds: string[]) => Promise<QuizDeck>;
+  /**
+   * expectedQuestionIds が最新の questionIds と一致するときだけ並び替える。
+   * 一致しなければ QuizDeckMembershipConflictError。追加・削除はしない。
+   */
+  reorderQuizDeckQuestions: (
+    deckId: string,
+    expectedQuestionIds: string[],
+    nextQuestionIds: string[]
+  ) => Promise<QuizDeck>;
   deleteQuizDeck: (id: string) => Promise<void>;
   /** クイズ集と、他集に属さない問題・関連ログを削除する */
   deleteQuizDeckWithContents: (id: string) => Promise<{ deletedQuestionCount: number }>;

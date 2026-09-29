@@ -53,12 +53,20 @@ import {
   resolvePrerequisiteIdsForUpdate
 } from "../utils/conceptPrerequisites";
 import { applyBackupExportOptions } from "./backupExport";
+import {
+  appendQuestionIds,
+  planQuizDeckReorder,
+  questionIdSequencesEqual,
+  QuizDeckMembershipConflictError,
+  removeQuestionIds
+} from "./quizDeckQuestionIds";
 import type {
   BackupExportData,
   BackupExportOptions,
   BackupImportOptions,
   ConceptStorage,
-  ContextCardStorage
+  ContextCardStorage,
+  QuizDeckAppendPatch
 } from "./types";
 import { computeConceptSyncPlan } from "../utils/syncImportantTermsToConcepts";
 
@@ -809,6 +817,28 @@ const importQuizQuestionsIntoStore = async (
   return { imported, skipped };
 };
 
+const readQuizDeckFromStore = async (store: IDBObjectStore, deckId: string): Promise<QuizDeck> => {
+  const raw = (await requestToPromise(store.get(deckId))) as StoredQuizDeck | undefined;
+  if (!raw) {
+    throw new Error(`QuizDeck ${deckId} が見つかりません。`);
+  }
+  const deck = normalizeQuizDeck(raw);
+  if (!deck.id) {
+    throw new Error(`QuizDeck ${deckId} が見つかりません。`);
+  }
+  return deck;
+};
+
+const writeQuizDeckToStore = async (store: IDBObjectStore, deck: QuizDeck): Promise<QuizDeck> => {
+  const normalized = normalizeQuizDeck(deck);
+  await requestToPromise(store.put(normalized));
+  return normalized;
+};
+
+/**
+ * backup merge の whole-object LWW（#189）はここだけ。
+ * 通常利用の questionIds 更新は mutation API（#202）を使い、この import policy には混ぜない。
+ */
 const importQuizDecksIntoStore = async (
   store: IDBObjectStore,
   decks: QuizDeck[],
@@ -1813,6 +1843,112 @@ export class IndexedDBStorage implements ConceptStorage {
     });
   }
 
+  async saveQuizDeckMetadata(deck: QuizDeck): Promise<QuizDeck> {
+    const deckId = deck.id?.trim() ?? "";
+    if (!deckId) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    const titleTrim = deck.title?.trim() ?? "";
+    if (!titleTrim) {
+      throw new Error("QuizDeck の title が空です。");
+    }
+    return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_DECKS);
+      const raw = (await requestToPromise(store.get(deckId))) as StoredQuizDeck | undefined;
+      if (!raw) {
+        return writeQuizDeckToStore(store, { ...deck, id: deckId, title: titleTrim, updatedAt: nowIso() });
+      }
+      const current = normalizeQuizDeck(raw);
+      return writeQuizDeckToStore(store, {
+        ...current,
+        title: titleTrim,
+        description: deck.description?.trim() || undefined,
+        deckKey: deck.deckKey?.trim() || undefined,
+        domainTags: deck.domainTags,
+        visibility: deck.visibility,
+        questionIds: current.questionIds,
+        createdAt: current.createdAt,
+        schemaVersion: current.schemaVersion,
+        sourceType: current.sourceType,
+        sourceDomainTag: current.sourceDomainTag,
+        generationSummary: current.generationSummary,
+        generationFilters: current.generationFilters,
+        lastSyncedAt: current.lastSyncedAt,
+        updatedAt: nowIso()
+      });
+    });
+  }
+
+  async addQuestionsToDeck(deckId: string, questionIds: string[]): Promise<QuizDeck> {
+    const id = deckId.trim();
+    if (!id) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_DECKS);
+      const current = await readQuizDeckFromStore(store, id);
+      const nextIds = appendQuestionIds(current.questionIds, questionIds);
+      if (questionIdSequencesEqual(current.questionIds, nextIds)) {
+        return current;
+      }
+      return writeQuizDeckToStore(store, {
+        ...current,
+        questionIds: nextIds,
+        updatedAt: nowIso()
+      });
+    });
+  }
+
+  async removeQuestionsFromDeck(deckId: string, questionIds: string[]): Promise<QuizDeck> {
+    const id = deckId.trim();
+    if (!id) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_DECKS);
+      const current = await readQuizDeckFromStore(store, id);
+      const nextIds = removeQuestionIds(current.questionIds, questionIds);
+      if (questionIdSequencesEqual(current.questionIds, nextIds)) {
+        return current;
+      }
+      return writeQuizDeckToStore(store, {
+        ...current,
+        questionIds: nextIds,
+        updatedAt: nowIso()
+      });
+    });
+  }
+
+  async reorderQuizDeckQuestions(
+    deckId: string,
+    expectedQuestionIds: string[],
+    nextQuestionIds: string[]
+  ): Promise<QuizDeck> {
+    const id = deckId.trim();
+    if (!id) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    return withTransaction([STORE_QUIZ_DECKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_QUIZ_DECKS);
+      const current = await readQuizDeckFromStore(store, id);
+      const plan = planQuizDeckReorder(current.questionIds, expectedQuestionIds, nextQuestionIds);
+      if (!plan.ok) {
+        if (plan.reason === "conflict") {
+          throw new QuizDeckMembershipConflictError();
+        }
+        throw new Error("並び替えでは問題の追加・削除はできません。");
+      }
+      if (questionIdSequencesEqual(current.questionIds, plan.questionIds)) {
+        return current;
+      }
+      return writeQuizDeckToStore(store, {
+        ...current,
+        questionIds: plan.questionIds,
+        updatedAt: nowIso()
+      });
+    });
+  }
+
   async saveQuizQuestionsAndDeck(questions: QuizQuestion[], deck: QuizDeck): Promise<void> {
     if (!deck.id?.trim()) {
       throw new Error("QuizDeck の id が空です。");
@@ -1868,10 +2004,59 @@ export class IndexedDBStorage implements ConceptStorage {
         const currentDeck = normalizeQuizDeck(rawDeck);
         const updatedDeck = normalizeQuizDeck({
           ...currentDeck,
-          questionIds: [...currentDeck.questionIds, normalizedQuestion.id],
+          questionIds: appendQuestionIds(currentDeck.questionIds, [normalizedQuestion.id]),
           updatedAt: nowIso()
         });
         await requestToPromise(questionStore.put(normalizedQuestion));
+        await requestToPromise(deckStore.put(updatedDeck));
+        return updatedDeck;
+      }
+    );
+  }
+
+  async saveQuizQuestionsAndAppendToDeck(
+    questions: QuizQuestion[],
+    deckId: string,
+    patch: QuizDeckAppendPatch = {}
+  ): Promise<QuizDeck> {
+    const id = deckId.trim();
+    if (!id) {
+      throw new Error("QuizDeck の id が空です。");
+    }
+    if (questions.length === 0) {
+      throw new Error("追加する Question がありません。");
+    }
+    const normalizedQuestions = questions.map((question) => {
+      if (!question.id?.trim()) {
+        throw new Error("QuizQuestion の id が空です。");
+      }
+      return normalizeQuizQuestion(question);
+    });
+    return withTransaction(
+      [STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS],
+      "readwrite",
+      async (getStore) => {
+        const questionStore = getStore(STORE_QUIZ_QUESTIONS);
+        const deckStore = getStore(STORE_QUIZ_DECKS);
+        const currentDeck = await readQuizDeckFromStore(deckStore, id);
+        for (const question of normalizedQuestions) {
+          await requestToPromise(questionStore.put(question));
+        }
+        const nextIds = appendQuestionIds(
+          currentDeck.questionIds,
+          normalizedQuestions.map((question) => question.id)
+        );
+        const summary = patch.generationSummary ?? currentDeck.generationSummary;
+        const updatedDeck = normalizeQuizDeck({
+          ...currentDeck,
+          questionIds: nextIds,
+          updatedAt: nowIso(),
+          lastSyncedAt: patch.lastSyncedAt ?? currentDeck.lastSyncedAt,
+          generationFilters: patch.generationFilters ?? currentDeck.generationFilters,
+          generationSummary: summary
+            ? { ...summary, generatedQuestionCount: nextIds.length }
+            : undefined
+        });
         await requestToPromise(deckStore.put(updatedDeck));
         return updatedDeck;
       }

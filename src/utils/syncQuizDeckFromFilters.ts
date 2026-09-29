@@ -154,7 +154,12 @@ export function previewQuizDeckSync(input: {
   };
 }
 
-/** 未反映概念から問題を生成し、クイズ集の questionIds を更新する */
+/**
+ * 未反映概念から問題を生成する。
+ * updatedDeck.questionIds は呼び出し時点の snapshot に新規 ID を足したプレビューであり、
+ * 永続化時にこの配列で Deck 全体を put してはいけない。
+ * 保存は saveQuizQuestionsAndAppendToDeck が transaction 内の最新 membership へ append する。
+ */
 export function syncQuizDeckFromFilters(input: {
   deck: QuizDeck;
   allConcepts: Concept[];

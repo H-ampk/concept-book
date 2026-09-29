@@ -5,15 +5,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuizDeck } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION } from "../types/quiz";
 
-const { saveQuizDeck, getQuizDeck, getAllContextCards } = vi.hoisted(() => ({
-  saveQuizDeck: vi.fn(async () => undefined),
+const { saveQuizDeckMetadata, getQuizDeck, getAllContextCards } = vi.hoisted(() => ({
+  saveQuizDeckMetadata: vi.fn(async (deck: unknown) => deck),
   getQuizDeck: vi.fn(async () => undefined),
   getAllContextCards: vi.fn(async () => [])
 }));
 
 vi.mock("../storage", () => {
   const storage = {
-    saveQuizDeck,
+    saveQuizDeckMetadata,
     getQuizDeck,
     getAllContextCards,
     saveQuizQuestion: vi.fn(async () => undefined),
@@ -57,7 +57,7 @@ const assertDialogPortaledToBody = (dialog: HTMLElement) => {
 
 describe("quiz modal stacking", () => {
   beforeEach(() => {
-    saveQuizDeck.mockClear();
+    saveQuizDeckMetadata.mockClear();
     getQuizDeck.mockClear();
     getAllContextCards.mockClear();
     vi.stubGlobal("alert", vi.fn());
@@ -180,7 +180,7 @@ describe("quiz modal stacking", () => {
     const deckDialog = screen.getByRole("dialog", { name: "新規クイズ集" });
     assertDialogPortaledToBody(deckDialog);
     assertDialogPortaledToBody(questionDialog);
-    expect(saveQuizDeck).toHaveBeenCalled();
+    expect(saveQuizDeckMetadata).toHaveBeenCalled();
     expect(
       deckDialog.compareDocumentPosition(questionDialog) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();

@@ -85,8 +85,12 @@ export const QuizDeckSyncModal = ({ open, deck, concepts, allQuestions, onClose,
         ...q,
         choices: applyAutoLinkedConceptIdsToChoices(q.choices, concepts)
       }));
-      await storage.saveQuizQuestionsAndDeck(questions, result.updatedDeck);
-      setLastResult(result);
+      const updatedDeck = await storage.saveQuizQuestionsAndAppendToDeck(questions, deck.id, {
+        lastSyncedAt: result.updatedDeck.lastSyncedAt,
+        generationFilters: result.updatedDeck.generationFilters,
+        generationSummary: result.updatedDeck.generationSummary
+      });
+      setLastResult({ ...result, updatedDeck });
       onSynced();
     } catch {
       setError("クイズ集の更新に失敗しました。");

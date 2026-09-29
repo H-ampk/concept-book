@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getStorage } from "../storage";
+import { isQuizDeckMembershipConflict, questionIdSequencesEqual } from "../storage/quizDeckQuestionIds";
 import type { Concept } from "../types/concept";
 import type { QuizDeck, QuizQuestion, QuizVisibility } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION } from "../types/quiz";
@@ -113,7 +114,7 @@ export const QuizDeckFormModal = ({
 
   const deckIdSet = useMemo(() => new Set(draft.questionIds), [draft.questionIds]);
 
-  const persistDeckToStorage = useCallback(
+  const persistDeckMetadata = useCallback(
     async (next: QuizDeck): Promise<QuizDeck | null> => {
       const title = next.title.trim();
       if (!title) {
@@ -146,11 +147,11 @@ export const QuizDeckFormModal = ({
         delete payload.domainTags;
       }
       try {
-        await storage.saveQuizDeck(payload);
-        setDraft(payload);
-        setTagsInput(payload.domainTags?.join(", ") ?? "");
+        const saved = await storage.saveQuizDeckMetadata(payload);
+        setDraft(saved);
+        setTagsInput(saved.domainTags?.join(", ") ?? "");
         await onReload();
-        return payload;
+        return saved;
       } catch (e) {
         console.error(e);
         window.alert("クイズ集の保存に失敗しました。");
@@ -160,10 +161,20 @@ export const QuizDeckFormModal = ({
     [onReload, tagsInput]
   );
 
+  const restoreDeckFromStorage = useCallback(async (deckId: string): Promise<boolean> => {
+    const restored = await storage.getQuizDeck(deckId);
+    if (!restored) {
+      return false;
+    }
+    setDraft({ ...restored, questionIds: [...restored.questionIds] });
+    setTagsInput(restored.domainTags?.join(", ") ?? "");
+    return true;
+  }, []);
+
   const handleSaveMeta = async () => {
     setSaving(true);
     try {
-      await persistDeckToStorage({ ...draft, updatedAt: nowIso() });
+      await persistDeckMetadata(draft);
     } finally {
       setSaving(false);
     }
@@ -172,7 +183,7 @@ export const QuizDeckFormModal = ({
   const handleSaveAndClose = async () => {
     setSaving(true);
     try {
-      const saved = await persistDeckToStorage({ ...draft, updatedAt: nowIso() });
+      const saved = await persistDeckMetadata(draft);
       if (saved) {
         onClose();
       }
@@ -188,7 +199,7 @@ export const QuizDeckFormModal = ({
     }
     setSaving(true);
     try {
-      const saved = await persistDeckToStorage(draft);
+      const saved = await persistDeckMetadata(draft);
       if (!saved) {
         return;
       }
@@ -213,35 +224,62 @@ export const QuizDeckFormModal = ({
   };
 
   const moveQuestion = async (index: number, dir: -1 | 1) => {
+    const expectedQuestionIds = [...draft.questionIds];
     const j = index + dir;
-    if (j < 0 || j >= draft.questionIds.length) {
+    if (j < 0 || j >= expectedQuestionIds.length) {
       return;
     }
-    const nextIds = [...draft.questionIds];
+    const nextIds = [...expectedQuestionIds];
     [nextIds[index], nextIds[j]] = [nextIds[j], nextIds[index]];
-    const next: QuizDeck = { ...draft, questionIds: nextIds, updatedAt: nowIso() };
-    setDraft(next);
-    const saved = await persistDeckToStorage(next);
-    if (!saved) {
-      const restored = await storage.getQuizDeck(draft.id);
-      if (restored) {
-        setDraft({ ...restored, questionIds: [...restored.questionIds] });
-        setTagsInput(restored.domainTags?.join(", ") ?? "");
+    try {
+      const meta = await persistDeckMetadata(draft);
+      if (!meta) {
+        return;
       }
+      if (!questionIdSequencesEqual(meta.questionIds, expectedQuestionIds)) {
+        window.alert("別の更新と問題の並びが競合しました。最新のクイズ集を読み込み直します。");
+        return;
+      }
+      setDraft((current) => ({ ...current, questionIds: nextIds }));
+      const saved = await storage.reorderQuizDeckQuestions(draft.id, expectedQuestionIds, nextIds);
+      setDraft((current) => ({
+        ...current,
+        questionIds: [...saved.questionIds],
+        updatedAt: saved.updatedAt
+      }));
+      await onReload();
+    } catch (error) {
+      if (isQuizDeckMembershipConflict(error)) {
+        window.alert("別の更新と問題の並びが競合しました。最新のクイズ集を読み込み直します。");
+      } else {
+        console.error(error);
+        window.alert("クイズ集の保存に失敗しました。");
+      }
+      await restoreDeckFromStorage(draft.id);
     }
   };
 
   const removeFromDeck = async (qid: string) => {
-    const nextIds = draft.questionIds.filter((id) => id !== qid);
-    const next: QuizDeck = { ...draft, questionIds: nextIds, updatedAt: nowIso() };
-    setDraft(next);
-    const saved = await persistDeckToStorage(next);
-    if (!saved) {
-      const restored = await storage.getQuizDeck(draft.id);
-      if (restored) {
-        setDraft({ ...restored, questionIds: [...restored.questionIds] });
-        setTagsInput(restored.domainTags?.join(", ") ?? "");
+    try {
+      const meta = await persistDeckMetadata(draft);
+      if (!meta) {
+        return;
       }
+      setDraft((current) => ({
+        ...current,
+        questionIds: current.questionIds.filter((id) => id !== qid)
+      }));
+      const saved = await storage.removeQuestionsFromDeck(draft.id, [qid]);
+      setDraft((current) => ({
+        ...current,
+        questionIds: [...saved.questionIds],
+        updatedAt: saved.updatedAt
+      }));
+      await onReload();
+    } catch (error) {
+      console.error(error);
+      window.alert("クイズ集の保存に失敗しました。");
+      await restoreDeckFromStorage(draft.id);
     }
   };
 
@@ -255,14 +293,22 @@ export const QuizDeckFormModal = ({
     }
     setSaving(true);
     try {
-      const first = await persistDeckToStorage(draft);
+      const first = await persistDeckMetadata(draft);
       if (!first) {
         return;
       }
-      const latest = (await storage.getQuizDeck(draft.id)) ?? first;
-      const nextIds = dedupeQuestionIds([...latest.questionIds, q.id]);
-      await persistDeckToStorage({ ...latest, questionIds: nextIds, updatedAt: nowIso() });
+      const saved = await storage.addQuestionsToDeck(first.id, [q.id]);
+      setDraft((current) => ({
+        ...current,
+        questionIds: [...saved.questionIds],
+        updatedAt: saved.updatedAt
+      }));
+      await onReload();
       setPickerOpen(false);
+    } catch (error) {
+      console.error(error);
+      window.alert("クイズ集の保存に失敗しました。");
+      await restoreDeckFromStorage(draft.id);
     } finally {
       setSaving(false);
     }
