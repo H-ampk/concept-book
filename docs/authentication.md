@@ -50,7 +50,7 @@ NG  client → ownerUserId = "abc" → server がそのまま信用
 OK  authenticated request → Supabase Auth JWT → auth.uid() → owner 判定
 ```
 
-Private Sync のデータモデルは #70（`docs/private-sync.md`）です。テーブル / RLS / push / pull は #71 / #82 等で扱います。クライアントの `ownerUserId` を認可根拠にしない原則は変わりません。
+Private Sync のデータモデルは #70、サーバー側認可の契約は #82 です。どちらも `docs/private-sync.md` にあります。データ用のテーブル、RLS、serverless function はまだありません。実テーブルを publishable key で開くのは、その契約の security test が Provider 上で通ってからです。クライアントの `ownerUserId` を認可根拠にしない原則は変わりません。
 
 ## トークン
 

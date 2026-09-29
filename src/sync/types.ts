@@ -46,8 +46,9 @@ export type SyncEntityType = (typeof SYNC_ENTITY_TYPES)[number];
  * Private Sync メタデータ。
  *
  * ownerUserId はクライアントが保持する所有者の記録であり、
- * クラウド側の認可根拠にしてはならない。将来のサーバーは
- * authenticated session → auth.uid() で owner を判定する（Issue #69 / #82）。
+ * クラウド側の認可根拠にしてはならない。認可契約は docs/private-sync.md。
+ * サーバーは authenticated session の auth.uid() と行の owner の一致を
+ * 強制する（Issue #82）。クライアントで currentUser.id と比較しても認可にはならない。
  *
  * metadata.updatedAt は Domain の更新時刻を同期レコードへ写したもので、
  * クラウド操作時刻（将来の syncedAt 等）とは別概念。
