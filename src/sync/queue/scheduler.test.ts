@@ -93,6 +93,10 @@ describe("sync queue scheduler", () => {
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async () => {
           calls += 1;
           return calls === 1 ? failure("network") : { ok: true };
@@ -133,6 +137,10 @@ describe("sync queue scheduler", () => {
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async () => {
           calls += 1;
           if (calls === 1) return failure("network");
@@ -194,6 +202,10 @@ describe("sync queue scheduler", () => {
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async () => {
           calls += 1;
           return { ok: true };
@@ -212,7 +224,11 @@ describe("sync queue scheduler", () => {
     let calls = 0;
     const repo = createSyncQueueRepository();
     const cloud: PrivateSyncCloudPort = {
-      pushCurrentUserChanges: async () => {
+      pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
+        pushCurrentUserChanges: async () => {
         calls += 1;
         return calls === 1 ? failure("network") : { ok: true };
       }
@@ -264,6 +280,10 @@ describe("sync queue scheduler", () => {
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async (changes) => {
           seen.push(...changes.map((change) => change.metadata.ownerUserId));
           return { ok: true };
@@ -314,6 +334,10 @@ describe("sync queue scheduler", () => {
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async () => {
           calls += 1;
           return { ok: true };
@@ -363,7 +387,11 @@ describe("sync queue scheduler", () => {
       isOnline: () => true,
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
-      cloud: { pushCurrentUserChanges: async () => ({ ok: true }) }
+      cloud: { pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
+        pushCurrentUserChanges: async () => ({ ok: true }) }
     });
     await scheduler.start();
     expect(timers.setCount()).toBe(1);
@@ -387,6 +415,10 @@ describe("sync queue scheduler", () => {
       clearTimer: timers.clearTimer,
       subscribeOnline: () => () => undefined,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: () => {
           calls += 1;
           return new Promise((resolve) => {
@@ -430,6 +462,10 @@ describe("sync queue scheduler", () => {
         };
       },
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async () => {
           calls += 1;
           return failure("network");
@@ -471,6 +507,10 @@ describe("sync queue scheduler", () => {
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
       cloud: {
+        pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
         pushCurrentUserChanges: async () => {
           calls += 1;
           return { ok: true };
@@ -506,7 +546,11 @@ describe("sync queue scheduler", () => {
       isOnline: () => true,
       setTimer: timers.setTimer,
       clearTimer: timers.clearTimer,
-      cloud: { pushCurrentUserChanges: async () => ({ ok: true }) }
+      cloud: { pullCurrentUserChanges: async () => ({
+          ok: true,
+          page: { records: [], nextCursor: null, hasMore: false }
+        }),
+        pushCurrentUserChanges: async () => ({ ok: true }) }
     });
     await scheduler.start();
     expect(timers.armed()?.delay).toBe(MAX_TIMER_DELAY_MS);

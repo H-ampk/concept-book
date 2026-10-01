@@ -44,7 +44,11 @@ const failure = (kind: SyncPushFailure["kind"], message = kind): PushCurrentUser
 });
 
 const port = (impl: PrivateSyncCloudPort["pushCurrentUserChanges"]): PrivateSyncCloudPort => ({
-  pushCurrentUserChanges: impl
+  pushCurrentUserChanges: impl,
+  pullCurrentUserChanges: async () => ({
+    ok: false,
+    failure: { kind: "unknown", code: "pull_not_used", message: "pull is not used by the queue processor" }
+  })
 });
 
 describe("sync queue repository", () => {

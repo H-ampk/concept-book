@@ -71,7 +71,7 @@ import type {
 import { computeConceptSyncPlan } from "../utils/syncImportantTermsToConcepts";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
@@ -83,10 +83,12 @@ const STORE_LEARNING_MATERIALS = "learningMaterials";
 const STORE_LEARNING_MATERIAL_BLOBS = "learningMaterialBlobs";
 const STORE_CONCEPT_SOURCE_ANCHORS = "conceptSourceAnchors";
 const STORE_SYNC_QUEUE = "syncQueue";
+const STORE_SYNC_STATE = "syncState";
 
 export const CONCEPT_BOOK_DB_NAME = DB_NAME;
 export const CONCEPT_BOOK_DB_VERSION = DB_VERSION;
 export const SYNC_QUEUE_STORE_NAME = STORE_SYNC_QUEUE;
+export const SYNC_STATE_STORE_NAME = STORE_SYNC_STATE;
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -534,9 +536,12 @@ const openDb = (): Promise<IDBDatabase> =>
         anchorStore.createIndex("materialId", "materialId", { unique: false });
         anchorStore.createIndex("conceptId", "conceptId", { unique: false });
       }
-      if (oldVersion < 10 && !db.objectStoreNames.contains(STORE_SYNC_QUEUE)) {
+      if (!db.objectStoreNames.contains(STORE_SYNC_QUEUE)) {
         const queueStore = db.createObjectStore(STORE_SYNC_QUEUE, { keyPath: "id" });
         queueStore.createIndex("ownerUserId", "ownerUserId", { unique: false });
+      }
+      if (oldVersion < 11 && !db.objectStoreNames.contains(STORE_SYNC_STATE)) {
+        db.createObjectStore(STORE_SYNC_STATE, { keyPath: "ownerUserId" });
       }
 
       // v7: relatedIds を無向関係として一度だけ修復する

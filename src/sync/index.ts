@@ -73,7 +73,12 @@ export {
 } from "./queue/repository";
 export type {
   PrivateSyncCloudPort,
+  PullCurrentUserPage,
+  PullCurrentUserResult,
   PushCurrentUserResult,
+  SyncCloudFailureKind,
+  SyncCursor,
+  SyncPullFailure,
   SyncPushFailure,
   SyncPushFailureKind,
   SyncQueueItem,
@@ -81,3 +86,19 @@ export type {
   SyncQueueStatus,
   SyncQueueSummary
 } from "./queue/types";
+
+export { PrivateSyncService, type PrivateSyncServiceDeps } from "./service/SyncService";
+export { createSyncStateRepository } from "./service/state";
+export type {
+  LocalPrivateSyncPort,
+  PullDeferredNote,
+  PullDeferReason,
+  PullRejectedNote,
+  PullRunReport,
+  PullRunResult,
+  SyncOwnerState,
+  SyncRunResult,
+  SyncRuntimeState,
+  SyncStateRepository,
+  SyncStatus
+} from "./service/types";

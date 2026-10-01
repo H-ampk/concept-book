@@ -41,7 +41,7 @@ Private Sync のデータを置く backend は、まだリポジトリにも Git
 
 - SQL / migration / RLS / Storage policy はない
 - serverless function / 自前 API はない
-- Cloud Adapter の push / pull はない（#71）
+- 実 Supabase Cloud Adapter の push / pull はない（#71）。ポートと Sync Service の pull orchestration はある。クライアントの owner 比較は認可ではない（#82）
 - デプロイは静的 SPA（GitHub Pages）と、任意の Supabase Auth 設定だけ
 
 そのため、この節は **サーバーが後から満たす契約** です。ブラウザ上の `ownerUserId === currentUser.id` は認可ではありません。その比較を足して「サーバー側認可を実装した」とは扱いません。実テーブルを publishable key で読み書きできるようにするのは、下の security test が Provider 上で通ってからです。追跡は #82 のままです。

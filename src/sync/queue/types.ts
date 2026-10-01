@@ -34,7 +34,11 @@ export type SyncQueueSummary = {
   total: number;
 };
 
-export type SyncPushFailureKind =
+/**
+ * Cloud Port の構造化失敗種別。push / pull で共有する。
+ * 未認証は空の成功ではなく auth（または permission）failure。
+ */
+export type SyncCloudFailureKind =
   | "network"
   | "timeout"
   | "rateLimit"
@@ -46,9 +50,17 @@ export type SyncPushFailureKind =
   | "schema"
   | "unknown";
 
+export type SyncPushFailureKind = SyncCloudFailureKind;
+
 /** Cloud Port が Processor に返す構造化失敗。raw exception の文字列解析には使わない。 */
 export type SyncPushFailure = {
   kind: SyncPushFailureKind;
+  code: string;
+  message: string;
+};
+
+export type SyncPullFailure = {
+  kind: SyncCloudFailureKind;
   code: string;
   message: string;
 };
@@ -58,9 +70,28 @@ export type PushCurrentUserResult =
   | { ok: false; failure: SyncPushFailure };
 
 /**
- * #71 の push 接続点。identity は Adapter 側の session から取る。
- * userId を引数にしない。pull と実 backend は #71 / #82。
+ * Provider が決める差分同期トークン。ISO 時刻とは限らない。
+ * null は初回 pull（cursor 未保存）。
+ */
+export type SyncCursor = string;
+
+export type PullCurrentUserPage = {
+  /** Cloud 応答は検証前の unknown。PrivateSyncRecord として信用しない。 */
+  records: unknown[];
+  nextCursor: SyncCursor | null;
+  hasMore: boolean;
+};
+
+export type PullCurrentUserResult =
+  | { ok: true; page: PullCurrentUserPage }
+  | { ok: false; failure: SyncPullFailure };
+
+/**
+ * 認証済み session の現在ユーザーだけを対象にする。
+ * userId 引数で対象アカウントを選ばせない（#82）。
+ * identity は Adapter が session から取る。実 Supabase table は #82 まで作らない。
  */
 export type PrivateSyncCloudPort = {
   pushCurrentUserChanges(changes: PrivateSyncRecord[]): Promise<PushCurrentUserResult>;
+  pullCurrentUserChanges(cursor: SyncCursor | null): Promise<PullCurrentUserResult>;
 };
