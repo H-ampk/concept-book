@@ -71,7 +71,7 @@ import type {
 import { computeConceptSyncPlan } from "../utils/syncImportantTermsToConcepts";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
@@ -82,6 +82,11 @@ const STORE_RESEARCH_REPORTS = "researchReports";
 const STORE_LEARNING_MATERIALS = "learningMaterials";
 const STORE_LEARNING_MATERIAL_BLOBS = "learningMaterialBlobs";
 const STORE_CONCEPT_SOURCE_ANCHORS = "conceptSourceAnchors";
+const STORE_SYNC_QUEUE = "syncQueue";
+
+export const CONCEPT_BOOK_DB_NAME = DB_NAME;
+export const CONCEPT_BOOK_DB_VERSION = DB_VERSION;
+export const SYNC_QUEUE_STORE_NAME = STORE_SYNC_QUEUE;
 
 const createConceptId = (): string =>
   `concept_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -465,6 +470,9 @@ const deleteQuizAttemptLogsByDeckIdInStore = async (
   );
 };
 
+export const openConceptBookDatabase = (): Promise<IDBDatabase> =>
+  openDb();
+
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -525,6 +533,10 @@ const openDb = (): Promise<IDBDatabase> =>
         const anchorStore = db.createObjectStore(STORE_CONCEPT_SOURCE_ANCHORS, { keyPath: "id" });
         anchorStore.createIndex("materialId", "materialId", { unique: false });
         anchorStore.createIndex("conceptId", "conceptId", { unique: false });
+      }
+      if (oldVersion < 10 && !db.objectStoreNames.contains(STORE_SYNC_QUEUE)) {
+        const queueStore = db.createObjectStore(STORE_SYNC_QUEUE, { keyPath: "id" });
+        queueStore.createIndex("ownerUserId", "ownerUserId", { unique: false });
       }
 
       // v7: relatedIds を無向関係として一度だけ修復する

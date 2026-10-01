@@ -52,3 +52,31 @@ export {
   isPrefixedEntityId,
   type EntityIdPrefix
 } from "./ids";
+
+export {
+  SYNC_PROCESSING_LEASE_MS,
+  SYNC_QUEUE_BATCH_SIZE,
+  SYNC_RETRY_MAX_DELAY_MS,
+  computeBackoffDelayMs,
+  computeNextAttemptAt,
+  isProcessingLeaseStale
+} from "./queue/backoff";
+export { queueStatusForFailure, sanitizeSyncErrorMessage } from "./queue/failure";
+export { createSyncQueueIntegration } from "./queue/integration";
+export { SyncQueueProcessor } from "./queue/processor";
+export {
+  SyncQueueEnqueueError,
+  createSyncQueueRepository,
+  type EnqueueSyncQueueInput,
+  type SyncQueueRepository
+} from "./queue/repository";
+export type {
+  PrivateSyncCloudPort,
+  PushCurrentUserResult,
+  SyncPushFailure,
+  SyncPushFailureKind,
+  SyncQueueItem,
+  SyncQueueOperation,
+  SyncQueueStatus,
+  SyncQueueSummary
+} from "./queue/types";
