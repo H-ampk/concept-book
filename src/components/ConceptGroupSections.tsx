@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Concept } from "../types/concept";
 import type { ConceptMastery } from "../utils/mastery/types";
+import { ConceptEmptyState } from "./ConceptEmptyState";
 import { ConceptList } from "./ConceptList";
 
 export type ListViewMode = "all" | "domain" | "research";
@@ -21,6 +22,10 @@ type Props = {
   onSelect: (id: string) => void;
   cardRefs: React.RefObject<Map<string, HTMLElement>>;
   searchQuery?: string;
+  hasAnyConcepts: boolean;
+  onCreateConcept: () => void;
+  onOpenGuide: () => void;
+  createDisabled?: boolean;
 };
 
 export const ConceptGroupSections = ({
@@ -32,7 +37,11 @@ export const ConceptGroupSections = ({
   conceptMasteryMap,
   onSelect,
   cardRefs,
-  searchQuery
+  searchQuery,
+  hasAnyConcepts,
+  onCreateConcept,
+  onOpenGuide,
+  createDisabled
 }: Props) => {
   const initialOpenState = useMemo(
     () =>
@@ -58,6 +67,18 @@ export const ConceptGroupSections = ({
     setOpenMap((prev) => ({ ...prev, [key]: !(prev[key] ?? false) }));
   };
 
+  const displayedCount = sections.reduce((count, section) => count + section.concepts.length, 0);
+  if (displayedCount === 0) {
+    return (
+      <ConceptEmptyState
+        variant={hasAnyConcepts ? "filtered" : "none"}
+        onCreateConcept={onCreateConcept}
+        onOpenGuide={onOpenGuide}
+        createDisabled={createDisabled}
+      />
+    );
+  }
+
   if (mode === "all") {
     return (
       <ConceptList
@@ -71,12 +92,6 @@ export const ConceptGroupSections = ({
         listLayout="full"
         searchQuery={searchQuery}
       />
-    );
-  }
-
-  if (sections.length === 0) {
-    return (
-      <p className="concept-index-empty">条件に一致する概念がありません。</p>
     );
   }
 

@@ -14,6 +14,7 @@ import {
   type ConceptGroupSection,
   type ListViewMode
 } from "../components/ConceptGroupSections";
+import { GettingStartedGuidePage } from "../components/GettingStartedGuidePage";
 import { SettingsPage } from "../components/SettingsPage";
 import { useConcepts } from "../features/concepts/useConcepts";
 import { getStorage } from "../storage";
@@ -62,7 +63,7 @@ import { ConceptListPageLayout } from "./ConceptListPageLayout";
 import { ConceptListWorkspaceLayout } from "./ConceptListWorkspaceLayout";
 import { GraphWorkspaceLayout } from "./GraphWorkspaceLayout";
 
-type Screen = "concepts" | "contexts" | "settings" | LabRoute;
+type Screen = "concepts" | "contexts" | "guide" | "settings" | LabRoute;
 type ConceptMainTab = "list" | "graph" | "tree";
 
 const statusLabelMap: Record<ConceptStatus, string> = {
@@ -743,6 +744,10 @@ export const App = () => {
             onSelect={handleSelect}
             cardRefs={cardRefs}
             searchQuery={debouncedSearchQuery}
+            hasAnyConcepts={concepts.length > 0}
+            onCreateConcept={openCreate}
+            onOpenGuide={() => setScreen("guide")}
+            createDisabled={!canMutateConcepts}
           />
           {masteryFilteredConcepts.length > listDisplayLimit && (
             <div className="mt-3 flex flex-col items-center gap-2 px-1">
@@ -840,6 +845,17 @@ export const App = () => {
             >
               設定
             </button>
+            <button
+              className={`header-nav-button header-nav-button--compact${
+                screen === "guide" ? " header-nav-button--active" : ""
+              }`}
+              onClick={() => setScreen("guide")}
+              type="button"
+              aria-label="ConceptBook の使い方"
+              title="ConceptBook の使い方"
+            >
+              ?
+            </button>
           </nav>
         </div>
       </header>
@@ -858,7 +874,24 @@ export const App = () => {
                 : "relative z-10 mx-auto w-full min-w-0 max-w-7xl px-4 py-4"
         }
       >
-        {screen === "settings" ? (
+        {screen === "guide" ? (
+          <GettingStartedGuidePage
+            onCreateConcept={openCreate}
+            onOpenConceptList={() => {
+              setScreen("concepts");
+              setConceptMainTab("list");
+            }}
+            onOpenQuizBuilder={() => setScreen("quiz-builder")}
+            onOpenQuizPlay={() => setScreen("quiz-play")}
+            onOpenLearningLogs={() => setScreen("learning-logs")}
+            onOpenDataLab={() => setScreen("data-lab")}
+            onOpenSkillTree={() => {
+              setScreen("concepts");
+              setConceptMainTab("tree");
+            }}
+            onOpenResearchReport={() => setScreen("research-report")}
+          />
+        ) : screen === "settings" ? (
           <SettingsPage
             onImported={async () => {
               await reload();

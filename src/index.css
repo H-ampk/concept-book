@@ -384,6 +384,12 @@ body {
   transform: translateY(0);
 }
 
+.header-nav-button--compact {
+  min-width: 2.25rem;
+  padding-inline: 0.55rem;
+  text-align: center;
+}
+
 .header-nav-button-group {
   display: flex;
   flex-direction: row;
