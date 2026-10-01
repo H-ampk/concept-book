@@ -33,18 +33,35 @@ deviceId もアクセス許可の認証情報ではありません。
 
 認証（誰であるか）と認可（そのレコードを読めるか）は別です。ログイン済みであるだけでは、任意の Private Sync レコードへアクセスできません。
 
-### 現時点で実装できない理由
+### 実装状態
 
-#69 で入っているのは Supabase Auth のクライアントです。`AuthUser.id` は Supabase Auth の `user.id`（サーバーでは `auth.uid()`）です。
+#69 の Supabase Auth クライアントに加え、Private Sync の owner 認可はリポジトリ上の Postgres migration と RLS としてあります。
 
-Private Sync のデータを置く backend は、まだリポジトリにも GitHub Pages にもありません。
+```text
+supabase/migrations/20261001120000_create_private_sync_records.sql
+supabase/tests/database/private_sync_records_rls.test.sql
+```
 
-- SQL / migration / RLS / Storage policy はない
-- serverless function / 自前 API はない
-- 実 Supabase Cloud Adapter の push / pull はない（#71）。ポートと Sync Service の pull orchestration はある。クライアントの owner 比較は認可ではない（#82）
+- テーブルは `public.private_sync_records` のみ。作成と RLS は同じ migration
+- owner の正本は `owner_user_id`。`payload.metadata.ownerUserId` は列と一致しないと保存できない
+- `anon` には grant しない。`authenticated` は自分の行だけ select / insert / update / delete
+- pull 用の並びは `(owner_user_id, server_updated_at, entity_type, entity_id)`。timestamp 単独 cursor にはしない
+- production Supabase project へこの migration を適用した事実は、このリポジトリからは確認していない
+- Storage policy はない（#76）
+- 実 Supabase Cloud Adapter の push / pull はまだない（#71）。ポートと Sync Service の pull orchestration はある
 - デプロイは静的 SPA（GitHub Pages）と、任意の Supabase Auth 設定だけ
 
-そのため、この節は **サーバーが後から満たす契約** です。ブラウザ上の `ownerUserId === currentUser.id` は認可ではありません。その比較を足して「サーバー側認可を実装した」とは扱いません。実テーブルを publishable key で読み書きできるようにするのは、下の security test が Provider 上で通ってからです。追跡は #82 のままです。
+ブラウザ上の `ownerUserId === currentUser.id` は認可ではありません。publishable key からこのテーブルへ届く経路は、上記 RLS を通過する authenticated session だけです。
+
+ローカルで database security test を実行するとき（Docker と Supabase CLI が必要。CLI は npm dependency ではない）:
+
+```bash
+npx supabase start
+npx supabase db reset
+npx supabase test db
+```
+
+`npm run test:supabase` は `supabase test db` です。GitHub Actions の unit / e2e にはまだ含めていません。
 
 ### Authorization model
 
