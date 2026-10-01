@@ -8,7 +8,8 @@ export const SKILL_TREE_E2E_DATASETS = [
   "wide",
   "asymmetric",
   "extra-edge",
-  "complex"
+  "complex",
+  "forest"
 ] as const;
 
 export type SkillTreeE2eDataset = (typeof SKILL_TREE_E2E_DATASETS)[number];
@@ -53,6 +54,13 @@ export const SKILL_TREE_E2E_IDS = {
     wide: "st-cx-wide",
     mid: "st-cx-mid",
     leaf: "st-cx-leaf"
+  },
+  forest: {
+    a: "st-forest-a",
+    b: "st-forest-b",
+    c: "st-forest-c",
+    d: "st-forest-d",
+    e: "st-forest-e"
   }
 } as const;
 
@@ -179,6 +187,17 @@ const complex = (): Concept[] => {
   return concepts;
 };
 
+const forest = (): Concept[] => {
+  const { a, b, c, d, e } = SKILL_TREE_E2E_IDS.forest;
+  return [
+    concept(a, "A", [b]),
+    concept(b, "B", [a]),
+    concept(c, "C", [d]),
+    concept(d, "D", [c]),
+    concept(e, "E", [])
+  ];
+};
+
 const builders: Record<SkillTreeE2eDataset, () => Concept[]> = {
   single,
   pair,
@@ -187,7 +206,8 @@ const builders: Record<SkillTreeE2eDataset, () => Concept[]> = {
   wide,
   asymmetric,
   "extra-edge": extraEdge,
-  complex
+  complex,
+  forest
 };
 
 export const isSkillTreeE2eDataset = (value: string | null): value is SkillTreeE2eDataset =>

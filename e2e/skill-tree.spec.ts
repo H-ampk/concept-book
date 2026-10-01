@@ -241,6 +241,28 @@ test.describe("skill tree browser regressions (#141)", () => {
     expect(errors).toEqual([]);
   });
 
+  test("forest: 別成分と孤立ノードを描画し、collapse・zoom・選択が他成分を消さない", async ({ page }) => {
+    const errors = await gotoTree(page, "forest");
+    const ids = SKILL_TREE_E2E_IDS.forest;
+    for (const id of [ids.a, ids.b, ids.c, ids.d, ids.e]) {
+      await expect(nodeLocator(page, id)).toBeVisible();
+    }
+    await expect(page.getByText(/ノード 5/)).toBeVisible();
+    await assertCardsDoNotOverlap(page);
+    await page.getByTestId(`skill-tree-collapse-${ids.b}`).click();
+    await expect(nodeLocator(page, ids.a)).toHaveCount(0);
+    await expect(nodeLocator(page, ids.c)).toBeVisible();
+    await expect(nodeLocator(page, ids.d)).toBeVisible();
+    await expect(nodeLocator(page, ids.e)).toBeVisible();
+    await page.getByRole("button", { name: "拡大" }).click();
+    await expect(zoomLabel(page)).toHaveText("110%");
+    await panTree(page);
+    await nodeLocator(page, ids.e).click();
+    await expect(page.getByTestId("skill-tree-selected")).toHaveText(`選択: ${ids.e}`);
+    await assertFiniteTransform(page);
+    expect(errors).toEqual([]);
+  });
+
   test("390px viewport でも操作できる", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const errors = await gotoTree(page, "asymmetric");

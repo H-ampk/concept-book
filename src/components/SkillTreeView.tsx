@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { Concept } from "../types/concept";
 import { getDomainTagColor, getDomainTagColors } from "../utils/domainColors";
-import { buildUndirectedAdjacency } from "../utils/conceptRelations";
 import {
   SKILL_TREE_CARD_HEIGHT,
   SKILL_TREE_CARD_WIDTH,
   computeSkillTreeLayout,
 } from "../utils/skillTreeLayout";
+import { buildSkillTreeForest, type SkillTreeComponent } from "../utils/skillTreeForest";
 import { buildSkillTreeConceptOrder } from "../utils/skillTreeWindow";
 import { OrnamentLine } from "./common/OrnamentLine";
 
 const TREE_NODE_PAGE = 250;
 const CARD_WIDTH = SKILL_TREE_CARD_WIDTH;
 const CARD_HEIGHT = SKILL_TREE_CARD_HEIGHT;
+const COMPONENT_GAP = SKILL_TREE_CARD_WIDTH;
 const LABEL_MAX_CHARS = 12;
 const MAX_VISIBLE_DOMAIN_COLORS = 4;
 const DOMAIN_SWATCH_SIZE = 7;
@@ -40,66 +41,6 @@ type LayoutNode = {
   width: number;
   height: number;
   isRoot: boolean;
-};
-
-// 補助関数: 無向グラフの隣接リスト構築
-const buildGraph = (concepts: Concept[]): Map<string, string[]> =>
-  buildUndirectedAdjacency(concepts);
-
-// 補助関数: degree 計算
-const computeDegree = (graph: Map<string, string[]>): Map<string, number> => {
-  const degrees = new Map<string, number>();
-  graph.forEach((neighbors, node) => degrees.set(node, neighbors.length));
-  return degrees;
-};
-
-// 補助関数: BFS でツリー構築
-const buildBFSTree = (
-  graph: Map<string, string[]>,
-  root: string
-): {
-  tree: Map<string, string[]>;
-  mainEdges: [string, string][];
-  extraEdges: [string, string][];
-} => {
-  const tree = new Map<string, string[]>();
-  const visited = new Set<string>();
-  const queue: string[] = [root];
-  visited.add(root);
-  tree.set(root, []);
-  const mainEdges: [string, string][] = [];
-
-  const allEdges = new Map<string, [string, string]>();
-  graph.forEach((neighbors, node) => {
-    neighbors.forEach((neighbor) => {
-      const [left, right] = node < neighbor ? [node, neighbor] : [neighbor, node];
-      allEdges.set(`${left}::${right}`, [left, right]);
-    });
-  });
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    const neighbors = graph.get(current) || [];
-    neighbors.forEach((neighbor) => {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        queue.push(neighbor);
-        tree.get(current)!.push(neighbor);
-        tree.set(neighbor, []);
-        mainEdges.push([current, neighbor]);
-      }
-    });
-  }
-
-  const extraEdges: [string, string][] = [];
-  allEdges.forEach(([source, target]) => {
-    const isMain = mainEdges.some(
-      ([s, t]) => (s === source && t === target) || (s === target && t === source)
-    );
-    if (!isMain) extraEdges.push([source, target]);
-  });
-
-  return { tree, mainEdges, extraEdges };
 };
 
 const collectVisibleIds = (
@@ -222,54 +163,104 @@ type LayoutData = {
   nodes: LayoutNode[];
   mainEdges: [string, string][];
   extraEdges: [string, string][];
-  rootId: string;
+  rootIds: string[];
   canvasWidth: number;
   canvasHeight: number;
 };
 
-const computeTreeLayout = (
-  tree: Map<string, string[]>,
+const emptyLayout = (): LayoutData => ({
+  nodes: [],
+  mainEdges: [],
+  extraEdges: [],
+  rootIds: [],
+  canvasWidth: 900,
+  canvasHeight: 640,
+});
+
+const layoutForest = (
+  components: SkillTreeComponent[],
   concepts: Concept[],
-  rootId: string,
-  mainEdges: [string, string][],
-  extraEdges: [string, string][],
   visibleIds: Set<string>
 ): LayoutData => {
-  const conceptMap = new Map(concepts.map((c) => [c.id, c]));
-  const { positions, canvasWidth, canvasHeight } = computeSkillTreeLayout(tree, rootId);
+  if (components.length === 0) return emptyLayout();
 
+  const conceptMap = new Map(concepts.map((concept) => [concept.id, concept]));
+  const rootIds = components.map((component) => component.rootId);
+  const rootIdSet = new Set(rootIds);
   const nodes: LayoutNode[] = [];
-  positions.forEach((position) => {
-    const concept = conceptMap.get(position.id);
-    if (!concept) return;
-    nodes.push({
-      id: position.id,
-      x: position.x,
-      y: position.y,
-      title: concept.title,
-      domainTags: concept.domainTags,
-      favorite: concept.favorite,
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
-      isRoot: position.id === rootId,
-    });
-  });
+  const mainEdges: [string, string][] = [];
+  const extraEdges: [string, string][] = [];
+  let offsetX = 0;
+  let canvasHeight = 0;
 
-  const visibleMainEdges = mainEdges.filter(
-    ([source, target]) => visibleIds.has(source) && visibleIds.has(target)
-  );
-  const visibleExtraEdges = extraEdges.filter(
-    ([source, target]) => visibleIds.has(source) && visibleIds.has(target)
-  );
+  components.forEach((component, index) => {
+    const visibleTree = filterTreeToVisible(component.tree, visibleIds);
+    const layout = computeSkillTreeLayout(visibleTree, component.rootId);
+    layout.positions.forEach((position) => {
+      const concept = conceptMap.get(position.id);
+      if (!concept) return;
+      nodes.push({
+        id: position.id,
+        x: position.x + offsetX,
+        y: position.y,
+        title: concept.title,
+        domainTags: concept.domainTags,
+        favorite: concept.favorite,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        isRoot: rootIdSet.has(position.id),
+      });
+    });
+    component.mainEdges.forEach(([source, target]) => {
+      if (visibleIds.has(source) && visibleIds.has(target)) mainEdges.push([source, target]);
+    });
+    component.extraEdges.forEach(([source, target]) => {
+      if (visibleIds.has(source) && visibleIds.has(target)) extraEdges.push([source, target]);
+    });
+    offsetX += layout.canvasWidth;
+    if (index < components.length - 1) offsetX += COMPONENT_GAP;
+    canvasHeight = Math.max(canvasHeight, layout.canvasHeight);
+  });
 
   return {
     nodes,
-    mainEdges: visibleMainEdges,
-    extraEdges: visibleExtraEdges,
-    rootId,
-    canvasWidth,
-    canvasHeight,
+    mainEdges,
+    extraEdges,
+    rootIds,
+    canvasWidth: Math.max(offsetX, 1),
+    canvasHeight: Math.max(canvasHeight, 1),
   };
+};
+
+const buildForestNavigation = (
+  components: SkillTreeComponent[],
+  visibleIds: Set<string>
+): NavigationData => {
+  const visibleComponents = components
+    .map((component) => ({
+      rootId: component.rootId,
+      tree: filterTreeToVisible(component.tree, visibleIds),
+    }))
+    .filter((component) => visibleIds.has(component.rootId));
+
+  const rootId = visibleComponents[0]?.rootId ?? "";
+  const parentById = new Map<string, string>();
+  const childrenById = new Map<string, string[]>();
+  const depthById = new Map<string, number>();
+  const nodesByDepth = new Map<number, string[]>();
+
+  visibleComponents.forEach((component) => {
+    const navigation = buildNavigationData(component.tree, component.rootId);
+    navigation.parentById.forEach((parent, id) => parentById.set(id, parent));
+    navigation.childrenById.forEach((children, id) => childrenById.set(id, children));
+    navigation.depthById.forEach((depth, id) => depthById.set(id, depth));
+    navigation.nodesByDepth.forEach((nodes, depth) => {
+      const current = nodesByDepth.get(depth) ?? [];
+      nodesByDepth.set(depth, [...current, ...nodes]);
+    });
+  });
+
+  return { rootId, parentById, childrenById, depthById, nodesByDepth };
 };
 
 export const SkillTreeView = ({
@@ -315,25 +306,19 @@ export const SkillTreeView = ({
   const zoomRef = useRef(ZOOM_INITIAL);
 
   const structure = useMemo(() => {
-    if (conceptsWindow.length === 0) {
-      return {
-        tree: new Map<string, string[]>(),
-        mainEdges: [] as [string, string][],
-        extraEdges: [] as [string, string][],
-        rootId: "",
-        descendantCounts: new Map<string, number>(),
-      };
-    }
-    const graph = buildGraph(conceptsWindow);
-    const degrees = computeDegree(graph);
-    const rootId = Array.from(degrees.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
-    const { tree, mainEdges, extraEdges } = buildBFSTree(graph, rootId);
-    const descendantCounts = countDescendants(tree, rootId);
+    const forest = buildSkillTreeForest(conceptsWindow);
+    const tree = new Map<string, string[]>();
+    const descendantCounts = new Map<string, number>();
+    const components = forest.components.map((component) => {
+      const counts = countDescendants(component.tree, component.rootId);
+      counts.forEach((count, id) => descendantCounts.set(id, count));
+      const sortedTree = sortChildrenByDescendantCount(component.tree, counts);
+      sortedTree.forEach((children, id) => tree.set(id, children));
+      return { ...component, tree: sortedTree };
+    });
     return {
-      tree: sortChildrenByDescendantCount(tree, descendantCounts),
-      mainEdges,
-      extraEdges,
-      rootId,
+      components,
+      tree,
       descendantCounts,
     };
   }, [conceptsWindow]);
@@ -350,38 +335,25 @@ export const SkillTreeView = ({
     });
   }, [conceptsWindow]);
 
-  const visibleIds = useMemo(
-    () => collectVisibleIds(structure.tree, structure.rootId, collapsedNodeIds),
-    [structure.tree, structure.rootId, collapsedNodeIds]
+  const visibleIds = useMemo(() => {
+    const visible = new Set<string>();
+    structure.components.forEach((component) => {
+      collectVisibleIds(component.tree, component.rootId, collapsedNodeIds).forEach((id) => {
+        visible.add(id);
+      });
+    });
+    return visible;
+  }, [structure.components, collapsedNodeIds]);
+
+  const layoutData = useMemo<LayoutData>(
+    () => layoutForest(structure.components, conceptsWindow, visibleIds),
+    [conceptsWindow, structure.components, visibleIds]
   );
 
-  const layoutData = useMemo<LayoutData>(() => {
-    if (!structure.rootId) {
-      return { nodes: [], mainEdges: [], extraEdges: [], rootId: "", canvasWidth: 900, canvasHeight: 640 };
-    }
-    const visibleTree = filterTreeToVisible(structure.tree, visibleIds);
-    return computeTreeLayout(
-      visibleTree,
-      conceptsWindow,
-      structure.rootId,
-      structure.mainEdges,
-      structure.extraEdges,
-      visibleIds
-    );
-  }, [conceptsWindow, structure, visibleIds]);
-
-  const navigationData = useMemo(() => {
-    if (!layoutData.rootId) {
-      return {
-        rootId: "",
-        parentById: new Map<string, string>(),
-        childrenById: new Map<string, string[]>(),
-        depthById: new Map<string, number>(),
-        nodesByDepth: new Map<number, string[]>(),
-      };
-    }
-    return buildNavigationData(filterTreeToVisible(structure.tree, visibleIds), layoutData.rootId);
-  }, [layoutData.rootId, structure.tree, visibleIds]);
+  const navigationData = useMemo(
+    () => buildForestNavigation(structure.components, visibleIds),
+    [structure.components, visibleIds]
+  );
 
   useEffect(() => {
     if (

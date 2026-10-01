@@ -1,4 +1,4 @@
-import { render, within } from "@testing-library/react";
+import { fireEvent, render, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SkillTreeView } from "./SkillTreeView";
 import type { Concept } from "../types/concept";
@@ -116,5 +116,134 @@ describe("SkillTreeView window 外 selection (#155)", () => {
     );
     expect(document.querySelector('[data-testid="skill-tree-node-c-250"]')).toBeNull();
     expect(onClearSelection).not.toHaveBeenCalled();
+  });
+});
+
+const related = (id: string, relatedIds: string[]): Concept => ({
+  ...makeConcept(id, []),
+  relatedIds,
+});
+
+const renderConcepts = (concepts: Concept[], props: Partial<Parameters<typeof SkillTreeView>[0]> = {}) =>
+  render(
+    <SkillTreeView
+      concepts={concepts}
+      domainColorMap={colorMap}
+      onSelectConcept={vi.fn()}
+      {...props}
+    />
+  );
+
+const nodeCount = (id: string) => document.querySelectorAll(`[data-testid="skill-tree-node-${id}"]`).length;
+
+describe("SkillTreeView forest (#208)", () => {
+  it("複数の連結成分をすべて描画する", () => {
+    renderConcepts([
+      related("A", ["B"]),
+      related("B", ["A"]),
+      related("C", ["D"]),
+      related("D", ["C"]),
+    ]);
+    expect(nodeCount("A")).toBe(1);
+    expect(nodeCount("B")).toBe(1);
+    expect(nodeCount("C")).toBe(1);
+    expect(nodeCount("D")).toBe(1);
+  });
+
+  it("孤立 Concept も描画する", () => {
+    renderConcepts([related("A", ["B"]), related("B", ["A"]), related("C", [])]);
+    expect(nodeCount("A")).toBe(1);
+    expect(nodeCount("B")).toBe(1);
+    expect(nodeCount("C")).toBe(1);
+  });
+
+  it("Issue の 5 Concept をすべて描画しノード数は 5", () => {
+    renderConcepts([
+      related("A", ["B"]),
+      related("B", ["A"]),
+      related("C", ["D"]),
+      related("D", ["C"]),
+      related("E", []),
+    ]);
+    for (const id of ["A", "B", "C", "D", "E"]) {
+      expect(nodeCount(id)).toBe(1);
+    }
+    expect(document.body.textContent).toContain("ノード 5");
+  });
+
+  it("一方の成分を折りたたんでも他成分は残る", () => {
+    renderConcepts([
+      related("A", ["B"]),
+      related("B", ["A"]),
+      related("C", ["D"]),
+      related("D", ["C"]),
+    ]);
+    const collapse = document.querySelector('[data-testid="skill-tree-collapse-B"]');
+    expect(collapse).not.toBeNull();
+    fireEvent.click(collapse!);
+    expect(nodeCount("B")).toBe(1);
+    expect(nodeCount("A")).toBe(0);
+    expect(nodeCount("C")).toBe(1);
+    expect(nodeCount("D")).toBe(1);
+  });
+
+  it("単一成分は従来どおり両端を描画する", () => {
+    renderConcepts([related("A", ["B"]), related("B", ["A"])]);
+    expect(nodeCount("A")).toBe(1);
+    expect(nodeCount("B")).toBe(1);
+    expect(document.body.textContent).toContain("ノード 2");
+  });
+
+  it("Concept 1件でも描画する", () => {
+    renderConcepts([related("only", [])]);
+    expect(nodeCount("only")).toBe(1);
+    expect(document.body.textContent).toContain("ノード 1");
+  });
+
+  it("さらに表示で window に入った別成分も描画する", () => {
+    const concepts: Concept[] = [];
+    for (let index = 0; index < 126; index += 1) {
+      const left = `p${index}-a`;
+      const right = `p${index}-b`;
+      concepts.push(related(left, [right]), related(right, [left]));
+    }
+    renderConcepts(concepts);
+    expect(nodeCount("p125-a")).toBe(0);
+    expect(nodeCount("p0-a")).toBe(1);
+    const more = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("さらに表示")
+    );
+    expect(more).toBeTruthy();
+    fireEvent.click(more!);
+    expect(nodeCount("p125-a")).toBe(1);
+    expect(nodeCount("p125-b")).toBe(1);
+    expect(document.body.textContent).toContain("ノード 252");
+  });
+
+  it("0件ではノードを描かず件数は 0", () => {
+    renderConcepts([]);
+    expect(document.querySelectorAll('[data-testid^="skill-tree-node-"]')).toHaveLength(0);
+    expect(document.body.textContent).toContain("ノード 0");
+  });
+
+  it("collapse で隠れた選択だけを clear し、別成分の選択は維持する", () => {
+    const onClearSelection = vi.fn();
+    const { rerender } = renderConcepts(
+      [related("A", ["B"]), related("B", ["A"]), related("C", [])],
+      { selectedId: "C", onClearSelection }
+    );
+    fireEvent.click(document.querySelector('[data-testid="skill-tree-collapse-B"]')!);
+    expect(onClearSelection).not.toHaveBeenCalled();
+
+    rerender(
+      <SkillTreeView
+        concepts={[related("A", ["B"]), related("B", ["A"]), related("C", [])]}
+        domainColorMap={colorMap}
+        selectedId="A"
+        onSelectConcept={vi.fn()}
+        onClearSelection={onClearSelection}
+      />
+    );
+    expect(onClearSelection).toHaveBeenCalled();
   });
 });
