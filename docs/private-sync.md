@@ -47,6 +47,8 @@ supabase/tests/database/private_sync_records_rls.test.sql
 - `anon` には grant しない。`authenticated` は自分の行だけ select / insert / update / delete
 - pull 用の並びは `(owner_user_id, server_updated_at, entity_type, entity_id)`。timestamp 単独 cursor にはしない
 - production Supabase project へこの migration を適用した事実は、このリポジトリからは確認していない
+- local Supabase での `db reset` / `supabase test db` は、この環境に Docker が無いため未実行。Provider verification は pending
+- payload の必須キー欠落は CHECK が NULL になって通らないよう、キーの存在と JSON 型も制約している。この修正は実 DB ではまだ検証していない
 - Storage policy はない（#76）
 - 実 Supabase Cloud Adapter の push / pull はまだない（#71）。ポートと Sync Service の pull orchestration はある
 - デプロイは静的 SPA（GitHub Pages）と、任意の Supabase Auth 設定だけ

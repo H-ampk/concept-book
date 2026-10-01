@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(35);
+select plan(51);
 
 select tests.create_supabase_user('user-a@example.com', 'password');
 select tests.create_supabase_user('user-b@example.com', 'password');
@@ -86,6 +86,74 @@ values
     '2026-01-01T00:00:00Z',
     pg_temp.sync_payload(current_setting('test.user_b')::uuid, 'media', 'media_b', 'versioned', 1, '2026-01-01T00:00:00Z')
   );
+
+-- auth.uid() must match the fixture user before any RLS assertion.
+select tests.authenticate_as('user-a@example.com');
+set local role authenticated;
+
+select is(
+  auth.uid(),
+  current_setting('test.user_a')::uuid,
+  'auth.uid() is user A after authenticate_as'
+);
+
+reset role;
+select tests.authenticate_as('user-b@example.com');
+set local role authenticated;
+
+select is(
+  auth.uid(),
+  current_setting('test.user_b')::uuid,
+  'auth.uid() is user B after authenticate_as'
+);
+
+reset role;
+
+-- Trigger overwrites a client-supplied server clock. Admin context, not an RLS assertion.
+insert into public.private_sync_records (
+  owner_user_id, entity_type, entity_id, schema_version, strategy, version,
+  domain_updated_at, server_updated_at, payload
+)
+values (
+  current_setting('test.user_a')::uuid, 'concept', 'concept_clock', 1, 'versioned', 1,
+  '2026-01-01T00:00:00Z', '1999-01-01T00:00:00Z',
+  pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_clock', 'versioned', 1, '2026-01-01T00:00:00Z')
+);
+
+select is(
+  (
+    select server_updated_at = '1999-01-01T00:00:00Z'::timestamptz
+    from public.private_sync_records
+    where entity_id = 'concept_clock'
+  ),
+  false,
+  'insert trigger overwrites a client-supplied server_updated_at'
+);
+
+select is(
+  (
+    select domain_updated_at = '2026-01-01T00:00:00Z'::timestamptz
+      and server_updated_at <> domain_updated_at
+    from public.private_sync_records
+    where entity_id = 'concept_clock'
+  ),
+  true,
+  'domain_updated_at stays the domain clock and is distinct from server_updated_at'
+);
+
+update public.private_sync_records
+set server_updated_at = '2099-01-01T00:00:00Z'
+where entity_id = 'concept_clock';
+
+select is(
+  (
+    select server_updated_at = '2099-01-01T00:00:00Z'::timestamptz
+    from public.private_sync_records
+    where entity_id = 'concept_clock'
+  ),
+  false,
+  'update trigger overwrites a client-supplied server_updated_at'
+);
 
 -- Test A: User A reads own rows.
 select tests.authenticate_as('user-a@example.com');
@@ -444,6 +512,155 @@ select throws_ok(
   'payload must be a JSON object'
 );
 
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_empty', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z', '{}'::jsonb
+    )
+  $$,
+  '23514',
+  'empty payload object is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_metadata', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      jsonb_build_object(
+        'schemaVersion', 1, 'id', 'concept_no_metadata', 'entityType', 'concept', 'strategy', 'versioned',
+        'data', jsonb_build_object('id', 'concept_no_metadata')
+      )
+    )
+  $$,
+  '23514',
+  'payload without metadata is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_id', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_id', 'versioned', 1, '2026-01-03T00:00:00Z') - 'id'
+    )
+  $$,
+  '23514',
+  'payload without id is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_type', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_type', 'versioned', 1, '2026-01-03T00:00:00Z') - 'entityType'
+    )
+  $$,
+  '23514',
+  'payload without entityType is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_schema', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_schema', 'versioned', 1, '2026-01-03T00:00:00Z') - 'schemaVersion'
+    )
+  $$,
+  '23514',
+  'payload without schemaVersion is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_strategy', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_strategy', 'versioned', 1, '2026-01-03T00:00:00Z') - 'strategy'
+    )
+  $$,
+  '23514',
+  'payload without strategy is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_owner', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      jsonb_set(
+        pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_owner', 'versioned', 1, '2026-01-03T00:00:00Z'),
+        '{metadata}',
+        (pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_owner', 'versioned', 1, '2026-01-03T00:00:00Z') -> 'metadata') - 'ownerUserId'
+      )
+    )
+  $$,
+  '23514',
+  'payload metadata without ownerUserId is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_version', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      jsonb_set(
+        pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_version', 'versioned', 1, '2026-01-03T00:00:00Z'),
+        '{metadata}',
+        (pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_version', 'versioned', 1, '2026-01-03T00:00:00Z') -> 'metadata') - 'version'
+      )
+    )
+  $$,
+  '23514',
+  'payload metadata without version is rejected'
+);
+
+select throws_ok(
+  $$
+    insert into public.private_sync_records (
+      owner_user_id, entity_type, entity_id, schema_version, strategy, version, domain_updated_at, payload
+    )
+    values (
+      current_setting('test.user_a')::uuid, 'concept', 'concept_no_updated', 1, 'versioned', 1,
+      '2026-01-03T00:00:00Z',
+      jsonb_set(
+        pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_updated', 'versioned', 1, '2026-01-03T00:00:00Z'),
+        '{metadata}',
+        (pg_temp.sync_payload(current_setting('test.user_a')::uuid, 'concept', 'concept_no_updated', 'versioned', 1, '2026-01-03T00:00:00Z') -> 'metadata') - 'updatedAt'
+      )
+    )
+  $$,
+  '23514',
+  'payload metadata without updatedAt is rejected'
+);
+
 reset role;
 
 -- Test G: anonymous role cannot read or write.
@@ -608,6 +825,35 @@ select is(
   (select count(*) from public.private_sync_records where entity_id = 'concept_known'),
   2::bigint,
   'H: missing identity did not change existing concept rows'
+);
+
+select is(
+  (
+    select count(*)
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name = 'private_sync_records'
+      and grantee = 'anon'
+  ),
+  0::bigint,
+  'anon has no table privileges on private_sync_records'
+);
+
+select results_eq(
+  $$
+    select privilege_type
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name = 'private_sync_records'
+      and grantee = 'authenticated'
+    order by privilege_type
+  $$,
+  $$
+    select privilege_type
+    from (values ('DELETE'::text), ('INSERT'), ('SELECT'), ('UPDATE')) as expected(privilege_type)
+    order by privilege_type
+  $$,
+  'authenticated has only select, insert, update, and delete'
 );
 
 select has_index(

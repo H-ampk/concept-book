@@ -51,32 +51,69 @@ create table public.private_sync_records (
     check (version >= 1),
   constraint private_sync_records_device_id_check
     check (device_id is null or char_length(device_id) > 0),
+  -- CHECK passes when the expression is NULL, so missing keys must be
+  -- rejected with an explicit false, not a NULL comparison.
   constraint private_sync_records_payload_object_check
     check (jsonb_typeof(payload) = 'object'),
   constraint private_sync_records_payload_metadata_object_check
-    check (jsonb_typeof(payload -> 'metadata') = 'object'),
+    check (
+      payload ? 'metadata'
+      and jsonb_typeof(payload -> 'metadata') = 'object'
+    ),
   constraint private_sync_records_payload_id_check
-    check (payload ->> 'id' = entity_id),
+    check (
+      payload ? 'id'
+      and jsonb_typeof(payload -> 'id') = 'string'
+      and payload ->> 'id' = entity_id
+    ),
   constraint private_sync_records_payload_entity_type_check
-    check (payload ->> 'entityType' = entity_type),
+    check (
+      payload ? 'entityType'
+      and jsonb_typeof(payload -> 'entityType') = 'string'
+      and payload ->> 'entityType' = entity_type
+    ),
   constraint private_sync_records_payload_schema_version_check
-    check ((payload ->> 'schemaVersion')::integer = schema_version),
+    check (
+      payload ? 'schemaVersion'
+      and jsonb_typeof(payload -> 'schemaVersion') = 'number'
+      and (payload ->> 'schemaVersion')::integer = schema_version
+    ),
   constraint private_sync_records_payload_strategy_check
-    check (payload ->> 'strategy' = strategy),
+    check (
+      payload ? 'strategy'
+      and jsonb_typeof(payload -> 'strategy') = 'string'
+      and payload ->> 'strategy' = strategy
+    ),
   constraint private_sync_records_payload_owner_check
-    check ((payload -> 'metadata' ->> 'ownerUserId') = owner_user_id::text),
+    check (
+      (payload -> 'metadata') ? 'ownerUserId'
+      and jsonb_typeof(payload -> 'metadata' -> 'ownerUserId') = 'string'
+      and (payload -> 'metadata' ->> 'ownerUserId') = owner_user_id::text
+    ),
   constraint private_sync_records_payload_version_check
-    check ((payload -> 'metadata' ->> 'version')::bigint = version),
+    check (
+      (payload -> 'metadata') ? 'version'
+      and jsonb_typeof(payload -> 'metadata' -> 'version') = 'number'
+      and (payload -> 'metadata' ->> 'version')::bigint = version
+    ),
   constraint private_sync_records_payload_domain_updated_at_check
-    check ((payload -> 'metadata' ->> 'updatedAt')::timestamptz = domain_updated_at),
+    check (
+      (payload -> 'metadata') ? 'updatedAt'
+      and jsonb_typeof(payload -> 'metadata' -> 'updatedAt') = 'string'
+      and (payload -> 'metadata' ->> 'updatedAt')::timestamptz = domain_updated_at
+    ),
   constraint private_sync_records_payload_deleted_at_check
     check (
       (
         deleted_at is null
-        and (payload -> 'metadata' ->> 'deletedAt') is null
+        and (
+          not ((payload -> 'metadata') ? 'deletedAt')
+          or jsonb_typeof(payload -> 'metadata' -> 'deletedAt') = 'null'
+        )
       )
       or (
         deleted_at is not null
+        and jsonb_typeof(payload -> 'metadata' -> 'deletedAt') = 'string'
         and (payload -> 'metadata' ->> 'deletedAt')::timestamptz = deleted_at
       )
     ),
@@ -84,9 +121,16 @@ create table public.private_sync_records (
     check (
       (
         device_id is null
-        and (payload -> 'metadata' ->> 'deviceId') is null
+        and (
+          not ((payload -> 'metadata') ? 'deviceId')
+          or jsonb_typeof(payload -> 'metadata' -> 'deviceId') = 'null'
+        )
       )
-      or (payload -> 'metadata' ->> 'deviceId' = device_id)
+      or (
+        device_id is not null
+        and jsonb_typeof(payload -> 'metadata' -> 'deviceId') = 'string'
+        and (payload -> 'metadata' ->> 'deviceId') = device_id
+      )
     )
 );
 
@@ -118,6 +162,9 @@ $$;
 
 comment on function public.private_sync_records_set_server_updated_at() is
   'Sets server_updated_at on insert and update. Does not change owner_user_id.';
+
+revoke all on function public.private_sync_records_set_server_updated_at() from public;
+grant execute on function public.private_sync_records_set_server_updated_at() to authenticated;
 
 create trigger private_sync_records_set_server_updated_at
 before insert or update on public.private_sync_records
