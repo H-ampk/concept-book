@@ -63,7 +63,8 @@ export {
 } from "./queue/backoff";
 export { queueStatusForFailure, sanitizeSyncErrorMessage } from "./queue/failure";
 export { createSyncQueueIntegration } from "./queue/integration";
-export { SyncQueueProcessor } from "./queue/processor";
+export { SyncQueueProcessor, type ProcessQueueSkipReason } from "./queue/processor";
+export { SyncQueueScheduler, createSyncQueueScheduler, MAX_TIMER_DELAY_MS } from "./queue/scheduler";
 export {
   SyncQueueEnqueueError,
   createSyncQueueRepository,

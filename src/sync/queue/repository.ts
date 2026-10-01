@@ -107,6 +107,8 @@ export type SyncQueueRepository = {
   getById(id: string): Promise<SyncQueueItem | null>;
   listByOwner(ownerUserId: string): Promise<SyncQueueItem[]>;
   listProcessable(ownerUserId: string, nowIso: string): Promise<SyncQueueItem[]>;
+  /** current owner の次に処理可能になる時刻。pending は即時、blocked / processing は対象外。 */
+  getNextProcessableAt(ownerUserId: string): Promise<string | null>;
   markProcessing(id: string, nowIso: string): Promise<SyncQueueItem | null>;
   markSucceeded(id: string): Promise<void>;
   markFailed(
@@ -209,6 +211,23 @@ export const createSyncQueueRepository = (): SyncQueueRepository => {
         }
         return false;
       });
+    },
+
+    async getNextProcessableAt(ownerUserId) {
+      const owned = await this.listByOwner(ownerUserId);
+      let earliestFailed: string | null = null;
+      for (const item of owned) {
+        if (item.status === "pending" || (item.status === "failed" && !item.nextAttemptAt)) {
+          return new Date(0).toISOString();
+        }
+        if (item.status !== "failed" || !item.nextAttemptAt) {
+          continue;
+        }
+        if (!earliestFailed || item.nextAttemptAt < earliestFailed) {
+          earliestFailed = item.nextAttemptAt;
+        }
+      }
+      return earliestFailed;
     },
 
     async markProcessing(id, nowIso) {

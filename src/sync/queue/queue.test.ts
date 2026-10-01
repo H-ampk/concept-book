@@ -464,26 +464,33 @@ describe("sync queue processor", () => {
   it("online 復帰と起動は Port の結果だけを成功にし、オフラインでは送らない", async () => {
     let calls = 0;
     const repo = createSyncQueueRepository();
+    let online = false;
     const integration = createSyncQueueIntegration({
       queue: repo,
       getCurrentUser: async () => ({ id: USER_A }),
       now: () => T0,
+      isOnline: () => online,
+      setTimer: () => 1 as ReturnType<typeof setTimeout>,
+      clearTimer: () => undefined,
       cloud: port(async () => {
         calls += 1;
         return failure("network", "still down");
       })
     });
     await repo.enqueue({ ownerUserId: USER_A, operation: "upsert", record: conceptRecord(USER_A, 1) });
-    const offline = await integration.handleOnline(false);
+    const offline = await integration.start();
     expect(offline.ran).toBe(false);
+    expect(offline.reason).toBe("offline");
     expect(calls).toBe(0);
 
-    const online = await integration.handleOnline(true);
-    expect(online.failed).toHaveLength(1);
+    online = true;
+    const resumed = await integration.handleOnline(true);
+    expect(resumed.failed).toHaveLength(1);
     expect(await repo.listByOwner(USER_A)).toHaveLength(1);
 
     const started = await integration.resumeOnAppStart();
     expect(started.ran).toBe(true);
     expect(calls).toBe(1);
+    integration.stop();
   });
 });

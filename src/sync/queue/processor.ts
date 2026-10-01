@@ -6,9 +6,11 @@ import type { PrivateSyncCloudPort, SyncQueueItem } from "./types";
 
 export type SyncQueueUser = { id: string };
 
+export type ProcessQueueSkipReason = "unauthenticated" | "offline" | "stopped";
+
 export type ProcessQueueReport = {
   ran: boolean;
-  reason?: "unauthenticated";
+  reason?: ProcessQueueSkipReason;
   ownerUserId?: string;
   succeeded: string[];
   failed: string[];
