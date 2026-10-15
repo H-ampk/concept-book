@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { CONCEPT_BOOK_DB_VERSION } from "../src/storage/indexeddb";
 
 type Snapshot = {
   id: string;
@@ -318,7 +319,7 @@ test.describe("relatedIds IndexedDB storage regressions (#140)", () => {
       }
     ]);
     const opened = await e2e.openProductionDb();
-    expect(opened.dbVersion).toBe(9);
+    expect(opened.dbVersion).toBe(CONCEPT_BOOK_DB_VERSION);
 
     const raw = await e2e.readRawConcepts();
     expect(relatedOf(raw, "A")).toEqual(["v6-b"]);

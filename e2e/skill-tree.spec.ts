@@ -86,14 +86,33 @@ const panTree = async (page: Page) => {
     scrollLeft: el.scrollLeft,
     scrollTop: el.scrollTop
   }));
-  const box = await container.boundingBox();
-  expect(box).toBeTruthy();
-  if (!box) return before;
-  const startX = box.x + Math.min(40, box.width / 8);
-  const startY = box.y + box.height - 24;
-  await page.mouse.move(startX, startY);
+  const start = await page.evaluate(() => {
+    const content = document.querySelector('[data-testid="skill-tree-content"]')?.getBoundingClientRect();
+    const frame = document.querySelector('[data-testid="skill-tree-container"]')?.getBoundingClientRect();
+    if (!content || !frame) return null;
+    const left = Math.max(content.left, frame.left);
+    const top = Math.max(content.top, frame.top);
+    const right = Math.min(content.right, frame.right);
+    const bottom = Math.min(content.bottom, frame.bottom);
+    if (right - left < 24 || bottom - top < 24) return null;
+    const nodes = [...document.querySelectorAll('[data-testid^="skill-tree-node-"]')].map((el) =>
+      el.getBoundingClientRect()
+    );
+    const hitsNode = (x: number, y: number) =>
+      nodes.some(
+        (node) => x >= node.left - 6 && x <= node.right + 6 && y >= node.top - 6 && y <= node.bottom + 6
+      );
+    const y = top + (bottom - top) / 2;
+    for (let x = left + 16; x <= right - 16; x += 12) {
+      if (!hitsNode(x, y)) return { x, y };
+    }
+    return null;
+  });
+  expect(start, "SVG background inside the visible tree").toBeTruthy();
+  if (!start) return before;
+  await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(startX - 140, startY - 90, { steps: 8 });
+  await page.mouse.move(start.x - 140, start.y - 80, { steps: 8 });
   await page.mouse.up();
   const after = await container.evaluate((el) => ({
     scrollLeft: el.scrollLeft,
