@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Concept } from "../../types/concept";
 import { createEmptyConceptInput } from "../../types/concept";
@@ -103,13 +103,25 @@ beforeEach(() => {
   }) as never;
 });
 
+/** 描画継続で積まれた state を act で反映してから、既存のボタン条件を確認する。 */
+const expectHighlights = async (label: RegExp | string, assert: (buttons: HTMLElement[]) => void) => {
+  await waitFor(async () => {
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert(screen.getAllByRole("button", { name: label }));
+  });
+};
+
 describe("LearningMaterialPdfViewer auto concept highlights", () => {
   it("自動highlightを表示し、clickで定義を出す", async () => {
     const user = userEvent.setup();
     render(
       <LearningMaterialPdfViewer open material={material} linkedConcepts={linked} onClose={() => undefined} />
     );
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /登録済みConcept「強化」を表示/ }).length).toBeGreaterThan(1));
+    await expectHighlights(/登録済みConcept「強化」を表示/, (highlights) => {
+      expect(highlights.length).toBeGreaterThan(1);
+    });
     expect(screen.getByRole("button", { name: /登録済みConcept「オペラント条件づけ」を表示/ })).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: /登録済みConcept「強化」を表示/ })[0]!);
     expect(screen.getByText("自分の定義")).toBeInTheDocument();
@@ -121,7 +133,9 @@ describe("LearningMaterialPdfViewer auto concept highlights", () => {
     render(
       <LearningMaterialPdfViewer open material={material} linkedConcepts={linked} onClose={() => undefined} />
     );
-    await waitFor(() => screen.getByRole("button", { name: /登録済みConcept「シェイピング」を表示/ }));
+    await expectHighlights(/登録済みConcept「シェイピング」を表示/, (buttons) => {
+      expect(buttons.length).toBeGreaterThan(0);
+    });
     await user.click(screen.getByRole("button", { name: /登録済みConcept「シェイピング」を表示/ }));
     expect(screen.getByText("定義はまだ登録されていません。")).toBeInTheDocument();
   });
@@ -139,7 +153,9 @@ describe("LearningMaterialPdfViewer auto concept highlights", () => {
     expect(screen.queryAllByRole("button", { name: /登録済みConcept/ })).toHaveLength(0);
     expect(screen.getByRole("button", { name: "出現箇所: 強化" })).toBeInTheDocument();
     await user.click(checkbox);
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /登録済みConcept/ }).length).toBeGreaterThan(0));
+    await expectHighlights(/登録済みConcept/, (buttons) => {
+      expect(buttons.length).toBeGreaterThan(0);
+    });
   });
 
   it("Conceptを開くを呼ぶ", async () => {
@@ -155,7 +171,9 @@ describe("LearningMaterialPdfViewer auto concept highlights", () => {
         onOpenConcept={onOpenConcept}
       />
     );
-    await waitFor(() => screen.getAllByRole("button", { name: /登録済みConcept「強化」を表示/ })[0]);
+    await expectHighlights(/登録済みConcept「強化」を表示/, (buttons) => {
+      expect(buttons.length).toBeGreaterThan(0);
+    });
     await user.click(screen.getAllByRole("button", { name: /登録済みConcept「強化」を表示/ })[0]!);
     await user.click(screen.getByRole("button", { name: "Conceptを開く" }));
     expect(onOpenConcept).toHaveBeenCalledWith("c1");

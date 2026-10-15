@@ -103,7 +103,7 @@ describe("QuizLearningLogsPage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "学習ログ" })).toBeInTheDocument();
-    expect(screen.getAllByText("四択（再認）").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("四択（再認）")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("入力式（再生）").length).toBeGreaterThan(0);
 
     const partialCard = screen.getByTestId("quiz-attempt-log-card-fr-partial");
