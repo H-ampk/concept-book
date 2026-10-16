@@ -1,5 +1,6 @@
 import type { Concept } from "../types/concept";
 import type { ContextCard } from "../types/contextCard";
+import type { VocabularyBook } from "../types/vocabularyBook";
 
 /** 分野タグが無いレコードを一覧に残すための表示名。保存値ではない。 */
 export const UNASSIGNED_DOMAIN_LABEL = "未設定";
@@ -60,6 +61,40 @@ export const contextCardDomainKeys = (
   }
   const domain = typeof card.domain === "string" ? card.domain.trim() : "";
   return domain ? [domain] : [UNASSIGNED_DOMAIN_LABEL];
+};
+
+type VocabularyBookTagCriteria = Pick<VocabularyBook, "domainTags" | "includeUnassigned">;
+
+const matchesVocabularyBookTags = (
+  book: VocabularyBookTagCriteria,
+  domainKeys: readonly string[],
+  isUnassigned: boolean
+): boolean => {
+  if (isUnassigned) {
+    return book.includeUnassigned;
+  }
+  const bookTags = new Set(uniqueTags(book.domainTags));
+  return domainKeys.some((domain) => bookTags.has(domain));
+};
+
+/** 単語帳のタグ設定に Concept が一致するかを判定する。 */
+export const matchesVocabularyBookConcept = (
+  book: VocabularyBookTagCriteria,
+  concept: Pick<Concept, "domainTags">
+): boolean => {
+  const tags = uniqueTags(concept.domainTags);
+  return matchesVocabularyBookTags(book, conceptDomainKeys(concept), tags.length === 0);
+};
+
+/** 単語帳のタグ設定に文脈カードが一致するかを、domainTags / domain フォールバックで判定する。 */
+export const matchesVocabularyBookContextCard = (
+  book: VocabularyBookTagCriteria,
+  card: Pick<ContextCard, "domainTags" | "domain">
+): boolean => {
+  const tags = uniqueTags(card.domainTags);
+  const fallbackDomain = typeof card.domain === "string" ? card.domain.trim() : "";
+  const isUnassigned = tags.length === 0 && !fallbackDomain;
+  return matchesVocabularyBookTags(book, contextCardDomainKeys(card), isUnassigned);
 };
 
 const remember = (bucket: Map<string, Set<string>>, domain: string, id: string) => {

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../types/concept";
 import { createEmptyContextCardInput, type ContextCard } from "../types/contextCard";
+import type { VocabularyBook } from "../types/vocabularyBook";
 import {
   UNASSIGNED_DOMAIN_LABEL,
   buildVocabularyDomainSummaries,
   buildVocabularyEntries,
-  contextCardDomainKeys
+  contextCardDomainKeys,
+  matchesVocabularyBookConcept,
+  matchesVocabularyBookContextCard
 } from "./vocabularyBook";
 
 const concept = (id: string, domainTags: string[]): Concept => ({
@@ -25,6 +28,18 @@ const card = (id: string, overrides: Partial<ContextCard> = {}): ContextCard => 
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides
+});
+
+const book = (
+  domainTags: string[],
+  includeUnassigned = false
+): VocabularyBook => ({
+  id: "vocab-1",
+  name: "単語帳",
+  domainTags,
+  includeUnassigned,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z"
 });
 
 describe("buildVocabularyDomainSummaries", () => {
@@ -89,5 +104,98 @@ describe("buildVocabularyDomainSummaries", () => {
     const summaries = buildVocabularyDomainSummaries([duplicated, duplicated], []);
     expect(summaries).toEqual([{ domain: "英語", conceptCount: 1, contextCardCount: 0 }]);
     expect(buildVocabularyEntries("英語", [duplicated, duplicated], [], "all")).toHaveLength(1);
+  });
+});
+
+describe("VocabularyBook のタグ一致判定", () => {
+  it("単一タグが一致する Concept を判定する", () => {
+    expect(matchesVocabularyBookConcept(book(["英語"]), concept("c1", ["英語"]))).toBe(true);
+  });
+
+  it("複数タグのいずれかが一致すれば判定する", () => {
+    expect(
+      matchesVocabularyBookConcept(book(["英語", "心理学"]), concept("c1", ["数学", "心理学"]))
+    ).toBe(true);
+  });
+
+  it("一致するタグがなく、大文字小文字だけが異なる場合も不一致にする", () => {
+    expect(matchesVocabularyBookConcept(book(["English"]), concept("c1", ["english"]))).toBe(false);
+  });
+
+  it("前後空白を除去し、重複タグを無視して判定する", () => {
+    expect(
+      matchesVocabularyBookConcept(
+        book([" 英語 ", "英語", "  "]),
+        concept("c1", [" 英語 ", "英語"])
+      )
+    ).toBe(true);
+  });
+
+  it("分野未設定は includeUnassigned が true の場合だけ一致する", () => {
+    const unassignedConcept = concept("c1", [" ", ""]);
+    const unassignedCard = card("k1", { domainTags: [" "], domain: " " });
+    expect(matchesVocabularyBookConcept(book([], false), unassignedConcept)).toBe(false);
+    expect(matchesVocabularyBookConcept(book([], true), unassignedConcept)).toBe(true);
+    expect(matchesVocabularyBookContextCard(book([], false), unassignedCard)).toBe(false);
+    expect(matchesVocabularyBookContextCard(book([], true), unassignedCard)).toBe(true);
+  });
+
+  it("文字列タグ「未設定」と実際の分野未設定を区別する", () => {
+    expect(
+      matchesVocabularyBookConcept(book([UNASSIGNED_DOMAIN_LABEL]), concept("c1", []))
+    ).toBe(false);
+    expect(
+      matchesVocabularyBookConcept(book([], true), concept("c1", [UNASSIGNED_DOMAIN_LABEL]))
+    ).toBe(false);
+    expect(
+      matchesVocabularyBookConcept(
+        book([UNASSIGNED_DOMAIN_LABEL]),
+        concept("c1", [UNASSIGNED_DOMAIN_LABEL])
+      )
+    ).toBe(true);
+    expect(
+      matchesVocabularyBookContextCard(
+        book([], true),
+        card("k1", { domainTags: [], domain: UNASSIGNED_DOMAIN_LABEL })
+      )
+    ).toBe(false);
+    expect(
+      matchesVocabularyBookContextCard(
+        book([UNASSIGNED_DOMAIN_LABEL]),
+        card("k1", { domainTags: [], domain: UNASSIGNED_DOMAIN_LABEL })
+      )
+    ).toBe(true);
+  });
+
+  it("文脈カードは有効な domainTags が無ければ domain にフォールバックする", () => {
+    expect(
+      matchesVocabularyBookContextCard(
+        book(["デンマーク語"]),
+        card("k1", { domainTags: ["  "], domain: " デンマーク語 " })
+      )
+    ).toBe(true);
+  });
+
+  it("タグ0件かつ includeUnassigned=false の単語帳は常に不一致にする", () => {
+    const emptyBook = book([], false);
+    expect(matchesVocabularyBookConcept(emptyBook, concept("c1", ["英語"]))).toBe(false);
+    expect(
+      matchesVocabularyBookContextCard(
+        emptyBook,
+        card("k1", { domainTags: [], domain: undefined })
+      )
+    ).toBe(false);
+  });
+
+  it("判定時に単語帳・Concept・文脈カードを変更しない", () => {
+    const inputBook = book([" 英語 ", "英語"]);
+    const inputConcept = concept("c1", [" 英語 "]);
+    const inputCard = card("k1", { domainTags: ["  "], domain: " 英語 " });
+    const before = structuredClone({ inputBook, inputConcept, inputCard });
+
+    matchesVocabularyBookConcept(inputBook, inputConcept);
+    matchesVocabularyBookContextCard(inputBook, inputCard);
+
+    expect({ inputBook, inputConcept, inputCard }).toEqual(before);
   });
 });
