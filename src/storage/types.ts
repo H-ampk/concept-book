@@ -5,6 +5,7 @@ import type { QuizAttemptLog, QuizDeck, QuizQuestion } from "../types/quiz";
 import type { ResearchReport } from "../types/researchReport";
 import type { ConceptSourceAnchor } from "../types/conceptSourceAnchor";
 import type { LearningMaterial } from "../types/learningMaterial";
+import type { VocabularyBook, VocabularyBookInput, VocabularyBookPatch } from "../types/vocabularyBook";
 
 export type BackupExportData = {
   concepts: Concept[];
@@ -15,6 +16,8 @@ export type BackupExportData = {
   researchReports: ResearchReport[];
   learningMaterials: LearningMaterial[];
   conceptSourceAnchors: ConceptSourceAnchor[];
+  /** 旧バックアップには無い。新規エクスポートでは常に含める。 */
+  vocabularyBooks?: VocabularyBook[];
 };
 
 /** 省略時・true は従来どおり学習ログ全件を含む完全バックアップ */
@@ -82,6 +85,11 @@ export type ConceptStorage = {
     metadataUpdatedCount: number;
   }>;
   deleteConcept: (id: string) => Promise<void>;
+  getAllVocabularyBooks: () => Promise<VocabularyBook[]>;
+  getVocabularyBook: (id: string) => Promise<VocabularyBook | undefined>;
+  createVocabularyBook: (input: VocabularyBookInput) => Promise<VocabularyBook>;
+  updateVocabularyBook: (id: string, patch: VocabularyBookPatch) => Promise<VocabularyBook>;
+  deleteVocabularyBook: (id: string) => Promise<void>;
   importConcepts: (
     concepts: Concept[],
     mode: "replace" | "merge"
@@ -104,6 +112,9 @@ export type ConceptStorage = {
       learningMaterialParseSkipped?: number;
       conceptSourceAnchors?: ConceptSourceAnchor[];
       conceptSourceAnchorParseSkipped?: number;
+      vocabularyBooks?: VocabularyBook[];
+      vocabularyBookParseSkipped?: number;
+      vocabularyBooksApply?: boolean;
     },
     mode: "replace" | "merge",
     options?: BackupImportOptions
@@ -124,6 +135,8 @@ export type ConceptStorage = {
     skippedLearningMaterials: number;
     importedConceptSourceAnchors: number;
     skippedConceptSourceAnchors: number;
+    importedVocabularyBooks: number;
+    skippedVocabularyBooks: number;
   }>;
   /** 画像・動画を保存し、概念の media 参照を更新する */
   addMedia: (input: {
@@ -162,6 +175,8 @@ export type ConceptStorage = {
     missingLearningMaterials: number;
     importedConceptSourceAnchors: number;
     skippedConceptSourceAnchors: number;
+    importedVocabularyBooks: number;
+    skippedVocabularyBooks: number;
     domainColors?: Record<string, string>;
   }>;
 

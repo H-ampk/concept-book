@@ -20,7 +20,8 @@ export type VocabularyEntry = {
   domains: string[];
 };
 
-const uniqueTags = (tags: readonly string[] | undefined): string[] => {
+/** 分野タグの正規化。非文字列・空白のみを捨て、先勝ちで重複を除く。大小文字は区別する。 */
+export const normalizeVocabularyDomainTags = (tags: readonly unknown[] | undefined): string[] => {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const tag of tags ?? []) {
@@ -36,6 +37,9 @@ const uniqueTags = (tags: readonly string[] | undefined): string[] => {
   }
   return result;
 };
+
+const uniqueTags = (tags: readonly string[] | undefined): string[] =>
+  normalizeVocabularyDomainTags(tags);
 
 /** Concept の所属分野。空なら未設定。同一 Concept 内の重複タグは除く。 */
 export const conceptDomainKeys = (concept: Pick<Concept, "domainTags">): string[] => {

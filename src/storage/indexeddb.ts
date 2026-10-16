@@ -12,6 +12,8 @@ import type { QuizAttemptLog, QuizChoice, QuizDeck, QuizQuestion, QuizQuestionSo
 import { normalizeFreeResponseKeywords } from "../utils/quiz/freeResponseKeywordMatch";
 import { resolveQuizQuestionType } from "../utils/quiz/quizQuestionType";
 import type { ResearchReport } from "../types/researchReport";
+import type { VocabularyBook, VocabularyBookInput, VocabularyBookPatch } from "../types/vocabularyBook";
+import { applyVocabularyBookPatch, buildVocabularyBook, parseVocabularyBook } from "../utils/vocabularyBookRecord";
 import type { ConceptSourceAnchor } from "../types/conceptSourceAnchor";
 import type { LearningMaterial, LearningMaterialBlobRecord } from "../types/learningMaterial";
 import {
@@ -71,7 +73,7 @@ import type {
 import { computeConceptSyncPlan } from "../utils/syncImportantTermsToConcepts";
 
 const DB_NAME = "concept-book-db";
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 const STORE_CONCEPTS = "concepts";
 const STORE_MEDIA = "media";
 const STORE_CONTEXT_CARDS = "contextCards";
@@ -84,6 +86,7 @@ const STORE_LEARNING_MATERIAL_BLOBS = "learningMaterialBlobs";
 const STORE_CONCEPT_SOURCE_ANCHORS = "conceptSourceAnchors";
 const STORE_SYNC_QUEUE = "syncQueue";
 const STORE_SYNC_STATE = "syncState";
+const STORE_VOCABULARY_BOOKS = "vocabularyBooks";
 
 export const CONCEPT_BOOK_DB_NAME = DB_NAME;
 export const CONCEPT_BOOK_DB_VERSION = DB_VERSION;
@@ -543,6 +546,9 @@ const openDb = (): Promise<IDBDatabase> =>
       if (oldVersion < 11 && !db.objectStoreNames.contains(STORE_SYNC_STATE)) {
         db.createObjectStore(STORE_SYNC_STATE, { keyPath: "ownerUserId" });
       }
+      if (!db.objectStoreNames.contains(STORE_VOCABULARY_BOOKS)) {
+        db.createObjectStore(STORE_VOCABULARY_BOOKS, { keyPath: "id" });
+      }
 
       // v7: relatedIds を無向関係として一度だけ修復する
       if (oldVersion < 7 && db.objectStoreNames.contains(STORE_CONCEPTS)) {
@@ -578,7 +584,8 @@ const REPLACE_BACKUP_STORES = [
   STORE_RESEARCH_REPORTS,
   STORE_LEARNING_MATERIALS,
   STORE_LEARNING_MATERIAL_BLOBS,
-  STORE_CONCEPT_SOURCE_ANCHORS
+  STORE_CONCEPT_SOURCE_ANCHORS,
+  STORE_VOCABULARY_BOOKS
 ];
 
 const withTransaction = async <T>(
@@ -693,6 +700,10 @@ type BackupImportPayload = {
   learningMaterialParseSkipped?: number;
   conceptSourceAnchors?: ConceptSourceAnchor[];
   conceptSourceAnchorParseSkipped?: number;
+  vocabularyBooks?: VocabularyBook[];
+  vocabularyBookParseSkipped?: number;
+  /** false のとき単語帳ストアは触らない（キー無し、または全件不正）。 */
+  vocabularyBooksApply?: boolean;
 };
 
 type BackupImportCounts = {
@@ -712,6 +723,8 @@ type BackupImportCounts = {
   skippedLearningMaterials: number;
   importedConceptSourceAnchors: number;
   skippedConceptSourceAnchors: number;
+  importedVocabularyBooks: number;
+  skippedVocabularyBooks: number;
 };
 
 const backupHasResearchReports = (data: BackupImportPayload): data is BackupImportPayload & { researchReports: ResearchReport[] } =>
@@ -958,6 +971,28 @@ const importResearchReportsIntoStore = async (
   return { imported, skipped };
 };
 
+const importVocabularyBooksIntoStore = async (
+  store: IDBObjectStore,
+  books: VocabularyBook[],
+  mode: "replace" | "merge"
+): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0;
+  let skipped = 0;
+  if (mode === "replace") {
+    await requestToPromise(store.clear());
+  }
+  for (const book of books) {
+    const parsed = parseVocabularyBook(book);
+    if (!parsed.ok) {
+      skipped += 1;
+      continue;
+    }
+    await requestToPromise(store.put(parsed.book));
+    imported += 1;
+  }
+  return { imported, skipped };
+};
+
 const emptyResearchReportImportResult = (
   data: BackupImportPayload
 ): { imported: number; skipped: number } => ({
@@ -1040,6 +1075,13 @@ const writeReplaceBackupInTransaction = async (
         "replace"
       )
     : emptyResearchReportImportResult(data);
+  const vocabularyBookResult = data.vocabularyBooksApply
+    ? await importVocabularyBooksIntoStore(
+        getStore(STORE_VOCABULARY_BOOKS),
+        data.vocabularyBooks ?? [],
+        "replace"
+      )
+    : { imported: 0, skipped: 0 };
 
   for (const record of mediaRecords) {
     await requestToPromise(getStore(STORE_MEDIA).put(record));
@@ -1063,7 +1105,9 @@ const writeReplaceBackupInTransaction = async (
     importedLearningMaterials: 0,
     skippedLearningMaterials: data.learningMaterialParseSkipped ?? 0,
     importedConceptSourceAnchors: 0,
-    skippedConceptSourceAnchors: data.conceptSourceAnchorParseSkipped ?? 0
+    skippedConceptSourceAnchors: data.conceptSourceAnchorParseSkipped ?? 0,
+    importedVocabularyBooks: vocabularyBookResult.imported,
+    skippedVocabularyBooks: (data.vocabularyBookParseSkipped ?? 0) + vocabularyBookResult.skipped
   };
 };
 
@@ -2278,7 +2322,8 @@ export class IndexedDBStorage implements ConceptStorage {
         quizAttemptLogs,
         researchReports,
         learningMaterials,
-        conceptSourceAnchors
+        conceptSourceAnchors,
+        vocabularyBooks: (await this.getAllVocabularyBooks())
       },
       options
     );
@@ -2358,6 +2403,9 @@ export class IndexedDBStorage implements ConceptStorage {
       quizAttemptLogParseSkipped: number;
       researchReports?: ResearchReport[];
       researchReportParseSkipped?: number;
+      vocabularyBooks?: VocabularyBook[];
+      vocabularyBookParseSkipped?: number;
+      vocabularyBooksApply?: boolean;
     },
     mode: "replace" | "merge",
     options?: BackupImportOptions
@@ -2393,6 +2441,10 @@ export class IndexedDBStorage implements ConceptStorage {
       ? await this.importResearchReports(data.researchReports, mode)
       : { imported: 0, skipped: 0 };
 
+    const vocabularyBookResult = data.vocabularyBooksApply
+      ? await this.importVocabularyBooks(data.vocabularyBooks ?? [], mode)
+      : { imported: 0, skipped: 0 };
+
     return {
       importedConcepts: conceptResult.imported,
       skippedConcepts: conceptResult.skipped,
@@ -2409,8 +2461,74 @@ export class IndexedDBStorage implements ConceptStorage {
       importedLearningMaterials: 0,
       skippedLearningMaterials: 0,
       importedConceptSourceAnchors: 0,
-      skippedConceptSourceAnchors: 0
+      skippedConceptSourceAnchors: 0,
+      importedVocabularyBooks: vocabularyBookResult.imported,
+      skippedVocabularyBooks: (data.vocabularyBookParseSkipped ?? 0) + vocabularyBookResult.skipped
     };
+  }
+
+  private async importVocabularyBooks(
+    books: VocabularyBook[],
+    mode: "replace" | "merge"
+  ): Promise<{ imported: number; skipped: number }> {
+    return withTransaction([STORE_VOCABULARY_BOOKS], "readwrite", async (getStore) =>
+      importVocabularyBooksIntoStore(getStore(STORE_VOCABULARY_BOOKS), books, mode)
+    );
+  }
+
+  async getAllVocabularyBooks(): Promise<VocabularyBook[]> {
+    return withTransaction([STORE_VOCABULARY_BOOKS], "readonly", async (getStore) => {
+      const rows = (await requestToPromise(getStore(STORE_VOCABULARY_BOOKS).getAll())) as unknown[];
+      return rows
+        .map((row) => parseVocabularyBook(row))
+        .filter((row): row is { ok: true; book: VocabularyBook } => row.ok)
+        .map((row) => row.book);
+    });
+  }
+
+  async getVocabularyBook(id: string): Promise<VocabularyBook | undefined> {
+    return withTransaction([STORE_VOCABULARY_BOOKS], "readonly", async (getStore) => {
+      const row = await requestToPromise(getStore(STORE_VOCABULARY_BOOKS).get(id));
+      const parsed = parseVocabularyBook(row);
+      return parsed.ok ? parsed.book : undefined;
+    });
+  }
+
+  async createVocabularyBook(input: VocabularyBookInput): Promise<VocabularyBook> {
+    const book = buildVocabularyBook(input, nowIso());
+    return withTransaction([STORE_VOCABULARY_BOOKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_VOCABULARY_BOOKS);
+      const existing = await requestToPromise(store.get(book.id));
+      if (existing) {
+        throw new Error("同じIDの単語帳が既にあります。");
+      }
+      await requestToPromise(store.add(book));
+      return book;
+    });
+  }
+
+  async updateVocabularyBook(id: string, patch: VocabularyBookPatch): Promise<VocabularyBook> {
+    return withTransaction([STORE_VOCABULARY_BOOKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_VOCABULARY_BOOKS);
+      const parsed = parseVocabularyBook(await requestToPromise(store.get(id)));
+      if (!parsed.ok) {
+        throw new Error("単語帳が見つかりません。");
+      }
+      const next = applyVocabularyBookPatch(parsed.book, patch, nowIso());
+      await requestToPromise(store.put(next));
+      return next;
+    });
+  }
+
+  async deleteVocabularyBook(id: string): Promise<void> {
+    return withTransaction([STORE_VOCABULARY_BOOKS], "readwrite", async (getStore) => {
+      const store = getStore(STORE_VOCABULARY_BOOKS);
+      const existing = await requestToPromise(store.get(id));
+      if (!existing) {
+        throw new Error("単語帳が見つかりません。");
+      }
+      await requestToPromise(store.delete(id));
+    });
   }
 
   async addMedia(input: {
@@ -2763,6 +2881,8 @@ export class IndexedDBStorage implements ConceptStorage {
     missingLearningMaterials: number;
     importedConceptSourceAnchors: number;
     skippedConceptSourceAnchors: number;
+    importedVocabularyBooks: number;
+    skippedVocabularyBooks: number;
     domainColors?: Record<string, string>;
   }> {
     const buffer = await file.arrayBuffer();
@@ -2824,7 +2944,10 @@ export class IndexedDBStorage implements ConceptStorage {
       quizAttemptLogs: validation.quizAttemptLogs,
       quizAttemptLogParseSkipped: validation.quizAttemptLogParseSkipped,
       researchReportParseSkipped: validation.researchReportParseSkipped,
-      ...(validation.researchReportsPresent ? { researchReports: validation.researchReports } : {})
+      ...(validation.researchReportsPresent ? { researchReports: validation.researchReports } : {}),
+      vocabularyBookParseSkipped: validation.vocabularyBookParseSkipped,
+      vocabularyBooksApply: validation.vocabularyBooksApply,
+      ...(validation.vocabularyBooksApply ? { vocabularyBooks: validation.vocabularyBooks } : {})
     };
 
     if (mode === "replace") {
@@ -2855,7 +2978,9 @@ export class IndexedDBStorage implements ConceptStorage {
       importedQuizAttemptLogs,
       skippedQuizAttemptLogs,
       importedResearchReports,
-      skippedResearchReports
+      skippedResearchReports,
+      importedVocabularyBooks,
+      skippedVocabularyBooks
     } = await this.importBackupData(payload, mode, { preserveMediaReferences: true });
 
     let importedMedia = 0;
@@ -2929,6 +3054,8 @@ export class IndexedDBStorage implements ConceptStorage {
       skippedQuizAttemptLogs,
       importedResearchReports,
       skippedResearchReports,
+      importedVocabularyBooks,
+      skippedVocabularyBooks,
       importedMedia,
       missingMedia,
       ...restored,

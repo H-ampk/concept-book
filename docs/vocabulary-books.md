@@ -70,7 +70,9 @@ ID は新規作成時 `vocab_<uuid>`（`createEntityId` と同じ形）。既存
 | `concepts` ストアに種別フィールドで混在させる | Concept の key とバリデーションを汚染する。バックアップと同期の entity 境界が崩れる。 |
 | 同期キューや syncState に置く | キューは未送信操作、syncState は owner ごとのカーソルであり、Domain データの置き場ではない。 |
 
-専用 Object Store `vocabularyBooks`（keyPath `id`）を次の実装スライスで足す。version は 11 から 12 へ上げ、ストアが無ければ作る。既存ストアの削除・クリアはしない。インデックスは MVP では不要（件数はユーザーの冊数で、全件読みで足りる）。
+専用 Object Store `vocabularyBooks`（keyPath `id`）を Slice 2 で足す。IndexedDB version は 12。ストアが無ければ作る。既存ストアの削除・クリアはしない。インデックスは MVP では不要（件数はユーザーの冊数で、全件読みで足りる）。
+
+全要素が不正な `vocabularyBooks` 配列は、正当な空配列と区別する。この場合は単語帳ストアを置換せず、ローカルの冊を残す。空配列の replace だけが 0 件への置き換えである。キーが配列でないときも、バックアップ全体は失敗させず、単語帳ストアは触らない。
 
 比較の要約:
 
@@ -82,7 +84,7 @@ ID は新規作成時 `vocab_<uuid>`（`createEntityId` と同じ形）。既存
 - 拡張: 手動ピン留めが必要になっても別フィールドを足せる。主判定はタグのまま。
 - コスト: ストア 1 つと import の任意配列。共通設定袋より境界が明確。
 
-今回のコミットでは `DB_VERSION` もストアも変えない。
+Slice 1 の文書化時点では `DB_VERSION` を変えていない。Slice 2 で version 12 と CRUD、バックアップの任意配列を実装する。Private Sync と UI はまだ変えない。
 
 ## 5. Concept・文脈カードとの関連
 

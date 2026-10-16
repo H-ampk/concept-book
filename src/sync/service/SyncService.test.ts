@@ -480,8 +480,10 @@ describe("PrivateSyncService pull", () => {
 
 describe("sync state migration", () => {
   it("version 10 から upgrade しても concept と sync queue が残る", async () => {
+    // syncState は version 11 で追加された。current-1 だと 12 以降でその経路を通らない。
+    const preSyncStateVersion = 10;
     await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(CONCEPT_BOOK_DB_NAME, CONCEPT_BOOK_DB_VERSION - 1);
+      const request = indexedDB.open(CONCEPT_BOOK_DB_NAME, preSyncStateVersion);
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains("concepts")) {
@@ -519,6 +521,7 @@ describe("sync state migration", () => {
     const db = await openConceptBookDatabase();
     expect(db.version).toBe(CONCEPT_BOOK_DB_VERSION);
     expect(db.objectStoreNames.contains("syncState")).toBe(true);
+    expect(db.objectStoreNames.contains("vocabularyBooks")).toBe(true);
     const keptConcept = await new Promise<{ title: string }>((resolve, reject) => {
       const tx = db.transaction("concepts", "readonly");
       const request = tx.objectStore("concepts").get("kept");

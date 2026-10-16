@@ -11,6 +11,8 @@ import type {
 } from "../types/quiz";
 import { QUIZ_DECK_SCHEMA_VERSION, QUIZ_QUESTION_SCHEMA_VERSION } from "../types/quiz";
 import type { ResearchReport } from "../types/researchReport";
+import type { VocabularyBook } from "../types/vocabularyBook";
+import { normalizeVocabularyBooksForBackupImport } from "./vocabularyBookRecord";
 import { normalizeFreeResponseKeywords } from "./quiz/freeResponseKeywordMatch";
 import {
   isValidImportedQuizAttemptLog,
@@ -856,6 +858,9 @@ export type BackupImportValidationSuccess = {
   researchReports: ResearchReport[];
   researchReportsPresent: boolean;
   researchReportParseSkipped: number;
+  vocabularyBooks: VocabularyBook[];
+  vocabularyBooksApply: boolean;
+  vocabularyBookParseSkipped: number;
   domainColors?: Record<string, string>;
 };
 
@@ -880,6 +885,7 @@ export const validateBackupImportPayload = (
     const { reports, skipped: reportSkipped } = normalizeResearchReportsForBackupImport(
       researchReportsPresent ? (payload as { researchReports: unknown }).researchReports : undefined
     );
+    const vocabularyBooks = normalizeVocabularyBooksForBackupImport(payload);
     const domainColors = extractBackupDomainColors(payload);
     return {
       success: true,
@@ -900,6 +906,9 @@ export const validateBackupImportPayload = (
       researchReports: reports,
       researchReportsPresent,
       researchReportParseSkipped: reportSkipped,
+      vocabularyBooks: vocabularyBooks.books,
+      vocabularyBooksApply: vocabularyBooks.apply,
+      vocabularyBookParseSkipped: vocabularyBooks.skipped,
       ...(domainColors !== undefined ? { domainColors } : {})
     };
   }
@@ -919,7 +928,10 @@ export const validateBackupImportPayload = (
       quizAttemptLogParseSkipped: 0,
       researchReports: [],
       researchReportsPresent: false,
-      researchReportParseSkipped: 0
+      researchReportParseSkipped: 0,
+      vocabularyBooks: [],
+      vocabularyBooksApply: false,
+      vocabularyBookParseSkipped: 0
     };
   }
   return legacyResult;
