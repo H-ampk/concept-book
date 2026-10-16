@@ -5,15 +5,24 @@ import type { ContextCardStorage } from "../../storage/types";
 
 const storage: ContextCardStorage = getContextStorage();
 
+const reloadFailureMessage = (error: unknown): string =>
+  error instanceof Error && error.message.trim()
+    ? error.message
+    : "文脈カードの読み込みに失敗しました。";
+
 export const useContextCards = () => {
   const [contextCards, setContextCards] = useState<ContextCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadError, setReloadError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
       const all = await storage.getAllContextCards();
       setContextCards(all);
+      setReloadError(null);
+    } catch (error) {
+      setReloadError(reloadFailureMessage(error));
     } finally {
       setLoading(false);
     }
@@ -57,6 +66,7 @@ export const useContextCards = () => {
   return {
     contextCards,
     loading,
+    reloadError,
     domains,
     reload,
     create,

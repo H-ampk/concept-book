@@ -41,6 +41,7 @@ import {
 import { computeConfusionPairs } from "../utils/quizStats";
 import { buildQuizQuestionConceptIdSet } from "../utils/review/buildQuizQuestionConceptIdSet";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
+import { VocabularyBookScreen } from "../components/VocabularyBookScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
 import { LabNavDropdown } from "../components/LabNavDropdown";
 import { LabPlaceholderPage } from "../components/LabPlaceholderPage";
@@ -63,7 +64,7 @@ import { ConceptListPageLayout } from "./ConceptListPageLayout";
 import { ConceptListWorkspaceLayout } from "./ConceptListWorkspaceLayout";
 import { GraphWorkspaceLayout } from "./GraphWorkspaceLayout";
 
-type Screen = "concepts" | "contexts" | "guide" | "settings" | LabRoute;
+type Screen = "concepts" | "contexts" | "vocabulary" | "guide" | "settings" | LabRoute;
 type ConceptMainTab = "list" | "graph" | "tree";
 
 const statusLabelMap: Record<ConceptStatus, string> = {
@@ -826,6 +827,15 @@ export const App = () => {
             >
               文脈
             </button>
+            <button
+              className={`header-nav-button${
+                screen === "vocabulary" ? " header-nav-button--active" : ""
+              }`}
+              onClick={() => setScreen("vocabulary")}
+              type="button"
+            >
+              単語帳
+            </button>
             <LabNavDropdown
               screen={screen}
               isLabActive={isLabRoute(screen)}
@@ -900,6 +910,31 @@ export const App = () => {
             domainTags={allDomainTags}
             domainColorMap={domainColorMap}
             onChangeDomainColor={handleChangeDomainColor}
+          />
+        ) : screen === "vocabulary" ? (
+          <VocabularyBookScreen
+            concepts={concepts}
+            conceptsLoading={loading}
+            conceptsError={reloadError}
+            conceptMap={conceptMap}
+            domainColorMap={domainColorMap}
+            prerequisiteIndex={prerequisiteIndex}
+            mutationDisabled={!canMutateConcepts}
+            deleting={deleting}
+            onEditConcept={openEdit}
+            onToggleFavorite={(concept) => {
+              void toggleFavorite(concept).catch(() => {
+                setFeedback("お気に入りの更新に失敗しました。時間をおいて再試行してください。");
+              });
+            }}
+            onRequestDelete={handleRequestDelete}
+            onConceptsChanged={() => reload()}
+            onCreateQuizFromContextCard={(contextCardId) => {
+              openQuizCreate({
+                sourceType: "contextCard",
+                selectedContextCardId: contextCardId
+              });
+            }}
           />
         ) : screen === "contexts" ? (
           <ContextCardsScreen

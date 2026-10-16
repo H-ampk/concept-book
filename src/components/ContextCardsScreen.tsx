@@ -138,7 +138,7 @@ const ContextCardList = ({
   </section>
 );
 
-const ContextCardDetail = ({
+export const ContextCardDetail = ({
   card,
   onBack,
   onEdit,
@@ -306,7 +306,7 @@ const ContextCardDetail = ({
   );
 };
 
-const RelatedConceptsScreen = ({
+export const RelatedConceptsScreen = ({
   contextCard,
   concepts,
   onNavigateToConcept,
