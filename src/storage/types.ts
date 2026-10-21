@@ -6,6 +6,7 @@ import type { ResearchReport } from "../types/researchReport";
 import type { ConceptSourceAnchor } from "../types/conceptSourceAnchor";
 import type { LearningMaterial } from "../types/learningMaterial";
 import type { VocabularyBook, VocabularyBookInput, VocabularyBookPatch } from "../types/vocabularyBook";
+import type { ImportResourceLimits } from "../utils/importResourceLimits";
 
 export type BackupExportData = {
   concepts: Concept[];
@@ -154,7 +155,8 @@ export type ConceptStorage = {
   ) => Promise<Blob>;
   importConceptBookPackage: (
     file: File,
-    mode: "replace" | "merge"
+    mode: "replace" | "merge",
+    limits?: Partial<ImportResourceLimits>
   ) => Promise<{
     importedConcepts: number;
     skippedConcepts: number;

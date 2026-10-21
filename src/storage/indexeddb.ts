@@ -1,5 +1,14 @@
 import { deriveConceptStatus } from "../utils/conceptStatus";
-import { buildConceptBookZip, parseConceptBookZip } from "../utils/conceptBookZip";
+import {
+  assertConceptBookZipExportResources,
+  buildConceptBookZip,
+  parseConceptBookZip
+} from "../utils/conceptBookZip";
+import {
+  resolveImportResourceLimits,
+  ZIP_IMPORT_TOO_LARGE_MESSAGE,
+  type ImportResourceLimits
+} from "../utils/importResourceLimits";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 import { normalizeMediaRefs } from "../utils/conceptImportValidation";
 import { nowIso } from "../utils/date";
@@ -2814,7 +2823,6 @@ export class IndexedDBStorage implements ConceptStorage {
   ): Promise<Blob> {
     const data = await this.exportBackupData(options);
     const mediaRecords: MediaRecord[] = [];
-    const mediaFiles: { id: string; data: Uint8Array }[] = [];
     const seen = new Set<string>();
 
     // Transaction 内では IndexedDB アクセスのみ実行する。
@@ -2835,24 +2843,33 @@ export class IndexedDBStorage implements ConceptStorage {
       }
     });
 
-    // IDB transaction の外で Blob -> Uint8Array に変換する。
-    for (const rec of mediaRecords) {
-      const buf = await rec.blob.arrayBuffer();
-      mediaFiles.push({ id: rec.id, data: new Uint8Array(buf) });
-    }
-
     const json = JSON.stringify(
       domainColors !== undefined ? { ...data, domainColors } : data,
       null,
       2
     );
-    const learningMaterialFiles: { id: string; data: Uint8Array }[] = [];
+    const learningMaterialBlobs: { id: string; blob: Blob }[] = [];
     for (const material of data.learningMaterials) {
       const blob = await this.getLearningMaterialBlob(material.id);
       if (!blob) {
         continue;
       }
-      learningMaterialFiles.push({ id: material.id, data: new Uint8Array(await blob.arrayBuffer()) });
+      learningMaterialBlobs.push({ id: material.id, blob });
+    }
+    // Blob 本文をメモリへ読む前に、同じ版が取り込めるパッケージか検証する。
+    assertConceptBookZipExportResources(
+      json,
+      mediaRecords.map((record) => ({ id: record.id, byteLength: record.blob.size })),
+      learningMaterialBlobs.map(({ id, blob }) => ({ id, byteLength: blob.size }))
+    );
+
+    const mediaFiles: { id: string; data: Uint8Array }[] = [];
+    for (const rec of mediaRecords) {
+      mediaFiles.push({ id: rec.id, data: new Uint8Array(await rec.blob.arrayBuffer()) });
+    }
+    const learningMaterialFiles: { id: string; data: Uint8Array }[] = [];
+    for (const { id, blob } of learningMaterialBlobs) {
+      learningMaterialFiles.push({ id, data: new Uint8Array(await blob.arrayBuffer()) });
     }
     const zipped = buildConceptBookZip(json, mediaFiles, learningMaterialFiles);
     return new Blob([new Uint8Array(zipped)], { type: "application/zip" });
@@ -2860,7 +2877,8 @@ export class IndexedDBStorage implements ConceptStorage {
 
   async importConceptBookPackage(
     file: File,
-    mode: "replace" | "merge"
+    mode: "replace" | "merge",
+    limitOverrides?: Partial<ImportResourceLimits>
   ): Promise<{
     importedConcepts: number;
     skippedConcepts: number;
@@ -2885,8 +2903,12 @@ export class IndexedDBStorage implements ConceptStorage {
     skippedVocabularyBooks: number;
     domainColors?: Record<string, string>;
   }> {
+    const limits = resolveImportResourceLimits(limitOverrides);
+    if (!Number.isSafeInteger(file.size) || file.size < 0 || file.size > limits.maxZipCompressedBytes) {
+      throw new Error(ZIP_IMPORT_TOO_LARGE_MESSAGE);
+    }
     const buffer = await file.arrayBuffer();
-    const { conceptsText, mediaEntries, learningMaterialEntries } = parseConceptBookZip(buffer);
+    const { conceptsText, mediaEntries, learningMaterialEntries } = parseConceptBookZip(buffer, limits);
     const parsed: unknown = JSON.parse(conceptsText);
 
     const validation = validateBackupImportPayload(parsed);
