@@ -8,6 +8,7 @@ import {
   restoreDomainColorsFromBackup
 } from "../utils/domainColors";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
+import { readJsonBackupPayload } from "../utils/importResourceLimits";
 import { downloadBlob } from "../utils/downloadFile";
 import { buildLearningLogCsv, learningLogCsvFilename } from "../utils/quiz/learningLogExport";
 import { AccountSettingsSection } from "./AccountSettingsSection";
@@ -139,8 +140,7 @@ export const SettingsPage = ({
     }
     setBusy(true);
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as unknown;
+      const parsed = await readJsonBackupPayload(file);
       const validationResult = validateBackupImportPayload(parsed);
       if (!validationResult.success) {
         const unchanged =

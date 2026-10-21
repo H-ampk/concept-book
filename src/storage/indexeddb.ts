@@ -1,5 +1,10 @@
 import { deriveConceptStatus } from "../utils/conceptStatus";
 import { buildConceptBookZip, parseConceptBookZip } from "../utils/conceptBookZip";
+import {
+  resolveImportResourceLimits,
+  ZIP_IMPORT_TOO_LARGE_MESSAGE,
+  type ImportResourceLimits
+} from "../utils/importResourceLimits";
 import { validateBackupImportPayload } from "../utils/conceptImportValidation";
 import { normalizeMediaRefs } from "../utils/conceptImportValidation";
 import { nowIso } from "../utils/date";
@@ -2860,7 +2865,8 @@ export class IndexedDBStorage implements ConceptStorage {
 
   async importConceptBookPackage(
     file: File,
-    mode: "replace" | "merge"
+    mode: "replace" | "merge",
+    limitOverrides?: Partial<ImportResourceLimits>
   ): Promise<{
     importedConcepts: number;
     skippedConcepts: number;
@@ -2885,8 +2891,12 @@ export class IndexedDBStorage implements ConceptStorage {
     skippedVocabularyBooks: number;
     domainColors?: Record<string, string>;
   }> {
+    const limits = resolveImportResourceLimits(limitOverrides);
+    if (!Number.isSafeInteger(file.size) || file.size < 0 || file.size > limits.maxZipCompressedBytes) {
+      throw new Error(ZIP_IMPORT_TOO_LARGE_MESSAGE);
+    }
     const buffer = await file.arrayBuffer();
-    const { conceptsText, mediaEntries, learningMaterialEntries } = parseConceptBookZip(buffer);
+    const { conceptsText, mediaEntries, learningMaterialEntries } = parseConceptBookZip(buffer, limits);
     const parsed: unknown = JSON.parse(conceptsText);
 
     const validation = validateBackupImportPayload(parsed);
