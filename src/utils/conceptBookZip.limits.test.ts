@@ -1,10 +1,16 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { buildConceptBookZip, parseConceptBookZip } from "./conceptBookZip";
+import {
+  assertConceptBookZipExportResources,
+  buildConceptBookZip,
+  parseConceptBookZip
+} from "./conceptBookZip";
 import { validateBackupImportPayload } from "./conceptImportValidation";
 import {
   ZIP_CONCEPTS_JSON_TOO_LARGE_MESSAGE,
   ZIP_ENTRY_COUNT_MESSAGE,
+  ZIP_EXPORT_ENTRY_COUNT_MESSAGE,
+  ZIP_EXPORT_TOO_LARGE_MESSAGE,
   ZIP_IMPORT_TOO_LARGE_MESSAGE,
   ZIP_INVALID_MESSAGE,
   ZIP_UNCOMPRESSED_TOO_LARGE_MESSAGE
@@ -228,5 +234,87 @@ describe("parseConceptBookZip resource limits", () => {
     ).toThrow(ZIP_UNCOMPRESSED_TOO_LARGE_MESSAGE);
     expect(seen).toBeGreaterThan(0);
     expect(seen).toBeLessThan(80_000);
+  });
+});
+
+describe("ConceptBook ZIP export/import limits", () => {
+  const json = '{"concepts":[]}';
+
+  it("上限内でエクスポートに成功したZIPは同じ上限で再インポートできる", () => {
+    const media = new Uint8Array(900);
+    const pdf = new Uint8Array(700);
+    const limits = {
+      maxZipCompressedBytes: 4_000,
+      maxZipUncompressedBytes: 2_000,
+      maxZipEntryCount: 3,
+      maxZipEntryUncompressedBytes: 1_000,
+      maxConceptsJsonBytes: 100
+    };
+    const zipped = buildConceptBookZip(
+      json,
+      [{ id: "media", data: media }],
+      [{ id: "material", data: pdf }],
+      limits
+    );
+    const parsed = parseConceptBookZip(asArrayBuffer(zipped), limits);
+    expect(parsed.conceptsText).toBe(json);
+    expect(parsed.mediaEntries.get("media")).toEqual(media);
+    expect(parsed.learningMaterialEntries.get("material")).toEqual(pdf);
+  });
+
+  it("展開後合計または単体サイズを超える正常データはZIP生成前に拒否する", () => {
+    expect(() =>
+      assertConceptBookZipExportResources(
+        json,
+        [{ id: "video", byteLength: 1_500 }],
+        [{ id: "pdf", byteLength: 700 }],
+        {
+          maxZipUncompressedBytes: 2_000,
+          maxZipEntryUncompressedBytes: 2_000,
+          maxConceptsJsonBytes: 100
+        }
+      )
+    ).toThrow(ZIP_EXPORT_TOO_LARGE_MESSAGE);
+    expect(() =>
+      assertConceptBookZipExportResources(json, [{ id: "video", byteLength: 1_001 }], [], {
+        maxZipUncompressedBytes: 2_000,
+        maxZipEntryUncompressedBytes: 1_000,
+        maxConceptsJsonBytes: 100
+      })
+    ).toThrow(ZIP_EXPORT_TOO_LARGE_MESSAGE);
+  });
+
+  it("エントリ数超過はZIP生成前に拒否する", () => {
+    expect(() =>
+      assertConceptBookZipExportResources(
+        json,
+        [
+          { id: "a", byteLength: 1 },
+          { id: "b", byteLength: 1 }
+        ],
+        [],
+        { maxZipEntryCount: 2 }
+      )
+    ).toThrow(ZIP_EXPORT_ENTRY_COUNT_MESSAGE);
+  });
+
+  it("圧縮後サイズだけが上限を超える場合も、成功したZIPとして返さない", () => {
+    const incompressible = new Uint8Array(2_000);
+    let seed = 0x12345678;
+    for (let index = 0; index < incompressible.length; index += 1) {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      seed >>>= 0;
+      incompressible[index] = seed & 0xff;
+    }
+    expect(() =>
+      buildConceptBookZip(json, [{ id: "media", data: incompressible }], [], {
+        maxZipCompressedBytes: 1_000,
+        maxZipUncompressedBytes: 3_000,
+        maxZipEntryUncompressedBytes: 3_000,
+        maxConceptsJsonBytes: 100
+      })
+    ).toThrow(ZIP_EXPORT_TOO_LARGE_MESSAGE);
   });
 });

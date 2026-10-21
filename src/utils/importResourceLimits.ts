@@ -39,6 +39,10 @@ export const ZIP_UNCOMPRESSED_TOO_LARGE_MESSAGE =
 export const ZIP_CONCEPTS_JSON_TOO_LARGE_MESSAGE =
   "ZIP内のconcepts.jsonの容量が上限を超えています。ファイルを確認してください。";
 export const ZIP_INVALID_MESSAGE = "ZIPファイルの形式が不正です。";
+export const ZIP_EXPORT_TOO_LARGE_MESSAGE =
+  "バックアップの容量がZIPの上限を超えるため、エクスポートできません。データ量を減らしてください。";
+export const ZIP_EXPORT_ENTRY_COUNT_MESSAGE =
+  "バックアップ内のファイル数がZIPの上限を超えるため、エクスポートできません。添付ファイル数を減らしてください。";
 
 export type ImportResourceLimits = {
   maxJsonBytes: number;

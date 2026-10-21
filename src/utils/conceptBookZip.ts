@@ -3,6 +3,8 @@ import {
   resolveImportResourceLimits,
   ZIP_CONCEPTS_JSON_TOO_LARGE_MESSAGE,
   ZIP_ENTRY_COUNT_MESSAGE,
+  ZIP_EXPORT_ENTRY_COUNT_MESSAGE,
+  ZIP_EXPORT_TOO_LARGE_MESSAGE,
   ZIP_IMPORT_TOO_LARGE_MESSAGE,
   ZIP_INFLATE_INPUT_CHUNK_BYTES,
   ZIP_INVALID_MESSAGE,
@@ -287,6 +289,44 @@ const concatBytes = (parts: Uint8Array[]): Uint8Array => {
   return out;
 };
 
+export type ConceptBookZipExportEntry = {
+  id: string;
+  byteLength: number;
+};
+
+export const assertConceptBookZipExportResources = (
+  conceptsJson: string,
+  mediaFiles: ConceptBookZipExportEntry[],
+  learningMaterialFiles: ConceptBookZipExportEntry[] = [],
+  overrides?: Partial<ImportResourceLimits>
+): void => {
+  const limits = resolveImportResourceLimits(overrides);
+  const conceptsBytes = strToU8(conceptsJson).byteLength;
+  if (
+    conceptsBytes > limits.maxConceptsJsonBytes ||
+    conceptsBytes > limits.maxZipEntryUncompressedBytes
+  ) {
+    throw new Error(ZIP_EXPORT_TOO_LARGE_MESSAGE);
+  }
+  const entries = [...mediaFiles, ...learningMaterialFiles];
+  if (entries.length + 1 > limits.maxZipEntryCount) {
+    throw new Error(ZIP_EXPORT_ENTRY_COUNT_MESSAGE);
+  }
+  let total = conceptsBytes;
+  for (const entry of entries) {
+    if (
+      !entry.id ||
+      !Number.isSafeInteger(entry.byteLength) ||
+      entry.byteLength < 0 ||
+      entry.byteLength > limits.maxZipEntryUncompressedBytes ||
+      entry.byteLength > limits.maxZipUncompressedBytes - total
+    ) {
+      throw new Error(ZIP_EXPORT_TOO_LARGE_MESSAGE);
+    }
+    total += entry.byteLength;
+  }
+};
+
 const inflateZipWithLimits = (
   data: Uint8Array,
   declaredSizes: Map<string, number>,
@@ -455,8 +495,16 @@ export const parseConceptBookZip = (
 export const buildConceptBookZip = (
   conceptsJson: string,
   mediaFiles: { id: string; data: Uint8Array }[],
-  learningMaterialFiles: { id: string; data: Uint8Array }[] = []
+  learningMaterialFiles: { id: string; data: Uint8Array }[] = [],
+  overrides?: Partial<ImportResourceLimits>
 ): Uint8Array => {
+  const limits = resolveImportResourceLimits(overrides);
+  assertConceptBookZipExportResources(
+    conceptsJson,
+    mediaFiles.map(({ id, data }) => ({ id, byteLength: data.byteLength })),
+    learningMaterialFiles.map(({ id, data }) => ({ id, byteLength: data.byteLength })),
+    limits
+  );
   const out: Record<string, Uint8Array> = {
     [CONCEPT_BOOK_ZIP_CONCEPTS_ENTRY]: strToU8(conceptsJson)
   };
@@ -466,5 +514,9 @@ export const buildConceptBookZip = (
   for (const { id, data } of learningMaterialFiles) {
     out[conceptBookLearningMaterialPath(id)] = data;
   }
-  return zipSync(out, { level: 5 });
+  const zipped = zipSync(out, { level: 5 });
+  if (zipped.byteLength > limits.maxZipCompressedBytes) {
+    throw new Error(ZIP_EXPORT_TOO_LARGE_MESSAGE);
+  }
+  return zipped;
 };
