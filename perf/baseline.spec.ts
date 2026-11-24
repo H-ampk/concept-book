@@ -58,7 +58,16 @@ const installObservers = (): void => {
     const button = [...document.querySelectorAll("button")].find(
       (element) => element.textContent?.trim() === "概念を追加"
     );
-    if (button instanceof HTMLButtonElement && !button.disabled) {
+    const stores = new Set(
+      (host.__CB_PERF_PROBE__.idb as Array<{ store: string }>).map((sample) => sample.store)
+    );
+    if (
+      button instanceof HTMLButtonElement &&
+      !button.disabled &&
+      stores.has("concepts") &&
+      stores.has("quizQuestions") &&
+      stores.has("quizAttemptLogs")
+    ) {
       host.__appReadyAt = performance.now();
     }
   };
@@ -728,7 +737,7 @@ const measureSpec = async (
       warm:
         "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
       startup:
-        "navigation startTime から、ボタン「概念を追加」が有効になった最初の performance.now() まで。MutationObserver で記録し、固定 sleep は使わない。",
+        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録された最初の performance.now() まで。ボタンだけが先に有効でも、起動時の読み取りが終わるまで完了にしない。",
       navigation:
         "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
       crud:
