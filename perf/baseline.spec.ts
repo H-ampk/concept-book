@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, test, type Browser, type Page } from "@playwright/test";
@@ -9,6 +9,13 @@ import {
   type SyntheticDataset
 } from "../src/perf/generateSyntheticDataset";
 import { summarizeSamples, unmeasured, type Metric } from "../src/perf/summarizeSamples";
+import {
+  datasetToFingerprintInput,
+  fingerprintPayload,
+  firstFingerprintMismatch,
+  type FingerprintInput
+} from "../src/perf/datasetFingerprint";
+import { selectLongTasks } from "../src/perf/longTaskWindow";
 
 const DB_NAME = "concept-book-db";
 const RESULTS_DIR = path.resolve("docs/perf/results");
@@ -28,7 +35,7 @@ type StartupSample = {
 const installObservers = (): void => {
   const host = window as unknown as {
     __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
-    __longTasks: number[];
+    __longTasks: Array<{ startTime: number; duration: number }>;
     __appReadyAt: number | null;
   };
   host.__CB_PERF_PROBE__ = { idb: [], models: [] };
@@ -37,7 +44,7 @@ const installObservers = (): void => {
   try {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        host.__longTasks.push(entry.duration);
+        host.__longTasks.push({ startTime: entry.startTime, duration: entry.duration });
       }
     });
     observer.observe({ type: "longtask", buffered: true });
@@ -75,7 +82,7 @@ const resetProbe = async (page: Page): Promise<void> => {
   await page.evaluate(() => {
     const host = window as unknown as {
       __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
-      __longTasks: number[];
+      __longTasks: Array<{ startTime: number; duration: number }>;
       __appReadyAt: number | null;
     };
     host.__CB_PERF_PROBE__ = { idb: [], models: [] };
@@ -85,10 +92,10 @@ const resetProbe = async (page: Page): Promise<void> => {
 };
 
 const readStartup = async (page: Page): Promise<StartupSample> => {
-  return page.evaluate(() => {
+  const raw = await page.evaluate(() => {
     const host = window as unknown as {
       __CB_PERF_PROBE__: { idb: Array<{ count: number; ms: number }>; models: Array<{ ms: number }> };
-      __longTasks: number[];
+      __longTasks: Array<{ startTime: number; duration: number }>;
       __appReadyAt: number | null;
     };
     const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
@@ -101,9 +108,10 @@ const readStartup = async (page: Page): Promise<StartupSample> => {
     const models = host.__CB_PERF_PROBE__.models;
     return {
       ms: ready - start,
+      windowStart: start,
+      windowEnd: ready,
       domElements: document.getElementsByTagName("*").length,
-      longTaskCount: host.__longTasks.length,
-      longTaskMs: host.__longTasks.reduce((sum, value) => sum + value, 0),
+      longTasks: host.__longTasks,
       idbCalls: idb.length,
       idbMs: idb.reduce((sum, sample) => sum + sample.ms, 0),
       idbRecords: idb.reduce((sum, sample) => sum + sample.count, 0),
@@ -111,6 +119,18 @@ const readStartup = async (page: Page): Promise<StartupSample> => {
       modelMs: models.reduce((sum, sample) => sum + sample.ms, 0)
     };
   });
+  const longTasks = selectLongTasks(raw.longTasks, raw.windowStart, raw.windowEnd);
+  return {
+    ms: raw.ms,
+    domElements: raw.domElements,
+    longTaskCount: longTasks.length,
+    longTaskMs: longTasks.reduce((sum, task) => sum + task.duration, 0),
+    idbCalls: raw.idbCalls,
+    idbMs: raw.idbMs,
+    idbRecords: raw.idbRecords,
+    modelCalls: raw.modelCalls,
+    modelMs: raw.modelMs
+  };
 };
 
 const waitUntilReady = async (page: Page): Promise<void> => {
@@ -207,6 +227,140 @@ const readCounts = async (page: Page): Promise<Record<string, number>> => {
     db.close();
     return counts;
   }, DB_NAME);
+};
+
+const STORES_TO_CLEAR = [
+  "concepts",
+  "contextCards",
+  "quizQuestions",
+  "quizAttemptLogs",
+  "learningMaterials",
+  "learningMaterialBlobs",
+  "media",
+  "conceptSourceAnchors",
+  "quizDecks",
+  "researchReports",
+  "vocabularyBooks",
+  "syncQueue",
+  "syncState"
+] as const;
+
+const clearSyntheticStores = async (page: Page): Promise<void> => {
+  await page.evaluate(
+    async ({ dbName, stores }) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(stores, "readwrite");
+        for (const store of stores) {
+          tx.objectStore(store).clear();
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    },
+    { dbName: DB_NAME, stores: STORES_TO_CLEAR }
+  );
+};
+
+const readFingerprintInput = async (page: Page): Promise<FingerprintInput> => {
+  return page.evaluate(async (dbName) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(dbName);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+    const getAll = (storeName: string) =>
+      new Promise<unknown[]>((resolve, reject) => {
+        const tx = db.transaction(storeName, "readonly");
+        const request = tx.objectStore(storeName).getAll();
+        request.onsuccess = () => resolve(request.result as unknown[]);
+        request.onerror = () => reject(request.error);
+      });
+    const count = (storeName: string) =>
+      new Promise<number>((resolve, reject) => {
+        const tx = db.transaction(storeName, "readonly");
+        const request = tx.objectStore(storeName).count();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    const emptyStoreNames = [
+      "media",
+      "conceptSourceAnchors",
+      "quizDecks",
+      "researchReports",
+      "vocabularyBooks",
+      "learningMaterialBlobs",
+      "syncQueue",
+      "syncState"
+    ];
+    const emptyStores: Record<string, number> = {};
+    for (const storeName of emptyStoreNames) {
+      emptyStores[storeName] = await count(storeName);
+    }
+    const payload = {
+      concepts: (await getAll("concepts")) as FingerprintInput["concepts"],
+      contextCards: (await getAll("contextCards")) as FingerprintInput["contextCards"],
+      quizQuestions: (await getAll("quizQuestions")) as FingerprintInput["quizQuestions"],
+      quizAttemptLogs: (await getAll("quizAttemptLogs")) as FingerprintInput["quizAttemptLogs"],
+      learningMaterials: (await getAll("learningMaterials")) as FingerprintInput["learningMaterials"],
+      emptyStores
+    };
+    db.close();
+    return payload;
+  }, DB_NAME);
+};
+
+const assertDatasetRestored = async (page: Page, dataset: SyntheticDataset): Promise<void> => {
+  const actual = fingerprintPayload(await readFingerprintInput(page));
+  const expected = fingerprintPayload(datasetToFingerprintInput(dataset));
+  const mismatch = firstFingerprintMismatch(expected, actual);
+  if (mismatch) {
+    throw new Error(`試行開始前の IndexedDB が合成データと一致しません: ${mismatch}`);
+  }
+};
+
+const restoreDataset = async (page: Page, dataset: SyntheticDataset): Promise<void> => {
+  await clearSyntheticStores(page);
+  await seedDataset(page, dataset);
+};
+
+const SOURCE_PATHS = ["src", "perf", "playwright.perf.config.ts", "package.json", "vite.config.js"];
+
+const describeMeasuredSource = (): Record<string, unknown> => {
+  const commit = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  const status = execSync(`git status --porcelain -- ${SOURCE_PATHS.join(" ")}`, { encoding: "utf8" }).trim();
+  const diff = execSync(`git diff --numstat --ignore-cr-at-eol -- ${SOURCE_PATHS.join(" ")}`, {
+    encoding: "utf8"
+  }).trim();
+  if (diff) {
+    throw new Error(`計測対象に未コミットの内容差分があります。\n${diff}`);
+  }
+  return {
+    measuredSourceCommit: commit,
+    resultsCommit: null,
+    note: "measuredSourceCommit は計測したソースの commit。結果 JSON を記録する commit は、その後の別 commit であり、このフィールドには入れない。未コミットの内容差分がある実行は失敗させる。",
+    uncommittedContentDiff: null,
+    uncommittedStatus: status || null
+  };
+};
+
+const archiveLegacyResult = (name: string): void => {
+  const file = path.join(RESULTS_DIR, name);
+  if (!existsSync(file)) {
+    return;
+  }
+  const parsed = JSON.parse(readFileSync(file, "utf8")) as { measuredSourceCommit?: string };
+  if (parsed.measuredSourceCommit) {
+    return;
+  }
+  const dir = path.join(RESULTS_DIR, "superseded");
+  mkdirSync(dir, { recursive: true });
+  renameSync(file, path.join(dir, name));
 };
 
 const clearHttpCache = async (page: Page): Promise<void> => {
@@ -390,10 +544,13 @@ test.describe.configure({ mode: "serial" });
 
 test("本番ビルドの専用コンテキストで S と M のベースラインを記録する", async ({ browser }) => {
   test.setTimeout(45 * 60 * 1000);
-  const commit = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  for (const name of ["S.json", "M.json", "L.json", "XL.json", "bundle.json", "environment.json"]) {
+    archiveLegacyResult(name);
+  }
+  const source = describeMeasuredSource();
   const browserVersion = browser.version();
   const environment = {
-    commit,
+    ...source,
     measuredAt: new Date().toISOString(),
     os: `${os.type()} ${os.release()}`,
     cpu: os.cpus()[0]?.model ?? "unknown",
@@ -403,7 +560,12 @@ test("本番ビルドの専用コンテキストで S と M のベースライ�
     build: "vite build + vite preview（本番モード。React Profiler ビルドではない）"
   };
   writeResult("environment.json", environment);
-  writeResult("bundle.json", { ...environment, ...bundleMetrics(), unit: "bytes" });
+  writeResult("bundle.json", {
+    ...environment,
+    ...bundleMetrics(),
+    unit: "bytes",
+    note: "この bundle.json は measuredSourceCommit の本番ビルドから集計した。比較に使う初期チャンクはここを参照する。"
+  });
 
   for (const spec of [DATASET_PRESETS.S, DATASET_PRESETS.M]) {
     const result = await measureSpec(browser, spec, environment, {
@@ -415,6 +577,7 @@ test("本番ビルドの専用コンテキストで S と M のベースライ�
   }
 
   writeResult("XL.json", {
+    ...source,
     status: "not-run",
     reason:
       "XL は L を基準に概念数・ログ数・添付容量を増やすストレステストである。この実行では時間の都合で未実施。回帰比較には使わない。"
@@ -423,9 +586,9 @@ test("本番ビルドの専用コンテキストで S と M のベースライ�
 
 test("L を 1 試行で記録できるか試す", async ({ browser }) => {
   test.setTimeout(20 * 60 * 1000);
-  const commit = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  const source = describeMeasuredSource();
   const environment = {
-    commit,
+    ...source,
     measuredAt: new Date().toISOString(),
     os: `${os.type()} ${os.release()}`,
     cpu: os.cpus()[0]?.model ?? "unknown",
@@ -482,6 +645,7 @@ const measureSpec = async (
     expect(verifiedCounts.quizAttemptLogs).toBe(spec.logCount);
     expect(verifiedCounts.quizQuestions).toBe(spec.quizCount);
     expect(verifiedCounts.contextCards).toBe(spec.contextCount);
+    await assertDatasetRestored(page, dataset);
     await clearHttpCache(page);
     await page.evaluate(async () => {
       const registrations = await navigator.serviceWorker?.getRegistrations();
@@ -492,6 +656,7 @@ const measureSpec = async (
       await Promise.all(keys.map((key) => caches.delete(key)));
     });
     const coldSample = await loadCold(page);
+    await assertDatasetRestored(page, dataset);
     const warmSample = await loadWarm(page);
     if (recorded) {
       cold.push(coldSample);
@@ -499,6 +664,7 @@ const measureSpec = async (
     }
     if (recorded && plan.interactions > 0 && index === plan.warmup + plan.trials - 1) {
       for (let interaction = 0; interaction < plan.interactions; interaction += 1) {
+        await assertDatasetRestored(page, dataset);
         await openConcepts(page);
         const screenSample = await measureScreens(page);
         for (const [name, value] of Object.entries(screenSample)) {
@@ -511,29 +677,7 @@ const measureSpec = async (
         crud.create.push(crudSample.create);
         crud.edit.push(crudSample.edit);
         crud.delete.push(crudSample.delete);
-        await page.evaluate(async (dbName) => {
-          const db = await new Promise<IDBDatabase>((resolve, reject) => {
-            const request = indexedDB.open(dbName);
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => resolve(request.result);
-          });
-          await new Promise<void>((resolve, reject) => {
-            const tx = db.transaction("concepts", "readwrite");
-            const store = tx.objectStore("concepts");
-            const request = store.getAll();
-            request.onsuccess = () => {
-              for (const concept of request.result as Array<{ title?: string }>) {
-                if (typeof concept.title === "string" && concept.title.startsWith("perf-created-")) {
-                  store.delete((concept as { id: string }).id);
-                }
-              }
-            };
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-          });
-          db.close();
-        }, DB_NAME);
-        await seedDataset(page, dataset);
+        await restoreDataset(page, dataset);
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitUntilReady(page);
       }
@@ -570,6 +714,7 @@ const measureSpec = async (
   return {
     schemaVersion: 1,
     purpose: "phase-0-baseline",
+    p95: unmeasured("試行数が 20 未満のため p95 は記録しない。"),
     dataset: dataset.spec,
     counts: dataset.counts,
     verifiedIndexedDbCounts: verifiedCounts,
@@ -638,6 +783,7 @@ const measureSpec = async (
       warm: startupMetric(warm, (sample) => sample.domElements, "count")
     },
     longTasks: {
+      window: "navigation startTime 以上、起動完了の performance.now() 未満に開始した longtask だけを合計する。",
       cold: {
         count: startupMetric(cold, (sample) => sample.longTaskCount, "count"),
         duration: startupMetric(cold, (sample) => sample.longTaskMs, "ms")

@@ -53,7 +53,7 @@ seed は `244001`。日時は `2020-01-01T00:00:00.000Z` からの決定的な�
 | IndexedDB | `getAllConcepts` / `getQuizQuestions` / `getQuizAttemptLogs` の開始 | それぞれの return |
 | 学習モデル | BKT mastery map、クイズ統計、混同ペアの既存関数の開始 | それぞれの return |
 | DOM | 起動完了時点の要素数 | |
-| Long Task | 起動完了までに PerformanceObserver が観測した `longtask` | |
+| Long Task | navigation の `startTime` 以上、起動完了時刻未満に開始した `longtask` | |
 | メモリ | `performance.measureUserAgentSpecificMemory` | 使えない場合は未計測 |
 | React 描画 | 通常の本番ビルドでは未計測 | Profiler 用ビルドの数値とは混ぜない |
 | バンドル | `dist/index.html` が参照する JS を初期チャンク、その他の JS を遅延チャンク | |
@@ -83,9 +83,11 @@ seed は `244001`。日時は `2020-01-01T00:00:00.000Z` からの決定的な�
 - 検索時間には 200ms のデバウンスが含まれる。
 - IndexedDB の duration は呼び出し時間の合計である。並行して読むと、壁時計時間より長くなる。
 - IndexedDB と学習モデルの時間は、プローブの記録処理をわずかに含む。プローブが無いときは `performance.now()` を呼ばず、処理内容と計算式は変えていない。
-- Long Task は起動完了の判定直後に読む。完了マークから読み取りまでの短い隙間に入ったタスクも回数に含まれる。
+- Long Task は navigation の `startTime` 以上、起動完了時刻未満に開始したものだけを数える。完了より後に始まったタスクは含めない。
 - 起動時の学習モデル時間は、概念画面の BKT・統計・混同までである。Data Lab を開いたときの追加計算は画面遷移時間の側に現れる。
 - 合成データの分布は実利用の分布と同じではない。
+
+`docs/perf/results/superseded/` にある JSON は、試行間の復元が不十分だった計測か、それ以前の記録である。前後比較には使わない。有効なベースラインは `docs/perf/results/` 直下で、`measuredSourceCommit` を持つファイルだけである。
 
 ## 結果
 

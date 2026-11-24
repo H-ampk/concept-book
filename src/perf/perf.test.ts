@@ -8,6 +8,13 @@ import {
 } from "./datasetSpec";
 import { summarizeSamples, unmeasured } from "./summarizeSamples";
 import { measurePerfSpan, noteIdbRead, perfReadStartedAt, type PerfProbeState } from "./probe";
+import {
+  datasetToFingerprintInput,
+  fingerprintDataset,
+  fingerprintPayload,
+  firstFingerprintMismatch
+} from "./datasetFingerprint";
+import { selectLongTasks } from "./longTaskWindow";
 
 describe("合成データセット", () => {
   it("同じ seed と設定から同じデータセットを生成する", () => {
@@ -78,6 +85,42 @@ describe("合成データセット", () => {
     });
     expect(dataset.counts.prerequisiteEdges).toBe(6);
     assertDatasetIntegrity(dataset);
+  });
+
+  it("指紋は関係、参照、更新日時の変化を検知する", () => {
+    const dataset = generateSyntheticDataset(DATASET_PRESETS.S);
+    const expected = fingerprintDataset(dataset);
+    const changed = datasetToFingerprintInput(dataset);
+    changed.concepts = changed.concepts.map((concept, index) =>
+      index === 3 ? { ...concept, updatedAt: "2099-01-01T00:00:00.000Z" } : concept
+    );
+    expect(firstFingerprintMismatch(expected, fingerprintPayload(changed))).toBe("concepts");
+    const questionChanged = datasetToFingerprintInput(dataset);
+    questionChanged.quizQuestions = questionChanged.quizQuestions.map((question, index) =>
+      index === 0 ? { ...question, conceptId: "" } : question
+    );
+    expect(firstFingerprintMismatch(expected, fingerprintPayload(questionChanged))).toBe("quizQuestions");
+    const cardChanged = datasetToFingerprintInput(dataset);
+    cardChanged.contextCards = cardChanged.contextCards.map((card, index) =>
+      index === 0 ? { ...card, linkedConcepts: [] } : card
+    );
+    expect(firstFingerprintMismatch(expected, fingerprintPayload(cardChanged))).toBe("contextCards");
+    cardChanged.emptyStores = { ...cardChanged.emptyStores, syncQueue: 1 };
+    expect(fingerprintPayload(cardChanged).emptyStores).not.toBe(expected.emptyStores);
+  });
+
+  it("Long Task は開始点以上、終了点未満だけを数える", () => {
+    const selected = selectLongTasks(
+      [
+        { startTime: 9, duration: 80 },
+        { startTime: 10, duration: 60 },
+        { startTime: 40, duration: 70 },
+        { startTime: 50, duration: 90 }
+      ],
+      10,
+      50
+    );
+    expect(selected.map((task) => task.startTime)).toEqual([10, 40]);
   });
 
   it("不正な設定を拒否する", () => {
