@@ -38,7 +38,7 @@ force push は `non_fast_forward` で禁止する。ブランチ削除は `delet
 
 ## 必須チェックに含めないもの
 
-CodeRabbit のチェック名は `CodeRabbit`。conclusion が `NEUTRAL` や `SKIPPED` になり得る。必須成功にすると、レビューが成功扱いにならない PR をマージできなくなる。必須チェックには含めない。レビューを見るかどうかは `AGENTS.md` のマージ条件に従う。
+CodeRabbit のチェック名は `CodeRabbit`。conclusion は `NEUTRAL` や `SKIPPED` になり得る。GitHub は必須ステータスチェックの成功を `success`、`skipped`、`neutral` として扱うため、このチェックを必須にしても、その結論だけではマージを止められず、レビューが完了したことも保証できない。必須チェックには含めない。レビューを見るかどうかは `AGENTS.md` のマージ条件に従う。PR #240 では CodeRabbit が `SKIPPED` でも、必須チェックではない状態でマージできた。これは観測であり、必須にした場合の動作試験ではない。
 
 GitHub Pages の workflow 名は `Deploy to GitHub Pages`（`.github/workflows/deploy.yml`）。トリガーは main への push と `workflow_dispatch` だけで、PR では走らない。ジョブ名は `build` と `deploy` で、成果物のアップロードと `actions/deploy-pages` であり、main へ commit を push しない。この 2 つを必須チェックにすると、PR 上では永遠に Pending になりマージできなくなる。含めない。現行の Pages 公開は main へ commit しないため、この Ruleset は公開を止めない。将来、main へ自動 commit する workflow を足す場合は、bypass または別ブランチ運用を別途検討する。
 
