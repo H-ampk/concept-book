@@ -35,8 +35,17 @@ export const measurePerfSpan = <T>(name: string, fn: () => T): T => {
   }
 };
 
+/**
+ * プローブがあるときだけ開始時刻を取る。
+ * 無いときは performance.now() を呼ばない。
+ */
+export const perfReadStartedAt = (): number | null => (activeProbe() ? performance.now() : null);
+
 /** IndexedDB の読み取り 1 回。プローブが無いときは何もしない。 */
-export const noteIdbRead = (store: string, count: number, startedAt: number): void => {
+export const noteIdbRead = (store: string, count: number, startedAt: number | null): void => {
+  if (startedAt == null) {
+    return;
+  }
   const probe = activeProbe();
   if (!probe) {
     return;

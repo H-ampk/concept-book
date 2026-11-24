@@ -7,7 +7,7 @@ import {
   PERF_SEARCH_TOKEN
 } from "./datasetSpec";
 import { summarizeSamples, unmeasured } from "./summarizeSamples";
-import { measurePerfSpan, noteIdbRead, type PerfProbeState } from "./probe";
+import { measurePerfSpan, noteIdbRead, perfReadStartedAt, type PerfProbeState } from "./probe";
 
 describe("合成データセット", () => {
   it("同じ seed と設定から同じデータセットを生成する", () => {
@@ -44,6 +44,39 @@ describe("合成データセット", () => {
     expect(dataset.counts.logs).toBe(60_000);
     expect(dataset.counts.attachmentBytes).toBe(128);
     expect(dataset.attachment?.prefix).toHaveLength(64);
+    assertDatasetIntegrity(dataset);
+  });
+
+  it("削除対象は隣接概念とクイズ問題から参照される", () => {
+    const dataset = generateSyntheticDataset(DATASET_PRESETS.S);
+    const target = dataset.concepts[2];
+    expect(target?.title).toBe("PERF-DELETE-TARGET");
+    expect(
+      dataset.concepts.some(
+        (concept) =>
+          concept.relatedIds.includes(target!.id) || concept.prerequisiteIds.includes(target!.id)
+      )
+    ).toBe(true);
+    expect(
+      dataset.quizQuestions.some(
+        (question) =>
+          question.conceptId === target!.id ||
+          question.choices.some((choice) => choice.sourceConceptId === target!.id)
+      )
+    ).toBe(true);
+  });
+
+  it("密な prerequisite でも循環を作らない", () => {
+    const dataset = generateSyntheticDataset({
+      ...DATASET_PRESETS.S,
+      id: "dense",
+      conceptCount: 4,
+      logCount: 0,
+      quizCount: 0,
+      contextCount: 0,
+      relationCount: 12
+    });
+    expect(dataset.counts.prerequisiteEdges).toBe(6);
     assertDatasetIntegrity(dataset);
   });
 
@@ -108,7 +141,8 @@ describe("計測値の集計", () => {
 describe("計測プローブ", () => {
   it("プローブが無いときは計算結果を変えず記録しない", () => {
     expect(measurePerfSpan("bkt", () => 7)).toBe(7);
-    noteIdbRead("concepts", 3, performance.now());
+    expect(perfReadStartedAt()).toBeNull();
+    noteIdbRead("concepts", 3, null);
   });
 
   it("プローブがあるときだけ回数と時間を残す", () => {
@@ -116,7 +150,7 @@ describe("計測プローブ", () => {
     (globalThis as { __CB_PERF_PROBE__?: PerfProbeState }).__CB_PERF_PROBE__ = state;
     try {
       expect(measurePerfSpan("bkt", () => 4)).toBe(4);
-      noteIdbRead("concepts", 2, performance.now());
+      noteIdbRead("concepts", 2, perfReadStartedAt());
       expect(state.models).toHaveLength(1);
       expect(state.models[0]?.name).toBe("bkt");
       expect(state.idb[0]).toMatchObject({ store: "concepts", count: 2 });

@@ -98,11 +98,11 @@ export const assertSyntheticDatasetSpec = (spec: SyntheticDatasetSpec): void => 
   const prerequisiteCount = spec.relationCount - relatedPairs;
   const maxUndirected =
     spec.conceptCount < 2 ? 0 : (spec.conceptCount * (spec.conceptCount - 1)) / 2;
-  const maxDirected = spec.conceptCount < 2 ? 0 : spec.conceptCount * (spec.conceptCount - 1);
+  const maxDag = spec.conceptCount < 2 ? 0 : (spec.conceptCount * (spec.conceptCount - 1)) / 2;
   if (relatedPairs > maxUndirected) {
     throw new Error("related 関係が概念数に対して多すぎます。");
   }
-  if (prerequisiteCount > maxDirected) {
+  if (prerequisiteCount > maxDag) {
     throw new Error("prerequisite 関係が概念数に対して多すぎます。");
   }
 };

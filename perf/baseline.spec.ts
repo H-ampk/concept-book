@@ -170,7 +170,7 @@ const seedDataset = async (page: Page, dataset: SyntheticDataset): Promise<void>
           tx.objectStore("learningMaterials").put(material);
           tx.objectStore("learningMaterialBlobs").put({
             id: material.id,
-            blob: new Blob([bytes], { type: "application/octet-stream" })
+            blob: new Blob([bytes], { type: "application/pdf" })
           });
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
@@ -471,6 +471,7 @@ const measureSpec = async (
     const recorded = index >= plan.warmup;
     console.log(`[perf] ${spec.id} trial ${index + 1}/${plan.warmup + plan.trials} recorded=${recorded}`);
     const context = await browser.newContext();
+    try {
     const page = await context.newPage();
     await page.addInitScript(installObservers);
     await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -532,6 +533,7 @@ const measureSpec = async (
           });
           db.close();
         }, DB_NAME);
+        await seedDataset(page, dataset);
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitUntilReady(page);
       }
@@ -557,7 +559,9 @@ const measureSpec = async (
           ? summarizeSamples([memoryResult.bytes], "bytes")
           : unmeasured(memoryResult.reason);
     }
-    await context.close();
+    } finally {
+      await context.close();
+    }
   }
 
   const startupMetric = (samples: StartupSample[], pick: (sample: StartupSample) => number, unit: string): Metric =>
@@ -583,7 +587,7 @@ const measureSpec = async (
       navigation:
         "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
       crud:
-        "保存または削除確定の操作から、ダイアログが閉じるか削除完了文が出るまで。各試行のあと作成概念を消し、編集タイトルを戻し、reload してから次の試行に入る。",
+        "保存または削除確定の操作から、ダイアログが閉じるか削除対象が一覧から消えるまで。各試行のあと、追加概念を削除し、概念・クイズ・文脈カードを合成データで put し直してから reload する。削除が隣接概念と参照先問題を書き換えるため、対象概念だけの put では次の試行の状態が揃わない。",
       excluded: "データ生成と IndexedDB への投入時間は操作時間に含めない。"
     },
     units: {
@@ -613,7 +617,7 @@ const measureSpec = async (
         duration: startupMetric(warm, (sample) => sample.idbMs, "ms"),
         records: startupMetric(warm, (sample) => sample.idbRecords, "count")
       },
-      note: "getAllConcepts / getQuizQuestions / getQuizAttemptLogs の本番経路に、プローブがあるときだけ記録を足している。プローブが無いときは従来どおりの処理だけを行う。"
+      note: "duration は各読み取りの所要時間の合計であり、並行する読み取りでは壁時計時間より長くなる。getAllConcepts / getQuizQuestions / getQuizAttemptLogs の本番経路に、プローブがあるときだけ記録を足している。プローブが無いときは performance.now() を呼ばず、従来どおりの処理だけを行う。"
     },
     learningModel: {
       cold: {

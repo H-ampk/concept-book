@@ -114,10 +114,33 @@ export const generateSyntheticDataset = (spec: SyntheticDatasetSpec): SyntheticD
 
   const prerequisiteEdges = spec.relationCount - relatedPairs;
   const usedPrerequisite = new Set<string>();
+  const acceptedPrerequisite = new Set<string>();
+  const reaches = (start: number, goal: number): boolean => {
+    const seen = new Set<number>([start]);
+    const queue = [start];
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      const concept = concepts[current];
+      if (!concept) {
+        continue;
+      }
+      for (const prerequisiteId of concept.prerequisiteIds) {
+        const next = Number(prerequisiteId.slice("perf-c-".length));
+        if (next === goal) {
+          return true;
+        }
+        if (!seen.has(next)) {
+          seen.add(next);
+          queue.push(next);
+        }
+      }
+    }
+    return false;
+  };
   guard = 0;
-  while (usedPrerequisite.size < prerequisiteEdges) {
+  while (acceptedPrerequisite.size < prerequisiteEdges) {
     guard += 1;
-    if (guard > prerequisiteEdges * 20 + 10) {
+    if (guard > prerequisiteEdges * 40 + 10) {
       throw new Error("prerequisite 関係を一意に割り当てられませんでした。");
     }
     const dependent = Math.floor(random() * spec.conceptCount);
@@ -130,11 +153,15 @@ export const generateSyntheticDataset = (spec: SyntheticDatasetSpec): SyntheticD
       continue;
     }
     usedPrerequisite.add(key);
+    if (reaches(required, dependent)) {
+      continue;
+    }
     const dependentConcept = concepts[dependent];
     const requiredConcept = concepts[required];
     if (!dependentConcept || !requiredConcept) {
       throw new Error("prerequisite の概念 index が範囲外です。");
     }
+    acceptedPrerequisite.add(key);
     dependentConcept.prerequisiteIds.push(requiredConcept.id);
   }
 
@@ -241,11 +268,48 @@ export const generateSyntheticDataset = (spec: SyntheticDatasetSpec): SyntheticD
       quizzes: quizQuestions.length,
       contexts: contextCards.length,
       relatedPairs: usedRelated.size,
-      prerequisiteEdges: usedPrerequisite.size,
+      prerequisiteEdges: acceptedPrerequisite.size,
       relations: usedRelated.size + usedPrerequisite.size,
       attachmentBytes: attachment?.byteLength ?? 0
     }
   };
+};
+
+/** prerequisiteIds を辿って循環があれば、その ID 列を返す。 */
+export const findPrerequisiteCycle = (concepts: Concept[]): string[] | null => {
+  const outgoing = new Map(concepts.map((concept) => [concept.id, concept.prerequisiteIds]));
+  const state = new Map<string, "visiting" | "done">();
+  const stack: string[] = [];
+
+  const visit = (id: string): string[] | null => {
+    const mark = state.get(id);
+    if (mark === "done") {
+      return null;
+    }
+    if (mark === "visiting") {
+      const start = stack.indexOf(id);
+      return [...stack.slice(start), id];
+    }
+    state.set(id, "visiting");
+    stack.push(id);
+    for (const next of outgoing.get(id) ?? []) {
+      const cycle = visit(next);
+      if (cycle) {
+        return cycle;
+      }
+    }
+    stack.pop();
+    state.set(id, "done");
+    return null;
+  };
+
+  for (const concept of concepts) {
+    const cycle = visit(concept.id);
+    if (cycle) {
+      return cycle;
+    }
+  }
+  return null;
 };
 
 export const assertDatasetIntegrity = (dataset: SyntheticDataset): void => {
@@ -264,6 +328,10 @@ export const assertDatasetIntegrity = (dataset: SyntheticDataset): void => {
         throw new Error(`prerequisiteIds が不正です: ${concept.id} -> ${prerequisiteId}`);
       }
     }
+  }
+  const cycle = findPrerequisiteCycle(dataset.concepts);
+  if (cycle) {
+    throw new Error(`prerequisite が循環しています: ${cycle.join(" -> ")}`);
   }
   const questionIds = new Set<string>();
   for (const question of dataset.quizQuestions) {
