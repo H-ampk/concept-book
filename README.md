@@ -222,20 +222,20 @@ npm run test:e2e
 
 Node.js 22 以上が必要です。CI（`.github/workflows/`）も Node.js 22 で実行します。
 
-UI やユーザーフローに影響する変更の完了判断（通常テストに加えて実ブラウザ検証が必要な条件）は [AGENTS.md](AGENTS.md) を参照してください。
+ブランチ、Pull Request、レビュー、マージ、Issue の完了、および UI やユーザーフローに影響する変更の完了判断は [AGENTS.md](AGENTS.md) を参照してください。main への直接 push は行いません。
 
 ## GitHub Pages 公開
 
 このリポジトリ（`concept-book`）は GitHub Pages で公開できます。
 
 - 公開URL形式: `https://<username>.github.io/concept-book/`
-- デプロイは `.github/workflows/deploy.yml` で `main` ブランチ push をトリガーに自動実行されます
+- デプロイは `.github/workflows/deploy.yml` で、Pull Request のマージなどにより `main` が更新されたときに自動実行されます
 - 任意の Supabase Auth を有効にする場合は、Repository Variables に `VITE_SUPABASE_URL` と `VITE_SUPABASE_PUBLISHABLE_KEY` を設定します。未設定でも Pages の build は成功し、認証 UI のみ利用できません。
 
 ### 公開手順
 
 1. GitHub の `Settings > Pages` で **Source = GitHub Actions** を選択
-2. `main` ブランチへ push
+2. 変更を Pull Request 経由で `main` にマージする（`main` への直接 push はしない）
 3. GitHub の `Actions` タブで `Deploy to GitHub Pages` が成功したことを確認
 4. 上記 URL を開いてアプリ表示を確認
 
@@ -267,7 +267,7 @@ npm run build
 
 開発手順:
 
-- [エージェント向け開発手順（完了判断・実ブラウザ検証）](AGENTS.md)
+- [エージェント向け開発手順（開発フロー・完了判断・実ブラウザ検証）](AGENTS.md)
 
 機能仕様・研究メモ:
 
