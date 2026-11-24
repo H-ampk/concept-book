@@ -2,7 +2,7 @@
 
 開発手順の正本は `AGENTS.md` である。この文書は、その手順のうち GitHub が main に対して強制している Ruleset の設定と、2026-11-24 時点で確認した動作を記録する。手順そのものをここで再定義しない。
 
-設定値は 2026-11-24 に `GET /repos/H-ampk/concept-book/rulesets/27953493` を再取得し、この文書と一致することを確認した。
+設定値は 2026-11-24 に `GET /repos/H-ampk/concept-book/rulesets/27953493` を再取得し、この文書と一致することを確認した。PR #254 の CI 観測を追記した時点でも、Ruleset は再取得時のまま変更していない。
 
 ## Ruleset
 
@@ -77,7 +77,7 @@ PUT /repos/H-ampk/concept-book/rulesets/27953493
 
 ### 動作として確認した
 
-- 必須 CI が未完了のとき、PR #240 は `e2e` の実行中に merge state が `BLOCKED` になった。
+- 必須 CI が未完了のとき、PR #240 は `e2e` の実行中に merge state が `BLOCKED` になった。PR #254 でも、`e2e` が `IN_PROGRESS` の間は `BLOCKED`、`unit` と `e2e` が SUCCESS になったあとは `CLEAN` かつ `MERGEABLE` だった。この PR は作成時点で最新 main を含んでいた。
 - PR #240 が最新 main を含んでいないとき、merge state は `BEHIND` だった。`strict_required_status_checks_policy` が有効な状態での観測である。
 - main へ同期し、`unit` と `e2e` が SUCCESS になったあと、同じ PR は `CLEAN` かつ `MERGEABLE` だった。CodeRabbit は `SKIPPED` で、必須チェックではなかった。未解決のレビュースレッドは無かった。承認は 0 人のままマージできた。マージ commit は `7842f5f85b8a1966de80dd1498c0e182e1cb47ff`。
 - main への直接 push は Ruleset により拒否された。拒否理由は、pull request 経由が必須であることと、必須ステータスチェックが 2 件であることだった。Ruleset 自体は変更していない。
