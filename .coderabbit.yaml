@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ja
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  auto_approvals:
+    enabled: false
+  high_level_summary: true
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+  path_instructions:
+    - path: "**"
+      instructions: |
+        Concept Book 共通のレビュー基準。領域固有の path_instructions は追加視点であり、この基準を弱めない。
+        指摘には、可能なら発生条件、影響、根拠、修正方針を含める。根拠のない設計変更や、対象 Issue の範囲を超えるリファクタリングは要求しない。推測を事実として扱わない。
+        見る点: 型安全性。セキュリティとプライバシー。Accessibility（semantic element、accessible name、keyboard、Escape、focus、dialog）。エラー処理。パフォーマンス。不要な依存関係。過剰な抽象化。破壊的変更。AGENTS.md との矛盾。
+        AGENTS.md では、main への直接 push とユーザー承認のない merge を禁止し、検証の弱体化を禁止し、部分実装は Refs とし、自動 close は完全解決時の Closes に限る。これらと矛盾する変更を指摘する。
+        自動マージ、自動修正の適用、必須チェックの弱体化を提案しない。
+    - path: "{src/storage/**,src/features/ai/relatedConcepts/embeddingCache.ts,src/features/ai/relatedConcepts/constants.ts}"
+      instructions: |
+        IndexedDB。メイン DB は src/storage/indexeddb.ts の DB_VERSION / CONCEPT_BOOK_DB_VERSION。埋め込みキャッシュ DB は src/features/ai/relatedConcepts の AI_EMBEDDING_CACHE_DB_VERSION。
+        確認する点: DB version と migration の整合。既存ユーザーデータの保持。object store、index、keyPath の整合。transaction の原子性。abort、途中失敗、部分更新。複数タブでの upgrade 競合。reload 失敗時の snapshot 保持。旧バージョンからの移行テスト。
+        既存データを消す、または version だけ上げて upgrade 経路を欠く変更を指摘する。
+    - path: "{src/storage/backupExport.ts,src/utils/conceptBookZip.ts,src/utils/importResourceLimits.ts,src/utils/conceptImportValidation.ts,src/utils/quizShare/**}"
+      instructions: |
+        Import / Export。確認する点: 同一対応バージョンでの往復可能性。schemaVersion と互換性。JSON、ZIP、添付ファイルの入力検証。ID 衝突と参照関係。Export 側と Import 側の制限の一致。展開時のメモリ使用量。異常データと巨大ファイル。Import 失敗時の既存データ保護。
+        metadata だけ復元され、本文や添付が開けない状態を成功扱いにしない。replace import が失敗時に既存データを壊す経路を指摘する。
+    - path: "{src/sync/**,src/auth/**,supabase/migrations/**,supabase/tests/**,docs/private-sync.md,docs/authentication.md}"
+      instructions: |
+        Private Sync と認証。確認する点: 認証と認可の分離。サーバー側認可と RLS。ユーザー間のデータ分離。ownerUserId のクライアント側比較への過度な依存。Sync Queue の永続性。冪等性、リトライ、バックオフ。同期競合と削除処理。セッション切り替え時のデータ混入。秘密鍵と認証情報の漏洩。
+        クライアントだけの所有者チェックでサーバー側の分離を代替する変更を指摘する。トークン、秘密鍵、サービスロールキーをクライアントやログへ出す変更を指摘する。
+    - path: "{src/utils/pdf/**,src/components/learningMaterials/LearningMaterialPdfViewer.tsx,src/components/learningMaterials/pdfTextLayer.css}"
+      instructions: |
+        PDF 処理。描画の実体は LearningMaterialPdfViewer と src/utils/pdf。確認する点: 巨大 PDF や大量ページによるメモリ消費。Blob、ArrayBuffer、Canvas の不要な複製。Worker と object URL のリソース解放。非同期処理の競合とキャンセル。PDF 切り替え時の古い処理の残存。テキスト抽出の正確性。ハイライト、座標変換、重複検出。Provenance と参照関係の整合性。
+    - path: "{src/utils/mastery/**,src/utils/pfa/**,src/utils/hlr/**,src/utils/learningModel/**,src/utils/learningModelEvaluation/**,src/utils/learningSequence/**,src/utils/skillTree*.ts,src/components/SkillTreeView.tsx,src/dev/skillTreeE2eData.ts,src/dev/SkillTreeE2eHarness.tsx,src/utils/dataLab/**,src/utils/researchReport/**,src/components/dataLab/**,src/components/researchReport/**,docs/learning-models.md,docs/irt-feasibility.md}"
+      instructions: |
+        学習モデル（BKT、PFA、HLR）、SkillTree、Research Report、Data Lab、関連ドキュメント。
+        確認する点: 数式と実装の一致。研究文書および引用文献との整合。パラメータの意味、単位、値域。確率値の境界条件。NaN、Infinity、ゼロ除算。数値安定性。欠損値、異常値、少量データへの対応。学習履歴の順序依存性。再現可能性。評価データの漏洩。統計指標の誤解釈。推定値と観測値の混同。学習効果や認知状態に関する根拠のない断定。
+        既存研究の数式と Concept Book 独自の仮説を区別する。レビュー AI の推測だけを根拠に数式の変更を提案しない。数式の妥当性を判断できない場合は断定せず、追加確認が必要な事項として指摘する。
+    - path: "{src/**/*.test.ts,src/**/*.test.tsx,e2e/**}"
+      instructions: |
+        Unit Test と E2E。確認する点: 正常系、異常系、境界値。バグ修正に対応した回帰テスト。過剰な mock。不適切な期待値の変更。skip、retry、timeout による問題の隠蔽。flaky test と状態依存性。実際のユーザー操作との対応。テスト環境と本番環境の差異。
+        失敗を隠すためのテスト削除、skip、期待値の緩和を指摘する。座標の過剰な pixel 完全一致や、不安定な sleep に依存する E2E を指摘する。
+chat:
+  auto_reply: true
