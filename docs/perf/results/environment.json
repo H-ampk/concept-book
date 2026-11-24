@@ -1,0 +1,10 @@
+{
+  "commit": "7842f5f85b8a1966de80dd1498c0e182e1cb47ff",
+  "measuredAt": "2026-11-24T06:22:22.676Z",
+  "os": "Windows_NT 10.0.26200",
+  "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
+  "cpuCores": 12,
+  "memoryBytes": 16870006784,
+  "browser": "Chromium 151.0.7922.34",
+  "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）"
+}

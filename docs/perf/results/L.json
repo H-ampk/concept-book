@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "purpose": "phase-0-baseline",
+  "dataset": {
+    "id": "L",
+    "seed": 244001,
+    "conceptCount": 5000,
+    "logCount": 50000,
+    "quizCount": 10000,
+    "contextCount": 300,
+    "relationCount": 5000,
+    "attachmentBytes": 0
+  },
+  "counts": {
+    "concepts": 5000,
+    "logs": 50000,
+    "quizzes": 10000,
+    "contexts": 300,
+    "relatedPairs": 2500,
+    "prerequisiteEdges": 2500,
+    "relations": 5000,
+    "attachmentBytes": 0
+  },
+  "verifiedIndexedDbCounts": {
+    "concepts": 5000,
+    "contextCards": 300,
+    "quizQuestions": 10000,
+    "quizAttemptLogs": 50000,
+    "learningMaterials": 0
+  },
+  "seed": 244001,
+  "warmup": 0,
+  "trials": 1,
+  "interactionTrials": 0,
+  "conditions": {
+    "cold": "専用コンテキストで合成データを投入したあと、HTTP キャッシュを消してから最初の document 再読み込み。IndexedDB の合成データは残す。ウォームアップ試行は集計しない。",
+    "warm": "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
+    "startup": "navigation startTime から、ボタン「概念を追加」が有効になった最初の performance.now() まで。MutationObserver で記録し、固定 sleep は使わない。",
+    "navigation": "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
+    "crud": "保存または削除確定の操作から、ダイアログが閉じるか削除完了文が出るまで。各試行のあと作成概念を消し、編集タイトルを戻し、reload してから次の試行に入る。",
+    "excluded": "データ生成と IndexedDB への投入時間は操作時間に含めない。"
+  },
+  "units": {
+    "time": "ms",
+    "bytes": "bytes",
+    "count": "count"
+  },
+  "startup": {
+    "cold": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 1,
+      "trials": [
+        2604.600000023842
+      ],
+      "min": 2604.600000023842,
+      "max": 2604.600000023842,
+      "median": 2604.600000023842,
+      "stdev": 0
+    },
+    "warm": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 1,
+      "trials": [
+        3116.7999999523163
+      ],
+      "min": 3116.7999999523163,
+      "max": 3116.7999999523163,
+      "median": 3116.7999999523163,
+      "stdev": 0
+    }
+  },
+  "screens": {},
+  "search": {
+    "status": "unmeasured",
+    "reason": "測定値がありません。"
+  },
+  "crud": {
+    "create": {
+      "status": "unmeasured",
+      "reason": "測定値がありません。"
+    },
+    "edit": {
+      "status": "unmeasured",
+      "reason": "測定値がありません。"
+    },
+    "delete": {
+      "status": "unmeasured",
+      "reason": "測定値がありません。"
+    }
+  },
+  "indexedDb": {
+    "cold": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          5
+        ],
+        "min": 5,
+        "max": 5,
+        "median": 5,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 1,
+        "trials": [
+          10282.300000071526
+        ],
+        "min": 10282.300000071526,
+        "max": 10282.300000071526,
+        "median": 10282.300000071526,
+        "stdev": 0
+      },
+      "records": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          125000
+        ],
+        "min": 125000,
+        "max": 125000,
+        "median": 125000,
+        "stdev": 0
+      }
+    },
+    "warm": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          5
+        ],
+        "min": 5,
+        "max": 5,
+        "median": 5,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 1,
+        "trials": [
+          12917.699999928474
+        ],
+        "min": 12917.699999928474,
+        "max": 12917.699999928474,
+        "median": 12917.699999928474,
+        "stdev": 0
+      },
+      "records": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          125000
+        ],
+        "min": 125000,
+        "max": 125000,
+        "median": 125000,
+        "stdev": 0
+      }
+    },
+    "note": "getAllConcepts / getQuizQuestions / getQuizAttemptLogs の本番経路に、プローブがあるときだけ記録を足している。プローブが無いときは従来どおりの処理だけを行う。"
+  },
+  "learningModel": {
+    "cold": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          6
+        ],
+        "min": 6,
+        "max": 6,
+        "median": 6,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 1,
+        "trials": [
+          119.20000004768372
+        ],
+        "min": 119.20000004768372,
+        "max": 119.20000004768372,
+        "median": 119.20000004768372,
+        "stdev": 0
+      }
+    },
+    "warm": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          6
+        ],
+        "min": 6,
+        "max": 6,
+        "median": 6,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 1,
+        "trials": [
+          142.79999995231628
+        ],
+        "min": 142.79999995231628,
+        "max": 142.79999995231628,
+        "median": 142.79999995231628,
+        "stdev": 0
+      }
+    },
+    "note": "BKT mastery map、クイズ統計、混同ペアの既存関数を計時している。計算式は変えていない。Data Lab 固有の追加モデルはこの起動区間には含まれない。"
+  },
+  "react": {
+    "status": "unmeasured",
+    "reason": "通常の本番ビルドには React Profiler が含まれない。profiling ビルドの描画時間は、この本番ビルドの起動時間やバンドルサイズと比較しない。"
+  },
+  "domElements": {
+    "cold": {
+      "status": "measured",
+      "unit": "count",
+      "count": 1,
+      "trials": [
+        1201
+      ],
+      "min": 1201,
+      "max": 1201,
+      "median": 1201,
+      "stdev": 0
+    },
+    "warm": {
+      "status": "measured",
+      "unit": "count",
+      "count": 1,
+      "trials": [
+        1201
+      ],
+      "min": 1201,
+      "max": 1201,
+      "median": 1201,
+      "stdev": 0
+    }
+  },
+  "longTasks": {
+    "cold": {
+      "count": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          16
+        ],
+        "min": 16,
+        "max": 16,
+        "median": 16,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 1,
+        "trials": [
+          1860
+        ],
+        "min": 1860,
+        "max": 1860,
+        "median": 1860,
+        "stdev": 0
+      }
+    },
+    "warm": {
+      "count": {
+        "status": "measured",
+        "unit": "count",
+        "count": 1,
+        "trials": [
+          20
+        ],
+        "min": 20,
+        "max": 20,
+        "median": 20,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 1,
+        "trials": [
+          2203
+        ],
+        "min": 2203,
+        "max": 2203,
+        "median": 2203,
+        "stdev": 0
+      }
+    }
+  },
+  "memory": {
+    "status": "unmeasured",
+    "reason": "L の手順は画面操作を計測しないため、この試行では memory API を呼んでいない。同じ Playwright Chromium の S/M では performance.measureUserAgentSpecificMemory が存在しなかった。"
+  },
+  "bundle": {
+    "status": "unmeasured",
+    "reason": "バンドルサイズはデータセットに依存しないため bundle.json に記録する。"
+  },
+  "trialsRaw": {
+    "cold": [
+      {
+        "ms": 2604.600000023842,
+        "domElements": 1201,
+        "longTaskCount": 16,
+        "longTaskMs": 1860,
+        "idbCalls": 5,
+        "idbMs": 10282.300000071526,
+        "idbRecords": 125000,
+        "modelCalls": 6,
+        "modelMs": 119.20000004768372
+      }
+    ],
+    "warm": [
+      {
+        "ms": 3116.7999999523163,
+        "domElements": 1201,
+        "longTaskCount": 20,
+        "longTaskMs": 2203,
+        "idbCalls": 5,
+        "idbMs": 12917.699999928474,
+        "idbRecords": 125000,
+        "modelCalls": 6,
+        "modelMs": 142.79999995231628
+      }
+    ]
+  },
+  "environment": {
+    "commit": "7842f5f85b8a1966de80dd1498c0e182e1cb47ff",
+    "measuredAt": "2026-11-24T06:26:27.995Z",
+    "os": "Windows_NT 10.0.26200",
+    "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
+    "cpuCores": 12,
+    "memoryBytes": 16870006784,
+    "browser": "Chromium 151.0.7922.34",
+    "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）"
+  }
+}

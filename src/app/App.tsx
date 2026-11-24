@@ -39,6 +39,7 @@ import {
   type MasteryOverviewFilter
 } from "../utils/mastery/masteryPresentation";
 import { computeConfusionPairs } from "../utils/quizStats";
+import { measurePerfSpan } from "../perf/probe";
 import { buildQuizQuestionConceptIdSet } from "../utils/review/buildQuizQuestionConceptIdSet";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { VocabularyBookScreen } from "../components/VocabularyBookScreen";
@@ -238,9 +239,11 @@ export const App = () => {
 
   const conceptMasteryMap = useMemo(
     () =>
-      buildConceptMasteryMapForConceptIds(
-        quizAttemptLogs,
-        concepts.map((concept) => concept.id)
+      measurePerfSpan("learning-model.bkt-mastery-map", () =>
+        buildConceptMasteryMapForConceptIds(
+          quizAttemptLogs,
+          concepts.map((concept) => concept.id)
+        )
       ),
     [quizAttemptLogs, concepts]
   );
@@ -271,12 +274,12 @@ export const App = () => {
   }, [listViewMode, listSourceConcepts]);
 
   const conceptQuizStatsMap = useMemo(
-    () => buildConceptQuizStatsMap(quizAttemptLogs),
+    () => measurePerfSpan("learning-model.quiz-stats", () => buildConceptQuizStatsMap(quizAttemptLogs)),
     [quizAttemptLogs]
   );
 
   const confusionPairs = useMemo(
-    () => computeConfusionPairs(quizAttemptLogs),
+    () => measurePerfSpan("learning-model.confusion-pairs", () => computeConfusionPairs(quizAttemptLogs)),
     [quizAttemptLogs]
   );
 

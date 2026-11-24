@@ -1,0 +1,36 @@
+{
+  "commit": "7842f5f85b8a1966de80dd1498c0e182e1cb47ff",
+  "measuredAt": "2026-11-24T06:22:22.676Z",
+  "os": "Windows_NT 10.0.26200",
+  "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
+  "cpuCores": 12,
+  "memoryBytes": 16870006784,
+  "browser": "Chromium 151.0.7922.34",
+  "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）",
+  "initialBytes": 1917101,
+  "lazyBytes": 216392,
+  "files": [
+    {
+      "file": "assets/ConceptGraphView-u071pM0L.js",
+      "bytes": 196514,
+      "initial": false
+    },
+    {
+      "file": "assets/index-CtrQiN0V.js",
+      "bytes": 1917101,
+      "initial": true
+    },
+    {
+      "file": "assets/SkillTreeView-Co_g-UBw.js",
+      "bytes": 14172,
+      "initial": false
+    },
+    {
+      "file": "assets/workbox-window.prod.es5-BqEJf4Xk.js",
+      "bytes": 5706,
+      "initial": false
+    }
+  ],
+  "unit": "bytes",
+  "note": "index.html が参照する JS を初期チャンク、それ以外を遅延チャンクとする。"
+}
