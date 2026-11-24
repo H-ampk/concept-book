@@ -72,13 +72,19 @@ const installObservers = (): void => {
     }
   };
   const mutation = new MutationObserver(markReady);
+  const watch = (): void => {
+    markReady();
+    if (host.__appReadyAt == null) {
+      requestAnimationFrame(watch);
+    }
+  };
   const start = (): void => {
     mutation.observe(document.documentElement, {
       subtree: true,
       childList: true,
       attributes: true
     });
-    markReady();
+    watch();
   };
   if (document.documentElement) {
     start();
