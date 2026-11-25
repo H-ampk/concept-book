@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "perf:baseline": "npm run build && playwright test -c playwright.perf.config.ts",
     "test:supabase": "supabase test db"
   },
   "dependencies": {
