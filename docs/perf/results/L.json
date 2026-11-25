@@ -55,11 +55,11 @@
       "unit": "ms",
       "count": 1,
       "trials": [
-        2539.1999999284744
+        2195.5
       ],
-      "min": 2539.1999999284744,
-      "max": 2539.1999999284744,
-      "median": 2539.1999999284744,
+      "min": 2195.5,
+      "max": 2195.5,
+      "median": 2195.5,
       "stdev": 0
     },
     "warm": {
@@ -67,11 +67,11 @@
       "unit": "ms",
       "count": 1,
       "trials": [
-        2211
+        2201.3000000715256
       ],
-      "min": 2211,
-      "max": 2211,
-      "median": 2211,
+      "min": 2201.3000000715256,
+      "max": 2201.3000000715256,
+      "median": 2201.3000000715256,
       "stdev": 0
     }
   },
@@ -113,11 +113,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          9494.899999976158
+          8035.200000047684
         ],
-        "min": 9494.899999976158,
-        "max": 9494.899999976158,
-        "median": 9494.899999976158,
+        "min": 8035.200000047684,
+        "max": 8035.200000047684,
+        "median": 8035.200000047684,
         "stdev": 0
       },
       "records": {
@@ -151,11 +151,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          8771.900000095367
+          9129.899999976158
         ],
-        "min": 8771.900000095367,
-        "max": 8771.900000095367,
-        "median": 8771.900000095367,
+        "min": 9129.899999976158,
+        "max": 9129.899999976158,
+        "median": 9129.899999976158,
         "stdev": 0
       },
       "records": {
@@ -192,11 +192,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          135.20000004768372
+          115.5
         ],
-        "min": 135.20000004768372,
-        "max": 135.20000004768372,
-        "median": 135.20000004768372,
+        "min": 115.5,
+        "max": 115.5,
+        "median": 115.5,
         "stdev": 0
       }
     },
@@ -218,11 +218,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          112.79999995231628
+          91.60000014305115
         ],
-        "min": 112.79999995231628,
-        "max": 112.79999995231628,
-        "median": 112.79999995231628,
+        "min": 91.60000014305115,
+        "max": 91.60000014305115,
+        "median": 91.60000014305115,
         "stdev": 0
       }
     },
@@ -266,11 +266,11 @@
         "unit": "count",
         "count": 1,
         "trials": [
-          16
+          14
         ],
-        "min": 16,
-        "max": 16,
-        "median": 16,
+        "min": 14,
+        "max": 14,
+        "median": 14,
         "stdev": 0
       },
       "duration": {
@@ -278,11 +278,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          1719
+          1468
         ],
-        "min": 1719,
-        "max": 1719,
-        "median": 1719,
+        "min": 1468,
+        "max": 1468,
+        "median": 1468,
         "stdev": 0
       }
     },
@@ -292,11 +292,11 @@
         "unit": "count",
         "count": 1,
         "trials": [
-          18
+          15
         ],
-        "min": 18,
-        "max": 18,
-        "median": 18,
+        "min": 15,
+        "max": 15,
+        "median": 15,
         "stdev": 0
       },
       "duration": {
@@ -304,11 +304,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          1638
+          1516
         ],
-        "min": 1638,
-        "max": 1638,
-        "median": 1638,
+        "min": 1516,
+        "max": 1516,
+        "median": 1516,
         "stdev": 0
       }
     }
@@ -324,40 +324,40 @@
   "trialsRaw": {
     "cold": [
       {
-        "ms": 2539.1999999284744,
+        "ms": 2195.5,
         "domElements": 1201,
-        "longTaskCount": 16,
-        "longTaskMs": 1719,
+        "longTaskCount": 14,
+        "longTaskMs": 1468,
         "idbCalls": 5,
-        "idbMs": 9494.899999976158,
+        "idbMs": 8035.200000047684,
         "idbRecords": 125000,
         "modelCalls": 7,
-        "modelMs": 135.20000004768372
+        "modelMs": 115.5
       }
     ],
     "warm": [
       {
-        "ms": 2211,
+        "ms": 2201.3000000715256,
         "domElements": 1201,
-        "longTaskCount": 18,
-        "longTaskMs": 1638,
+        "longTaskCount": 15,
+        "longTaskMs": 1516,
         "idbCalls": 5,
-        "idbMs": 8771.900000095367,
+        "idbMs": 9129.899999976158,
         "idbRecords": 125000,
         "modelCalls": 6,
-        "modelMs": 112.79999995231628
+        "modelMs": 91.60000014305115
       }
     ]
   },
   "environment": {
-    "measuredSourceCommit": "79741cfdd3382c62229d5051c3a55ebda71c80f5",
-    "measuredSourceTree": "86ad4af6cf3f03896201ef919ea9e3dc2207ee0e",
+    "measuredSourceCommit": "2f28abd011128bed8c9de57de7ae46009fd18c4f",
+    "measuredSourceTree": "e758dee7c5d55e0b690799ef1c79df4cc0c44f2b",
     "contentMatchesHead": true,
     "resultsCommit": null,
-    "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff は空で、その commit のツリーと内容が一致する。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。未コミットの内容差分がある実行は失敗させる。",
+    "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
     "uncommittedContentDiff": null,
     "uncommittedStatus": "M vite.config.js",
-    "measuredAt": "2026-11-25T00:12:41.890Z",
+    "measuredAt": "2026-11-25T01:02:06.658Z",
     "os": "Windows_NT 10.0.26200",
     "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
     "cpuCores": 12,
