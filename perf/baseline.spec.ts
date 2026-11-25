@@ -22,7 +22,7 @@ import {
 } from "../src/perf/measurementSource";
 
 const DB_NAME = "concept-book-db";
-const RESULTS_DIR = path.resolve("docs/perf/results");
+const RESULTS_DIR = path.resolve(process.env.PERF_RESULTS_DIR ?? "docs/perf/results");
 
 type StartupSample = {
   ms: number;

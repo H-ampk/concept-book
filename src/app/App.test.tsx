@@ -5,9 +5,10 @@ import { createEmptyConceptInput, type Concept } from "../types/concept";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../types/quiz";
 import type { ConceptMastery } from "../utils/mastery/types";
 
-const { getAllConcepts, getQuizAttemptLogs, capturedGraph } = vi.hoisted(() => ({
+const { getAllConcepts, getQuizAttemptLogs, getQuizQuestions, capturedGraph } = vi.hoisted(() => ({
   getAllConcepts: vi.fn(),
   getQuizAttemptLogs: vi.fn(),
+  getQuizQuestions: vi.fn(),
   capturedGraph: {
     conceptMasteryMap: undefined as Map<string, ConceptMastery> | undefined,
     conceptIds: [] as string[]
@@ -18,6 +19,7 @@ vi.mock("../storage", () => {
   const methods: Record<string, unknown> = {
     getAllConcepts,
     getQuizAttemptLogs,
+    getQuizQuestions,
     updateConcept: vi.fn(async () => undefined),
     getMediaBlob: vi.fn(async () => undefined),
     getAllContextCards: vi.fn(async () => [])
@@ -82,6 +84,8 @@ describe("App mastery overview (#56)", () => {
   beforeEach(() => {
     getAllConcepts.mockReset();
     getQuizAttemptLogs.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizQuestions.mockResolvedValue([]);
     capturedGraph.conceptMasteryMap = undefined;
     capturedGraph.conceptIds = [];
     getAllConcepts.mockResolvedValue([
@@ -128,5 +132,20 @@ describe("App mastery overview (#56)", () => {
     expect(capturedGraph.conceptIds).toEqual(["concept-unlearned"]);
     expect(capturedGraph.conceptMasteryMap?.get("concept-unlearned")?.state).toBe("unlearned");
     expect(capturedGraph.conceptMasteryMap?.get("concept-thin")?.state).toBe("insufficient-data");
+  });
+
+  it("概念画面を離れて戻っても、学習ログと問題を再取得しない", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => {
+      expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
+      expect(getQuizQuestions).toHaveBeenCalledTimes(1);
+    });
+
+    await user.click(screen.getByRole("button", { name: "文脈" }));
+    await user.click(screen.getByRole("button", { name: "概念" }));
+
+    expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
+    expect(getQuizQuestions).toHaveBeenCalledTimes(1);
   });
 });

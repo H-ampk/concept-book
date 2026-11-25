@@ -94,13 +94,17 @@ export function getConceptQuizStats(
 }
 
 /** 学習済み概念のみ表示文字列を返す（未学習概念は Map に含めない） */
-export function buildConceptQuizStatsDisplayMap(logs: QuizAttemptLog[]): Map<string, string> {
-  const statsMap = buildConceptQuizStatsMap(logs);
+export function conceptQuizStatsDisplayMapFromStats(
+  statsMap: ReadonlyMap<string, ConceptQuizStats>
+): Map<string, string> {
   const displayMap = new Map<string, string>();
-
   for (const [conceptId, stats] of statsMap) {
     displayMap.set(conceptId, formatConceptQuizStats(stats));
   }
-
   return displayMap;
+}
+
+/** 学習済み概念のみ表示文字列を返す（未学習概念は Map に含めない） */
+export function buildConceptQuizStatsDisplayMap(logs: QuizAttemptLog[]): Map<string, string> {
+  return conceptQuizStatsDisplayMapFromStats(buildConceptQuizStatsMap(logs));
 }

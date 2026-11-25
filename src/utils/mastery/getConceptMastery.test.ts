@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../../types/quiz";
 import { calculateBktMastery } from "./bkt";
 import { DEFAULT_BKT_PARAMETERS } from "./constants";
-import { buildConceptMasteryMap, buildConceptMasteryMapForConceptIds, getConceptMastery } from "./getConceptMastery";
+import {
+  buildConceptMasteryMap,
+  buildConceptMasteryMapForConceptIds,
+  getConceptMastery,
+  projectConceptMasteryForConceptIds
+} from "./getConceptMastery";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 
 const baseLog = (overrides: Partial<QuizAttemptLog>): QuizAttemptLog => ({
@@ -395,6 +400,14 @@ describe("buildConceptMasteryMapForConceptIds", () => {
     expect(map.get("confused")?.state).toBe("unlearned");
     expect(map.get("confused")?.attemptCount).toBe(0);
     expect(buildConceptMasteryMap(logs).size).toBe(0);
+  });
+
+  it("ログ由来 Map へ ID を足す処理は、ログから作り直した結果と一致する", () => {
+    const logs = [baseLog({ questionConceptId: "learned", correct: true })];
+    const fromLogs = buildConceptMasteryMap(logs, { now });
+    const projected = projectConceptMasteryForConceptIds(fromLogs, ["learned", "added"], { now });
+    expect(projected).toEqual(buildConceptMasteryMapForConceptIds(logs, ["learned", "added"], { now }));
+    expect(fromLogs.has("added")).toBe(false);
   });
 
   it("既存 buildConceptMasteryMap はログに無い ID を入れない", () => {

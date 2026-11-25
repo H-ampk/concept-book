@@ -186,6 +186,21 @@ export const buildConceptMasteryMapForConceptIds = (
   const now = options?.now ?? new Date();
   const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
   const map = buildConceptMasteryMap(logs, { ...options, now, parameters });
+  return projectConceptMasteryForConceptIds(map, conceptIds, { ...options, now, parameters });
+};
+
+/**
+ * ログ全体から既に作った mastery Map に、指定 ID の未学習枠だけを足す。
+ * ログの再走査はしない。入力 Map は破壊しない。
+ */
+export const projectConceptMasteryForConceptIds = (
+  masteryFromLogs: ReadonlyMap<string, ConceptMastery>,
+  conceptIds: Iterable<string>,
+  options?: GetConceptMasteryOptions
+): Map<string, ConceptMastery> => {
+  const now = options?.now ?? new Date();
+  const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
+  const map = new Map(masteryFromLogs);
   for (const conceptId of conceptIds) {
     if (!map.has(conceptId)) {
       map.set(conceptId, emptyMastery(conceptId, parameters, now));
