@@ -2051,7 +2051,7 @@ export class IndexedDBStorage implements ConceptStorage {
         throw new Error(`Question ${question.id} が Deck の questionIds に含まれていません。`);
       }
     }
-    return withTransaction(
+    await withTransaction(
       [STORE_QUIZ_QUESTIONS, STORE_QUIZ_DECKS],
       "readwrite",
       async (getStore) => {
@@ -2471,6 +2471,7 @@ export class IndexedDBStorage implements ConceptStorage {
     const validConceptIds = new Set(allConcepts.map((c) => c.id));
     const quizSanitized = data.quizQuestions.map((q) => stripInvalidQuizReferences(q, validConceptIds));
     const quizResult = await this.importQuizQuestions(quizSanitized, mode);
+    noteQuizLearningRevision("questions");
 
     const skippedQuizQuestions = data.quizQuestionParseSkipped + quizResult.skipped;
 
@@ -2479,6 +2480,7 @@ export class IndexedDBStorage implements ConceptStorage {
     const skippedQuizDecks = data.quizDeckParseSkipped + deckResult.skipped;
 
     const logResult = await this.importQuizAttemptLogs(data.quizAttemptLogs, mode);
+    noteQuizLearningRevision("logs");
     const skippedQuizAttemptLogs = data.quizAttemptLogParseSkipped + logResult.skipped;
 
     const reportParseSkipped = data.researchReportParseSkipped ?? 0;
@@ -2490,7 +2492,6 @@ export class IndexedDBStorage implements ConceptStorage {
       ? await this.importVocabularyBooks(data.vocabularyBooks ?? [], mode)
       : { imported: 0, skipped: 0 };
 
-    noteQuizLearningRevision("both");
     return {
       importedConcepts: conceptResult.imported,
       skippedConcepts: conceptResult.skipped,
@@ -3015,6 +3016,7 @@ export class IndexedDBStorage implements ConceptStorage {
         preserveMediaReferences: true,
         mediaRecords: records
       });
+      noteQuizLearningRevision("both");
       const restored = await restorePdfPackage();
       return {
         ...imported,

@@ -49,6 +49,8 @@ vi.mock("../components/ConceptGraphView", () => ({
   }
 }));
 
+import { noteQuizLearningRevision } from "../storage/quizLearningRevision";
+import * as masteryModule from "../utils/mastery/getConceptMastery";
 import { App } from "./App";
 
 const concept = (overrides: Partial<Concept> = {}): Concept => ({
@@ -147,5 +149,70 @@ describe("App mastery overview (#56)", () => {
 
     expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
     expect(getQuizQuestions).toHaveBeenCalledTimes(1);
+  });
+
+  it("ログ再取得の失敗後も、取得済みの習熟度表示を残す", async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getAllByText("データ不足").length).toBeGreaterThan(0);
+    });
+    const reads = getQuizAttemptLogs.mock.calls.length;
+
+    getQuizAttemptLogs.mockRejectedValueOnce(new Error("reload failed"));
+    noteQuizLearningRevision("logs");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+    });
+    expect(screen.getAllByText("データ不足").length).toBeGreaterThan(0);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads + 1);
+    expect(getQuizQuestions.mock.calls.length).toBe(1);
+  });
+
+  it("ログ未取得のあいだは統計の未学習表示を出さない", async () => {
+    const user = userEvent.setup();
+    let resolveLogs: (logs: QuizAttemptLog[]) => void = () => undefined;
+    getQuizAttemptLogs.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveLogs = resolve;
+        })
+    );
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("concept-list-item-concept-unlearned")).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId("concept-list-item-concept-unlearned"));
+    expect(screen.queryByRole("heading", { name: "学習状況" })).not.toBeInTheDocument();
+
+    resolveLogs([]);
+    await waitFor(() => {
+      expect(screen.queryByTestId("quiz-learning-loading")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("heading", { name: "学習状況" })).not.toBeInTheDocument();
+  });
+
+  it("概念画面へ戻ると freshness を更新し、ログ再取得と BKT 再計算はしない", async () => {
+    const user = userEvent.setup();
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    const freshness = vi.spyOn(masteryModule, "refreshConceptMasteryFreshness");
+    render(<App />);
+    await waitFor(() => {
+      expect(bkt).toHaveBeenCalled();
+    });
+    const bktCalls = bkt.mock.calls.length;
+    const reads = getQuizAttemptLogs.mock.calls.length;
+    const freshnessCalls = freshness.mock.calls.length;
+
+    await user.click(screen.getByRole("button", { name: "文脈" }));
+    await user.click(screen.getByRole("button", { name: "概念" }));
+
+    await waitFor(() => {
+      expect(freshness.mock.calls.length).toBeGreaterThan(freshnessCalls);
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads);
+    bkt.mockRestore();
+    freshness.mockRestore();
   });
 });

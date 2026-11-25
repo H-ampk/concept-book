@@ -32,7 +32,8 @@ import {
 } from "../utils/quiz/getConceptQuizStats";
 import {
   buildConceptMasteryMap,
-  projectConceptMasteryForConceptIds
+  projectConceptMasteryForConceptIds,
+  refreshConceptMasteryFreshness
 } from "../utils/mastery/getConceptMastery";
 import { getConceptMasteryHistory } from "../utils/mastery/getConceptMasteryHistory";
 import {
@@ -179,6 +180,7 @@ export const App = () => {
   const [graphFiltersOpen, setGraphFiltersOpen] = useState(false);
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
   const [masteryFilter, setMasteryFilter] = useState<MasteryOverviewFilter>("all");
+  const [freshnessNow, setFreshnessNow] = useState(() => new Date());
   const conceptIds = useMemo(() => concepts.map((concept) => concept.id), [concepts]);
   const conceptIdsKey = useMemo(() => conceptIdSetKey(conceptIds), [conceptIds]);
   const {
@@ -201,6 +203,12 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
+    if (screen === "concepts") {
+      setFreshnessNow(new Date());
+    }
+  }, [screen]);
+
+  useEffect(() => {
     setListDisplayLimit(100);
   }, [
     debouncedSearchQuery,
@@ -219,21 +227,22 @@ export const App = () => {
   const showGraphDetailPanel = isGraphDetailPanelVisible(Boolean(selectedConcept), graphDetailOpen);
 
   const masteryFromLogs = useMemo(() => {
-    if (logsStatus !== "ready" || !quizAttemptLogs) {
+    if (!quizAttemptLogs) {
       return null;
     }
     return measurePerfSpan("learning-model.bkt-mastery-map", () => buildConceptMasteryMap(quizAttemptLogs));
-  }, [quizAttemptLogs, logsStatus]);
+  }, [quizAttemptLogs]);
 
   const conceptMasteryMap = useMemo(() => {
     if (!masteryFromLogs) {
       return undefined;
     }
     return projectConceptMasteryForConceptIds(
-      masteryFromLogs,
-      conceptIdsKey.length === 0 ? [] : conceptIdsKey.split("\0")
+      refreshConceptMasteryFreshness(masteryFromLogs, freshnessNow),
+      conceptIdsKey.length === 0 ? [] : conceptIdsKey.split("\0"),
+      { now: freshnessNow }
     );
-  }, [masteryFromLogs, conceptIdsKey]);
+  }, [masteryFromLogs, conceptIdsKey, freshnessNow]);
 
   const masteryFilteredConcepts = useMemo(
     () =>
@@ -261,18 +270,18 @@ export const App = () => {
   }, [listViewMode, listSourceConcepts]);
 
   const conceptQuizStatsMap = useMemo(() => {
-    if (logsStatus !== "ready" || !quizAttemptLogs) {
+    if (!quizAttemptLogs) {
       return undefined;
     }
     return measurePerfSpan("learning-model.quiz-stats", () => buildConceptQuizStatsMap(quizAttemptLogs));
-  }, [quizAttemptLogs, logsStatus]);
+  }, [quizAttemptLogs]);
 
   const confusionPairs = useMemo(() => {
-    if (logsStatus !== "ready" || !quizAttemptLogs) {
+    if (!quizAttemptLogs) {
       return undefined;
     }
     return measurePerfSpan("learning-model.confusion-pairs", () => computeConfusionPairs(quizAttemptLogs));
-  }, [quizAttemptLogs, logsStatus]);
+  }, [quizAttemptLogs]);
 
   const confusionUniverseIds = useMemo(
     () => concepts.map((concept) => concept.id),
@@ -284,9 +293,9 @@ export const App = () => {
     [conceptQuizStatsMap]
   );
 
-  const selectedConceptQuizStatsText = selectedConcept
-    ? conceptQuizStatsText?.get(selectedConcept.id) ?? "未学習"
-    : undefined;
+  const selectedConceptQuizStatsText = !selectedConcept || !conceptQuizStatsText
+    ? undefined
+    : conceptQuizStatsText.get(selectedConcept.id) ?? "未学習";
 
   const selectedConceptMastery = selectedConcept
     ? conceptMasteryMap?.get(selectedConcept.id)
@@ -294,11 +303,11 @@ export const App = () => {
 
   const selectedConceptId = selectedConcept?.id;
   const selectedConceptMasteryHistory = useMemo(() => {
-    if (!selectedConceptId || logsStatus !== "ready" || !quizAttemptLogs) {
+    if (!selectedConceptId || !quizAttemptLogs) {
       return undefined;
     }
     return getConceptMasteryHistory(quizAttemptLogs, selectedConceptId);
-  }, [quizAttemptLogs, logsStatus, selectedConceptId]);
+  }, [quizAttemptLogs, selectedConceptId]);
 
   const openCreate = () => {
     setEditingConcept(undefined);

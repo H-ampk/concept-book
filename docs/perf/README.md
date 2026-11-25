@@ -22,7 +22,19 @@ Issue #244 の計測基盤です。性能改善は含みません。親 Issue #2
 npm run perf:baseline
 ```
 
-これは `npm run build` のあと、`vite preview`（port 4179）に対して `playwright.perf.config.ts` を実行します。`npm run test:e2e` には含まれません。結果の出力先は `PERF_RESULTS_DIR` で変えられます。未指定時は `docs/perf/results` です。Phase 0 の JSON を上書きしないため、Phase 1 は `docs/perf/results/phase1` に書いています。JSON の `purpose` は計測スクリプトの既存ラベル `phase-0-baseline` のままです。
+Phase 1 を再計測するときは、Phase 0 の `docs/perf/results` を上書きしないよう出力先を指定します。
+
+```bash
+PERF_RESULTS_DIR=docs/perf/results/phase1 npm run perf:baseline
+```
+
+```powershell
+$env:PERF_RESULTS_DIR = "docs/perf/results/phase1"
+npm run perf:baseline
+Remove-Item Env:PERF_RESULTS_DIR
+```
+
+これは `npm run build` のあと、`vite preview`（port 4179）に対して `playwright.perf.config.ts` を実行します。`npm run test:e2e` には含まれません。結果の出力先は `PERF_RESULTS_DIR` で変えられます。未指定時は `docs/perf/results` です。`writeResult` は同じファイル名を上書きし、`measuredSourceCommit` がある結果は `archiveLegacyResult` で退避しません。JSON の `purpose` は計測スクリプトの既存ラベル `phase-0-baseline` のままです。
 
 ## データセット
 

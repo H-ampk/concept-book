@@ -6,7 +6,8 @@ import {
   buildConceptMasteryMap,
   buildConceptMasteryMapForConceptIds,
   getConceptMastery,
-  projectConceptMasteryForConceptIds
+  projectConceptMasteryForConceptIds,
+  refreshConceptMasteryFreshness
 } from "./getConceptMastery";
 import { resolveConceptIdFromLog } from "../quiz/resolveConceptIdFromLog";
 
@@ -211,6 +212,44 @@ describe("getConceptMastery", () => {
     expect(later.freshness).toBe("stale");
     expect(later.masteryScore).toBe(soon.masteryScore);
     expect(later.masteryProbability).toBe(soon.masteryProbability);
+  });
+
+  it("freshness は 7 日まで fresh、8 日から aging、30 日まで aging、31 日から stale", () => {
+    const logs = [
+      baseLog({
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      })
+    ];
+    const at = (iso: string) => getConceptMastery(logs, "c", { now: new Date(iso) }).freshness;
+    expect(at("2026-01-08T00:00:00.000Z")).toBe("fresh");
+    expect(at("2026-01-09T00:00:00.000Z")).toBe("aging");
+    expect(at("2026-01-31T00:00:00.000Z")).toBe("aging");
+    expect(at("2026-02-01T00:00:00.000Z")).toBe("stale");
+  });
+
+  it("freshness の付け直しは BKT の点数を変えず、7 日と 30 日の境界をまたぐ", () => {
+    const logs = [
+      baseLog({
+        questionConceptId: "c",
+        correct: true,
+        answeredAt: "2026-01-01T00:00:00.000Z"
+      })
+    ];
+    const built = buildConceptMasteryMap(logs, { now: new Date("2026-01-08T00:00:00.000Z") });
+    const score = built.get("c")?.masteryScore;
+    const fresh = refreshConceptMasteryFreshness(built, new Date("2026-01-08T00:00:00.000Z"));
+    const aging = refreshConceptMasteryFreshness(built, new Date("2026-01-09T00:00:00.000Z"));
+    const stillAging = refreshConceptMasteryFreshness(built, new Date("2026-01-31T00:00:00.000Z"));
+    const stale = refreshConceptMasteryFreshness(built, new Date("2026-02-01T00:00:00.000Z"));
+    expect(fresh.get("c")?.freshness).toBe("fresh");
+    expect(aging.get("c")?.freshness).toBe("aging");
+    expect(stillAging.get("c")?.freshness).toBe("aging");
+    expect(stale.get("c")?.freshness).toBe("stale");
+    expect(stale.get("c")?.masteryScore).toBe(score);
+    expect(stale.get("c")?.masteryProbability).toBe(built.get("c")?.masteryProbability);
+    expect(built.get("c")?.freshness).toBe("fresh");
   });
 
   it("回答時間は masteryScore に含めない", () => {

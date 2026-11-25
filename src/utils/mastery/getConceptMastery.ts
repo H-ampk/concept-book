@@ -208,3 +208,16 @@ export const projectConceptMasteryForConceptIds = (
   }
   return map;
 };
+
+/** 既存 mastery の freshness だけを現在時刻で付け直す。BKT は再実行しない。 */
+export const refreshConceptMasteryFreshness = (
+  masteryByConceptId: ReadonlyMap<string, ConceptMastery>,
+  now: Date
+): Map<string, ConceptMastery> => {
+  const map = new Map<string, ConceptMastery>();
+  for (const [conceptId, mastery] of masteryByConceptId) {
+    const freshness = freshnessFromLastAnsweredAt(mastery.lastAnsweredAt, now);
+    map.set(conceptId, freshness === mastery.freshness ? mastery : { ...mastery, freshness });
+  }
+  return map;
+};
