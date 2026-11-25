@@ -87,7 +87,7 @@ describe("useQuizLearningSnapshot", () => {
     getQuizAttemptLogs.mockReset();
     getQuizQuestions.mockReset();
     getQuizAttemptLogs.mockResolvedValue([log("log-1", "a")]);
-    getQuizQuestions.mockResolvedValue([question("q1", "a")]);
+    getQuizQuestions.mockResolvedValue([question("q1", "a"), question("q-c", "c")]);
   });
 
   it("初回だけ取得し、ID の並び替えでは再取得せず、ID 追加では対応だけ更新する", async () => {
@@ -104,9 +104,12 @@ describe("useQuizLearningSnapshot", () => {
       expect(getQuizQuestions).toHaveBeenCalledTimes(1);
     });
 
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    expect(screen.getByTestId("question-concepts")).not.toHaveTextContent("c");
+
     getByRole("button", { name: "add-id" }).click();
     await waitFor(() => {
-      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a,c");
     });
     expect(getQuizQuestions).toHaveBeenCalledTimes(1);
     expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);

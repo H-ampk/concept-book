@@ -43,6 +43,7 @@ import {
 } from "../utils/mastery/masteryPresentation";
 import { computeConfusionPairs } from "../utils/quizStats";
 import { measurePerfSpan } from "../perf/probe";
+import { subscribeQuizLearningRevision } from "../storage/quizLearningRevision";
 import { conceptIdSetKey, useQuizLearningSnapshot } from "./useQuizLearningSnapshot";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { VocabularyBookScreen } from "../components/VocabularyBookScreen";
@@ -207,6 +208,14 @@ export const App = () => {
       setFreshnessNow(new Date());
     }
   }, [screen]);
+
+  useEffect(() => {
+    return subscribeQuizLearningRevision((change) => {
+      if (change.logs) {
+        setFreshnessNow(new Date());
+      }
+    });
+  }, []);
 
   useEffect(() => {
     setListDisplayLimit(100);

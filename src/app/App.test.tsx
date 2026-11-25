@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../types/concept";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../types/quiz";
 import type { ConceptMastery } from "../utils/mastery/types";
@@ -83,6 +83,10 @@ const log = (overrides: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
 });
 
 describe("App mastery overview (#56)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     getAllConcepts.mockReset();
     getQuizAttemptLogs.mockReset();
@@ -214,5 +218,45 @@ describe("App mastery overview (#56)", () => {
     expect(getQuizAttemptLogs.mock.calls.length).toBe(reads);
     bkt.mockRestore();
     freshness.mockRestore();
+  });
+
+  it("概念画面を開いたまま境界を越え、ログ更新で 7 日と 30 日の鮮度を付け直す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    });
+    const bktCalls = bkt.mock.calls.length;
+    const reads = getQuizAttemptLogs.mock.calls.length;
+    const questionReads = getQuizQuestions.mock.calls.length;
+
+    vi.setSystemTime(new Date("2026-01-09T00:00:01.000Z"));
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+
+    noteQuizLearningRevision("logs");
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("しばらく未確認"));
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads + 1);
+    expect(getQuizQuestions.mock.calls.length).toBe(questionReads);
+
+    vi.setSystemTime(new Date("2026-02-01T00:00:01.000Z"));
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("しばらく未確認"));
+
+    noteQuizLearningRevision("logs");
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("要再確認"));
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads + 2);
+    expect(getQuizQuestions.mock.calls.length).toBe(questionReads);
+    bkt.mockRestore();
   });
 });
