@@ -485,12 +485,12 @@ const measureScreens = async (page: Page): Promise<Record<string, number>> => {
   screens.contexts = await timeUntil(
     page,
     () => page.getByRole("button", { name: "文脈", exact: true }).click(),
-    () => page.getByRole("heading", { name: "文脈カード" }).waitFor()
+    () => page.getByRole("heading", { name: "文脈カード", exact: true }).waitFor()
   );
   screens.vocabulary = await timeUntil(
     page,
     () => page.getByRole("button", { name: "単語帳", exact: true }).click(),
-    () => page.getByRole("heading", { name: "単語帳" }).waitFor()
+    () => page.getByRole("heading", { name: "単語帳", exact: true }).waitFor()
   );
   screens.settings = await timeUntil(
     page,
@@ -500,7 +500,7 @@ const measureScreens = async (page: Page): Promise<Record<string, number>> => {
   screens.guide = await timeUntil(
     page,
     () => page.getByRole("button", { name: "ConceptBook の使い方", exact: true }).click(),
-    () => page.getByRole("heading", { name: "ConceptBook の使い方" }).waitFor()
+    () => page.getByRole("heading", { name: "ConceptBook の使い方", exact: true }).waitFor()
   );
   screens.dataLab = await timeUntil(
     page,
