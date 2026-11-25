@@ -1,33 +1,33 @@
 {
-  "measuredSourceCommit": "a0a587e39f9e12994dc83a1491578620bda1ea0f",
-  "measuredSourceTree": "4c6cba4363e6460de2e3fb6549c65b9b5e5a9e2d",
+  "measuredSourceCommit": "58d9437788e23ca90efb06365626a50f02683724",
+  "measuredSourceTree": "24b5c5357b3515e8ec4beef116feb8cd0f89392d",
   "contentMatchesHead": true,
   "resultsCommit": null,
   "note": "この bundle.json は measuredSourceCommit の本番ビルドから集計した。比較に使う初期チャンクはここを参照する。",
   "uncommittedContentDiff": null,
   "uncommittedStatus": "M vite.config.js",
-  "measuredAt": "2026-11-25T02:13:05.705Z",
+  "measuredAt": "2026-11-25T03:17:14.878Z",
   "os": "Windows_NT 10.0.26200",
   "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
   "cpuCores": 12,
   "memoryBytes": 16870006784,
   "browser": "Chromium 151.0.7922.34",
   "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）",
-  "initialBytes": 1920421,
+  "initialBytes": 1920635,
   "lazyBytes": 216392,
   "files": [
     {
-      "file": "assets/ConceptGraphView-C-Gn2FJW.js",
+      "file": "assets/ConceptGraphView-p2VtOsHt.js",
       "bytes": 196514,
       "initial": false
     },
     {
-      "file": "assets/index-DYN9bwM4.js",
-      "bytes": 1920421,
+      "file": "assets/index-CHzQpP3X.js",
+      "bytes": 1920635,
       "initial": true
     },
     {
-      "file": "assets/SkillTreeView-BP5kQZzC.js",
+      "file": "assets/SkillTreeView-J_Z5RrVT.js",
       "bytes": 14172,
       "initial": false
     },

@@ -55,11 +55,11 @@
       "unit": "ms",
       "count": 1,
       "trials": [
-        1629.7000000476837
+        1629.3999999761581
       ],
-      "min": 1629.7000000476837,
-      "max": 1629.7000000476837,
-      "median": 1629.7000000476837,
+      "min": 1629.3999999761581,
+      "max": 1629.3999999761581,
+      "median": 1629.3999999761581,
       "stdev": 0
     },
     "warm": {
@@ -67,11 +67,11 @@
       "unit": "ms",
       "count": 1,
       "trials": [
-        1587.6000000238419
+        1287.2000000476837
       ],
-      "min": 1587.6000000238419,
-      "max": 1587.6000000238419,
-      "median": 1587.6000000238419,
+      "min": 1287.2000000476837,
+      "max": 1287.2000000476837,
+      "median": 1287.2000000476837,
       "stdev": 0
     }
   },
@@ -113,11 +113,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          3589
+          3364.100000143051
         ],
-        "min": 3589,
-        "max": 3589,
-        "median": 3589,
+        "min": 3364.100000143051,
+        "max": 3364.100000143051,
+        "median": 3364.100000143051,
         "stdev": 0
       },
       "records": {
@@ -151,11 +151,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          3370.2999999523163
+          2792.7000000476837
         ],
-        "min": 3370.2999999523163,
-        "max": 3370.2999999523163,
-        "median": 3370.2999999523163,
+        "min": 2792.7000000476837,
+        "max": 2792.7000000476837,
+        "median": 2792.7000000476837,
         "stdev": 0
       },
       "records": {
@@ -192,11 +192,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          111.5
+          112.799999833107
         ],
-        "min": 111.5,
-        "max": 111.5,
-        "median": 111.5,
+        "min": 112.799999833107,
+        "max": 112.799999833107,
+        "median": 112.799999833107,
         "stdev": 0
       }
     },
@@ -218,11 +218,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          115.39999997615814
+          109.70000004768372
         ],
-        "min": 115.39999997615814,
-        "max": 115.39999997615814,
-        "median": 115.39999997615814,
+        "min": 109.70000004768372,
+        "max": 109.70000004768372,
+        "median": 109.70000004768372,
         "stdev": 0
       }
     },
@@ -278,11 +278,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          1161
+          1149
         ],
-        "min": 1161,
-        "max": 1161,
-        "median": 1161,
+        "min": 1149,
+        "max": 1149,
+        "median": 1149,
         "stdev": 0
       }
     },
@@ -292,11 +292,11 @@
         "unit": "count",
         "count": 1,
         "trials": [
-          10
+          9
         ],
-        "min": 10,
-        "max": 10,
-        "median": 10,
+        "min": 9,
+        "max": 9,
+        "median": 9,
         "stdev": 0
       },
       "duration": {
@@ -304,11 +304,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          1051
+          812
         ],
-        "min": 1051,
-        "max": 1051,
-        "median": 1051,
+        "min": 812,
+        "max": 812,
+        "median": 812,
         "stdev": 0
       }
     }
@@ -324,40 +324,40 @@
   "trialsRaw": {
     "cold": [
       {
-        "ms": 1629.7000000476837,
+        "ms": 1629.3999999761581,
         "domElements": 1201,
         "longTaskCount": 11,
-        "longTaskMs": 1161,
+        "longTaskMs": 1149,
         "idbCalls": 3,
-        "idbMs": 3589,
+        "idbMs": 3364.100000143051,
         "idbRecords": 65000,
         "modelCalls": 3,
-        "modelMs": 111.5
+        "modelMs": 112.799999833107
       }
     ],
     "warm": [
       {
-        "ms": 1587.6000000238419,
+        "ms": 1287.2000000476837,
         "domElements": 1201,
-        "longTaskCount": 10,
-        "longTaskMs": 1051,
+        "longTaskCount": 9,
+        "longTaskMs": 812,
         "idbCalls": 3,
-        "idbMs": 3370.2999999523163,
+        "idbMs": 2792.7000000476837,
         "idbRecords": 65000,
         "modelCalls": 3,
-        "modelMs": 115.39999997615814
+        "modelMs": 109.70000004768372
       }
     ]
   },
   "environment": {
-    "measuredSourceCommit": "a0a587e39f9e12994dc83a1491578620bda1ea0f",
-    "measuredSourceTree": "4c6cba4363e6460de2e3fb6549c65b9b5e5a9e2d",
+    "measuredSourceCommit": "58d9437788e23ca90efb06365626a50f02683724",
+    "measuredSourceTree": "24b5c5357b3515e8ec4beef116feb8cd0f89392d",
     "contentMatchesHead": true,
     "resultsCommit": null,
     "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
     "uncommittedContentDiff": null,
     "uncommittedStatus": "M vite.config.js",
-    "measuredAt": "2026-11-25T02:18:20.470Z",
+    "measuredAt": "2026-11-25T03:22:29.063Z",
     "os": "Windows_NT 10.0.26200",
     "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
     "cpuCores": 12,
