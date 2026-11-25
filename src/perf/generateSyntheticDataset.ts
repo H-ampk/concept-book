@@ -269,7 +269,7 @@ export const generateSyntheticDataset = (spec: SyntheticDatasetSpec): SyntheticD
       contexts: contextCards.length,
       relatedPairs: usedRelated.size,
       prerequisiteEdges: acceptedPrerequisite.size,
-      relations: usedRelated.size + usedPrerequisite.size,
+      relations: usedRelated.size + acceptedPrerequisite.size,
       attachmentBytes: attachment?.byteLength ?? 0
     }
   };

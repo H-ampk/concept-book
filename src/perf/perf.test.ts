@@ -84,6 +84,9 @@ describe("合成データセット", () => {
       relationCount: 12
     });
     expect(dataset.counts.prerequisiteEdges).toBe(6);
+    expect(dataset.counts.relations).toBe(
+      dataset.counts.relatedPairs + dataset.counts.prerequisiteEdges
+    );
     assertDatasetIntegrity(dataset);
   });
 

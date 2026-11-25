@@ -37,10 +37,12 @@ const installObservers = (): void => {
     __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
     __longTasks: Array<{ startTime: number; duration: number }>;
     __appReadyAt: number | null;
+    __startupProbeCounts: { idb: number; models: number } | null;
   };
   host.__CB_PERF_PROBE__ = { idb: [], models: [] };
   host.__longTasks = [];
   host.__appReadyAt = null;
+  host.__startupProbeCounts = null;
   try {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
@@ -69,6 +71,10 @@ const installObservers = (): void => {
       stores.has("quizAttemptLogs")
     ) {
       host.__appReadyAt = performance.now();
+      host.__startupProbeCounts = {
+        idb: host.__CB_PERF_PROBE__.idb.length,
+        models: host.__CB_PERF_PROBE__.models.length
+      };
     }
   };
   const mutation = new MutationObserver(markReady);
@@ -99,10 +105,12 @@ const resetProbe = async (page: Page): Promise<void> => {
       __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
       __longTasks: Array<{ startTime: number; duration: number }>;
       __appReadyAt: number | null;
+      __startupProbeCounts: { idb: number; models: number } | null;
     };
     host.__CB_PERF_PROBE__ = { idb: [], models: [] };
     host.__longTasks = [];
     host.__appReadyAt = null;
+    host.__startupProbeCounts = null;
   });
 };
 
@@ -112,15 +120,17 @@ const readStartup = async (page: Page): Promise<StartupSample> => {
       __CB_PERF_PROBE__: { idb: Array<{ count: number; ms: number }>; models: Array<{ ms: number }> };
       __longTasks: Array<{ startTime: number; duration: number }>;
       __appReadyAt: number | null;
+      __startupProbeCounts: { idb: number; models: number } | null;
     };
     const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
     const start = navigation?.startTime ?? 0;
     const ready = host.__appReadyAt;
-    if (ready == null) {
+    const counts = host.__startupProbeCounts;
+    if (ready == null || counts == null) {
       throw new Error("起動完了時点が記録されていません。");
     }
-    const idb = host.__CB_PERF_PROBE__.idb;
-    const models = host.__CB_PERF_PROBE__.models;
+    const idb = host.__CB_PERF_PROBE__.idb.slice(0, counts.idb);
+    const models = host.__CB_PERF_PROBE__.models.slice(0, counts.models);
     return {
       ms: ready - start,
       windowStart: start,
@@ -168,16 +178,34 @@ const seedDataset = async (page: Page, dataset: SyntheticDataset): Promise<void>
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
           });
-          await new Promise<void>((resolve, reject) => {
-            const tx = db.transaction(storeName, "readwrite");
-            const objectStore = tx.objectStore(storeName);
-            for (const row of rows) {
-              objectStore.put(row);
-            }
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-          });
-          db.close();
+          try {
+            await new Promise<void>((resolve, reject) => {
+              const tx = db.transaction(storeName, "readwrite");
+              const objectStore = tx.objectStore(storeName);
+              for (const row of rows) {
+                objectStore.put(row);
+              }
+              let settled = false;
+              tx.oncomplete = () => {
+                if (settled) {
+                  return;
+                }
+                settled = true;
+                resolve();
+              };
+              const fail = () => {
+                if (settled) {
+                  return;
+                }
+                settled = true;
+                reject(tx.error ?? new Error("IndexedDB transaction aborted"));
+              };
+              tx.onerror = fail;
+              tx.onabort = fail;
+            });
+          } finally {
+            db.close();
+          }
         },
         { dbName: DB_NAME, storeName: store, rows: chunk }
       );
@@ -200,17 +228,35 @@ const seedDataset = async (page: Page, dataset: SyntheticDataset): Promise<void>
           request.onerror = () => reject(request.error);
           request.onsuccess = () => resolve(request.result);
         });
-        await new Promise<void>((resolve, reject) => {
-          const tx = db.transaction(["learningMaterials", "learningMaterialBlobs"], "readwrite");
-          tx.objectStore("learningMaterials").put(material);
-          tx.objectStore("learningMaterialBlobs").put({
-            id: material.id,
-            blob: new Blob([bytes], { type: "application/pdf" })
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(["learningMaterials", "learningMaterialBlobs"], "readwrite");
+            tx.objectStore("learningMaterials").put(material);
+            tx.objectStore("learningMaterialBlobs").put({
+              id: material.id,
+              blob: new Blob([bytes], { type: "application/pdf" })
+            });
+            let settled = false;
+            tx.oncomplete = () => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              resolve();
+            };
+            const fail = () => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              reject(tx.error ?? new Error("IndexedDB transaction aborted"));
+            };
+            tx.onerror = fail;
+            tx.onabort = fail;
           });
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => reject(tx.error);
-        });
-        db.close();
+        } finally {
+          db.close();
+        }
       },
       {
         dbName: DB_NAME,
@@ -268,15 +314,33 @@ const clearSyntheticStores = async (page: Page): Promise<void> => {
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(request.result);
       });
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(stores, "readwrite");
-        for (const store of stores) {
-          tx.objectStore(store).clear();
-        }
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-      db.close();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(stores, "readwrite");
+          for (const store of stores) {
+            tx.objectStore(store).clear();
+          }
+          let settled = false;
+          tx.oncomplete = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            resolve();
+          };
+          const fail = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            reject(tx.error ?? new Error("IndexedDB transaction aborted"));
+          };
+          tx.onerror = fail;
+          tx.onabort = fail;
+        });
+      } finally {
+        db.close();
+      }
     },
     { dbName: DB_NAME, stores: STORES_TO_CLEAR }
   );
@@ -348,17 +412,20 @@ const SOURCE_PATHS = ["src", "perf", "playwright.perf.config.ts", "package.json"
 
 const describeMeasuredSource = (): Record<string, unknown> => {
   const commit = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-  const status = execSync(`git status --porcelain -- ${SOURCE_PATHS.join(" ")}`, { encoding: "utf8" }).trim();
-  const diff = execSync(`git diff --numstat --ignore-cr-at-eol -- ${SOURCE_PATHS.join(" ")}`, {
-    encoding: "utf8"
-  }).trim();
-  if (diff) {
-    throw new Error(`計測対象に未コミットの内容差分があります。\n${diff}`);
+  const tree = execSync("git log -1 --format=%T", { encoding: "utf8" }).trim();
+  const paths = SOURCE_PATHS.join(" ");
+  const status = execSync(`git status --porcelain -- ${paths}`, { encoding: "utf8" }).trim();
+  const diff = execSync(`git diff --numstat --ignore-cr-at-eol -- ${paths}`, { encoding: "utf8" }).trim();
+  const rawDiff = execSync(`git diff --numstat -- ${paths}`, { encoding: "utf8" }).trim();
+  if (diff || rawDiff) {
+    throw new Error(`計測対象に未コミットの内容差分があります。\n${diff || rawDiff}`);
   }
   return {
     measuredSourceCommit: commit,
+    measuredSourceTree: tree,
+    contentMatchesHead: true,
     resultsCommit: null,
-    note: "measuredSourceCommit は計測したソースの commit。結果 JSON を記録する commit は、その後の別 commit であり、このフィールドには入れない。未コミットの内容差分がある実行は失敗させる。",
+    note: "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff は空で、その commit のツリーと内容が一致する。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。未コミットの内容差分がある実行は失敗させる。",
     uncommittedContentDiff: null,
     uncommittedStatus: status || null
   };
@@ -510,13 +577,31 @@ const measureCrud = async (
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(request.result);
       });
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction("concepts", "readwrite");
-        tx.objectStore("concepts").put(concept);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-      db.close();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction("concepts", "readwrite");
+          tx.objectStore("concepts").put(concept);
+          let settled = false;
+          tx.oncomplete = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            resolve();
+          };
+          const fail = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            reject(tx.error ?? new Error("IndexedDB transaction aborted"));
+          };
+          tx.onerror = fail;
+          tx.onabort = fail;
+        });
+      } finally {
+        db.close();
+      }
     },
     { dbName: DB_NAME, concept: deleteTarget }
   );
@@ -743,7 +828,7 @@ const measureSpec = async (
       warm:
         "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
       startup:
-        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録された最初の performance.now() まで。ボタンだけが先に有効でも、起動時の読み取りが終わるまで完了にしない。",
+        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録された最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使い、準備完了後に増えた試料は含めない。",
       navigation:
         "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
       crud:
