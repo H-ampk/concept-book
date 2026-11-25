@@ -36,7 +36,7 @@ reviews:
     - path: "{src/utils/pdf/**,src/components/learningMaterials/LearningMaterialPdfViewer.tsx,src/components/learningMaterials/pdfTextLayer.css}"
       instructions: |
         PDF 処理。描画の実体は LearningMaterialPdfViewer と src/utils/pdf。確認する点: 巨大 PDF や大量ページによるメモリ消費。Blob、ArrayBuffer、Canvas の不要な複製。Worker と object URL のリソース解放。非同期処理の競合とキャンセル。PDF 切り替え時の古い処理の残存。テキスト抽出の正確性。ハイライト、座標変換、重複検出。Provenance と参照関係の整合性。
-    - path: "{src/utils/mastery/**,src/utils/pfa/**,src/utils/hlr/**,src/utils/learningModel/**,src/utils/learningModelEvaluation/**,src/utils/learningSequence/**,src/utils/skillTree*.ts,src/components/SkillTreeView.tsx,src/dev/skillTreeE2eData.ts,src/dev/SkillTreeE2eHarness.tsx,src/utils/dataLab/**,src/utils/researchReport/**,src/components/dataLab/**,src/components/researchReport/**,docs/learning-models.md,docs/irt-feasibility.md}"
+    - path: "{src/utils/mastery/**,src/utils/pfa/**,src/utils/hlr/**,src/utils/learningModel/**,src/utils/learningModelEvaluation/**,src/utils/learningSequence/**,src/utils/skillTree*.ts,src/components/SkillTreeView.tsx,src/dev/skillTreeE2eData.ts,src/dev/SkillTreeE2eHarness.tsx,src/utils/dataLab/**,src/utils/researchReport/**,src/components/dataLab/**,src/components/researchReport/**,docs/learning-models.md,docs/irt-feasibility.md,docs/research/**}"
       instructions: |
         学習モデル（BKT、PFA、HLR）、SkillTree、Research Report、Data Lab、関連ドキュメント。
         確認する点: 数式と実装の一致。研究文書および引用文献との整合。パラメータの意味、単位、値域。確率値の境界条件。NaN、Infinity、ゼロ除算。数値安定性。欠損値、異常値、少量データへの対応。学習履歴の順序依存性。再現可能性。評価データの漏洩。統計指標の誤解釈。推定値と観測値の混同。学習効果や認知状態に関する根拠のない断定。
