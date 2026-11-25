@@ -14,7 +14,8 @@ import {
   fingerprintPayload,
   firstFingerprintMismatch
 } from "./datasetFingerprint";
-import { selectLongTasks } from "./longTaskWindow";
+import { mergeLongTasks, selectLongTasks } from "./longTaskWindow";
+import { hasMeasuredSourceCommit, sourceContentDiffersFromHead } from "./measurementSource";
 
 describe("合成データセット", () => {
   it("同じ seed と設定から同じデータセットを生成する", () => {
@@ -124,6 +125,33 @@ describe("合成データセット", () => {
       50
     );
     expect(selected.map((task) => task.startTime)).toEqual([10, 40]);
+  });
+
+  it("未通知の Long Task を足し、同じ記録は一度だけ残す", () => {
+    const merged = mergeLongTasks(
+      [{ startTime: 10, duration: 60 }],
+      [
+        { startTime: 10, duration: 60 },
+        { startTime: 40, duration: 70 }
+      ]
+    );
+    expect(merged).toEqual([
+      { startTime: 10, duration: 60 },
+      { startTime: 40, duration: 70 }
+    ]);
+  });
+
+  it("ステージ済みと未追跡の内容差分だけを計測拒否にする", () => {
+    expect(sourceContentDiffersFromHead({ diff: "", rawDiff: "", untracked: "" })).toBe(false);
+    expect(sourceContentDiffersFromHead({ diff: "1\t1\tsrc/app.ts", rawDiff: "", untracked: "" })).toBe(true);
+    expect(sourceContentDiffersFromHead({ diff: "", rawDiff: "", untracked: "src/new.ts" })).toBe(true);
+  });
+
+  it("結果の識別子は直下と environment の両方を見る", () => {
+    expect(hasMeasuredSourceCommit({ measuredSourceCommit: "abc" })).toBe(true);
+    expect(hasMeasuredSourceCommit({ environment: { measuredSourceCommit: "abc" } })).toBe(true);
+    expect(hasMeasuredSourceCommit({ environment: {} })).toBe(false);
+    expect(hasMeasuredSourceCommit(null)).toBe(false);
   });
 
   it("不正な設定を拒否する", () => {

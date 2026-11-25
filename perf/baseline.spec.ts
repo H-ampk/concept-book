@@ -15,7 +15,11 @@ import {
   firstFingerprintMismatch,
   type FingerprintInput
 } from "../src/perf/datasetFingerprint";
-import { selectLongTasks } from "../src/perf/longTaskWindow";
+import { mergeLongTasks, selectLongTasks } from "../src/perf/longTaskWindow";
+import {
+  hasMeasuredSourceCommit,
+  sourceContentDiffersFromHead
+} from "../src/perf/measurementSource";
 
 const DB_NAME = "concept-book-db";
 const RESULTS_DIR = path.resolve("docs/perf/results");
@@ -38,20 +42,29 @@ const installObservers = (): void => {
     __longTasks: Array<{ startTime: number; duration: number }>;
     __appReadyAt: number | null;
     __startupProbeCounts: { idb: number; models: number } | null;
+    __longTaskObserver: PerformanceObserver | null;
   };
   host.__CB_PERF_PROBE__ = { idb: [], models: [] };
   host.__longTasks = [];
   host.__appReadyAt = null;
   host.__startupProbeCounts = null;
+  host.__longTaskObserver = null;
   try {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        host.__longTasks.push({ startTime: entry.startTime, duration: entry.duration });
+        const task = { startTime: entry.startTime, duration: entry.duration };
+        const key = `${task.startTime}:${task.duration}`;
+        if (host.__longTasks.some((existing) => `${existing.startTime}:${existing.duration}` === key)) {
+          continue;
+        }
+        host.__longTasks.push(task);
       }
     });
     observer.observe({ type: "longtask", buffered: true });
+    host.__longTaskObserver = observer;
   } catch {
     host.__longTasks = [];
+    host.__longTaskObserver = null;
   }
   const markReady = (): void => {
     if (host.__appReadyAt != null) {
@@ -121,6 +134,7 @@ const readStartup = async (page: Page): Promise<StartupSample> => {
       __longTasks: Array<{ startTime: number; duration: number }>;
       __appReadyAt: number | null;
       __startupProbeCounts: { idb: number; models: number } | null;
+      __longTaskObserver: { takeRecords: () => Array<{ startTime: number; duration: number }> } | null;
     };
     const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
     const start = navigation?.startTime ?? 0;
@@ -131,12 +145,14 @@ const readStartup = async (page: Page): Promise<StartupSample> => {
     }
     const idb = host.__CB_PERF_PROBE__.idb.slice(0, counts.idb);
     const models = host.__CB_PERF_PROBE__.models.slice(0, counts.models);
+    const pending = host.__longTaskObserver?.takeRecords() ?? [];
     return {
       ms: ready - start,
       windowStart: start,
       windowEnd: ready,
       domElements: document.getElementsByTagName("*").length,
       longTasks: host.__longTasks,
+      pendingLongTasks: pending.map((entry) => ({ startTime: entry.startTime, duration: entry.duration })),
       idbCalls: idb.length,
       idbMs: idb.reduce((sum, sample) => sum + sample.ms, 0),
       idbRecords: idb.reduce((sum, sample) => sum + sample.count, 0),
@@ -144,7 +160,11 @@ const readStartup = async (page: Page): Promise<StartupSample> => {
       modelMs: models.reduce((sum, sample) => sum + sample.ms, 0)
     };
   });
-  const longTasks = selectLongTasks(raw.longTasks, raw.windowStart, raw.windowEnd);
+  const longTasks = selectLongTasks(
+    mergeLongTasks(raw.longTasks, raw.pendingLongTasks),
+    raw.windowStart,
+    raw.windowEnd
+  );
   return {
     ms: raw.ms,
     domElements: raw.domElements,
@@ -415,17 +435,20 @@ const describeMeasuredSource = (): Record<string, unknown> => {
   const tree = execSync("git log -1 --format=%T", { encoding: "utf8" }).trim();
   const paths = SOURCE_PATHS.join(" ");
   const status = execSync(`git status --porcelain -- ${paths}`, { encoding: "utf8" }).trim();
-  const diff = execSync(`git diff --numstat --ignore-cr-at-eol -- ${paths}`, { encoding: "utf8" }).trim();
-  const rawDiff = execSync(`git diff --numstat -- ${paths}`, { encoding: "utf8" }).trim();
-  if (diff || rawDiff) {
-    throw new Error(`計測対象に未コミットの内容差分があります。\n${diff || rawDiff}`);
+  const diff = execSync(`git diff HEAD --numstat --ignore-cr-at-eol -- ${paths}`, { encoding: "utf8" }).trim();
+  const rawDiff = execSync(`git diff HEAD --numstat -- ${paths}`, { encoding: "utf8" }).trim();
+  const untracked = execSync(`git ls-files --others --exclude-standard -- ${paths}`, {
+    encoding: "utf8"
+  }).trim();
+  if (sourceContentDiffersFromHead({ diff, rawDiff, untracked })) {
+    throw new Error(`計測対象に HEAD と異なる変更があります。\n${diff || rawDiff || untracked}`);
   }
   return {
     measuredSourceCommit: commit,
     measuredSourceTree: tree,
     contentMatchesHead: true,
     resultsCommit: null,
-    note: "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff は空で、その commit のツリーと内容が一致する。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。未コミットの内容差分がある実行は失敗させる。",
+    note: "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
     uncommittedContentDiff: null,
     uncommittedStatus: status || null
   };
@@ -436,8 +459,8 @@ const archiveLegacyResult = (name: string): void => {
   if (!existsSync(file)) {
     return;
   }
-  const parsed = JSON.parse(readFileSync(file, "utf8")) as { measuredSourceCommit?: string };
-  if (parsed.measuredSourceCommit) {
+  const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown;
+  if (hasMeasuredSourceCommit(parsed)) {
     return;
   }
   const dir = path.join(RESULTS_DIR, "superseded");
@@ -644,10 +667,10 @@ test.describe.configure({ mode: "serial" });
 
 test("本番ビルドの専用コンテキストで S と M のベースラインを記録する", async ({ browser }) => {
   test.setTimeout(45 * 60 * 1000);
+  const source = describeMeasuredSource();
   for (const name of ["S.json", "M.json", "L.json", "XL.json", "bundle.json", "environment.json"]) {
     archiveLegacyResult(name);
   }
-  const source = describeMeasuredSource();
   const browserVersion = browser.version();
   const environment = {
     ...source,
