@@ -38,6 +38,7 @@ import {
 } from "../types/quiz";
 import { parseContextualCardSourceId } from "../utils/quizQuestionSource";
 import { stripInvalidQuizReferences } from "../utils/quizConceptLink";
+import { noteIdbRead, perfReadStartedAt } from "../perf/probe";
 import {
   isValidImportedQuizAttemptLog,
   normalizeQuizAttemptLog,
@@ -1371,7 +1372,8 @@ const updateContextCardInStore = async (
 
 export class IndexedDBStorage implements ConceptStorage {
   async getAllConcepts(): Promise<Concept[]> {
-    return withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
+    const started = perfReadStartedAt();
+    const concepts = await withTransaction([STORE_CONCEPTS], "readwrite", async (getStore) => {
       const store = getStore(STORE_CONCEPTS);
       const data = (await requestToPromise(store.getAll())) as StoredConcept[];
       const sanitized = data.map((raw) => sanitizeConcept(raw));
@@ -1386,6 +1388,8 @@ export class IndexedDBStorage implements ConceptStorage {
       );
       return repaired.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     });
+    noteIdbRead(STORE_CONCEPTS, concepts.length, started);
+    return concepts;
   }
 
   async getConceptById(id: string): Promise<Concept | undefined> {
@@ -1795,13 +1799,16 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   async getQuizQuestions(): Promise<QuizQuestion[]> {
-    return withTransaction([STORE_QUIZ_QUESTIONS], "readonly", async (getStore) => {
+    const started = perfReadStartedAt();
+    const questions = await withTransaction([STORE_QUIZ_QUESTIONS], "readonly", async (getStore) => {
       const store = getStore(STORE_QUIZ_QUESTIONS);
       const data = (await requestToPromise(store.getAll())) as StoredQuizQuestion[];
       return data
         .map((raw) => normalizeQuizQuestion(raw))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     });
+    noteIdbRead(STORE_QUIZ_QUESTIONS, questions.length, started);
+    return questions;
   }
 
   async getQuizQuestionsByConceptId(conceptId: string): Promise<QuizQuestion[]> {
@@ -2225,7 +2232,8 @@ export class IndexedDBStorage implements ConceptStorage {
   }
 
   async getQuizAttemptLogs(): Promise<QuizAttemptLog[]> {
-    return withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readonly", async (getStore) => {
+    const started = perfReadStartedAt();
+    const logs = await withTransaction([STORE_QUIZ_ATTEMPT_LOGS], "readonly", async (getStore) => {
       const store = getStore(STORE_QUIZ_ATTEMPT_LOGS);
       const data = (await requestToPromise(store.getAll())) as StoredQuizAttemptLog[];
       return data
@@ -2233,6 +2241,8 @@ export class IndexedDBStorage implements ConceptStorage {
         .filter((l) => l.id.length > 0 && l.questionId.length > 0)
         .sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
     });
+    noteIdbRead(STORE_QUIZ_ATTEMPT_LOGS, logs.length, started);
+    return logs;
   }
 
   async getQuizAttemptLogsByQuestionId(questionId: string): Promise<QuizAttemptLog[]> {
