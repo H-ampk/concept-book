@@ -1,13 +1,14 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyConceptInput, type Concept } from "../types/concept";
 import { QUIZ_ATTEMPT_LOG_SCHEMA_VERSION, type QuizAttemptLog } from "../types/quiz";
 import type { ConceptMastery } from "../utils/mastery/types";
 
-const { getAllConcepts, getQuizAttemptLogs, capturedGraph } = vi.hoisted(() => ({
+const { getAllConcepts, getQuizAttemptLogs, getQuizQuestions, capturedGraph } = vi.hoisted(() => ({
   getAllConcepts: vi.fn(),
   getQuizAttemptLogs: vi.fn(),
+  getQuizQuestions: vi.fn(),
   capturedGraph: {
     conceptMasteryMap: undefined as Map<string, ConceptMastery> | undefined,
     conceptIds: [] as string[]
@@ -18,6 +19,7 @@ vi.mock("../storage", () => {
   const methods: Record<string, unknown> = {
     getAllConcepts,
     getQuizAttemptLogs,
+    getQuizQuestions,
     updateConcept: vi.fn(async () => undefined),
     getMediaBlob: vi.fn(async () => undefined),
     getAllContextCards: vi.fn(async () => [])
@@ -47,6 +49,8 @@ vi.mock("../components/ConceptGraphView", () => ({
   }
 }));
 
+import { noteQuizLearningRevision } from "../storage/quizLearningRevision";
+import * as masteryModule from "../utils/mastery/getConceptMastery";
 import { App } from "./App";
 
 const concept = (overrides: Partial<Concept> = {}): Concept => ({
@@ -79,9 +83,15 @@ const log = (overrides: Partial<QuizAttemptLog> = {}): QuizAttemptLog => ({
 });
 
 describe("App mastery overview (#56)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     getAllConcepts.mockReset();
     getQuizAttemptLogs.mockReset();
+    getQuizQuestions.mockReset();
+    getQuizQuestions.mockResolvedValue([]);
     capturedGraph.conceptMasteryMap = undefined;
     capturedGraph.conceptIds = [];
     getAllConcepts.mockResolvedValue([
@@ -128,5 +138,228 @@ describe("App mastery overview (#56)", () => {
     expect(capturedGraph.conceptIds).toEqual(["concept-unlearned"]);
     expect(capturedGraph.conceptMasteryMap?.get("concept-unlearned")?.state).toBe("unlearned");
     expect(capturedGraph.conceptMasteryMap?.get("concept-thin")?.state).toBe("insufficient-data");
+  });
+
+  it("概念画面を離れて戻っても、学習ログと問題を再取得しない", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => {
+      expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
+      expect(getQuizQuestions).toHaveBeenCalledTimes(1);
+    });
+
+    await user.click(screen.getByRole("button", { name: "文脈" }));
+    await user.click(screen.getByRole("button", { name: "概念" }));
+
+    expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
+    expect(getQuizQuestions).toHaveBeenCalledTimes(1);
+  });
+
+  it("ログ再取得の失敗後も、取得済みの習熟度表示を残す", async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getAllByText("データ不足").length).toBeGreaterThan(0);
+    });
+    const reads = getQuizAttemptLogs.mock.calls.length;
+
+    getQuizAttemptLogs.mockRejectedValueOnce(new Error("reload failed"));
+    noteQuizLearningRevision("logs");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+    });
+    expect(screen.getAllByText("データ不足").length).toBeGreaterThan(0);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads + 1);
+    expect(getQuizQuestions.mock.calls.length).toBe(1);
+  });
+
+  it("ログ未取得のあいだは統計の未学習表示を出さない", async () => {
+    const user = userEvent.setup();
+    let resolveLogs: (logs: QuizAttemptLog[]) => void = () => undefined;
+    getQuizAttemptLogs.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveLogs = resolve;
+        })
+    );
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("concept-list-item-concept-unlearned")).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId("concept-list-item-concept-unlearned"));
+    expect(screen.queryByRole("heading", { name: "学習状況" })).not.toBeInTheDocument();
+
+    resolveLogs([]);
+    await waitFor(() => {
+      expect(screen.queryByTestId("quiz-learning-loading")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("heading", { name: "学習状況" })).not.toBeInTheDocument();
+  });
+
+  it("概念画面へ戻ると freshness を更新し、ログ再取得と BKT 再計算はしない", async () => {
+    const user = userEvent.setup();
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    const freshness = vi.spyOn(masteryModule, "refreshConceptMasteryFreshness");
+    render(<App />);
+    await waitFor(() => {
+      expect(bkt).toHaveBeenCalled();
+    });
+    const bktCalls = bkt.mock.calls.length;
+    const reads = getQuizAttemptLogs.mock.calls.length;
+    const freshnessCalls = freshness.mock.calls.length;
+
+    await user.click(screen.getByRole("button", { name: "文脈" }));
+    await user.click(screen.getByRole("button", { name: "概念" }));
+
+    await waitFor(() => {
+      expect(freshness.mock.calls.length).toBeGreaterThan(freshnessCalls);
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads);
+    bkt.mockRestore();
+    freshness.mockRestore();
+  });
+
+  it("概念画面を開いたまま境界を越え、ログ更新で 7 日と 30 日の鮮度を付け直す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    });
+    const bktCalls = bkt.mock.calls.length;
+    const reads = getQuizAttemptLogs.mock.calls.length;
+    const questionReads = getQuizQuestions.mock.calls.length;
+
+    vi.setSystemTime(new Date("2026-01-09T00:00:01.000Z"));
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+
+    noteQuizLearningRevision("logs");
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("しばらく未確認"));
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads + 1);
+    expect(getQuizQuestions.mock.calls.length).toBe(questionReads);
+
+    vi.setSystemTime(new Date("2026-02-01T00:00:01.000Z"));
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("しばらく未確認"));
+
+    noteQuizLearningRevision("logs");
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("要再確認"));
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(reads + 2);
+    expect(getQuizQuestions.mock.calls.length).toBe(questionReads);
+    bkt.mockRestore();
+  });
+
+  it("初回のログ取得失敗のあと、日付をまたいだ再試行成功で 7 日境界を付け直す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    getQuizAttemptLogs.mockReset();
+    getQuizAttemptLogs.mockRejectedValueOnce(new Error("fail"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+    });
+    expect(bkt).not.toHaveBeenCalled();
+
+    vi.setSystemTime(new Date("2026-01-09T00:00:01.000Z"));
+    getQuizAttemptLogs.mockResolvedValueOnce([
+      log({ answeredAt: "2026-01-01T00:00:01.000Z", questionConceptId: "concept-thin" })
+    ]);
+    screen.getByRole("button", { name: "再試行" }).click();
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("しばらく未確認"));
+    });
+    expect(bkt).toHaveBeenCalledTimes(1);
+    bkt.mockRestore();
+  });
+
+  it("取得済みログの再取得失敗後も表示を残し、再試行成功で 30 日境界を付け直す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    });
+    const bktCalls = bkt.mock.calls.length;
+
+    getQuizAttemptLogs.mockRejectedValueOnce(new Error("fail"));
+    noteQuizLearningRevision("logs");
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+    });
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+
+    vi.setSystemTime(new Date("2026-02-01T00:00:01.000Z"));
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    getQuizAttemptLogs.mockResolvedValueOnce([
+      log({ answeredAt: "2026-01-01T00:00:01.000Z", questionConceptId: "concept-thin" })
+    ]);
+    screen.getByRole("button", { name: "再試行" }).click();
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("要再確認"));
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls + 1);
+    bkt.mockRestore();
+  });
+
+  it("問題だけの再試行では鮮度と BKT を動かさない", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    getQuizQuestions.mockRejectedValueOnce(new Error("fail"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    });
+    const bktCalls = bkt.mock.calls.length;
+    const logReads = getQuizAttemptLogs.mock.calls.length;
+    vi.setSystemTime(new Date("2026-02-01T00:00:01.000Z"));
+    getQuizQuestions.mockResolvedValueOnce([]);
+    screen.getByRole("button", { name: "再試行" }).click();
+    await waitFor(() => {
+      expect(screen.queryByTestId("quiz-learning-reload-error")).not.toBeInTheDocument();
+    });
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(logReads);
+    bkt.mockRestore();
+  });
+
+  it("ログが空でも NUL を含む概念 ID に未学習を投影する", async () => {
+    getAllConcepts.mockResolvedValue([
+      concept({ id: "a\u0000b", title: "区切りを含む概念" })
+    ]);
+    getQuizAttemptLogs.mockResolvedValue([]);
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("concept-list-item-a\u0000b")).toBeInTheDocument();
+    });
+    expect(within(screen.getByTestId("concept-list-item-a\u0000b")).getByText("未学習")).toBeInTheDocument();
   });
 });

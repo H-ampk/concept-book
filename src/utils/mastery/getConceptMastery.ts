@@ -186,10 +186,38 @@ export const buildConceptMasteryMapForConceptIds = (
   const now = options?.now ?? new Date();
   const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
   const map = buildConceptMasteryMap(logs, { ...options, now, parameters });
+  return projectConceptMasteryForConceptIds(map, conceptIds, { ...options, now, parameters });
+};
+
+/**
+ * ログ全体から既に作った mastery Map に、指定 ID の未学習枠だけを足す。
+ * ログの再走査はしない。入力 Map は破壊しない。
+ */
+export const projectConceptMasteryForConceptIds = (
+  masteryFromLogs: ReadonlyMap<string, ConceptMastery>,
+  conceptIds: Iterable<string>,
+  options?: GetConceptMasteryOptions
+): Map<string, ConceptMastery> => {
+  const now = options?.now ?? new Date();
+  const parameters = options?.parameters ?? DEFAULT_BKT_PARAMETERS;
+  const map = new Map(masteryFromLogs);
   for (const conceptId of conceptIds) {
     if (!map.has(conceptId)) {
       map.set(conceptId, emptyMastery(conceptId, parameters, now));
     }
+  }
+  return map;
+};
+
+/** 既存 mastery の freshness だけを現在時刻で付け直す。BKT は再実行しない。 */
+export const refreshConceptMasteryFreshness = (
+  masteryByConceptId: ReadonlyMap<string, ConceptMastery>,
+  now: Date
+): Map<string, ConceptMastery> => {
+  const map = new Map<string, ConceptMastery>();
+  for (const [conceptId, mastery] of masteryByConceptId) {
+    const freshness = freshnessFromLastAnsweredAt(mastery.lastAnsweredAt, now);
+    map.set(conceptId, freshness === mastery.freshness ? mastery : { ...mastery, freshness });
   }
   return map;
 };

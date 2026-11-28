@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { planConceptReveal } from "./planConceptReveal";
 import { ConceptDetail } from "../components/ConceptDetail";
 import { ConceptFormModal } from "../components/ConceptFormModal";
@@ -21,17 +21,20 @@ import { getStorage } from "../storage";
 import { conceptStatusList, type Concept, type ConceptInput, type ConceptStatus } from "../types/concept";
 import type { ConceptMediaDraftItem } from "../types/media";
 import { toConceptMediaCommitItems } from "../utils/conceptMediaDraft";
-import type { QuizAttemptLog } from "../types/quiz";
 import { buildContextualCardSourceId } from "../utils/quizQuestionSource";
 import { buildConceptByIdMap, buildConceptByTitleMap } from "../utils/conceptLookupMaps";
 import { buildConceptPrerequisiteIndex } from "../utils/conceptPrerequisites";
 import type { ConceptSaveOptions } from "../utils/conceptStatus";
 import { loadDomainColorMap, saveDomainColorMap } from "../utils/domainColors";
 import {
-  buildConceptQuizStatsDisplayMap,
-  buildConceptQuizStatsMap
+  buildConceptQuizStatsMap,
+  conceptQuizStatsDisplayMapFromStats
 } from "../utils/quiz/getConceptQuizStats";
-import { buildConceptMasteryMapForConceptIds } from "../utils/mastery/getConceptMastery";
+import {
+  buildConceptMasteryMap,
+  projectConceptMasteryForConceptIds,
+  refreshConceptMasteryFreshness
+} from "../utils/mastery/getConceptMastery";
 import { getConceptMasteryHistory } from "../utils/mastery/getConceptMasteryHistory";
 import {
   conceptMatchesMasteryOverviewFilter,
@@ -40,7 +43,8 @@ import {
 } from "../utils/mastery/masteryPresentation";
 import { computeConfusionPairs } from "../utils/quizStats";
 import { measurePerfSpan } from "../perf/probe";
-import { buildQuizQuestionConceptIdSet } from "../utils/review/buildQuizQuestionConceptIdSet";
+import { subscribeQuizLearningRevision } from "../storage/quizLearningRevision";
+import { conceptIdSetKey, idsFromKey, useQuizLearningSnapshot } from "./useQuizLearningSnapshot";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { VocabularyBookScreen } from "../components/VocabularyBookScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
@@ -177,10 +181,17 @@ export const App = () => {
   const [graphFiltersOpen, setGraphFiltersOpen] = useState(false);
   const [listDisplayLimit, setListDisplayLimit] = useState(100);
   const [masteryFilter, setMasteryFilter] = useState<MasteryOverviewFilter>("all");
-  const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([]);
-  const [quizQuestionConceptIds, setQuizQuestionConceptIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  );
+  const [freshnessNow, setFreshnessNow] = useState(() => new Date());
+  const conceptIds = useMemo(() => concepts.map((concept) => concept.id), [concepts]);
+  const conceptIdsKey = useMemo(() => conceptIdSetKey(conceptIds), [conceptIds]);
+  const {
+    logs: quizAttemptLogs,
+    logsStatus,
+    questionsStatus,
+    quizQuestionConceptIds,
+    reloadLogs,
+    reloadQuestions
+  } = useQuizLearningSnapshot(conceptIds);
   const [quizCreateInitialState, setQuizCreateInitialState] = useState<QuizCreateInitialState | null>(
     null
   );
@@ -192,32 +203,25 @@ export const App = () => {
     setDomainColorMap(loadDomainColorMap());
   }, []);
 
-  const reloadQuizAttemptLogs = useCallback(async () => {
-    const logs = await storage.getQuizAttemptLogs();
-    setQuizAttemptLogs(logs);
-  }, []);
-
-  const reloadQuizQuestionConceptIds = useCallback(async () => {
-    const questions = await storage.getQuizQuestions();
-    setQuizQuestionConceptIds(
-      buildQuizQuestionConceptIdSet(questions, new Set(concepts.map((concept) => concept.id)))
-    );
-  }, [concepts]);
-
-  useEffect(() => {
-    void reloadQuizAttemptLogs();
-  }, [reloadQuizAttemptLogs]);
-
-  useEffect(() => {
-    void reloadQuizQuestionConceptIds();
-  }, [reloadQuizQuestionConceptIds]);
-
   useEffect(() => {
     if (screen === "concepts") {
-      void reloadQuizAttemptLogs();
-      void reloadQuizQuestionConceptIds();
+      setFreshnessNow(new Date());
     }
-  }, [screen, reloadQuizAttemptLogs, reloadQuizQuestionConceptIds]);
+  }, [screen]);
+
+  useEffect(() => {
+    return subscribeQuizLearningRevision((change) => {
+      if (change.logs) {
+        setFreshnessNow(new Date());
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (quizAttemptLogs) {
+      setFreshnessNow(new Date());
+    }
+  }, [quizAttemptLogs]);
 
   useEffect(() => {
     setListDisplayLimit(100);
@@ -237,23 +241,30 @@ export const App = () => {
   const selectedConcept = selectedId ? conceptMap.get(selectedId) : undefined;
   const showGraphDetailPanel = isGraphDetailPanelVisible(Boolean(selectedConcept), graphDetailOpen);
 
-  const conceptMasteryMap = useMemo(
-    () =>
-      measurePerfSpan("learning-model.bkt-mastery-map", () =>
-        buildConceptMasteryMapForConceptIds(
-          quizAttemptLogs,
-          concepts.map((concept) => concept.id)
-        )
-      ),
-    [quizAttemptLogs, concepts]
-  );
+  const masteryFromLogs = useMemo(() => {
+    if (!quizAttemptLogs) {
+      return null;
+    }
+    return measurePerfSpan("learning-model.bkt-mastery-map", () => buildConceptMasteryMap(quizAttemptLogs));
+  }, [quizAttemptLogs]);
+
+  const conceptMasteryMap = useMemo(() => {
+    if (!masteryFromLogs) {
+      return undefined;
+    }
+    return projectConceptMasteryForConceptIds(
+      refreshConceptMasteryFreshness(masteryFromLogs, freshnessNow),
+      idsFromKey(conceptIdsKey),
+      { now: freshnessNow }
+    );
+  }, [masteryFromLogs, conceptIdsKey, freshnessNow]);
 
   const masteryFilteredConcepts = useMemo(
     () =>
       masteryFilter === "all"
         ? visibleConcepts
         : visibleConcepts.filter((concept) =>
-            conceptMatchesMasteryOverviewFilter(conceptMasteryMap.get(concept.id), masteryFilter)
+            conceptMatchesMasteryOverviewFilter(conceptMasteryMap?.get(concept.id), masteryFilter)
           ),
     [visibleConcepts, masteryFilter, conceptMasteryMap]
   );
@@ -273,15 +284,19 @@ export const App = () => {
     return buildTagSections(listSourceConcepts, "research");
   }, [listViewMode, listSourceConcepts]);
 
-  const conceptQuizStatsMap = useMemo(
-    () => measurePerfSpan("learning-model.quiz-stats", () => buildConceptQuizStatsMap(quizAttemptLogs)),
-    [quizAttemptLogs]
-  );
+  const conceptQuizStatsMap = useMemo(() => {
+    if (!quizAttemptLogs) {
+      return undefined;
+    }
+    return measurePerfSpan("learning-model.quiz-stats", () => buildConceptQuizStatsMap(quizAttemptLogs));
+  }, [quizAttemptLogs]);
 
-  const confusionPairs = useMemo(
-    () => measurePerfSpan("learning-model.confusion-pairs", () => computeConfusionPairs(quizAttemptLogs)),
-    [quizAttemptLogs]
-  );
+  const confusionPairs = useMemo(() => {
+    if (!quizAttemptLogs) {
+      return undefined;
+    }
+    return measurePerfSpan("learning-model.confusion-pairs", () => computeConfusionPairs(quizAttemptLogs));
+  }, [quizAttemptLogs]);
 
   const confusionUniverseIds = useMemo(
     () => concepts.map((concept) => concept.id),
@@ -289,21 +304,21 @@ export const App = () => {
   );
 
   const conceptQuizStatsText = useMemo(
-    () => buildConceptQuizStatsDisplayMap(quizAttemptLogs),
-    [quizAttemptLogs]
+    () => (conceptQuizStatsMap ? conceptQuizStatsDisplayMapFromStats(conceptQuizStatsMap) : undefined),
+    [conceptQuizStatsMap]
   );
 
-  const selectedConceptQuizStatsText = selectedConcept
-    ? conceptQuizStatsText.get(selectedConcept.id) ?? "未学習"
-    : undefined;
+  const selectedConceptQuizStatsText = !selectedConcept || !conceptQuizStatsText
+    ? undefined
+    : conceptQuizStatsText.get(selectedConcept.id) ?? "未学習";
 
   const selectedConceptMastery = selectedConcept
-    ? conceptMasteryMap.get(selectedConcept.id)
+    ? conceptMasteryMap?.get(selectedConcept.id)
     : undefined;
 
   const selectedConceptId = selectedConcept?.id;
   const selectedConceptMasteryHistory = useMemo(() => {
-    if (!selectedConceptId) {
+    if (!selectedConceptId || !quizAttemptLogs) {
       return undefined;
     }
     return getConceptMasteryHistory(quizAttemptLogs, selectedConceptId);
@@ -334,7 +349,7 @@ export const App = () => {
     conceptQuizStatsText: selectedConceptQuizStatsText,
     conceptMastery: selectedConceptMastery,
     conceptMasteryMap,
-    quizQuestionConceptIds,
+    quizQuestionConceptIds: quizQuestionConceptIds ?? undefined,
     conceptMasteryHistory: selectedConceptMasteryHistory,
     onCreateQuizFromContextualCard: (conceptId: string, contextDefinitionId: string) => {
       openQuizCreate({
@@ -417,7 +432,7 @@ export const App = () => {
         },
         masteryFilter
       },
-      conceptMasteryMap.get(concept.id)
+      conceptMasteryMap?.get(concept.id)
     );
 
     if (plan.filtersChanged) {
@@ -494,6 +509,45 @@ export const App = () => {
         conceptMainTab === "graph" ? "shrink-0 p-3" : "p-5"
       }`}
     >
+      {logsStatus === "error" || questionsStatus === "error" ? (
+        <div
+          role="alert"
+          data-testid="quiz-learning-reload-error"
+          className="mb-3 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900"
+        >
+          <p>
+            {logsStatus === "error" && questionsStatus === "error"
+              ? "学習ログとクイズ問題を取得できませんでした。"
+              : logsStatus === "error"
+                ? "学習ログを取得できませんでした。"
+                : "クイズ問題を取得できませんでした。"}
+          </p>
+          <p className="mt-1">
+            {logsStatus === "ready" || questionsStatus === "ready"
+              ? "取得できているデータは表示したままです。再試行に成功するまで、失敗した側は更新されません。"
+              : "再試行してください。未取得のデータを空の学習結果としては扱いません。"}
+          </p>
+          <button
+            type="button"
+            className="mt-2 rounded-md border border-rose-400 bg-white px-3 py-1.5 text-sm text-rose-800"
+            onClick={() => {
+              if (logsStatus === "error") {
+                void reloadLogs();
+              }
+              if (questionsStatus === "error") {
+                void reloadQuestions();
+              }
+            }}
+          >
+            再試行
+          </button>
+        </div>
+      ) : null}
+      {logsStatus === "loading" || questionsStatus === "loading" ? (
+        <p className="mb-3 text-sm text-celestial-textSub" data-testid="quiz-learning-loading">
+          学習ログとクイズ問題を読み込み中...
+        </p>
+      ) : null}
       {reloadError ? (
         <div
           role="alert"

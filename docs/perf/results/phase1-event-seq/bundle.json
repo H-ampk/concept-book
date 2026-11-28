@@ -1,0 +1,41 @@
+{
+  "measuredSourceCommit": "8aa0e198b47d4e29a274d1971c32c28e1bc5b987",
+  "measuredSourceTree": "e246a00b15a7d7e92c3a57e37719e3b87206a19b",
+  "contentMatchesHead": true,
+  "resultsCommit": null,
+  "note": "この bundle.json は measuredSourceCommit の本番ビルドから集計した。比較に使う初期チャンクはここを参照する。",
+  "uncommittedContentDiff": null,
+  "uncommittedStatus": "M vite.config.js",
+  "measuredAt": "2026-11-28T12:26:09.114Z",
+  "os": "Windows_NT 10.0.26200",
+  "cpu": "AMD Ryzen 7 7435HS                             ",
+  "cpuCores": 16,
+  "memoryBytes": 16989728768,
+  "browser": "Chromium 151.0.7922.34",
+  "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）",
+  "initialBytes": 1920956,
+  "lazyBytes": 216392,
+  "files": [
+    {
+      "file": "assets/ConceptGraphView-DMejKuIM.js",
+      "bytes": 196514,
+      "initial": false
+    },
+    {
+      "file": "assets/index-BEJpoE8_.js",
+      "bytes": 1920956,
+      "initial": true
+    },
+    {
+      "file": "assets/SkillTreeView-Dk69gvGZ.js",
+      "bytes": 14172,
+      "initial": false
+    },
+    {
+      "file": "assets/workbox-window.prod.es5-BqEJf4Xk.js",
+      "bytes": 5706,
+      "initial": false
+    }
+  ],
+  "unit": "bytes"
+}

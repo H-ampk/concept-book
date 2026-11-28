@@ -1,0 +1,16 @@
+{
+  "measuredSourceCommit": "8aa0e198b47d4e29a274d1971c32c28e1bc5b987",
+  "measuredSourceTree": "e246a00b15a7d7e92c3a57e37719e3b87206a19b",
+  "contentMatchesHead": true,
+  "resultsCommit": null,
+  "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
+  "uncommittedContentDiff": null,
+  "uncommittedStatus": "M vite.config.js",
+  "measuredAt": "2026-11-28T12:26:09.114Z",
+  "os": "Windows_NT 10.0.26200",
+  "cpu": "AMD Ryzen 7 7435HS                             ",
+  "cpuCores": 16,
+  "memoryBytes": 16989728768,
+  "browser": "Chromium 151.0.7922.34",
+  "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）"
+}

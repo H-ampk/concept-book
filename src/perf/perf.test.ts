@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { assertDatasetIntegrity, generateSyntheticDataset } from "./generateSyntheticDataset";
 import {
   assertSyntheticDatasetSpec,
@@ -8,6 +8,7 @@ import {
 } from "./datasetSpec";
 import { summarizeSamples, unmeasured } from "./summarizeSamples";
 import { measurePerfSpan, noteIdbRead, perfReadStartedAt, type PerfProbeState } from "./probe";
+import { learningModelsCoverLatestLogRead } from "./startupLearningModels";
 import {
   datasetToFingerprintInput,
   fingerprintDataset,
@@ -212,6 +213,99 @@ describe("計測値の集計", () => {
   });
 });
 
+describe("起動時の学習モデル完了", () => {
+  const sameTime = 50;
+  const beforeRead = [
+    { name: "learning-model.bkt-mastery-map", at: sameTime, seq: 0 },
+    { name: "learning-model.quiz-stats", at: sameTime, seq: 1 },
+    { name: "learning-model.confusion-pairs", at: sameTime, seq: 2 }
+  ];
+
+  it("ログ読み取りより前の計算だけでは完了にしない", () => {
+    expect(
+      learningModelsCoverLatestLogRead([{ store: "quizAttemptLogs", at: sameTime, seq: 3 }], beforeRead)
+    ).toBe(false);
+  });
+
+  it("読み取りと同じ時刻でも、連番が後の 3 種が揃うと完了する", () => {
+    expect(
+      learningModelsCoverLatestLogRead([{ store: "quizAttemptLogs", at: sameTime, seq: 3 }], [
+        { name: "learning-model.bkt-mastery-map", at: sameTime, seq: 4 },
+        { name: "learning-model.quiz-stats", at: sameTime, seq: 5 },
+        { name: "learning-model.confusion-pairs", at: sameTime, seq: 6 }
+      ])
+    ).toBe(true);
+  });
+
+  it("読み取り前の同一時刻は除外し、読み取り後の同一時刻だけを受ける", () => {
+    expect(
+      learningModelsCoverLatestLogRead([{ store: "quizAttemptLogs", at: sameTime, seq: 3 }], [
+        ...beforeRead,
+        { name: "learning-model.bkt-mastery-map", at: sameTime, seq: 4 },
+        { name: "learning-model.quiz-stats", at: sameTime, seq: 5 },
+        { name: "learning-model.confusion-pairs", at: sameTime, seq: 6 }
+      ])
+    ).toBe(true);
+    expect(
+      learningModelsCoverLatestLogRead([{ store: "quizAttemptLogs", at: sameTime, seq: 3 }], [
+        ...beforeRead,
+        { name: "learning-model.bkt-mastery-map", at: sameTime, seq: 4 },
+        { name: "learning-model.quiz-stats", at: sameTime, seq: 5 }
+      ])
+    ).toBe(false);
+  });
+
+  it("最新のログ読み取りより後に 3 種が揃ったときだけ完了する", () => {
+    expect(
+      learningModelsCoverLatestLogRead(
+        [
+          { store: "concepts", seq: 0 },
+          { store: "quizAttemptLogs", seq: 1 },
+          { store: "quizAttemptLogs", seq: 5 }
+        ],
+        [
+          { name: "learning-model.bkt-mastery-map", seq: 2 },
+          { name: "learning-model.quiz-stats", seq: 3 },
+          { name: "learning-model.confusion-pairs", seq: 4 },
+          { name: "learning-model.bkt-mastery-map", seq: 6 },
+          { name: "learning-model.quiz-stats", seq: 7 },
+          { name: "learning-model.confusion-pairs", seq: 8 }
+        ]
+      )
+    ).toBe(true);
+  });
+
+  it("複数回の読み取りでは最新の連番を基準にし、その前の計算では完了しない", () => {
+    expect(
+      learningModelsCoverLatestLogRead(
+        [
+          { store: "quizAttemptLogs", seq: 1 },
+          { store: "quizAttemptLogs", seq: 5 }
+        ],
+        [
+          { name: "learning-model.bkt-mastery-map", seq: 2 },
+          { name: "learning-model.quiz-stats", seq: 3 },
+          { name: "learning-model.confusion-pairs", seq: 4 }
+        ]
+      )
+    ).toBe(false);
+  });
+
+  it("一部の学習モデルが未実行なら完了しない", () => {
+    expect(
+      learningModelsCoverLatestLogRead([{ store: "quizAttemptLogs", seq: 1 }], [
+        { name: "learning-model.bkt-mastery-map", seq: 2 },
+        { name: "learning-model.quiz-stats", seq: 3 }
+      ])
+    ).toBe(false);
+  });
+
+  it("ログ読み取りが無いときは計算があっても未完了とする", () => {
+    expect(learningModelsCoverLatestLogRead([{ store: "concepts", seq: 0 }], beforeRead)).toBe(false);
+    expect(learningModelsCoverLatestLogRead([], beforeRead)).toBe(false);
+  });
+});
+
 describe("計測プローブ", () => {
   it("プローブが無いときは計算結果を変えず記録しない", () => {
     expect(measurePerfSpan("bkt", () => 7)).toBe(7);
@@ -220,16 +314,43 @@ describe("計測プローブ", () => {
   });
 
   it("プローブがあるときだけ回数と時間を残す", () => {
-    const state: PerfProbeState = { idb: [], models: [] };
+    const state: PerfProbeState = { idb: [], models: [], nextSeq: 0 };
     (globalThis as { __CB_PERF_PROBE__?: PerfProbeState }).__CB_PERF_PROBE__ = state;
     try {
       expect(measurePerfSpan("bkt", () => 4)).toBe(4);
       noteIdbRead("concepts", 2, perfReadStartedAt());
       expect(state.models).toHaveLength(1);
       expect(state.models[0]?.name).toBe("bkt");
+      expect(typeof state.models[0]?.at).toBe("number");
       expect(state.idb[0]).toMatchObject({ store: "concepts", count: 2 });
+      expect(typeof state.idb[0]?.at).toBe("number");
     } finally {
       delete (globalThis as { __CB_PERF_PROBE__?: PerfProbeState }).__CB_PERF_PROBE__;
+    }
+  });
+
+  it("同じ時刻でも記録順の連番を残し、プローブを差し替えると連番を戻す", () => {
+    vi.spyOn(performance, "now").mockReturnValue(80);
+    const host = globalThis as { __CB_PERF_PROBE__?: PerfProbeState };
+    const first: PerfProbeState = { idb: [], models: [], nextSeq: 0 };
+    host.__CB_PERF_PROBE__ = first;
+    try {
+      noteIdbRead("quizAttemptLogs", 1, perfReadStartedAt());
+      measurePerfSpan("learning-model.bkt-mastery-map", () => 1);
+      expect(first.idb[0]?.at).toBe(first.models[0]?.at);
+      expect(first.idb[0]?.seq).toBe(0);
+      expect(first.models[0]?.seq).toBe(1);
+
+      const reset: PerfProbeState = { idb: [], models: [], nextSeq: 0 };
+      host.__CB_PERF_PROBE__ = reset;
+      noteIdbRead("quizAttemptLogs", 1, perfReadStartedAt());
+      expect(reset.idb).toHaveLength(1);
+      expect(reset.idb[0]?.seq).toBe(0);
+      expect(reset.models).toHaveLength(0);
+      expect(first.models[0]?.seq).toBe(1);
+    } finally {
+      vi.restoreAllMocks();
+      delete host.__CB_PERF_PROBE__;
     }
   });
 });

@@ -1,0 +1,216 @@
+diff --git a/perf/baseline.spec.ts b/perf/baseline.spec.ts
+index dacdb4b..7eb5166 100644
+--- a/perf/baseline.spec.ts
++++ b/perf/baseline.spec.ts
+@@ -20,9 +20,13 @@ import {
+   hasMeasuredSourceCommit,
+   sourceContentDiffersFromHead
+ } from "../src/perf/measurementSource";
++import {
++  STARTUP_LEARNING_MODEL_NAMES,
++  learningModelsCoverLatestLogRead
++} from "../src/perf/startupLearningModels";
+ 
+ const DB_NAME = "concept-book-db";
+-const RESULTS_DIR = path.resolve("docs/perf/results");
++const RESULTS_DIR = path.resolve(process.env.PERF_RESULTS_DIR ?? "docs/perf/results");
+ 
+ type StartupSample = {
+   ms: number;
+@@ -38,13 +42,13 @@ type StartupSample = {
+ 
+ const installObservers = (): void => {
+   const host = window as unknown as {
+-    __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
++    __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[]; nextSeq: number };
+     __longTasks: Array<{ startTime: number; duration: number }>;
+     __appReadyAt: number | null;
+     __startupProbeCounts: { idb: number; models: number } | null;
+     __longTaskObserver: PerformanceObserver | null;
+   };
+-  host.__CB_PERF_PROBE__ = { idb: [], models: [] };
++  host.__CB_PERF_PROBE__ = { idb: [], models: [], nextSeq: 0 };
+   host.__longTasks = [];
+   host.__appReadyAt = null;
+   host.__startupProbeCounts = null;
+@@ -73,15 +77,17 @@ const installObservers = (): void => {
+     const button = [...document.querySelectorAll("button")].find(
+       (element) => element.textContent?.trim() === "概念を追加"
+     );
+-    const stores = new Set(
+-      (host.__CB_PERF_PROBE__.idb as Array<{ store: string }>).map((sample) => sample.store)
+-    );
++    const idb = host.__CB_PERF_PROBE__.idb as Array<{ store: string; seq: number }>;
++    const models = host.__CB_PERF_PROBE__.models as Array<{ name: string; seq: number }>;
++    const stores = new Set(idb.map((sample) => sample.store));
++    const learningModelsReady = learningModelsCoverLatestLogRead(idb, models);
+     if (
+       button instanceof HTMLButtonElement &&
+       !button.disabled &&
+       stores.has("concepts") &&
+       stores.has("quizQuestions") &&
+-      stores.has("quizAttemptLogs")
++      stores.has("quizAttemptLogs") &&
++      learningModelsReady
+     ) {
+       host.__appReadyAt = performance.now();
+       host.__startupProbeCounts = {
+@@ -115,12 +121,12 @@ const installObservers = (): void => {
+ const resetProbe = async (page: Page): Promise<void> => {
+   await page.evaluate(() => {
+     const host = window as unknown as {
+-      __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
++      __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[]; nextSeq: number };
+       __longTasks: Array<{ startTime: number; duration: number }>;
+       __appReadyAt: number | null;
+       __startupProbeCounts: { idb: number; models: number } | null;
+     };
+-    host.__CB_PERF_PROBE__ = { idb: [], models: [] };
++    host.__CB_PERF_PROBE__ = { idb: [], models: [], nextSeq: 0 };
+     host.__longTasks = [];
+     host.__appReadyAt = null;
+     host.__startupProbeCounts = null;
+@@ -759,7 +765,13 @@ const measureSpec = async (
+     const context = await browser.newContext();
+     try {
+     const page = await context.newPage();
+-    await page.addInitScript(installObservers);
++    await page.addInitScript({
++      content: [
++        `const STARTUP_LEARNING_MODEL_NAMES = ${JSON.stringify([...STARTUP_LEARNING_MODEL_NAMES])};`,
++        `const learningModelsCoverLatestLogRead = ${learningModelsCoverLatestLogRead.toString()};`,
++        `(${installObservers.toString()})();`
++      ].join("\n")
++    });
+     await page.goto("/", { waitUntil: "domcontentloaded" });
+     await waitUntilReady(page);
+     await seedDataset(page, dataset);
+@@ -851,7 +863,7 @@ const measureSpec = async (
+       warm:
+         "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
+       startup:
+-        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録された最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使い、準備完了後に増えた試料は含めない。",
++        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録され、最新の quizAttemptLogs 読み取りより大きい連番で BKT・クイズ統計・混同ペアの計算が各 1 回以上完了した最初の performance.now() まで。順序は performance.now() ではなくプローブの単調増加連番で判定する。同じ時刻でも読み取り前の計算は含めず、読み取り後の計算は含める。所要時間は performance.now() の差分である。その時点の idb と models の件数だけを起動集計に使う。ログ読み取りが無い状態の modelCalls 0 は完了としない。準備完了後に増えた試料は含めない。",
+       navigation:
+         "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
+       crud:
+diff --git a/src/perf/probe.ts b/src/perf/probe.ts
+index e24e9a6..ecce4d4 100644
+--- a/src/perf/probe.ts
++++ b/src/perf/probe.ts
+@@ -2,16 +2,26 @@ export type IdbReadSample = {
+   store: string;
+   count: number;
+   ms: number;
++  /** 読み取り完了の performance.now()。所要時間の記録に使う。 */
++  at: number;
++  /** プローブ内の記録順。時刻が同じでも読み取りと計算を区別する。 */
++  seq: number;
+ };
+ 
+ export type ModelSample = {
+   name: string;
+   ms: number;
++  /** 計算完了の performance.now()。所要時間の記録に使う。 */
++  at: number;
++  /** プローブ内の記録順。時刻が同じでも読み取りと計算を区別する。 */
++  seq: number;
+ };
+ 
+ export type PerfProbeState = {
+   idb: IdbReadSample[];
+   models: ModelSample[];
++  /** 次に記録するイベントの連番。プローブを差し替えると 0 に戻る。 */
++  nextSeq: number;
+ };
+ 
+ const probeHost = globalThis as { __CB_PERF_PROBE__?: PerfProbeState };
+@@ -31,7 +41,8 @@ export const measurePerfSpan = <T>(name: string, fn: () => T): T => {
+   try {
+     return fn();
+   } finally {
+-    probe.models.push({ name, ms: performance.now() - started });
++    const at = performance.now();
++    probe.models.push({ name, ms: at - started, at, seq: takeSeq(probe) });
+   }
+ };
+ 
+@@ -50,9 +61,22 @@ export const noteIdbRead = (store: string, count: number, startedAt: number | nu
+   if (!probe) {
+     return;
+   }
++  const at = performance.now();
+   probe.idb.push({
+     store,
+     count,
+-    ms: performance.now() - startedAt
++    ms: at - startedAt,
++    at,
++    seq: takeSeq(probe)
+   });
+ };
++
++/** 記録のたびに増やす。配列を空にしても、プローブオブジェクトを新しくするまで連番は続く。 */
++const takeSeq = (probe: PerfProbeState): number => {
++  if (typeof probe.nextSeq !== "number" || probe.nextSeq < 0) {
++    probe.nextSeq = 0;
++  }
++  const seq = probe.nextSeq;
++  probe.nextSeq += 1;
++  return seq;
++};
+diff --git a/src/perf/startupLearningModels.ts b/src/perf/startupLearningModels.ts
+new file mode 100644
+index 0000000..6773e23
+--- /dev/null
++++ b/src/perf/startupLearningModels.ts
+@@ -0,0 +1,49 @@
++/** 起動時にログ配列が揃うと App が実行する学習モデル。回数は固定しない。 */
++export const STARTUP_LEARNING_MODEL_NAMES = [
++  "learning-model.bkt-mastery-map",
++  "learning-model.quiz-stats",
++  "learning-model.confusion-pairs"
++] as const;
++
++type OrderedStoreRead = {
++  store: string;
++  seq: number;
++};
++
++type OrderedModelSample = {
++  name: string;
++  seq: number;
++};
++
++/**
++ * 最新の学習ログ読み取りより後の記録で、BKT・クイズ統計・混同ペアが揃っているか。
++ * 順序は performance.now() ではなく、プローブが記録した単調増加の連番で見る。
++ * 同じ時刻でも、読み取りより前に記録された計算は含めず、後に記録された計算は含める。
++ * ログ読み取りが無いときは未完了とする。
++ *
++ * 連番は記録順であり、計算がどのログ配列を閉じ込めたかまでは見ない。
++ * 現行の App は読み取り完了を記録したあと、その結果を state に入れて useMemo で計算する。
++ * 読み取りが重なると、より新しい読み取りの後に、より古い配列の計算が記録される余地がある。
++ */
++export const learningModelsCoverLatestLogRead = (
++  idb: readonly OrderedStoreRead[],
++  models: readonly OrderedModelSample[]
++): boolean => {
++  let lastLogSeq: number | null = null;
++  for (const sample of idb) {
++    if (sample.store !== "quizAttemptLogs" || typeof sample.seq !== "number") {
++      continue;
++    }
++    if (lastLogSeq === null || sample.seq > lastLogSeq) {
++      lastLogSeq = sample.seq;
++    }
++  }
++  if (lastLogSeq === null) {
++    return false;
++  }
++  return STARTUP_LEARNING_MODEL_NAMES.every((name) =>
++    models.some(
++      (sample) => sample.name === name && typeof sample.seq === "number" && sample.seq > lastLogSeq
++    )
++  );
++};
