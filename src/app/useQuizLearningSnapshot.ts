@@ -8,10 +8,23 @@ export type QuizLearningLoadStatus = "loading" | "ready" | "error";
 
 const storage = getStorage();
 
-/** 並びと配列参照を除いた Concept ID 集合のキー。 */
-export const conceptIdSetKey = (ids: Iterable<string>): string => [...ids].sort().join("\0");
+/** 並びと配列参照を除いた Concept ID 集合のキー。ID 内の文字は分割しない。 */
+export const conceptIdSetKey = (ids: Iterable<string>): string => JSON.stringify([...ids].sort());
 
-const idsFromKey = (key: string): string[] => (key.length === 0 ? [] : key.split("\0"));
+export const idsFromKey = (key: string): string[] => {
+  if (key.length === 0) {
+    return [];
+  }
+  try {
+    const parsed: unknown = JSON.parse(key);
+    if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
+      return [];
+    }
+    return parsed;
+  } catch {
+    return [];
+  }
+};
 
 export type QuizLearningSnapshot = {
   logs: QuizAttemptLog[] | null;

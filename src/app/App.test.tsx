@@ -259,4 +259,107 @@ describe("App mastery overview (#56)", () => {
     expect(getQuizQuestions.mock.calls.length).toBe(questionReads);
     bkt.mockRestore();
   });
+
+  it("初回のログ取得失敗のあと、日付をまたいだ再試行成功で 7 日境界を付け直す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    getQuizAttemptLogs.mockReset();
+    getQuizAttemptLogs.mockRejectedValueOnce(new Error("fail"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+    });
+    expect(bkt).not.toHaveBeenCalled();
+
+    vi.setSystemTime(new Date("2026-01-09T00:00:01.000Z"));
+    getQuizAttemptLogs.mockResolvedValueOnce([
+      log({ answeredAt: "2026-01-01T00:00:01.000Z", questionConceptId: "concept-thin" })
+    ]);
+    screen.getByRole("button", { name: "再試行" }).click();
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("しばらく未確認"));
+    });
+    expect(bkt).toHaveBeenCalledTimes(1);
+    bkt.mockRestore();
+  });
+
+  it("取得済みログの再取得失敗後も表示を残し、再試行成功で 30 日境界を付け直す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    });
+    const bktCalls = bkt.mock.calls.length;
+
+    getQuizAttemptLogs.mockRejectedValueOnce(new Error("fail"));
+    noteQuizLearningRevision("logs");
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+    });
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+
+    vi.setSystemTime(new Date("2026-02-01T00:00:01.000Z"));
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    getQuizAttemptLogs.mockResolvedValueOnce([
+      log({ answeredAt: "2026-01-01T00:00:01.000Z", questionConceptId: "concept-thin" })
+    ]);
+    screen.getByRole("button", { name: "再試行" }).click();
+    await waitFor(() => {
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("要再確認"));
+    });
+    expect(bkt.mock.calls.length).toBe(bktCalls + 1);
+    bkt.mockRestore();
+  });
+
+  it("問題だけの再試行では鮮度と BKT を動かさない", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-08T00:00:01.000Z"));
+    getQuizQuestions.mockRejectedValueOnce(new Error("fail"));
+    const bkt = vi.spyOn(masteryModule, "buildConceptMasteryMap");
+    render(<App />);
+    const thinLabel = () =>
+      within(screen.getByTestId("concept-list-item-concept-thin")).getByTitle(
+        /信頼度: データ不足/
+      );
+    await waitFor(() => {
+      expect(screen.getByTestId("quiz-learning-reload-error")).toBeInTheDocument();
+      expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    });
+    const bktCalls = bkt.mock.calls.length;
+    const logReads = getQuizAttemptLogs.mock.calls.length;
+    vi.setSystemTime(new Date("2026-02-01T00:00:01.000Z"));
+    getQuizQuestions.mockResolvedValueOnce([]);
+    screen.getByRole("button", { name: "再試行" }).click();
+    await waitFor(() => {
+      expect(screen.queryByTestId("quiz-learning-reload-error")).not.toBeInTheDocument();
+    });
+    expect(thinLabel()).toHaveAttribute("title", expect.stringContaining("最近確認"));
+    expect(bkt.mock.calls.length).toBe(bktCalls);
+    expect(getQuizAttemptLogs.mock.calls.length).toBe(logReads);
+    bkt.mockRestore();
+  });
+
+  it("ログが空でも NUL を含む概念 ID に未学習を投影する", async () => {
+    getAllConcepts.mockResolvedValue([
+      concept({ id: "a\u0000b", title: "区切りを含む概念" })
+    ]);
+    getQuizAttemptLogs.mockResolvedValue([]);
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("concept-list-item-a\u0000b")).toBeInTheDocument();
+    });
+    expect(within(screen.getByTestId("concept-list-item-a\u0000b")).getByText("未学習")).toBeInTheDocument();
+  });
 });

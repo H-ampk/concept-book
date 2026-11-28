@@ -44,7 +44,7 @@ import {
 import { computeConfusionPairs } from "../utils/quizStats";
 import { measurePerfSpan } from "../perf/probe";
 import { subscribeQuizLearningRevision } from "../storage/quizLearningRevision";
-import { conceptIdSetKey, useQuizLearningSnapshot } from "./useQuizLearningSnapshot";
+import { conceptIdSetKey, idsFromKey, useQuizLearningSnapshot } from "./useQuizLearningSnapshot";
 import { ContextCardsScreen } from "../components/ContextCardsScreen";
 import { VocabularyBookScreen } from "../components/VocabularyBookScreen";
 import { OrnamentLine } from "../components/common/OrnamentLine";
@@ -218,6 +218,12 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
+    if (quizAttemptLogs) {
+      setFreshnessNow(new Date());
+    }
+  }, [quizAttemptLogs]);
+
+  useEffect(() => {
     setListDisplayLimit(100);
   }, [
     debouncedSearchQuery,
@@ -248,7 +254,7 @@ export const App = () => {
     }
     return projectConceptMasteryForConceptIds(
       refreshConceptMasteryFreshness(masteryFromLogs, freshnessNow),
-      conceptIdsKey.length === 0 ? [] : conceptIdsKey.split("\0"),
+      idsFromKey(conceptIdsKey),
       { now: freshnessNow }
     );
   }, [masteryFromLogs, conceptIdsKey, freshnessNow]);

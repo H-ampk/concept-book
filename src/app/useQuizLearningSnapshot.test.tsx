@@ -17,7 +17,7 @@ vi.mock("../storage", () => ({
   })
 }));
 
-import { useQuizLearningSnapshot } from "./useQuizLearningSnapshot";
+import { conceptIdSetKey, idsFromKey, useQuizLearningSnapshot } from "./useQuizLearningSnapshot";
 
 const log = (id: string, conceptId: string): QuizAttemptLog => ({
   id,
@@ -39,6 +39,7 @@ const log = (id: string, conceptId: string): QuizAttemptLog => ({
 const question = (id: string, conceptId: string): QuizQuestion => ({
   id,
   conceptId,
+  questionType: "multiple-choice",
   prompt: "問い",
   choices: [],
   correctChoiceId: "c1",
@@ -84,6 +85,19 @@ const Host = () => {
     </>
   );
 };
+
+describe("conceptIdSetKey", () => {
+  it("並びを無視して復元し、区切り文字や引用符を含む ID を分割しない", () => {
+    expect(idsFromKey(conceptIdSetKey(["b", "a"]))).toEqual(["a", "b"]);
+    expect(conceptIdSetKey(["b", "a"])).toBe(conceptIdSetKey(["a", "b"]));
+    expect(conceptIdSetKey(["a", "b"])).not.toBe(conceptIdSetKey(["a\u0000b"]));
+    expect(idsFromKey(conceptIdSetKey(["a\u0000b"]))).toEqual(["a\u0000b"]);
+    expect(idsFromKey(conceptIdSetKey(['say "hi"', "a\\b", "日"]))).toEqual(["a\\b", 'say "hi"', "日"]);
+    expect(idsFromKey(conceptIdSetKey([]))).toEqual([]);
+    expect(conceptIdSetKey(["a"])).not.toBe(conceptIdSetKey(["a", "b"]));
+    expect(conceptIdSetKey(["a", "b"])).not.toBe(conceptIdSetKey(["a"]));
+  });
+});
 
 describe("useQuizLearningSnapshot", () => {
   beforeEach(() => {
@@ -212,5 +226,15 @@ describe("useQuizLearningSnapshot", () => {
     await waitFor(() => {
       expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
     });
+  });
+
+  it("NUL を含む概念 ID の問題を、別 ID の集合として投影する", async () => {
+    getQuizQuestions.mockResolvedValue([question("q-nul", "a\u0000b")]);
+    render(<Probe conceptIds={["a\u0000b"]} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a\u0000b");
+    });
+    expect(screen.getByTestId("question-concepts")).not.toHaveTextContent(/^a,b$/);
+    expect(getQuizQuestions).toHaveBeenCalledTimes(1);
   });
 });
