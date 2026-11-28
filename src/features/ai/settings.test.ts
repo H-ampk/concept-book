@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { grantExternalSendConsent, hasExternalSendConsent } from "./ollamaEndpoint";
 import {
   AI_SETTINGS_STORAGE_KEY,
   DEFAULT_AI_SETTINGS,
@@ -112,6 +113,48 @@ describe("AI settings", () => {
     expect(loadAISettings().embeddingModel).toBe(DEFAULT_EMBEDDING_MODEL);
   });
 
+  it("妥当なbaseUrlは末尾スラッシュを除いて保存する", () => {
+    saveAISettings({
+      ...DEFAULT_AI_SETTINGS,
+      baseUrl: "https://ollama.example.com/proxy/"
+    });
+    expect(loadAISettings().baseUrl).toBe("https://ollama.example.com/proxy");
+  });
+
+  it("不正なbaseUrl文字列は消さずに通信できない形で残す", () => {
+    localStorage.setItem(
+      AI_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_AI_SETTINGS,
+        baseUrl: "javascript:alert(1)"
+      })
+    );
+    expect(loadAISettings().baseUrl).toBe("javascript:alert(1)");
+  });
+
+  it("保存済みリモートURLは同意なしのまま読み込む", () => {
+    localStorage.setItem(
+      AI_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_AI_SETTINGS,
+        enabled: true,
+        baseUrl: "https://ollama.example.com"
+      })
+    );
+    expect(loadAISettings().baseUrl).toBe("https://ollama.example.com");
+    expect(hasExternalSendConsent("https://ollama.example.com")).toBe(false);
+  });
+
+  it("接続先を変えて保存すると以前の同意を無効化する", () => {
+    grantExternalSendConsent("https://ollama.example.com");
+    saveAISettings({
+      ...DEFAULT_AI_SETTINGS,
+      baseUrl: "https://other.example.com"
+    });
+    expect(hasExternalSendConsent("https://ollama.example.com")).toBe(false);
+    expect(hasExternalSendConsent("https://other.example.com")).toBe(false);
+  });
+
   it("不正なbaseUrl型はdefaultへ戻す", () => {
     localStorage.setItem(
       AI_SETTINGS_STORAGE_KEY,
@@ -132,9 +175,11 @@ describe("AI settings", () => {
       enabled: true,
       textModel: "other"
     });
+    grantExternalSendConsent("https://ollama.example.com");
     resetAISettings();
     expect(loadAISettings()).toEqual(DEFAULT_AI_SETTINGS);
     expect(isAIEnabled()).toBe(false);
+    expect(hasExternalSendConsent("https://ollama.example.com")).toBe(false);
   });
 
   it("Storage access failureでもアプリを壊さない", () => {

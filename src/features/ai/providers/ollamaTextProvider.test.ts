@@ -55,8 +55,24 @@ describe("OllamaTextProvider", () => {
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:11434/api/chat",
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST", redirect: "error" })
     );
+  });
+
+  it("未同意の外部URLでは学習データを送らない", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = new OllamaTextProvider({
+      enabled: true,
+      baseUrl: "https://ollama.example.com",
+      model: "qwen3:4b"
+    });
+    await expect(
+      provider.generate({ messages: [{ role: "user", content: "secret concept text" }] })
+    ).rejects.toMatchObject({
+      code: "external-consent-required"
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("model-not-found を返す", async () => {

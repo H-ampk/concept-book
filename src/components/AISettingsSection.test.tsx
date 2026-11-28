@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AI_SETTINGS_STORAGE_KEY, DEFAULT_AI_SETTINGS } from "../features/ai";
+import {
+  AI_SETTINGS_STORAGE_KEY,
+  DEFAULT_AI_SETTINGS,
+  OLLAMA_EXTERNAL_CONSENT_STORAGE_KEY
+} from "../features/ai";
 import { AISettingsSection } from "./AISettingsSection";
 
 const jsonResponse = (body: unknown, status = 200): Response =>
@@ -137,5 +141,47 @@ describe("AISettingsSection", () => {
     });
     expect(screen.getByText(/設定されたEmbeddingモデル「bge-m3:latest」が見つかりません/)).toBeInTheDocument();
     expect(screen.getByText("ollama pull qwen3:4b")).toBeInTheDocument();
+  });
+
+  it("外部URLは同意前にfetchせず、同意後に接続確認できる", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => jsonResponse({ version: "0.1.0" }));
+    vi.stubGlobal("fetch", fetchMock);
+    localStorage.setItem(
+      AI_SETTINGS_STORAGE_KEY,
+      JSON.stringify({ ...DEFAULT_AI_SETTINGS, baseUrl: "https://ollama.example.com" })
+    );
+    render(<AISettingsSection />);
+    expect(screen.getByText(/この端末上のローカルOllamaではありません/)).toBeInTheDocument();
+    expect(screen.getByText("接続先：https://ollama.example.com")).toBeInTheDocument();
+    expect(screen.queryByText(/通信は暗号化されません/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "接続確認" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/設定画面で許可してから/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: /学習データ送信を許可する/ }));
+    expect(JSON.parse(localStorage.getItem(OLLAMA_EXTERNAL_CONSENT_STORAGE_KEY) ?? "{}")).toEqual({
+      baseUrl: "https://ollama.example.com"
+    });
+    await user.click(screen.getByRole("button", { name: "接続確認" }));
+    await waitFor(() => {
+      expect(screen.getByText(/Ollamaに接続できました/)).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("HTTPの外部URLでは暗号化されないことを表示する", async () => {
+    localStorage.setItem(
+      AI_SETTINGS_STORAGE_KEY,
+      JSON.stringify({ ...DEFAULT_AI_SETTINGS, baseUrl: "http://192.168.1.10:11434" })
+    );
+    render(<AISettingsSection />);
+    expect(screen.getByText(/通信は暗号化されません/)).toBeInTheDocument();
+  });
+
+  it("ローカルURLでは外部送信の警告を出さない", () => {
+    render(<AISettingsSection />);
+    expect(screen.queryByText(/ローカルOllamaではありません/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /学習データ送信を許可する/ })).not.toBeInTheDocument();
   });
 });

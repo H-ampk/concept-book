@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AIError } from "../errors";
+import { grantExternalSendConsent, revokeExternalSendConsent } from "../ollamaEndpoint";
 import { OLLAMA_CONNECTION_TIMEOUT_MS, OLLAMA_REQUEST_TIMEOUT_MS } from "../timeouts";
 import {
   checkOllamaConnection,
@@ -23,6 +24,29 @@ const neverResolvingFetch = () =>
       });
     });
   });
+
+const installLocalStorage = () => {
+  const store = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: (key: string) => {
+        store.delete(key);
+      },
+      clear: () => {
+        store.clear();
+      }
+    }
+  });
+};
+
+beforeEach(() => {
+  installLocalStorage();
+});
 
 afterEach(() => {
   vi.useRealTimers();
@@ -50,7 +74,44 @@ describe("checkOllamaConnection", () => {
     });
     expect(fetch).toHaveBeenCalledWith(
       "http://localhost:11434/api/version",
-      expect.objectContaining({ method: "GET" })
+      expect.objectContaining({ method: "GET", redirect: "error" })
+    );
+  });
+
+  it("不正なURLではfetchしない", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await checkOllamaConnection("javascript:alert(1)");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.connected).toBe(false);
+    if (!result.connected) {
+      expect(result.error.code).toBe("invalid-endpoint");
+      expect(result.error.message).not.toContain("concept");
+    }
+  });
+
+  it("未同意の外部URLではfetchしない", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    revokeExternalSendConsent();
+    const result = await checkOllamaConnection("https://ollama.example.com");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.connected).toBe(false);
+    if (!result.connected) {
+      expect(result.error.code).toBe("external-consent-required");
+    }
+  });
+
+  it("同意済みの外部URLでは通信できる", async () => {
+    grantExternalSendConsent("https://ollama.example.com/proxy/");
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ version: "0.1.0" })));
+    await expect(checkOllamaConnection("https://ollama.example.com/proxy")).resolves.toMatchObject({
+      connected: true,
+      version: "0.1.0"
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://ollama.example.com/proxy/api/version",
+      expect.objectContaining({ redirect: "error" })
     );
   });
 
@@ -107,6 +168,16 @@ describe("checkOllamaConnection", () => {
 });
 
 describe("listOllamaModels", () => {
+  it("未同意の外部URLではfetchしない", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    revokeExternalSendConsent();
+    await expect(listOllamaModels("http://192.168.1.10:11434")).rejects.toMatchObject({
+      code: "external-consent-required"
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("/api/tags の正常レスポンスから名前を返す", async () => {
     vi.stubGlobal(
       "fetch",
