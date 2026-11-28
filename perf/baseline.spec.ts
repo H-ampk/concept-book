@@ -73,15 +73,29 @@ const installObservers = (): void => {
     const button = [...document.querySelectorAll("button")].find(
       (element) => element.textContent?.trim() === "概念を追加"
     );
-    const stores = new Set(
-      (host.__CB_PERF_PROBE__.idb as Array<{ store: string }>).map((sample) => sample.store)
-    );
+    const idb = host.__CB_PERF_PROBE__.idb as Array<{ store: string; at: number }>;
+    const models = host.__CB_PERF_PROBE__.models as Array<{ name: string; at: number }>;
+    const stores = new Set(idb.map((sample) => sample.store));
+    let lastLogAt: number | null = null;
+    for (const sample of idb) {
+      if (sample.store === "quizAttemptLogs" && (lastLogAt === null || sample.at >= lastLogAt)) {
+        lastLogAt = sample.at;
+      }
+    }
+    const learningModelsReady =
+      lastLogAt !== null &&
+      [
+        "learning-model.bkt-mastery-map",
+        "learning-model.quiz-stats",
+        "learning-model.confusion-pairs"
+      ].every((name) => models.some((sample) => sample.name === name && sample.at >= lastLogAt));
     if (
       button instanceof HTMLButtonElement &&
       !button.disabled &&
       stores.has("concepts") &&
       stores.has("quizQuestions") &&
-      stores.has("quizAttemptLogs")
+      stores.has("quizAttemptLogs") &&
+      learningModelsReady
     ) {
       host.__appReadyAt = performance.now();
       host.__startupProbeCounts = {
@@ -851,7 +865,7 @@ const measureSpec = async (
       warm:
         "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
       startup:
-        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録された最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使い、準備完了後に増えた試料は含めない。",
+        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録され、最新の quizAttemptLogs 読み取り以降に BKT・クイズ統計・混同ペアの計算が各 1 回以上完了した最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使う。ログ読み取りが無い状態の modelCalls 0 は完了としない。準備完了後に増えた試料は含めない。",
       navigation:
         "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
       crud:

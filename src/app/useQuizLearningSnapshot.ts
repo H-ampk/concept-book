@@ -88,11 +88,11 @@ export const useQuizLearningSnapshot = (conceptIds: readonly string[]): QuizLear
   const validConceptIds = useMemo(() => new Set(idsFromKey(conceptKey)), [conceptKey]);
 
   const quizQuestionConceptIds = useMemo(() => {
-    if (!questions || questionsStatus === "loading") {
+    if (!questions) {
       return null;
     }
     return buildQuizQuestionConceptIdSet(questions, validConceptIds);
-  }, [questions, questionsStatus, validConceptIds]);
+  }, [questions, validConceptIds]);
 
   return {
     logs,

@@ -8,6 +8,7 @@ import {
 } from "./datasetSpec";
 import { summarizeSamples, unmeasured } from "./summarizeSamples";
 import { measurePerfSpan, noteIdbRead, perfReadStartedAt, type PerfProbeState } from "./probe";
+import { learningModelsCoverLatestLogRead } from "./startupLearningModels";
 import {
   datasetToFingerprintInput,
   fingerprintDataset,
@@ -212,6 +213,47 @@ describe("計測値の集計", () => {
   });
 });
 
+describe("起動時の学習モデル完了", () => {
+  const models = [
+    { name: "learning-model.bkt-mastery-map", at: 30 },
+    { name: "learning-model.quiz-stats", at: 31 },
+    { name: "learning-model.confusion-pairs", at: 32 }
+  ];
+
+  it("ログ読み取りより前の計算だけでは完了にしない", () => {
+    expect(
+      learningModelsCoverLatestLogRead(
+        [{ store: "quizAttemptLogs", at: 40 }],
+        models
+      )
+    ).toBe(false);
+  });
+
+  it("最新のログ読み取り以降に 3 種が揃うと完了する", () => {
+    expect(
+      learningModelsCoverLatestLogRead(
+        [
+          { store: "concepts", at: 1 },
+          { store: "quizAttemptLogs", at: 10 },
+          { store: "quizAttemptLogs", at: 20 }
+        ],
+        [
+          { name: "learning-model.bkt-mastery-map", at: 15 },
+          { name: "learning-model.quiz-stats", at: 16 },
+          { name: "learning-model.confusion-pairs", at: 17 },
+          { name: "learning-model.bkt-mastery-map", at: 21 },
+          { name: "learning-model.quiz-stats", at: 22 },
+          { name: "learning-model.confusion-pairs", at: 23 }
+        ]
+      )
+    ).toBe(true);
+  });
+
+  it("ログ読み取りが無いときは計算があっても未完了とする", () => {
+    expect(learningModelsCoverLatestLogRead([{ store: "concepts", at: 1 }], models)).toBe(false);
+  });
+});
+
 describe("計測プローブ", () => {
   it("プローブが無いときは計算結果を変えず記録しない", () => {
     expect(measurePerfSpan("bkt", () => 7)).toBe(7);
@@ -227,7 +269,9 @@ describe("計測プローブ", () => {
       noteIdbRead("concepts", 2, perfReadStartedAt());
       expect(state.models).toHaveLength(1);
       expect(state.models[0]?.name).toBe("bkt");
+      expect(typeof state.models[0]?.at).toBe("number");
       expect(state.idb[0]).toMatchObject({ store: "concepts", count: 2 });
+      expect(typeof state.idb[0]?.at).toBe("number");
     } finally {
       delete (globalThis as { __CB_PERF_PROBE__?: PerfProbeState }).__CB_PERF_PROBE__;
     }

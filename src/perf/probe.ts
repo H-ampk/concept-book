@@ -2,11 +2,15 @@ export type IdbReadSample = {
   store: string;
   count: number;
   ms: number;
+  /** 読み取り完了の performance.now()。起動完了がログ後の計算より先に切れないようにする。 */
+  at: number;
 };
 
 export type ModelSample = {
   name: string;
   ms: number;
+  /** 計算完了の performance.now()。 */
+  at: number;
 };
 
 export type PerfProbeState = {
@@ -31,7 +35,8 @@ export const measurePerfSpan = <T>(name: string, fn: () => T): T => {
   try {
     return fn();
   } finally {
-    probe.models.push({ name, ms: performance.now() - started });
+    const at = performance.now();
+    probe.models.push({ name, ms: at - started, at });
   }
 };
 
@@ -50,9 +55,11 @@ export const noteIdbRead = (store: string, count: number, startedAt: number | nu
   if (!probe) {
     return;
   }
+  const at = performance.now();
   probe.idb.push({
     store,
     count,
-    ms: performance.now() - startedAt
+    ms: at - startedAt,
+    at
   });
 };

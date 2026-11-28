@@ -63,6 +63,9 @@ const Probe = ({ conceptIds }: { conceptIds: string[] }) => {
       <button type="button" onClick={() => void snapshot.reloadLogs()}>
         reload-logs
       </button>
+      <button type="button" onClick={() => void snapshot.reloadQuestions()}>
+        reload-questions
+      </button>
     </div>
   );
 };
@@ -155,5 +158,59 @@ describe("useQuizLearningSnapshot", () => {
       expect(screen.getByTestId("logs-status")).toHaveTextContent("ready");
     });
     expect(screen.getByTestId("log-ids")).toHaveTextContent("");
+  });
+
+  it("問題の再取得中も取得済みの概念集合を保持し、空配列は未取得と区別する", async () => {
+    let resolveReload: (value: QuizQuestion[]) => void = () => undefined;
+    getQuizQuestions.mockResolvedValueOnce([question("q1", "a")]);
+    render(<Probe conceptIds={["a", "c"]} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    });
+
+    getQuizQuestions.mockRejectedValueOnce(new Error("fail"));
+    screen.getByRole("button", { name: "reload-questions" }).click();
+    await waitFor(() => {
+      expect(screen.getByTestId("questions-status")).toHaveTextContent("error");
+    });
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    expect(screen.getByTestId("question-concepts")).not.toHaveTextContent("unloaded");
+
+    getQuizQuestions.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveReload = resolve;
+        })
+    );
+    screen.getByRole("button", { name: "reload-questions" }).click();
+    await waitFor(() => {
+      expect(screen.getByTestId("questions-status")).toHaveTextContent("loading");
+    });
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+
+    resolveReload([]);
+    await waitFor(() => {
+      expect(screen.getByTestId("questions-status")).toHaveTextContent("ready");
+    });
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^$/);
+  });
+
+  it("初回の問題取得が終わるまでは未取得とする", async () => {
+    let resolveQuestions: (value: QuizQuestion[]) => void = () => undefined;
+    getQuizQuestions.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveQuestions = resolve;
+        })
+    );
+    render(<Probe conceptIds={["a"]} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("questions-status")).toHaveTextContent("loading");
+    });
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent("unloaded");
+    resolveQuestions([question("q1", "a")]);
+    await waitFor(() => {
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    });
   });
 });
