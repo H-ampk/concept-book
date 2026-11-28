@@ -39,7 +39,7 @@
   "conditions": {
     "cold": "専用コンテキストで合成データを投入したあと、HTTP キャッシュを消してから最初の document 再読み込み。IndexedDB の合成データは残す。ウォームアップ試行は集計しない。",
     "warm": "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
-    "startup": "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録された最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使い、準備完了後に増えた試料は含めない。",
+    "startup": "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録され、最新の quizAttemptLogs 読み取り以降に BKT・クイズ統計・混同ペアの計算が各 1 回以上完了した最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使う。ログ読み取りが無い状態の modelCalls 0 は完了としない。準備完了後に増えた試料は含めない。",
     "navigation": "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
     "crud": "保存または削除確定の操作から、ダイアログが閉じるか削除対象が一覧から消えるまで。各試行のあと、追加概念を削除し、概念・クイズ・文脈カードを合成データで put し直してから reload する。削除が隣接概念と参照先問題を書き換えるため、対象概念だけの put では次の試行の状態が揃わない。",
     "excluded": "データ生成と IndexedDB への投入時間は操作時間に含めない。"
@@ -55,11 +55,11 @@
       "unit": "ms",
       "count": 1,
       "trials": [
-        1629.3999999761581
+        919.7000000476837
       ],
-      "min": 1629.3999999761581,
-      "max": 1629.3999999761581,
-      "median": 1629.3999999761581,
+      "min": 919.7000000476837,
+      "max": 919.7000000476837,
+      "median": 919.7000000476837,
       "stdev": 0
     },
     "warm": {
@@ -67,11 +67,11 @@
       "unit": "ms",
       "count": 1,
       "trials": [
-        1287.2000000476837
+        921.7000000476837
       ],
-      "min": 1287.2000000476837,
-      "max": 1287.2000000476837,
-      "median": 1287.2000000476837,
+      "min": 921.7000000476837,
+      "max": 921.7000000476837,
+      "median": 921.7000000476837,
       "stdev": 0
     }
   },
@@ -113,11 +113,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          3364.100000143051
+          1850.6000001430511
         ],
-        "min": 3364.100000143051,
-        "max": 3364.100000143051,
-        "median": 3364.100000143051,
+        "min": 1850.6000001430511,
+        "max": 1850.6000001430511,
+        "median": 1850.6000001430511,
         "stdev": 0
       },
       "records": {
@@ -151,11 +151,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          2792.7000000476837
+          1816.5
         ],
-        "min": 2792.7000000476837,
-        "max": 2792.7000000476837,
-        "median": 2792.7000000476837,
+        "min": 1816.5,
+        "max": 1816.5,
+        "median": 1816.5,
         "stdev": 0
       },
       "records": {
@@ -192,11 +192,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          112.799999833107
+          92.10000014305115
         ],
-        "min": 112.799999833107,
-        "max": 112.799999833107,
-        "median": 112.799999833107,
+        "min": 92.10000014305115,
+        "max": 92.10000014305115,
+        "median": 92.10000014305115,
         "stdev": 0
       }
     },
@@ -218,11 +218,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          109.70000004768372
+          93
         ],
-        "min": 109.70000004768372,
-        "max": 109.70000004768372,
-        "median": 109.70000004768372,
+        "min": 93,
+        "max": 93,
+        "median": 93,
         "stdev": 0
       }
     },
@@ -266,11 +266,11 @@
         "unit": "count",
         "count": 1,
         "trials": [
-          11
+          3
         ],
-        "min": 11,
-        "max": 11,
-        "median": 11,
+        "min": 3,
+        "max": 3,
+        "median": 3,
         "stdev": 0
       },
       "duration": {
@@ -278,11 +278,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          1149
+          345
         ],
-        "min": 1149,
-        "max": 1149,
-        "median": 1149,
+        "min": 345,
+        "max": 345,
+        "median": 345,
         "stdev": 0
       }
     },
@@ -292,11 +292,11 @@
         "unit": "count",
         "count": 1,
         "trials": [
-          9
+          3
         ],
-        "min": 9,
-        "max": 9,
-        "median": 9,
+        "min": 3,
+        "max": 3,
+        "median": 3,
         "stdev": 0
       },
       "duration": {
@@ -304,11 +304,11 @@
         "unit": "ms",
         "count": 1,
         "trials": [
-          812
+          335
         ],
-        "min": 812,
-        "max": 812,
-        "median": 812,
+        "min": 335,
+        "max": 335,
+        "median": 335,
         "stdev": 0
       }
     }
@@ -324,44 +324,44 @@
   "trialsRaw": {
     "cold": [
       {
-        "ms": 1629.3999999761581,
+        "ms": 919.7000000476837,
         "domElements": 1201,
-        "longTaskCount": 11,
-        "longTaskMs": 1149,
+        "longTaskCount": 3,
+        "longTaskMs": 345,
         "idbCalls": 3,
-        "idbMs": 3364.100000143051,
+        "idbMs": 1850.6000001430511,
         "idbRecords": 65000,
         "modelCalls": 3,
-        "modelMs": 112.799999833107
+        "modelMs": 92.10000014305115
       }
     ],
     "warm": [
       {
-        "ms": 1287.2000000476837,
+        "ms": 921.7000000476837,
         "domElements": 1201,
-        "longTaskCount": 9,
-        "longTaskMs": 812,
+        "longTaskCount": 3,
+        "longTaskMs": 335,
         "idbCalls": 3,
-        "idbMs": 2792.7000000476837,
+        "idbMs": 1816.5,
         "idbRecords": 65000,
         "modelCalls": 3,
-        "modelMs": 109.70000004768372
+        "modelMs": 93
       }
     ]
   },
   "environment": {
-    "measuredSourceCommit": "58d9437788e23ca90efb06365626a50f02683724",
-    "measuredSourceTree": "24b5c5357b3515e8ec4beef116feb8cd0f89392d",
+    "measuredSourceCommit": "aff56a64e11fc6e7ba3b164cc57f6686e228e878",
+    "measuredSourceTree": "61803e9ab972916f6adbc2624c7bc4f8405b2ba4",
     "contentMatchesHead": true,
     "resultsCommit": null,
     "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
     "uncommittedContentDiff": null,
     "uncommittedStatus": "M vite.config.js",
-    "measuredAt": "2026-11-25T03:22:29.063Z",
+    "measuredAt": "2026-11-28T10:52:14.562Z",
     "os": "Windows_NT 10.0.26200",
-    "cpu": "13th Gen Intel(R) Core(TM) i5-1334U",
-    "cpuCores": 12,
-    "memoryBytes": 16870006784,
+    "cpu": "AMD Ryzen 7 7435HS                             ",
+    "cpuCores": 16,
+    "memoryBytes": 16989728768,
     "browser": "Chromium 151.0.7922.34",
     "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）"
   }

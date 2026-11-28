@@ -1,6 +1,6 @@
 {
-  "measuredSourceCommit": "58d9437788e23ca90efb06365626a50f02683724",
-  "measuredSourceTree": "24b5c5357b3515e8ec4beef116feb8cd0f89392d",
+  "measuredSourceCommit": "aff56a64e11fc6e7ba3b164cc57f6686e228e878",
+  "measuredSourceTree": "61803e9ab972916f6adbc2624c7bc4f8405b2ba4",
   "contentMatchesHead": true,
   "resultsCommit": null,
   "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",

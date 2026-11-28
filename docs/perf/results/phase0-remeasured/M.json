@@ -1,0 +1,573 @@
+{
+  "schemaVersion": 1,
+  "purpose": "phase-0-baseline",
+  "p95": {
+    "status": "unmeasured",
+    "reason": "試行数が 20 未満のため p95 は記録しない。"
+  },
+  "dataset": {
+    "id": "M",
+    "seed": 244001,
+    "conceptCount": 1000,
+    "logCount": 10000,
+    "quizCount": 2000,
+    "contextCount": 100,
+    "relationCount": 1000,
+    "attachmentBytes": 0
+  },
+  "counts": {
+    "concepts": 1000,
+    "logs": 10000,
+    "quizzes": 2000,
+    "contexts": 100,
+    "relatedPairs": 500,
+    "prerequisiteEdges": 500,
+    "relations": 1000,
+    "attachmentBytes": 0
+  },
+  "verifiedIndexedDbCounts": {
+    "concepts": 1000,
+    "contextCards": 100,
+    "quizQuestions": 2000,
+    "quizAttemptLogs": 10000,
+    "learningMaterials": 0
+  },
+  "seed": 244001,
+  "warmup": 1,
+  "trials": 3,
+  "interactionTrials": 3,
+  "conditions": {
+    "cold": "専用コンテキストで合成データを投入したあと、HTTP キャッシュを消してから最初の document 再読み込み。IndexedDB の合成データは残す。ウォームアップ試行は集計しない。",
+    "warm": "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
+    "startup": "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録され、最新の quizAttemptLogs 読み取り以降に BKT・クイズ統計・混同ペアの計算が各 1 回以上完了した最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使う。ログ読み取りが無い状態の modelCalls 0 は完了としない。準備完了後に増えた試料は含めない。",
+    "navigation": "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
+    "crud": "保存または削除確定の操作から、ダイアログが閉じるか削除対象が一覧から消えるまで。各試行のあと、追加概念を削除し、概念・クイズ・文脈カードを合成データで put し直してから reload する。削除が隣接概念と参照先問題を書き換えるため、対象概念だけの put では次の試行の状態が揃わない。",
+    "excluded": "データ生成と IndexedDB への投入時間は操作時間に含めない。"
+  },
+  "units": {
+    "time": "ms",
+    "bytes": "bytes",
+    "count": "count"
+  },
+  "startup": {
+    "cold": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        579,
+        451.5,
+        556.5
+      ],
+      "min": 451.5,
+      "max": 579,
+      "median": 556.5,
+      "stdev": 68.05328794408099
+    },
+    "warm": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        543.5999999046326,
+        521.5999999046326,
+        519
+      ],
+      "min": 519,
+      "max": 543.5999999046326,
+      "median": 521.5999999046326,
+      "stdev": 13.51492998386113
+    }
+  },
+  "screens": {
+    "contexts": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        221,
+        281.40000009536743,
+        261.2999999523163
+      ],
+      "min": 221,
+      "max": 281.40000009536743,
+      "median": 261.2999999523163,
+      "stdev": 30.757817470868915
+    },
+    "vocabulary": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        271.39999985694885,
+        97,
+        278.09999990463257
+      ],
+      "min": 97,
+      "max": 278.09999990463257,
+      "median": 271.39999985694885,
+      "stdev": 102.67867347231089
+    },
+    "settings": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        202.10000014305115,
+        341.5,
+        200.20000004768372
+      ],
+      "min": 200.20000004768372,
+      "max": 341.5,
+      "median": 202.10000014305115,
+      "stdev": 81.036678883705
+    },
+    "guide": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        258.5,
+        446.19999980926514,
+        207.09999990463257
+      ],
+      "min": 207.09999990463257,
+      "max": 446.19999980926514,
+      "median": 258.5,
+      "stdev": 125.85842568311772
+    },
+    "dataLab": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        644.9000000953674,
+        434.10000014305115,
+        525.2999999523163
+      ],
+      "min": 434.10000014305115,
+      "max": 644.9000000953674,
+      "median": 525.2999999523163,
+      "stdev": 105.71836798724898
+    },
+    "concepts": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        2600.899999856949,
+        617.2000000476837,
+        2783.399999856949
+      ],
+      "min": 617.2000000476837,
+      "max": 2783.399999856949,
+      "median": 2600.899999856949,
+      "stdev": 1201.4431862290269
+    }
+  },
+  "search": {
+    "status": "measured",
+    "unit": "ms",
+    "count": 3,
+    "trials": [
+      340.90000009536743,
+      325.2999999523163,
+      289.40000009536743
+    ],
+    "min": 289.40000009536743,
+    "max": 340.90000009536743,
+    "median": 325.2999999523163,
+    "stdev": 26.408395111504863
+  },
+  "crud": {
+    "create": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        543.1000001430511,
+        539.0999999046326,
+        359.40000009536743
+      ],
+      "min": 359.40000009536743,
+      "max": 543.1000001430511,
+      "median": 539.0999999046326,
+      "stdev": 104.92360709176005
+    },
+    "edit": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        569.0999999046326,
+        552.7999999523163,
+        578.8999998569489
+      ],
+      "min": 552.7999999523163,
+      "max": 578.8999998569489,
+      "median": 569.0999999046326,
+      "stdev": 13.184207677702455
+    },
+    "delete": {
+      "status": "measured",
+      "unit": "ms",
+      "count": 3,
+      "trials": [
+        570.9000000953674,
+        526.6999998092651,
+        562.2000000476837
+      ],
+      "min": 526.6999998092651,
+      "max": 570.9000000953674,
+      "median": 562.2000000476837,
+      "stdev": 23.415023820362496
+    }
+  },
+  "indexedDb": {
+    "cold": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          5,
+          5,
+          5
+        ],
+        "min": 5,
+        "max": 5,
+        "median": 5,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 3,
+        "trials": [
+          1784.1000001430511,
+          1061.7000000476837,
+          1709.400000333786
+        ],
+        "min": 1061.7000000476837,
+        "max": 1784.1000001430511,
+        "median": 1709.400000333786,
+        "stdev": 397.2734449720805
+      },
+      "records": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          25000,
+          25000,
+          25000
+        ],
+        "min": 25000,
+        "max": 25000,
+        "median": 25000,
+        "stdev": 0
+      }
+    },
+    "warm": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          5,
+          5,
+          5
+        ],
+        "min": 5,
+        "max": 5,
+        "median": 5,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 3,
+        "trials": [
+          1665.7999999523163,
+          1632.6999998092651,
+          1450.7999999523163
+        ],
+        "min": 1450.7999999523163,
+        "max": 1665.7999999523163,
+        "median": 1632.6999998092651,
+        "stdev": 115.7642863447301
+      },
+      "records": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          25000,
+          25000,
+          25000
+        ],
+        "min": 25000,
+        "max": 25000,
+        "median": 25000,
+        "stdev": 0
+      }
+    },
+    "note": "duration は各読み取りの所要時間の合計であり、並行する読み取りでは壁時計時間より長くなる。getAllConcepts / getQuizQuestions / getQuizAttemptLogs の本番経路に、プローブがあるときだけ記録を足している。プローブが無いときは performance.now() を呼ばず、従来どおりの処理だけを行う。"
+  },
+  "learningModel": {
+    "cold": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          6,
+          6,
+          6
+        ],
+        "min": 6,
+        "max": 6,
+        "median": 6,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 3,
+        "trials": [
+          24.300000190734863,
+          32.89999985694885,
+          24.90000009536743
+        ],
+        "min": 24.300000190734863,
+        "max": 32.89999985694885,
+        "median": 24.90000009536743,
+        "stdev": 4.801388520170366
+      }
+    },
+    "warm": {
+      "calls": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          7,
+          7,
+          7
+        ],
+        "min": 7,
+        "max": 7,
+        "median": 7,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 3,
+        "trials": [
+          22.09999990463257,
+          18.09999990463257,
+          17.299999952316284
+        ],
+        "min": 17.299999952316284,
+        "max": 22.09999990463257,
+        "median": 18.09999990463257,
+        "stdev": 2.5716401856254563
+      }
+    },
+    "note": "BKT mastery map、クイズ統計、混同ペアの既存関数を計時している。計算式は変えていない。Data Lab 固有の追加モデルはこの起動区間には含まれない。"
+  },
+  "react": {
+    "status": "unmeasured",
+    "reason": "通常の本番ビルドには React Profiler が含まれない。profiling ビルドの描画時間は、この本番ビルドの起動時間やバンドルサイズと比較しない。"
+  },
+  "domElements": {
+    "cold": {
+      "status": "measured",
+      "unit": "count",
+      "count": 3,
+      "trials": [
+        1201,
+        1201,
+        1201
+      ],
+      "min": 1201,
+      "max": 1201,
+      "median": 1201,
+      "stdev": 0
+    },
+    "warm": {
+      "status": "measured",
+      "unit": "count",
+      "count": 3,
+      "trials": [
+        1201,
+        1201,
+        1201
+      ],
+      "min": 1201,
+      "max": 1201,
+      "median": 1201,
+      "stdev": 0
+    }
+  },
+  "longTasks": {
+    "window": "navigation startTime 以上、起動完了の performance.now() 未満に開始した longtask だけを合計する。",
+    "cold": {
+      "count": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          2,
+          1,
+          2
+        ],
+        "min": 1,
+        "max": 2,
+        "median": 2,
+        "stdev": 0.5773502691896257
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 3,
+        "trials": [
+          110,
+          67,
+          111
+        ],
+        "min": 67,
+        "max": 111,
+        "median": 110,
+        "stdev": 25.11971337416094
+      }
+    },
+    "warm": {
+      "count": {
+        "status": "measured",
+        "unit": "count",
+        "count": 3,
+        "trials": [
+          0,
+          0,
+          0
+        ],
+        "min": 0,
+        "max": 0,
+        "median": 0,
+        "stdev": 0
+      },
+      "duration": {
+        "status": "measured",
+        "unit": "ms",
+        "count": 3,
+        "trials": [
+          0,
+          0,
+          0
+        ],
+        "min": 0,
+        "max": 0,
+        "median": 0,
+        "stdev": 0
+      }
+    }
+  },
+  "memory": {
+    "status": "unmeasured",
+    "reason": "performance.measureUserAgentSpecificMemory が存在しない。"
+  },
+  "bundle": {
+    "status": "unmeasured",
+    "reason": "バンドルサイズはデータセットに依存しないため bundle.json に記録する。"
+  },
+  "trialsRaw": {
+    "cold": [
+      {
+        "ms": 579,
+        "domElements": 1201,
+        "longTaskCount": 2,
+        "longTaskMs": 110,
+        "idbCalls": 5,
+        "idbMs": 1784.1000001430511,
+        "idbRecords": 25000,
+        "modelCalls": 6,
+        "modelMs": 24.300000190734863
+      },
+      {
+        "ms": 451.5,
+        "domElements": 1201,
+        "longTaskCount": 1,
+        "longTaskMs": 67,
+        "idbCalls": 5,
+        "idbMs": 1061.7000000476837,
+        "idbRecords": 25000,
+        "modelCalls": 6,
+        "modelMs": 32.89999985694885
+      },
+      {
+        "ms": 556.5,
+        "domElements": 1201,
+        "longTaskCount": 2,
+        "longTaskMs": 111,
+        "idbCalls": 5,
+        "idbMs": 1709.400000333786,
+        "idbRecords": 25000,
+        "modelCalls": 6,
+        "modelMs": 24.90000009536743
+      }
+    ],
+    "warm": [
+      {
+        "ms": 543.5999999046326,
+        "domElements": 1201,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "idbCalls": 5,
+        "idbMs": 1665.7999999523163,
+        "idbRecords": 25000,
+        "modelCalls": 7,
+        "modelMs": 22.09999990463257
+      },
+      {
+        "ms": 521.5999999046326,
+        "domElements": 1201,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "idbCalls": 5,
+        "idbMs": 1632.6999998092651,
+        "idbRecords": 25000,
+        "modelCalls": 7,
+        "modelMs": 18.09999990463257
+      },
+      {
+        "ms": 519,
+        "domElements": 1201,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "idbCalls": 5,
+        "idbMs": 1450.7999999523163,
+        "idbRecords": 25000,
+        "modelCalls": 7,
+        "modelMs": 17.299999952316284
+      }
+    ]
+  },
+  "environment": {
+    "measuredSourceCommit": "8dd6c78ad3d5a4655d4ca5410c018f15d03e49d1",
+    "measuredSourceTree": "a28d2e76ed37f91272bbee5389183aab808c4010",
+    "contentMatchesHead": true,
+    "resultsCommit": null,
+    "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
+    "uncommittedContentDiff": null,
+    "uncommittedStatus": "M vite.config.js",
+    "measuredAt": "2026-11-28T10:55:45.523Z",
+    "os": "Windows_NT 10.0.26200",
+    "cpu": "AMD Ryzen 7 7435HS                             ",
+    "cpuCores": 16,
+    "memoryBytes": 16989728768,
+    "browser": "Chromium 151.0.7922.34",
+    "build": "vite build + vite preview（本番モード。React Profiler ビルドではない）"
+  }
+}
