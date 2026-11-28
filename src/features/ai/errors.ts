@@ -5,7 +5,9 @@ export type AIErrorCode =
   | "model-not-found"
   | "invalid-response"
   | "network"
-  | "api-error";
+  | "api-error"
+  | "invalid-endpoint"
+  | "external-consent-required";
 
 export class AIError extends Error {
   readonly code: AIErrorCode;

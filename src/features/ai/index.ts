@@ -29,6 +29,15 @@ export {
   OLLAMA_REQUEST_TIMEOUT_MS
 } from "./timeouts";
 export {
+  OLLAMA_EXTERNAL_CONSENT_STORAGE_KEY,
+  assessOllamaBaseUrl,
+  getExternalSendConsentUrl,
+  grantExternalSendConsent,
+  hasExternalSendConsent,
+  revokeExternalSendConsent,
+  type OllamaBaseUrlAssessment
+} from "./ollamaEndpoint";
+export {
   checkOllamaConnection,
   isOllamaModelInstalled,
   listOllamaModels,

@@ -1,4 +1,5 @@
 import { AIError } from "../errors";
+import { assertOllamaRequestAllowed, assessOllamaBaseUrl, joinOllamaUrl } from "../ollamaEndpoint";
 import { DEFAULT_OLLAMA_BASE_URL } from "../settings";
 import { OLLAMA_CONNECTION_TIMEOUT_MS, OLLAMA_REQUEST_TIMEOUT_MS } from "../timeouts";
 import type { AIMessage } from "../types";
@@ -12,11 +13,6 @@ type OllamaRequestOptions = {
   method?: "GET" | "POST";
   body?: unknown;
   timeoutMs: number;
-};
-
-const joinUrl = (baseUrl: string, path: string): string => {
-  const base = baseUrl.trim().replace(/\/+$/, "") || DEFAULT_OLLAMA_BASE_URL;
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
 const isAbortError = (error: unknown): boolean =>
@@ -82,7 +78,8 @@ export class OllamaClient {
     baseUrl: string = DEFAULT_OLLAMA_BASE_URL,
     options?: { connectionTimeoutMs?: number; requestTimeoutMs?: number }
   ) {
-    this.baseUrl = joinUrl(baseUrl, "").replace(/\/+$/, "") || DEFAULT_OLLAMA_BASE_URL;
+    const assessed = assessOllamaBaseUrl(baseUrl);
+    this.baseUrl = assessed.ok ? assessed.normalizedUrl : baseUrl.trim();
     this.connectionTimeoutMs = options?.connectionTimeoutMs ?? OLLAMA_CONNECTION_TIMEOUT_MS;
     this.requestTimeoutMs = options?.requestTimeoutMs ?? OLLAMA_REQUEST_TIMEOUT_MS;
   }
@@ -196,8 +193,10 @@ export class OllamaClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs);
     try {
-      const response = await fetch(joinUrl(this.baseUrl, options.path), {
+      const allowedBaseUrl = assertOllamaRequestAllowed(this.baseUrl);
+      const response = await fetch(joinOllamaUrl(allowedBaseUrl, options.path), {
         method: options.method ?? "GET",
+        redirect: "error",
         signal: controller.signal,
         headers: {
           Accept: "application/json",

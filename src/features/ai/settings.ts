@@ -1,3 +1,4 @@
+import { assessOllamaBaseUrl, revokeExternalSendConsent, syncExternalSendConsent } from "./ollamaEndpoint";
 import { AI_PROVIDER_KIND, type AIProviderKind, type AISettings } from "./types";
 
 export const AI_SETTINGS_STORAGE_KEY = "concept-book-ai-settings";
@@ -24,7 +25,11 @@ const normalizeBaseUrl = (value: unknown): string => {
   if (!isNonEmptyString(value)) {
     return DEFAULT_AI_SETTINGS.baseUrl;
   }
-  return value.trim().replace(/\/+$/, "");
+  const assessed = assessOllamaBaseUrl(value);
+  if (assessed.ok) {
+    return assessed.normalizedUrl;
+  }
+  return value.trim();
 };
 
 const normalizeModel = (value: unknown, fallback: string): string => {
@@ -62,7 +67,9 @@ export const loadAISettings = (): AISettings => {
 
 export const saveAISettings = (settings: AISettings): void => {
   try {
-    localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(normalizeAISettings(settings)));
+    const normalized = normalizeAISettings(settings);
+    syncExternalSendConsent(normalized.baseUrl);
+    localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
   } catch {
     // Storage access failure must not break ConceptBook.
   }
@@ -74,6 +81,7 @@ export const resetAISettings = (): void => {
   } catch {
     // Storage access failure must not break ConceptBook.
   }
+  revokeExternalSendConsent();
 };
 
 export const isAIEnabled = (): boolean => loadAISettings().enabled;
