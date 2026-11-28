@@ -2,20 +2,26 @@ export type IdbReadSample = {
   store: string;
   count: number;
   ms: number;
-  /** 読み取り完了の performance.now()。起動完了がログ後の計算より先に切れないようにする。 */
+  /** 読み取り完了の performance.now()。所要時間の記録に使う。 */
   at: number;
+  /** プローブ内の記録順。時刻が同じでも読み取りと計算を区別する。 */
+  seq: number;
 };
 
 export type ModelSample = {
   name: string;
   ms: number;
-  /** 計算完了の performance.now()。 */
+  /** 計算完了の performance.now()。所要時間の記録に使う。 */
   at: number;
+  /** プローブ内の記録順。時刻が同じでも読み取りと計算を区別する。 */
+  seq: number;
 };
 
 export type PerfProbeState = {
   idb: IdbReadSample[];
   models: ModelSample[];
+  /** 次に記録するイベントの連番。プローブを差し替えると 0 に戻る。 */
+  nextSeq: number;
 };
 
 const probeHost = globalThis as { __CB_PERF_PROBE__?: PerfProbeState };
@@ -36,7 +42,7 @@ export const measurePerfSpan = <T>(name: string, fn: () => T): T => {
     return fn();
   } finally {
     const at = performance.now();
-    probe.models.push({ name, ms: at - started, at });
+    probe.models.push({ name, ms: at - started, at, seq: takeSeq(probe) });
   }
 };
 
@@ -60,6 +66,17 @@ export const noteIdbRead = (store: string, count: number, startedAt: number | nu
     store,
     count,
     ms: at - startedAt,
-    at
+    at,
+    seq: takeSeq(probe)
   });
+};
+
+/** 記録のたびに増やす。配列を空にしても、プローブオブジェクトを新しくするまで連番は続く。 */
+const takeSeq = (probe: PerfProbeState): number => {
+  if (typeof probe.nextSeq !== "number" || probe.nextSeq < 0) {
+    probe.nextSeq = 0;
+  }
+  const seq = probe.nextSeq;
+  probe.nextSeq += 1;
+  return seq;
 };

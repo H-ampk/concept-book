@@ -5,37 +5,45 @@ export const STARTUP_LEARNING_MODEL_NAMES = [
   "learning-model.confusion-pairs"
 ] as const;
 
-type TimedStoreRead = {
+type OrderedStoreRead = {
   store: string;
-  at: number;
+  seq: number;
 };
 
-type TimedModelSample = {
+type OrderedModelSample = {
   name: string;
-  at: number;
+  seq: number;
 };
 
 /**
- * 最新の学習ログ読み取り以降に、BKT・クイズ統計・混同ペアがそれぞれ完了しているか。
- * ログ読み取りが無いときは未完了とする。計算回数 0 を、読み取り前の打ち切りと区別する。
+ * 最新の学習ログ読み取りより後の記録で、BKT・クイズ統計・混同ペアが揃っているか。
+ * 順序は performance.now() ではなく、プローブが記録した単調増加の連番で見る。
+ * 同じ時刻でも、読み取りより前に記録された計算は含めず、後に記録された計算は含める。
+ * ログ読み取りが無いときは未完了とする。
+ *
+ * 連番は記録順であり、計算がどのログ配列を閉じ込めたかまでは見ない。
+ * 現行の App は読み取り完了を記録したあと、その結果を state に入れて useMemo で計算する。
+ * 読み取りが重なると、より新しい読み取りの後に、より古い配列の計算が記録される余地がある。
  */
 export const learningModelsCoverLatestLogRead = (
-  idb: readonly TimedStoreRead[],
-  models: readonly TimedModelSample[]
+  idb: readonly OrderedStoreRead[],
+  models: readonly OrderedModelSample[]
 ): boolean => {
-  let lastLogAt: number | null = null;
+  let lastLogSeq: number | null = null;
   for (const sample of idb) {
-    if (sample.store !== "quizAttemptLogs") {
+    if (sample.store !== "quizAttemptLogs" || typeof sample.seq !== "number") {
       continue;
     }
-    if (lastLogAt === null || sample.at >= lastLogAt) {
-      lastLogAt = sample.at;
+    if (lastLogSeq === null || sample.seq > lastLogSeq) {
+      lastLogSeq = sample.seq;
     }
   }
-  if (lastLogAt === null) {
+  if (lastLogSeq === null) {
     return false;
   }
   return STARTUP_LEARNING_MODEL_NAMES.every((name) =>
-    models.some((sample) => sample.name === name && sample.at >= lastLogAt)
+    models.some(
+      (sample) => sample.name === name && typeof sample.seq === "number" && sample.seq > lastLogSeq
+    )
   );
 };

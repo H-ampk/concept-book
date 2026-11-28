@@ -20,6 +20,10 @@ import {
   hasMeasuredSourceCommit,
   sourceContentDiffersFromHead
 } from "../src/perf/measurementSource";
+import {
+  STARTUP_LEARNING_MODEL_NAMES,
+  learningModelsCoverLatestLogRead
+} from "../src/perf/startupLearningModels";
 
 const DB_NAME = "concept-book-db";
 const RESULTS_DIR = path.resolve(process.env.PERF_RESULTS_DIR ?? "docs/perf/results");
@@ -38,13 +42,13 @@ type StartupSample = {
 
 const installObservers = (): void => {
   const host = window as unknown as {
-    __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
+    __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[]; nextSeq: number };
     __longTasks: Array<{ startTime: number; duration: number }>;
     __appReadyAt: number | null;
     __startupProbeCounts: { idb: number; models: number } | null;
     __longTaskObserver: PerformanceObserver | null;
   };
-  host.__CB_PERF_PROBE__ = { idb: [], models: [] };
+  host.__CB_PERF_PROBE__ = { idb: [], models: [], nextSeq: 0 };
   host.__longTasks = [];
   host.__appReadyAt = null;
   host.__startupProbeCounts = null;
@@ -73,22 +77,10 @@ const installObservers = (): void => {
     const button = [...document.querySelectorAll("button")].find(
       (element) => element.textContent?.trim() === "概念を追加"
     );
-    const idb = host.__CB_PERF_PROBE__.idb as Array<{ store: string; at: number }>;
-    const models = host.__CB_PERF_PROBE__.models as Array<{ name: string; at: number }>;
+    const idb = host.__CB_PERF_PROBE__.idb as Array<{ store: string; seq: number }>;
+    const models = host.__CB_PERF_PROBE__.models as Array<{ name: string; seq: number }>;
     const stores = new Set(idb.map((sample) => sample.store));
-    let lastLogAt: number | null = null;
-    for (const sample of idb) {
-      if (sample.store === "quizAttemptLogs" && (lastLogAt === null || sample.at >= lastLogAt)) {
-        lastLogAt = sample.at;
-      }
-    }
-    const learningModelsReady =
-      lastLogAt !== null &&
-      [
-        "learning-model.bkt-mastery-map",
-        "learning-model.quiz-stats",
-        "learning-model.confusion-pairs"
-      ].every((name) => models.some((sample) => sample.name === name && sample.at >= lastLogAt));
+    const learningModelsReady = learningModelsCoverLatestLogRead(idb, models);
     if (
       button instanceof HTMLButtonElement &&
       !button.disabled &&
@@ -129,12 +121,12 @@ const installObservers = (): void => {
 const resetProbe = async (page: Page): Promise<void> => {
   await page.evaluate(() => {
     const host = window as unknown as {
-      __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[] };
+      __CB_PERF_PROBE__: { idb: unknown[]; models: unknown[]; nextSeq: number };
       __longTasks: Array<{ startTime: number; duration: number }>;
       __appReadyAt: number | null;
       __startupProbeCounts: { idb: number; models: number } | null;
     };
-    host.__CB_PERF_PROBE__ = { idb: [], models: [] };
+    host.__CB_PERF_PROBE__ = { idb: [], models: [], nextSeq: 0 };
     host.__longTasks = [];
     host.__appReadyAt = null;
     host.__startupProbeCounts = null;
@@ -773,7 +765,13 @@ const measureSpec = async (
     const context = await browser.newContext();
     try {
     const page = await context.newPage();
-    await page.addInitScript(installObservers);
+    await page.addInitScript({
+      content: [
+        `const STARTUP_LEARNING_MODEL_NAMES = ${JSON.stringify([...STARTUP_LEARNING_MODEL_NAMES])};`,
+        `const learningModelsCoverLatestLogRead = ${learningModelsCoverLatestLogRead.toString()};`,
+        `(${installObservers.toString()})();`
+      ].join("\n")
+    });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await waitUntilReady(page);
     await seedDataset(page, dataset);
@@ -865,7 +863,7 @@ const measureSpec = async (
       warm:
         "同じコンテキストで、コールド計測の直後に reload した document。HTTP キャッシュと IndexedDB を保持する。",
       startup:
-        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録され、最新の quizAttemptLogs 読み取り以降に BKT・クイズ統計・混同ペアの計算が各 1 回以上完了した最初の performance.now() まで。その時点の idb と models の件数だけを起動集計に使う。ログ読み取りが無い状態の modelCalls 0 は完了としない。準備完了後に増えた試料は含めない。",
+        "navigation startTime から、ボタン「概念を追加」が有効で、concepts、quizQuestions、quizAttemptLogs の読み取りがそれぞれ 1 回以上記録され、最新の quizAttemptLogs 読み取りより大きい連番で BKT・クイズ統計・混同ペアの計算が各 1 回以上完了した最初の performance.now() まで。順序は performance.now() ではなくプローブの単調増加連番で判定する。同じ時刻でも読み取り前の計算は含めず、読み取り後の計算は含める。所要時間は performance.now() の差分である。その時点の idb と models の件数だけを起動集計に使う。ログ読み取りが無い状態の modelCalls 0 は完了としない。準備完了後に増えた試料は含めない。",
       navigation:
         "ページ内の performance.now() で、操作開始直前から遷移先の見出しが表示されるまで。検索の 200ms デバウンスは製品の待ち時間として検索指標に含まれる。",
       crud:

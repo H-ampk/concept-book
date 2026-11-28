@@ -111,7 +111,7 @@ describe("useQuizLearningSnapshot", () => {
     const { getByRole } = render(<Host />);
     await waitFor(() => {
       expect(screen.getByTestId("logs-status")).toHaveTextContent("ready");
-      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
     });
     expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
     expect(getQuizQuestions).toHaveBeenCalledTimes(1);
@@ -121,12 +121,12 @@ describe("useQuizLearningSnapshot", () => {
       expect(getQuizQuestions).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
     expect(screen.getByTestId("question-concepts")).not.toHaveTextContent("c");
 
     getByRole("button", { name: "add-id" }).click();
     await waitFor(() => {
-      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a,c");
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a,c$/);
     });
     expect(getQuizQuestions).toHaveBeenCalledTimes(1);
     expect(getQuizAttemptLogs).toHaveBeenCalledTimes(1);
@@ -164,7 +164,7 @@ describe("useQuizLearningSnapshot", () => {
       expect(screen.getByTestId("logs-status")).toHaveTextContent("error");
     });
     expect(screen.getByTestId("log-ids")).toHaveTextContent("");
-    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
 
     getQuizAttemptLogs.mockResolvedValueOnce([]);
     screen.getByRole("button", { name: "reload-logs" }).click();
@@ -179,7 +179,7 @@ describe("useQuizLearningSnapshot", () => {
     getQuizQuestions.mockResolvedValueOnce([question("q1", "a")]);
     render(<Probe conceptIds={["a", "c"]} />);
     await waitFor(() => {
-      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
     });
 
     getQuizQuestions.mockRejectedValueOnce(new Error("fail"));
@@ -187,7 +187,7 @@ describe("useQuizLearningSnapshot", () => {
     await waitFor(() => {
       expect(screen.getByTestId("questions-status")).toHaveTextContent("error");
     });
-    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
     expect(screen.getByTestId("question-concepts")).not.toHaveTextContent("unloaded");
 
     getQuizQuestions.mockImplementationOnce(
@@ -200,7 +200,7 @@ describe("useQuizLearningSnapshot", () => {
     await waitFor(() => {
       expect(screen.getByTestId("questions-status")).toHaveTextContent("loading");
     });
-    expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
 
     resolveReload([]);
     await waitFor(() => {
@@ -221,10 +221,10 @@ describe("useQuizLearningSnapshot", () => {
     await waitFor(() => {
       expect(screen.getByTestId("questions-status")).toHaveTextContent("loading");
     });
-    expect(screen.getByTestId("question-concepts")).toHaveTextContent("unloaded");
+    expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^unloaded$/);
     resolveQuestions([question("q1", "a")]);
     await waitFor(() => {
-      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a");
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a$/);
     });
   });
 
@@ -232,7 +232,7 @@ describe("useQuizLearningSnapshot", () => {
     getQuizQuestions.mockResolvedValue([question("q-nul", "a\u0000b")]);
     render(<Probe conceptIds={["a\u0000b"]} />);
     await waitFor(() => {
-      expect(screen.getByTestId("question-concepts")).toHaveTextContent("a\u0000b");
+      expect(screen.getByTestId("question-concepts")).toHaveTextContent(/^a\u0000b$/);
     });
     expect(screen.getByTestId("question-concepts")).not.toHaveTextContent(/^a,b$/);
     expect(getQuizQuestions).toHaveBeenCalledTimes(1);
