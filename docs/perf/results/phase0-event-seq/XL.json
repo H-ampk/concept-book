@@ -1,0 +1,11 @@
+{
+  "measuredSourceCommit": "e30eb45800153200cb92ddd33abd4b671861df89",
+  "measuredSourceTree": "b8f49db7d856c24a588842505c2a6f18432447d5",
+  "contentMatchesHead": true,
+  "resultsCommit": null,
+  "note": "measuredSourceCommit と measuredSourceTree は計測したソースである。contentMatchesHead が true のとき、計測対象パスの git diff HEAD と未追跡ファイルは空で、その commit のツリーと内容が一致する。status 表示だけでは失敗させない。結果 JSON を記録する commit は後の別 commit であり、resultsCommit には入れない。",
+  "uncommittedContentDiff": null,
+  "uncommittedStatus": "M vite.config.js",
+  "status": "not-run",
+  "reason": "XL は L を基準に概念数・ログ数・添付容量を増やすストレステストである。この実行では時間の都合で未実施。回帰比較には使わない。"
+}
