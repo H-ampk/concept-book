@@ -24,7 +24,12 @@ export type PdfDocumentHandle = {
 };
 
 export const loadPdfDocument = async (data: ArrayBuffer): Promise<PdfDocumentHandle> => {
-  const task = pdfjs.getDocument({ data });
+  // PDF 関数（Type 4 PostScript）の new Function コンパイルを使わない。
+  // PDF 内 JavaScript の実行経路は標準 Viewer 側にあり、ここでは開かない。
+  const task = pdfjs.getDocument({
+    data,
+    isEvalSupported: false
+  });
   const pdf = await task.promise;
   return pdf as unknown as PdfDocumentHandle;
 };
